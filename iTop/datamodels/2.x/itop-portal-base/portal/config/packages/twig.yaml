@@ -1,0 +1,10 @@
+twig:
+  default_path: '%combodo.modules.absolute_path%'
+  paths:
+    '%combodo.approot%images/': ~
+  debug: '%kernel.debug%'
+  strict_variables: '%kernel.debug%'
+
+when@test:
+  twig:
+    strict_variables: true

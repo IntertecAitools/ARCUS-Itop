@@ -1,0 +1,18 @@
+{# @copyright   Copyright (C) 2010-2024 Combodo SAS #}
+{# @license     http://opensource.org/licenses/AGPL-3.0 #}
+
+{% extends "base.html.twig" %}
+
+{% block login_content %}
+	<div id="login-content">
+		<h1>{{ 'UI:ResetPwd-Title'|dict_s }}</h1>
+		{% if bNoUser %}
+			<p>{{ 'UI:ResetPwd-EmailSent'|dict_s }}</p>
+		{% elseif bBadToken %}
+			<p>{{ 'UI:ResetPwd-Error-InvalidToken'|dict_s }}</p>
+		{% else %}
+			<p>{{ 'UI:ResetPwd-Ready'|dict_s }}</p>
+			<p><a href="{{ sUrl }}">{{ 'UI:ResetPwd-Login'|dict_s }}</a></p>
+		{% endif %}
+	</div>
+{% endblock %}

@@ -1,0 +1,72 @@
+<?php
+
+/**
+ * Localized data
+ *
+ * @copyright Copyright (C) 2010-2024 Combodo SAS
+ * @license    https://opensource.org/licenses/AGPL-3.0
+ *
+ */
+/**
+ *
+ */
+Dict::Add('PL PL', 'Polish', 'Polski', [
+	'Attachments:TabTitle_Count' => 'Załączniki (%1$d)',
+	'Attachments:EmptyTabTitle' => 'Załączniki',
+	'Attachments:FieldsetTitle' => 'Załączniki',
+	'Attachments:DeleteBtn' => 'Usuń',
+	'Attachments:History_File_Added' => 'Załącznik %1$s dodano.',
+	'Attachments:History_File_Removed' => 'Załącznik %1$s usunięto.',
+	'Attachments:AddAttachment' => 'Dodaj załącznik: ',
+	'Attachments:UploadNotAllowedOnThisSystem' => 'Przesyłanie plików NIE jest dozwolone w tym systemie.',
+	'Attachment:Max_Go' => '(Maksymalny rozmiar pliku: %1$s Go)',
+	'Attachment:Max_Mo' => '(Maksymalny rozmiar pliku: %1$s Mo)',
+	'Attachment:Max_Ko' => '(Maksymalny rozmiar pliku: %1$s Ko)',
+	'Attachments:NoAttachment' => 'Brak załącznika. ',
+	'Attachments:PreviewNotAvailable' => 'Podgląd nie jest dostępny dla tego typu załącznika.',
+	'Attachments:Error:FileTooLarge' => 'Plik jest za duży do przesłania. %1$s',
+	'Attachments:Error:UploadedFileEmpty' => 'Otrzymany plik jest pusty i nie można go załączyć.
+Albo przesłałeś pusty plik,
+lub zapytaj administratora '.ITOP_APPLICATION_SHORT.', czy dysk serwera '.ITOP_APPLICATION_SHORT.' jest pełny.',
+	'Attachments:Render:Icons' => 'Wyświetlaj jako ikony',
+	'Attachments:Render:Table' => 'Wyświetl jako listę',
+	'UI:Attachments:DropYourFileHint' => 'Upuść pliki w dowolnym miejscu w tym obszarze',
+	'Class:Attachment' => 'Załącznik',
+	'Class:Attachment+' => 'File: text or image, linked to a single object. It can\'t be modified, only deleted. Attachment can\'t be created outside of its object edition.~~',
+	'Class:Attachment/Attribute:expire' => 'Wygasa',
+	'Class:Attachment/Attribute:expire+' => '~~',
+	'Class:Attachment/Attribute:temp_id' => 'Id tymczasowy',
+	'Class:Attachment/Attribute:temp_id+' => '~~',
+	'Class:Attachment/Attribute:item_class' => 'Klasa pozycji',
+	'Class:Attachment/Attribute:item_class+' => '~~',
+	'Class:Attachment/Attribute:item_id' => 'Pozycja',
+	'Class:Attachment/Attribute:item_id+' => '~~',
+	'Class:Attachment/Attribute:item_org_id' => 'Organizacja pozycji',
+	'Class:Attachment/Attribute:item_org_id+' => '~~',
+	'Class:Attachment/Attribute:contents' => 'Zawartość',
+	'Class:Attachment/Attribute:contents+' => '~~',
+	'Attachments:File:Thumbnail' => 'Ikona',
+	'Attachments:File:Name' => 'Nazwa pliku',
+	'Attachments:File:Date' => 'Data przesłania',
+	'Attachments:File:Uploader' => 'Przesłany przez',
+	'Attachments:File:Size' => 'Rozmiar',
+	'Attachments:File:MimeType' => 'Typ',
+	'Attachments:File:DownloadsCount' => 'Pobrano',
+	'Class:Attachment/Attribute:creation_date' => 'Data utworzenia',
+	'Class:Attachment/Attribute:creation_date+' => '~~',
+	'Class:Attachment/Attribute:user_id' => 'Id użytkownika',
+	'Class:Attachment/Attribute:user_id+' => '~~',
+	'Class:Attachment/Attribute:contact_id' => 'Id kontaktu',
+	'Class:Attachment/Attribute:contact_id+' => '~~',
+	'Class:TriggerOnAttachmentDownload' => 'Wyzwalacz (po pobraniu załącznika obiektu)',
+	'Class:TriggerOnAttachmentDownload+' => 'Wyzwalacz po pobraniu załącznika obiektu [klasy podrzędnej] danej klasy',
+	'Class:TriggerOnAttachmentCreate' => 'Trigger (on object\'s attachment creation)~~',
+	'Class:TriggerOnAttachmentCreate+' => 'Trigger on object\'s attachment creation~~',
+	'Class:TriggerOnAttachmentDelete' => 'Trigger (on object\'s attachment deletion)~~',
+	'Class:TriggerOnAttachmentDelete+' => 'Trigger on object\'s attachment deletion~~',
+	'Class:TriggerOnAttachmentCreate/Attribute:file_in_email' => 'Add file in email~~',
+	'Class:TriggerOnAttachmentCreate/Attribute:file_in_email+' => 'If checked, the file will be automatically attached to the email when an email action is triggered~~',
+	'Class:TriggerOnAttachmentDelete/Attribute:file_in_email' => 'Add deleted file in email~~',
+	'Class:TriggerOnAttachmentDelete/Attribute:file_in_email+' => 'If checked, the deleted file will be automatically attached to the email when an email action is triggered~~',
+	'Class:TriggerOnObject:TriggerClassAttachment/ReadOnlyMessage' => 'Trigger on object is not allowed on class Attachment. Please use specific trigger~~',
+]);

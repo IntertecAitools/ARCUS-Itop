@@ -1,0 +1,497 @@
+<?php
+
+/**
+ * Copyright (c) 2010-2024 Combodo SAS
+ *
+ * This file is part of iTop.
+ *
+ * iTop is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * iTop is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with iTop. If not, see <http://www.gnu.org/licenses/>
+ *
+ */
+
+use Combodo\iTop\PhpParser\Evaluation\PhpExpressionEvaluator;
+use Combodo\iTop\Setup\ModuleDependency\Module;
+use Combodo\iTop\Setup\ModuleDependency\ModuleDependencySort;
+use Combodo\iTop\Setup\ModuleDiscovery\ModuleFileReader;
+use Combodo\iTop\Setup\ModuleDiscovery\ModuleFileReaderException;
+
+require_once(APPROOT.'setup/modulediscovery/ModuleFileReader.php');
+require_once(__DIR__.'/moduledependency/moduledependencysort.class.inc.php');
+require_once(__DIR__.'/itopextension.class.inc.php');
+
+class MissingDependencyException extends CoreException
+{
+	/**
+	 * @see \ModuleDiscovery::OrderModulesByDependencies property init
+	 * @var array<string, array<array>>
+	 *     module id as key
+	 *     another array as value, containing : 'module' with module info, 'dependencies' with missing dependencies
+	 */
+	public $aModulesInfo;
+
+	/**
+	 * @return string HTML to print to the user the modules impacted
+	 * @since 2.7.7 3.0.2 3.1.0 N°5090 PR #280
+	 */
+	public function getHtmlDesc($sHighlightHtmlBegin = null, $sHighlightHtmlEnd = null)
+	{
+		$sErrorMessage = <<<HTML
+<p>The following modules have unmet dependencies:</p>
+<ul>
+HTML;
+		foreach ($this->aModulesInfo as $sModuleId => $aModuleErrors) {
+			$sModuleLabel = utils::EscapeHtml($aModuleErrors['module']['label']);
+			$sModuleId = utils::EscapeHtml($sModuleId);
+			$aModuleMissingDependencies = $aModuleErrors['dependencies'];
+			$sErrorMessage .= <<<HTML
+	<li><strong>$sModuleLabel</strong> ($sModuleId):
+		<ul>
+HTML;
+
+			foreach ($aModuleMissingDependencies as $sMissingModule) {
+				$sMissingModule = utils::EscapeHtml($sMissingModule);
+				$sErrorMessage .= "<li>$sMissingModule</li>";
+			}
+			$sErrorMessage .= <<<HTML
+		</ul>
+	</li>
+HTML;
+
+		}
+		$sErrorMessage .= '</ul>';
+
+		return $sErrorMessage;
+	}
+}
+
+class ModuleDiscovery
+{
+	public static $m_aModuleArgs = [
+		'label' => 'One line description shown during the interactive setup',
+		'dependencies' => 'array of module ids',
+		'mandatory' => 'boolean',
+		'visible' => 'boolean',
+		'datamodel' =>  'array of data model files',
+		//'dictionary' => 'array of dictionary files', // No longer mandatory, now automated
+		'data.struct' => 'array of structural data files',
+		'data.sample' => 'array of sample data files',
+		'doc.manual_setup' => 'url',
+		'doc.more_information' => 'url',
+	];
+
+	// Cache the results and the source directories
+	protected static $m_aSearchDirs = null;
+	protected static $m_aModules = [];
+	protected static $m_aModuleVersionByName = [];
+
+	/** @var array<\iTopExtension> $m_aRemovedExtensions */
+	protected static array $m_aRemovedExtensions = [];
+
+	// All the entries below are list of file paths relative to the module directory
+	protected static $m_aFilesList = ['datamodel', 'webservice', 'dictionary', 'data.struct', 'data.sample'];
+
+	// ModulePath is used by AddModule to get the path of the module being included (in ListModuleFiles)
+	protected static $m_sModulePath = null;
+
+	private static PhpExpressionEvaluator $oPhpExpressionEvaluator;
+
+	protected static function SetModulePath($sModulePath)
+	{
+		self::$m_sModulePath = $sModulePath;
+	}
+
+	/**
+	 * @param string $sFilePath
+	 * @param string $sId
+	 * @param array $aArgs
+	 *
+	 * @throws \Exception for missing parameter
+	 */
+	public static function AddModule($sFilePath, $sId, $aArgs)
+	{
+		if (is_null($aArgs) || ! is_array($aArgs)) {
+			throw new ModuleFileReaderException("Error parsing module file args", 0, null, $sFilePath);
+		}
+		foreach (array_keys(self::$m_aModuleArgs) as $sArgName) {
+			if (!array_key_exists($sArgName, $aArgs)) {
+				throw new Exception("Module '$sId': missing argument '$sArgName'");
+			}
+		}
+
+		$aArgs['root_dir'] = dirname($sFilePath);
+		$aArgs['module_file'] = $sFilePath;
+
+		list($sModuleName, $sModuleVersion) = static::GetModuleName($sId);
+
+		if (self::IsModuleInExtensionList(self::$m_aRemovedExtensions, $sModuleName, $sModuleVersion, $aArgs)) {
+			return;
+		}
+
+		if (array_key_exists($sModuleName, self::$m_aModuleVersionByName)) {
+			if (version_compare($sModuleVersion, self::$m_aModuleVersionByName[$sModuleName]['version'], '>')) {
+				// Newer version, let's upgrade
+				$sIdToRemove = self::$m_aModuleVersionByName[$sModuleName]['id'];
+				unset(self::$m_aModules[$sIdToRemove]);
+
+				self::$m_aModuleVersionByName[$sModuleName]['version'] = $sModuleVersion;
+				self::$m_aModuleVersionByName[$sModuleName]['id'] = $sId;
+			} else {
+				// Older (or equal) version, let's ignore it
+				return;
+			}
+		} else {
+			// First version to be loaded for this module, remember it
+			self::$m_aModuleVersionByName[$sModuleName]['version'] = $sModuleVersion;
+			self::$m_aModuleVersionByName[$sModuleName]['id'] = $sId;
+		}
+
+		self::$m_aModules[$sId] = $aArgs;
+
+		// Now keep the relative paths, as provided
+		/*
+		foreach(self::$m_aFilesList as $sAttribute)
+		{
+			if (isset(self::$m_aModules[$sId][$sAttribute]))
+			{
+				// All the items below are list of files, that are relative to the current file
+				// being loaded, let's update their path to store path relative to the application directory
+				foreach(self::$m_aModules[$sId][$sAttribute] as $idx => $sRelativePath)
+				{
+					self::$m_aModules[$sId][$sAttribute][$idx] = self::$m_sModulePath.'/'.$sRelativePath;
+				}
+			}
+		}
+		*/
+		// Populate automatically the list of dictionary files
+		$aMatches = [];
+		if (preg_match('|^([^/]+)|', $sId, $aMatches)) { // ModuleName = everything before the first forward slash
+			$sModuleName = $aMatches[1];
+			$sDir = dirname($sFilePath);
+			$aDirs = [
+				$sDir => self::$m_sModulePath,
+				$sDir.'/dictionaries' => self::$m_sModulePath.'/dictionaries',
+			];
+			foreach ($aDirs as $sRootDir => $sPath) {
+				if (is_dir($sRootDir)) {
+					if ($hDir = @opendir($sRootDir)) {
+						while (($sFile = readdir($hDir)) !== false) {
+							$aMatches = [];
+							if (preg_match("/^[^\\.]+.dict.$sModuleName.php$/i", $sFile, $aMatches)) { // Dictionary files named like <Lang>.dict.<ModuleName>.php are loaded automatically
+								self::$m_aModules[$sId]['dictionary'][] = $sPath.'/'.$sFile;
+							}
+						}
+						closedir($hDir);
+					}
+				}
+			}
+		}
+	}
+
+	/**
+	 * Arrange an list of modules, based on their (inter) dependencies
+	 * @param array $aModules The list of modules to process: 'id' => $aModuleInfo
+	 * @param bool $bAbortOnMissingDependency ...
+	 * @param array $aModulesToLoad List of modules to search for, defaults to all if omitted
+	 * @return array
+	 * @throws \MissingDependencyException
+	*/
+	public static function OrderModulesByDependencies($aModules, $bAbortOnMissingDependency = false, $aModulesToLoad = null)
+	{
+		if (is_null($aModulesToLoad) && count(self::$m_aRemovedExtensions) === 0) {
+			$aFilteredModules = $aModules;
+		} else {
+			$aFilteredModules = [];
+			foreach ($aModules as $sModuleId => $aModuleInfo) {
+				$oModule = new Module($sModuleId);
+				$sModuleName = $oModule->GetModuleName();
+
+				if (self::IsModuleInExtensionList(self::$m_aRemovedExtensions, $sModuleName, $oModule->GetVersion(), $aModuleInfo)) {
+					continue;
+				}
+
+				if (is_null($aModulesToLoad) || in_array($sModuleName, $aModulesToLoad)) {
+					$aFilteredModules[$sModuleId] = $aModuleInfo;
+				}
+			}
+		}
+
+		return ModuleDependencySort::GetInstance()->GetModulesOrderedForInstallation($aFilteredModules, $bAbortOnMissingDependency);
+	}
+
+	/**
+	* @since 3.3
+	* @param array<\iTopExtension> $aRemovedExtension
+	* @return void
+	 */
+	public static function DeclareRemovedExtensions(array $aRemovedExtension): void
+	{
+		if (self::$m_aRemovedExtensions != $aRemovedExtension) {
+			self::ResetCache();
+		}
+		self::$m_aRemovedExtensions = $aRemovedExtension;
+	}
+
+	/**
+	* @since 3.3
+	* @return string[]
+	*/
+	public static function GetRemovedExtensionCodes(): array
+	{
+		$aRes = [];
+		foreach (self::$m_aRemovedExtensions as $oExtension) {
+			$aRes[] = $oExtension->sCode;
+		}
+		return $aRes;
+	}
+
+	private static function Init($aSearchDirs): void
+	{
+		if (self::$m_aSearchDirs != $aSearchDirs) {
+			self::ResetCache();
+		}
+
+		if (is_null(self::$m_aSearchDirs)) {
+			self::$m_aSearchDirs = $aSearchDirs;
+
+			// Not in cache, let's scan the disk
+			foreach ($aSearchDirs as $sSearchDir) {
+				$sLookupDir = realpath($sSearchDir);
+				if ($sLookupDir == '') {
+					throw new Exception("Invalid directory '$sSearchDir'");
+				}
+
+				clearstatcache();
+				self::ListModuleFiles(basename($sSearchDir), dirname($sSearchDir));
+			}
+		}
+	}
+
+	/**
+	 * Return all modules found on disk ordered by dependencies. Skipping modules coming from extensions declared as removed (@see ModuleDiscovery::DeclareRemovedExtensions)
+	 * @param $aSearchDirs array of directories to search (absolute paths)
+	 * @param bool $bAbortOnMissingDependency ...
+	 * @param array $aModulesToLoad List of modules to search for, defaults to all if omitted
+	 *
+	 * @return array A big array moduleID => ModuleData
+	 * @throws \Exception
+	 */
+	public static function GetModulesOrderedByDependencies($aSearchDirs, $bAbortOnMissingDependency = false, $aModulesToLoad = null)
+	{
+		self::Init($aSearchDirs);
+
+		return self::OrderModulesByDependencies(self::$m_aModules, $bAbortOnMissingDependency, $aModulesToLoad);
+	}
+
+	/**
+	 * @deprecated use \ModuleDiscovery::GetModulesOrderedByDependencies instead
+	 */
+	public static function GetAvailableModules($aSearchDirs, $bAbortOnMissingDependency = false, $aModulesToLoad = null)
+	{
+		return ModuleDiscovery::GetModulesOrderedByDependencies($aSearchDirs, $bAbortOnMissingDependency, $aModulesToLoad);
+	}
+
+	/**
+	 * Return all modules found on disk (without any dependency consideration). Skipping modules coming from extensions declared as removed (@see ModuleDiscovery::DeclareRemovedExtensions)
+	 *
+	 * @param $aSearchDirs array of directories to search (absolute paths)
+	 *
+	 * @return array<string, array> A big array moduleID => ModuleData
+	 * @throws \Exception
+	 */
+	public static function GetAllModules(array $aSearchDirs): array
+	{
+		self::Init($aSearchDirs);
+
+		$aNonRemovedModules = [];
+		foreach (self::$m_aModules as $sModuleId => $aModuleInfo) {
+			$oModule = new Module($sModuleId);
+			$sModuleName = $oModule->GetModuleName();
+
+			if (self::IsModuleInExtensionList(self::$m_aRemovedExtensions, $sModuleName, $oModule->GetVersion(), $aModuleInfo)) {
+				continue;
+			}
+
+			$aNonRemovedModules[$sModuleId] = $aModuleInfo;
+		}
+
+		return $aNonRemovedModules;
+	}
+
+	public static function ResetCache()
+	{
+		self::$m_aSearchDirs = null;
+		self::$m_aModules = [];
+		self::$m_aModuleVersionByName = [];
+	}
+
+	/**
+	 * Helper function to interpret the name of a module
+	 *
+	 * @param $sModuleId string Identifier of the module, in the form 'name/version'
+	 *
+	 * @return array of 2 elements (name, version)
+	 */
+	public static function GetModuleName($sModuleId): array
+	{
+		$aMatches = [];
+		if (preg_match('!^(.*)/(.*)$!', $sModuleId, $aMatches)) {
+			$sName = $aMatches[1];
+			$sVersion = $aMatches[2];
+			if ($sVersion === "") {
+				$sVersion = "1.0.0";
+			}
+		} else {
+			$sName = $sModuleId;
+			$sVersion = "1.0.0";
+		}
+
+		return [$sName, $sVersion];
+	}
+
+	/**
+	 * Helper function to browse a directory and get the modules
+	 *
+	 * @param $sRelDir string Directory to start from
+	 * @param $sRootDir string The root directory path
+	 *
+	 * @throws \Exception
+	 */
+	protected static function ListModuleFiles($sRelDir, $sRootDir)
+	{
+		$sDirectory = $sRootDir.'/'.$sRelDir;
+
+		if ($hDir = opendir($sDirectory)) {
+			// This is the correct way to loop over the directory. (according to the documentation)
+			while (($sFile = readdir($hDir)) !== false) {
+				$aMatches = [];
+				if (is_dir($sDirectory.'/'.$sFile)) {
+					if (($sFile != '.') && ($sFile != '..') && ($sFile != '.svn') && ($sFile != 'vendor')) {
+						self::ListModuleFiles($sRelDir.'/'.$sFile, $sRootDir);
+					}
+				} elseif (preg_match('/^module\.(.*).php$/i', $sFile, $aMatches)) {
+					self::SetModulePath($sRelDir);
+					$sModuleFilePath = $sDirectory.'/'.$sFile;
+					try {
+						$aModuleInfo = ModuleFileReader::GetInstance()->ReadModuleFileInformation($sDirectory.'/'.$sFile);
+						SetupWebPage::AddModule($sModuleFilePath, $aModuleInfo[ModuleFileReader::MODULE_INFO_ID], $aModuleInfo[ModuleFileReader::MODULE_INFO_CONFIG]);
+					} catch (ModuleFileReaderException $e) {
+						continue;
+					}
+				}
+			}
+			closedir($hDir);
+		} else {
+			throw new Exception("Data directory (".$sDirectory.") not found or not readable.");
+		}
+	}
+
+	/**
+	 * @param array<\iTopExtension> $aExtensions
+	 * @param string $sModuleName
+	 * @param string $sModuleVersion
+	 * @param array $aModuleInfo
+	 *
+	 * @return bool
+	 */
+	private static function IsModuleInExtensionList(array $aExtensions, string $sModuleName, string $sModuleVersion, array $aModuleInfo): bool
+	{
+		if (count($aExtensions) === 0) {
+			return false;
+		}
+		$aNonMatchingPaths = [];
+		$sModuleFilePath = $aModuleInfo[ModuleFileReader::MODULE_FILE_PATH];
+
+		/** @var \iTopExtension $oExtension */
+		foreach ($aExtensions as $oExtension) {
+			$sCurrentVersion = $oExtension->aModuleVersion[$sModuleName] ?? null;
+			if (is_null($sCurrentVersion)) {
+				continue;
+			}
+
+			if ($sModuleVersion !== $sCurrentVersion) {
+				continue;
+			}
+
+			/** @var array|null $aCurrentModuleInfo */
+			$aCurrentModuleInfo = $oExtension->aModuleInfo[$sModuleName] ?? null;
+			if (is_null($aCurrentModuleInfo)) {
+				SetupLog::Warning("Missing $sModuleName in ".$oExtension->sLabel.". it should not happen");
+				continue;
+			}
+
+			// use case: same module coming from 2 different extensions
+			// we remove only the one coming from removed extensions
+			$sCurrentModuleFilePath = $aCurrentModuleInfo[ModuleFileReader::MODULE_FILE_PATH];
+			if (realpath($sModuleFilePath) !== realpath($sCurrentModuleFilePath)) {
+				$aNonMatchingPaths[] = $sCurrentModuleFilePath;
+				continue;
+			}
+
+			IssueLog::Debug("Module considered as removed", null, ['extension_code' => $oExtension->sCode, 'module_name' => $sModuleName, 'module_version' => $sModuleVersion, ModuleFileReader::MODULE_FILE_PATH => $sCurrentModuleFilePath]);
+			return true;
+		}
+
+		if (count($aNonMatchingPaths) > 0) {
+			//add log for support
+			IssueLog::Debug("Module kept as it came from non removed extensions", null, ['module_name' => $sModuleName, 'module_version' => $sModuleVersion, ModuleFileReader::MODULE_FILE_PATH => $sModuleFilePath, 'non_matching_paths' => $aNonMatchingPaths]);
+		}
+		IssueLog::Debug(__METHOD__.' Module loaded', null, ['name' => $sModuleName, 'version' => $sModuleVersion]);
+		return false;
+	}
+
+} // End of class
+
+/** Alias for backward compatibility with old module files in which
+ *  the declaration of a module invokes SetupWebPage::AddModule()
+ *  whereas the new form is ModuleDiscovery::AddModule()
+ */
+class SetupWebPage extends ModuleDiscovery
+{
+	// For backward compatibility with old modules...
+	public static function log_error($sText)
+	{
+		SetupLog::Error($sText);
+	}
+
+	public static function log_warning($sText)
+	{
+		SetupLog::Warning($sText);
+	}
+
+	public static function log_info($sText)
+	{
+		SetupLog::Info($sText);
+	}
+
+	public static function log_ok($sText)
+	{
+		SetupLog::Ok($sText);
+	}
+
+	public static function log($sText)
+	{
+		SetupLog::Ok($sText);
+	}
+}
+
+/** Ugly patch !!!
+ * In order to be able to analyse / load several times
+ * the same module file, we rename the class (to avoid duplicate class definitions)
+ * and we make the class extends the dummy class below in order to "deactivate" completely
+ * the class (in case some piece of code enumerate the classes derived from a well known class)
+ * Note that this will not work if someone enumerates the classes that implement a given interface
+ */
+class DummyHandler
+{
+}

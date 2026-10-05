@@ -1,0 +1,46 @@
+/*
+ * @copyright   Copyright (C) 2010-2024 Combodo SAS
+ * @license     http://opensource.org/licenses/AGPL-3.0
+ */
+
+$ibo-column--min-width: 300px !default;
+$ibo-column--padding-x: abs($ibo-multi-column--margin-x) !default;
+$ibo-column--padding-y: $ibo-spacing-0 !default;
+
+$ibo-mini-column--min-width: 30px !default;
+$ibo-mini-column--padding-x: $ibo-column--padding-x !default;
+$ibo-mini-column--padding-y: $ibo-column--padding-y !default;
+$ibo-mini-column--button-margin-left: $ibo-spacing-0 !default;
+$ibo-mini-column--button-margin-right: $ibo-spacing-0 !default;
+
+$ibo-column--margin-bottom--is-last-element: $ibo-spacing-800 !default;
+
+.ibo-column {
+  min-width: $ibo-column--min-width;
+  flex-grow: 1;
+  flex-shrink: 1;
+  padding: $ibo-column--padding-y $ibo-column--padding-x;
+  flex-basis: 10%;
+
+  &:not(:last-child) &:not(.ibo-without-margin) {
+    margin-bottom: $ibo-column--margin-bottom--is-last-element;
+  }
+}
+
+.ibo-mini-column {
+  min-width: $ibo-mini-column--min-width;
+  flex-grow: 1;
+  flex-shrink: 1;
+  padding: $ibo-mini-column--padding-y $ibo-mini-column--padding-x;
+  flex-basis: 10%;
+  display: flex;
+  flex-direction: column;
+  
+  >.ibo-button{
+    margin-left: $ibo-mini-column--button-margin-left;
+    margin-right: $ibo-mini-column--button-margin-right;
+  }
+  &:not(:last-child) {
+    margin-bottom: $ibo-column--margin-bottom--is-last-element;
+  }
+}

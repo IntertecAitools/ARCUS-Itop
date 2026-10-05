@@ -1,0 +1,48 @@
+<?php
+
+/**
+ * Localized data
+ *
+ * @copyright Copyright (C) 2010-2024 Combodo SAS
+ * @license    https://opensource.org/licenses/AGPL-3.0
+ *
+ */
+/**
+ *
+ */
+Dict::Add('RU RU', 'Russian', 'Русский', [
+	'UI:WelcomePopup:Button:RemindLater' => 'Напомнить позже',
+	'UI:WelcomePopup:Button:AcknowledgeAndNext' => 'Далее',
+	'UI:WelcomePopup:Button:AcknowledgeAndClose' => 'Закрыть',
+	'UI:WelcomePopup:Message:330_01_Welcome:Title' => 'Добро пожаловать в '.ITOP_APPLICATION_SHORT.' 3.3',
+	'UI:WelcomePopup:Message:330_01_Welcome:Description' => '<div>Мы рады представить этот новый релиз с рядом обновлений и улучшений!</div>
+<br>
+<div>Помимо новых возможностей, таких как многофакторная аутентификация, эта версия включает важные обновления безопасности, первые компоненты на основе ИИ и различные улучшения для более плавной и надёжной работы.</div>
+<br>
+<div>Мы надеемся, что вам понравится эта версия так же, как нам понравилось её создавать.</div>
+<div>Не забудьте настроить свои предпочтения iTop под свои задачи.</div>',
+	'UI:WelcomePopup:Message:330_02_AIFoundations:Title' => 'Закладываем основу для ИИ',
+	'UI:WelcomePopup:Message:330_02_AIFoundations:Description' => '<div>Этот релиз вводит первые строительные блоки для будущих функций на основе ИИ.</div>
+<br>
+<div>Мы реализовали базовые API, которые будут поддерживать дальнейшие улучшения, открывая путь к новым интеллектуальным возможностям и более насыщенному опыту в следующих обновлениях.</div>
+<br>
+<div>Следите за новостями — это только начало.</div>',
+	'UI:WelcomePopup:Message:330_03_CMDB:Title' => 'Улучшенная CMDB',
+	'UI:WelcomePopup:Message:330_03_CMDB:Description' => '<div>Эта версия вносит ряд улучшений в модель данных для лучшей поддержки меняющихся потребностей.</div>
+<br>
+<div>Мы добавили управление контейнеризацией, улучшили управление потоками, обогатили описания классов и добавили управление жизненным циклом (окончание поддержки / окончание жизненного цикла). Меню управления услугами также было переработано для большей ясности и удобства, вместе с добавлением изображений и логотипов для отдельных конфигурационных единиц.</div>
+<br>
+<div>Эти обновления призваны сделать работу более структурированной и интуитивной.</div>',
+	'UI:WelcomePopup:Message:330_04_MFA:Title' => 'Усиление безопасности с помощью MFA',
+	'UI:WelcomePopup:Message:330_04_MFA:Description' => '<div>Многофакторная аутентификация (MFA) теперь полностью интегрирована в iTop.</div>
+<br>
+<div>MFA, встроенная прямо в основную функциональность, усиливает общую безопасность и обеспечивает более плавный и последовательный пользовательский опыт.</div>
+<br>
+<div>Рекомендуем проверить свои настройки и включить MFA для повышения защиты учётной записи.</div>',
+	'UI:WelcomePopup:Message:330_05_Portal:Title' => 'New Portal Experience~~',
+	'UI:WelcomePopup:Message:330_05_Portal:Description' => '<div>This new version natively brings a more modern, flexible, and responsive experience to the portal, with a look and feel aligned with the console.</div>
+<br>
+<div>We’ve redesigned the navigation for a clearer and more consistent experience, enhanced the flexibility of menus and dashboards, and introduced responsive cards that adapt to different screen sizes. "My Profile" has also been enhanced, allowing users to manage their account and MFA settings more easily.</div>
+<br>
+<div>The portal can also be customized with your own look and feel, helping you deliver a more consistent and branded experience to your users.</div>~~',
+]);

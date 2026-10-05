@@ -1,0 +1,46 @@
+/*
+ * @copyright   Copyright (C) 2010-2024 Combodo SAS
+ * @license     http://opensource.org/licenses/AGPL-3.0
+ */
+
+$ibo-size-0: $common-size-0 !default;
+$ibo-size-50: $common-size-50 !default;
+$ibo-size-100: $common-size-100 !default;
+$ibo-size-150: $common-size-150 !default;
+$ibo-size-200: $common-size-200 !default;
+$ibo-size-250: $common-size-250 !default;
+$ibo-size-300: $common-size-300 !default;
+$ibo-size-350: $common-size-350 !default;
+$ibo-size-400: $common-size-400 !default;
+$ibo-size-450: $common-size-450 !default;
+$ibo-size-500: $common-size-500 !default;
+$ibo-size-550: $common-size-550 !default;
+$ibo-size-600: $common-size-600 !default;
+$ibo-size-650: $common-size-650 !default;
+$ibo-size-700: $common-size-700 !default;
+$ibo-size-750: $common-size-750 !default;
+$ibo-size-800: $common-size-800 !default;
+$ibo-size-850: $common-size-850 !default;
+$ibo-size-900: $common-size-900 !default;
+
+:root{
+  --ibo-size-0: #{$ibo-size-0};
+  --ibo-size-50: #{$ibo-size-50};
+  --ibo-size-100: #{$ibo-size-100};
+  --ibo-size-150: #{$ibo-size-150};
+  --ibo-size-200: #{$ibo-size-200};
+  --ibo-size-250: #{$ibo-size-250};
+  --ibo-size-300: #{$ibo-size-300};
+  --ibo-size-350: #{$ibo-size-350};
+  --ibo-size-400: #{$ibo-size-400};
+  --ibo-size-450: #{$ibo-size-450};
+  --ibo-size-500: #{$ibo-size-500};
+  --ibo-size-550: #{$ibo-size-550};
+  --ibo-size-600: #{$ibo-size-600};
+  --ibo-size-650: #{$ibo-size-650};
+  --ibo-size-700: #{$ibo-size-700};
+  --ibo-size-750: #{$ibo-size-750};
+  --ibo-size-800: #{$ibo-size-800};
+  --ibo-size-850: #{$ibo-size-850};
+  --ibo-size-900: #{$ibo-size-900};
+}

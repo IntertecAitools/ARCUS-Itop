@@ -1,0 +1,41 @@
+/*
+ * @copyright   Copyright (C) 2010-2024 Combodo SAS
+ * @license     http://opensource.org/licenses/AGPL-3.0
+ */
+
+/* SCSS variables */
+$ibo-dashlet--width: 100% !default;
+$ibo-dashlet--width--is-inline: auto !default;
+$ibo-dashlet--elements-spacing-x: $ibo-spacing-600 !default;
+$ibo-dashlet--elements-spacing-y: $ibo-spacing-600 !default;
+
+$ibo-dashlet-blocker--z-index: 9 !default; /* To be above calendar links & all, but below .close-box (9) */
+$ibo-dashlet-blocker--top: 0 !default;
+$ibo-dashlet-blocker--left: 0 !default;
+$ibo-dashlet-blocker--width: 100% !default;
+$ibo-dashlet-blocker--height: 100% !default;
+
+/* Rules */
+.ibo-dashlet {
+  position: relative;
+  width: calc(#{$ibo-dashlet--width} - #{$ibo-dashlet--elements-spacing-x});
+  margin: calc(#{$ibo-dashlet--elements-spacing-y} / 2) calc(#{$ibo-dashlet--elements-spacing-x} / 2);
+
+  &.dashlet-selected {
+    position: relative;
+  }
+}
+
+.ibo-dashlet--is-inline {
+  width: $ibo-dashlet--width--is-inline;
+}
+
+.ibo-dashlet-blocker{
+  position: absolute;
+  z-index: $ibo-dashlet-blocker--z-index;
+  top: $ibo-dashlet-blocker--top;
+  left: $ibo-dashlet-blocker--left;
+  width: $ibo-dashlet-blocker--width;
+  height: $ibo-dashlet-blocker--height;
+  cursor: not-allowed;
+}

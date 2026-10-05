@@ -1,0 +1,177 @@
+/*
+ * @copyright   Copyright (C) 2010-2024 Combodo SAS
+ * @license     http://opensource.org/licenses/AGPL-3.0
+ */
+
+/* SCSS variables */
+$ibo-dashboard--grid--width: 100% !default;
+$ibo-dashboard--grid--elements-spacing-x: $ibo-dashlet--elements-spacing-x !default;
+$ibo-dashboard--grid--elements-spacing-y: $ibo-dashlet--elements-spacing-y !default;
+$ibo-dashboard--grid--edit-mode--margin: 1px !default;
+$ibo-dashboard--grid--edit-mode--border-color: $ibo-color-grey-400 !default;
+$ibo-dashboard--grid--edit-mode--border: 2px $ibo-dashboard--grid--edit-mode--border-color dashed !default;
+$ibo-dashboard--grid--edit-mode--width: 100% !default;
+$ibo-dashboard--grid--edit-mode--min-height: 40px !default;
+
+$ibo-dashboard--top-bar-padding-bottom: 20px !default;
+
+$ibo-dashboard--selector--margin-left: $ibo-spacing-400 !default;
+$ibo-dashboard--selector--margin-right: 1 !default;
+$ibo-dashboard--selector--hover--background-color: $ibo-color-secondary-100 !default;
+$ibo-dashboard--selector--hover--border-radius: $ibo-button--border-radius !default;
+$ibo-dashboard--selector--selector-label--margin-x: 10px !default;
+
+$ibo-dashboard--switch--width: 30px !default;
+$ibo-dashboard--switch--height: $ibo-size-300 !default;
+
+$ibo-dashboard--slider--before--content: "\f007" !default;
+$ibo-dashboard--slider--before--font-size: $ibo-font-size-50 !default;
+$ibo-dashboard--slider--before--color: $ibo-color-secondary-800 !default;
+$ibo-dashboard--slider--before--right: 5px !default;
+$ibo-dashboard--slider--before--bottom: 3px !default;
+
+$ibo-dashboard--slider--after--content: "\f1ad" !default;
+$ibo-dashboard--slider--after--font-size: $ibo-font-size-150 !default;
+$ibo-dashboard--slider--after--color: $ibo-color-primary-600 !default;
+$ibo-dashboard--slider--after--left: 6px !default;
+$ibo-dashboard--slider--after--bottom: 1px !default;
+
+
+
+
+/* Rules */
+.ibo-dashboard--top-bar {
+  @extend %ibo-full-height-content;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: $ibo-dashboard--top-bar-padding-bottom;
+
+  .ibo-dashboard--top-bar-title {
+    @extend %ibo-font-ral-bol-250;
+  }
+
+  .ibo-dashboard--top-bar-toolbar {
+    display: flex;
+    align-items: center;
+  }
+}
+
+.ibo-dashboard--selector {
+  display: flex;
+  align-items: center;
+  margin-left: $ibo-dashboard--selector--margin-left;
+  margin-right: $ibo-dashboard--selector--margin-right;
+
+  &:hover {
+    background-color: $ibo-dashboard--selector--hover--background-color;
+    border-radius: $ibo-dashboard--selector--hover--border-radius;
+  }
+
+  .selector-label {
+    display: inline-block;
+    margin-left: $ibo-dashboard--selector--selector-label--margin-x;
+    margin-right: $ibo-dashboard--selector--selector-label--margin-x;
+    vertical-align: super;
+  }
+}
+
+.ibo-dashboard--grid {
+  width: $ibo-dashboard--grid--width;
+}
+
+.ibo-dashboard--grid-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  overflow: hidden; /* Because of the column negative margin (which is for the dashlets spacing) */
+
+  /* Compensate negative margin on inner borders to simulate egal dashlets spacing between rows */
+  &:not(:last-child) {
+    padding-bottom: calc(#{$ibo-dashboard--grid--elements-spacing-y} / 2);
+  }
+
+  &:not(:first-child) {
+    padding-top: calc(#{$ibo-dashboard--grid--elements-spacing-y} / 2);
+  }
+}
+
+.ibo-dashboard--grid-column {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: flex-start;
+  align-content: flex-start;
+  width: calc(100% + (2 * #{$ibo-dashboard--grid--elements-spacing-x}));
+  margin: calc(-1 * #{$ibo-dashboard--grid--elements-spacing-y} / 2) calc(-1 * #{$ibo-dashboard--grid--elements-spacing-x} / 2); /* Because of the margin all around the dashlets, we need to compensate it */
+  min-width: 0;
+
+  /* Compensate negative margin on inner borders to simulate equal dashlets spacing between columns */
+  &:not(:last-child) {
+    margin-right: 0;
+  }
+
+  &:not(:first-child) {
+    margin-left: 0;
+  }
+
+  &.edit_mode {
+    margin: $ibo-dashboard--grid--edit-mode--margin;
+    border: $ibo-dashboard--grid--edit-mode--border;
+    width: $ibo-dashboard--grid--edit-mode--width;
+    min-height: $ibo-dashboard--grid--edit-mode--min-height;
+  }
+}
+
+
+// Round Toggle
+/* The switch - the box around the slider */
+.ibo-dashboard--switch {
+  position: relative;
+  display: inline-block;
+  width: $ibo-dashboard--switch--width;
+  height: $ibo-dashboard--switch--height;
+  vertical-align: baseline;
+}
+
+/* Hide default HTML checkbox */
+.ibo-dashboard--switch input {
+  display: none;
+}
+
+/* The slider */
+.ibo-dashboard--slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.ibo-dashboard--slider:before {
+  @extend %fa-solid-base;
+  content: $ibo-dashboard--slider--before--content;
+  font-size: $ibo-dashboard--slider--before--font-size;
+  color: $ibo-dashboard--slider--before--color;
+  position: absolute;
+  right: $ibo-dashboard--slider--before--right;
+  bottom: $ibo-dashboard--slider--before--bottom;
+}
+
+.ibo-dashboard--slider:after {
+  @extend %fa-solid-base;
+  content: $ibo-dashboard--slider--after--content;
+  font-size: $ibo-dashboard--slider--after--font-size;
+  color: $ibo-dashboard--slider--after--color;
+  position: absolute;
+  left: $ibo-dashboard--slider--after--left;
+  bottom: $ibo-dashboard--slider--after--bottom;
+}
+
+input:checked + .ibo-dashboard--slider:before {
+  content: $ibo-dashboard--slider--after--content;
+}
+
+input:checked + .ibo-dashboard--slider:after {
+  content: $ibo-dashboard--slider--before--content;
+}

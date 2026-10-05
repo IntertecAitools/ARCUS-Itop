@@ -1,0 +1,55 @@
+{# @copyright   Copyright (C) 2010-2026 Combodo SARL #}
+{# @license     http://opensource.org/licenses/AGPL-3.0 #}
+
+{% UIPanel ForInformation { sTitle:'DataFeatureRemoval:Analysis:Title'|dict_s, sSubTitle: 'DataFeatureRemoval:Analysis:Subtitle'|dict_s} %}
+    {% if null != DataFeatureRemovalErrorMessage %}
+        <div id="feature_removal_error_msg_div" style="display:block">
+            {% UIAlert ForFailure { sTitle:'DataFeatureRemoval:Failure:Title'|dict_s, sId: 'feature_removal_error_msg', sContent:DataFeatureRemovalErrorMessage } %}
+            {% EndUIAlert %}
+        </div>
+    {% endif %}
+
+    {% UIAlert ForInformation { sTitle: '', sId: 'ajax_compile_in_progress_msg', AddCSSClasses: ['ibo-is-hidden', 'ibo-is-html-content'] } %}
+        {{ 'DataFeatureRemoval:Compile:InProgress'|dict_s }}
+        {% UISpinner Standard { } %}
+    {% EndUIAlert %}
+    {% UIAlert ForSuccess { sTitle:'success', sId: 'ajax_compile_success_msg', AddCSSClasses: ['ibo-is-hidden', 'ibo-is-html-content'] } %}{% EndUIAlert %}
+    {% UIAlert ForFailure { sTitle:'error', sId: 'ajax_compile_error_msg', AddCSSClasses: ['ibo-is-hidden', 'ibo-is-html-content'] } %}{% EndUIAlert %}
+
+    {% UIAlert ForInformation { sTitle: '', sId: 'ajax_run_audit_in_progress_msg', AddCSSClasses: ['ibo-is-hidden', 'ibo-is-html-content'] } %}
+        {{ 'DataFeatureRemoval:RunAudit:InProgress'|dict_s }}
+        {% UISpinner Standard { } %}
+    {% EndUIAlert %}
+    {% UIAlert ForSuccess { sTitle:'DataFeatureRemoval:RunAudit:Success'|dict_s, sId: 'ajax_run_audit_success_msg', AddCSSClasses: ['ibo-is-hidden', 'ibo-is-html-content'] } %}{% EndUIAlert %}
+    {% UIAlert ForFailure { sTitle:'error', sId: 'ajax_run_audit_error_msg', AddCSSClasses: ['ibo-is-hidden', 'ibo-is-html-content'] } %}{% EndUIAlert %}
+
+    {% if aAvailableExtensionsCount == 0 %}
+        {% UITitle Neutral { sTitle:'DataFeatureRemoval:NoResult:Title'|dict_s, iLevel:2 } %}{% EndUITitle %}
+    {% else %}
+        {% UIPanel Neutral { sTitle:'DataFeatureRemoval:Result:Title'|dict_s, sSubTitle: '' } %}
+            {% UIMultiColumn Standard {} %}
+                {% for iColumnIndex in 0..iColumnCount-1 %}
+                    {% UIColumn Standard {} %}
+                        {% for aExtension in aAvailableExtensions[iColumnIndex] %}
+                            {% if aExtension['installed'] %}
+                                {% UIExtensionDetails Installed { sCode : aExtension['code'], sLabel : aExtension['label'], sDescription : aExtension['description'], aMetaData : [aExtension['version'], aExtension['source'], aExtension['code']], aExtraFlags : aExtension['extra_flags']} %}{% EndUIExtensionDetails %}
+                            {% else %}
+                                {% UIExtensionDetails NotInstalled { sCode : aExtension['code'], sLabel : aExtension['label'], sDescription : aExtension['description'], aMetaData : [aExtension['version'], aExtension['source'], aExtension['code']], aExtraFlags : aExtension['extra_flags']} %}{% EndUIExtensionDetails %}
+                            {% endif %}
+                        {% endfor %}
+                    {% EndUIColumn %}
+                {% endfor %}
+            {% EndUIMultiColumn %}
+        {% EndUIPanel %}
+    {% endif %}
+
+    <div id="ajax_run_audit" class="ibo-block"></div>
+
+    {% UIForm Standard {} %}
+        {% UIInput ForHidden { sName:'transaction_id', sValue:sTransactionId} %}
+        {% UIInput ForHidden { sName:'operation', sValue:'Main'} %}
+        {% UIToolbar ForButton {} %}
+            {% UIButton ForPrimaryAction {sLabel:'UI:Button:BackToMain'|dict_s, sName:'btn_back', sId:'btn_back', bIsSubmit:true} %}
+        {% EndUIToolbar %}
+    {% EndUIForm %}
+{% EndUIPanel %}

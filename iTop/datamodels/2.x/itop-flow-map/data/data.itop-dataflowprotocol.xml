@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Set>
+  <DataFlowProtocol alias="DataFlowProtocol" id="1">
+    <name>HTTP</name>
+  </DataFlowProtocol>
+  <DataFlowProtocol alias="DataFlowProtocol" id="2">
+    <name>HTTPS</name>
+  </DataFlowProtocol>
+  <DataFlowProtocol alias="DataFlowProtocol" id="3">
+    <name>FTP</name>
+  </DataFlowProtocol>
+  <DataFlowProtocol alias="DataFlowProtocol" id="4">
+    <name>SFTP</name>
+  </DataFlowProtocol>
+  <DataFlowProtocol alias="DataFlowProtocol" id="5">
+    <name>AS2</name>
+  </DataFlowProtocol>
+  <DataFlowProtocol alias="DataFlowProtocol" id="6">
+    <name>X.400</name>
+  </DataFlowProtocol>
+  <DataFlowProtocol alias="DataFlowProtocol" id="7">
+    <name>TCP</name>
+  </DataFlowProtocol>
+  <DataFlowProtocol alias="DataFlowProtocol" id="8">
+    <name>UDP</name>
+  </DataFlowProtocol>
+  <DataFlowProtocol alias="DataFlowProtocol" id="9">
+    <name>SMTP</name>
+  </DataFlowProtocol>
+  <DataFlowProtocol alias="DataFlowProtocol" id="10">
+    <name>IMAP</name>
+  </DataFlowProtocol>
+  <DataFlowProtocol alias="DataFlowProtocol" id="11">
+    <name>SSH</name>
+  </DataFlowProtocol>
+  <DataFlowProtocol alias="DataFlowProtocol" id="12">
+    <name>WebSocket</name>
+  </DataFlowProtocol>
+  <DataFlowProtocol alias="DataFlowProtocol" id="13">
+    <name>NFS</name>
+  </DataFlowProtocol>
+  <DataFlowProtocol alias="DataFlowProtocol" id="14">
+    <name>MQTT/AMQP</name>
+  </DataFlowProtocol>
+  <DataFlowProtocol alias="DataFlowProtocol" id="15">
+    <name>REST</name>
+  </DataFlowProtocol>
+  <DataFlowProtocol alias="DataFlowProtocol" id="16">
+    <name>KAFKA</name>
+  </DataFlowProtocol>
+</Set>

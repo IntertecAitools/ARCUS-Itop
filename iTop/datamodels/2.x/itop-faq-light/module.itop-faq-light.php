@@ -1,0 +1,82 @@
+<?php
+
+SetupWebPage::AddModule(
+	__FILE__, // Path to the current file, all other file names are relative to the directory containing this file
+	'itop-faq-light/3.4.0',
+	[
+		// Identification
+		//
+		'label' => 'Frequently Asked Questions Database',
+		'category' => 'business',
+
+		// Setup
+		//
+		'dependencies' => [
+			'itop-structure/3.0.0 || itop-portal/3.0.0',
+		],
+		'mandatory' => false,
+		'visible' => true,
+		'installer' => 'FAQLightInstaller',
+
+		// Components
+		//
+		'datamodel' => [
+			'model.itop-faq-light.php',
+		],
+		'data.struct' => [
+			//'data.struct.itop-knownerror-mgmt.xml',
+		],
+		'data.sample' => [
+			'data/data.sample.faqdomain.en_us.xml',
+			'data/data.sample.faqcategory.en_us.xml',
+			'data/data.sample.faq.en_us.xml',
+		],
+
+		// Documentation
+		//
+		'doc.manual_setup' => '', // No manual installation instructions
+		'doc.more_information' => '',
+
+		// Default settings
+		//
+		'settings' => [
+		],
+	]
+);
+
+if (!class_exists('FAQLightInstaller')) {
+	// Module installation handler
+	//
+	class FAQLightInstaller extends ModuleInstallerAPI
+	{
+		public static function BeforeWritingConfig(Config $oConfiguration)
+		{
+			// If you want to override/force some configuration values, do it here
+			return $oConfiguration;
+		}
+
+		/**
+		 * Handler called before creating or upgrading the database schema
+		 * @param $oConfiguration Config The new configuration of the application
+		 * @param $sPreviousVersion string PRevious version number of the module (empty string in case of first install)
+		 * @param $sCurrentVersion string Current version number of the module
+		 */
+		public static function BeforeDatabaseCreation(Config $oConfiguration, $sPreviousVersion, $sCurrentVersion)
+		{
+			if (strlen($sPreviousVersion) > 0) {
+				// If you want to migrate data from one format to another, do it here
+				self::RenameClassInDB('FAQcategory', 'FAQCategory');
+			}
+		}
+
+		/**
+		 * Handler called after the creation/update of the database schema
+		 * @param $oConfiguration Config The new configuration of the application
+		 * @param $sPreviousVersion string PRevious version number of the module (empty string in case of first install)
+		 * @param $sCurrentVersion string Current version number of the module
+		 */
+		public static function AfterDatabaseCreation(Config $oConfiguration, $sPreviousVersion, $sCurrentVersion)
+		{
+		}
+	}
+}

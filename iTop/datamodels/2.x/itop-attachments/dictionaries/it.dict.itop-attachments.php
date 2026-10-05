@@ -1,0 +1,72 @@
+<?php
+
+/**
+ * Localized data
+ *
+ * @copyright Copyright (C) 2010-2024 Combodo SAS
+ * @license    https://opensource.org/licenses/AGPL-3.0
+ *
+ */
+/**
+ *
+ */
+Dict::Add('IT IT', 'Italian', 'Italiano', [
+	'Attachments:TabTitle_Count' => 'Allegati (%1$d)',
+	'Attachments:EmptyTabTitle' => 'Allegati',
+	'Attachments:FieldsetTitle' => 'Allegati',
+	'Attachments:DeleteBtn' => 'Elimina',
+	'Attachments:History_File_Added' => 'Allegato %1$s aggiunto.',
+	'Attachments:History_File_Removed' => 'Allegato %1$s rimosso.',
+	'Attachments:AddAttachment' => 'Aggiungi allegato: ',
+	'Attachments:UploadNotAllowedOnThisSystem' => 'Caricamento file NON consentito su questo sistema.',
+	'Attachment:Max_Go' => '(Dimensione massima del file: %1$s GB)',
+	'Attachment:Max_Mo' => '(Dimensione massima del file: %1$s MB)',
+	'Attachment:Max_Ko' => '(Dimensione massima del file: %1$s KB)',
+	'Attachments:NoAttachment' => 'Nessun allegato. ',
+	'Attachments:PreviewNotAvailable' => 'Anteprima non disponibile per questo tipo di allegato.',
+	'Attachments:Error:FileTooLarge' => 'Il file è troppo grande per essere caricato. %1$s',
+	'Attachments:Error:UploadedFileEmpty' => 'Il file ricevuto è vuoto e non può essere allegato.
+	O hai inviato un file vuoto,
+	o chiedi al tuo amministratore di '.ITOP_APPLICATION_SHORT.' se il disco del server '.ITOP_APPLICATION_SHORT.' è pieno.',
+	'Attachments:Render:Icons' => 'Visualizza come icone',
+	'Attachments:Render:Table' => 'Visualizza come lista',
+	'UI:Attachments:DropYourFileHint' => 'Rilascia i file ovunque in quest\'area',
+	'Class:Attachment' => 'Allegato',
+	'Class:Attachment+' => 'File: text or image, linked to a single object. It can\'t be modified, only deleted. Attachment can\'t be created outside of its object edition.~~',
+	'Class:Attachment/Attribute:expire' => 'Scadenza',
+	'Class:Attachment/Attribute:expire+' => '~~',
+	'Class:Attachment/Attribute:temp_id' => 'ID temporaneo',
+	'Class:Attachment/Attribute:temp_id+' => '~~',
+	'Class:Attachment/Attribute:item_class' => 'Classe dell\'oggetto',
+	'Class:Attachment/Attribute:item_class+' => '~~',
+	'Class:Attachment/Attribute:item_id' => 'Oggetto',
+	'Class:Attachment/Attribute:item_id+' => '~~',
+	'Class:Attachment/Attribute:item_org_id' => 'Organizzazione dell\'oggetto',
+	'Class:Attachment/Attribute:item_org_id+' => '~~',
+	'Class:Attachment/Attribute:contents' => 'Contenuti',
+	'Class:Attachment/Attribute:contents+' => '~~',
+	'Attachments:File:Thumbnail' => 'Icona',
+	'Attachments:File:Name' => 'Nome del file',
+	'Attachments:File:Date' => 'Data di caricamento',
+	'Attachments:File:Uploader' => 'Caricato da',
+	'Attachments:File:Size' => 'Dimensione',
+	'Attachments:File:MimeType' => 'Tipo',
+	'Attachments:File:DownloadsCount' => 'Download',
+	'Class:Attachment/Attribute:creation_date' => 'Data di creazione',
+	'Class:Attachment/Attribute:creation_date+' => '~~',
+	'Class:Attachment/Attribute:user_id' => 'ID utente',
+	'Class:Attachment/Attribute:user_id+' => '~~',
+	'Class:Attachment/Attribute:contact_id' => 'ID contatto',
+	'Class:Attachment/Attribute:contact_id+' => '~~',
+	'Class:TriggerOnAttachmentDownload' => 'Trigger (al download di un allegato dell\'oggetto)',
+	'Class:TriggerOnAttachmentDownload+' => 'Trigger al download di un allegato di un oggetto di [una sottoclasse di] la classe data',
+	'Class:TriggerOnAttachmentCreate' => 'Trigger (on object\'s attachment creation)~~',
+	'Class:TriggerOnAttachmentCreate+' => 'Trigger on object\'s attachment creation~~',
+	'Class:TriggerOnAttachmentDelete' => 'Trigger (on object\'s attachment deletion)~~',
+	'Class:TriggerOnAttachmentDelete+' => 'Trigger on object\'s attachment deletion~~',
+	'Class:TriggerOnAttachmentCreate/Attribute:file_in_email' => 'Add file in email~~',
+	'Class:TriggerOnAttachmentCreate/Attribute:file_in_email+' => 'If checked, the file will be automatically attached to the email when an email action is triggered~~',
+	'Class:TriggerOnAttachmentDelete/Attribute:file_in_email' => 'Add deleted file in email~~',
+	'Class:TriggerOnAttachmentDelete/Attribute:file_in_email+' => 'If checked, the deleted file will be automatically attached to the email when an email action is triggered~~',
+	'Class:TriggerOnObject:TriggerClassAttachment/ReadOnlyMessage' => 'Trigger on object is not allowed on class Attachment. Please use specific trigger~~',
+]);

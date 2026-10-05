@@ -1,0 +1,17 @@
+$ipb-progress--height: $common-size-350 !default; 
+$ipb-progress--border-radius: $common-border-radius-500 !default;
+
+$ipb-progress--bar--line-height: $ipb-progress--height !default; 
+$ipb-progress--bar--border-radius: $ipb-progress--border-radius !default; 
+
+.ipb-progress, .progress {
+  height: $ipb-progress--height;
+  border-radius: $ipb-progress--border-radius;
+}
+
+.ipb-progress--bar, .progress-bar {
+  line-height: $ipb-progress--bar--line-height;
+  border-radius: $ipb-progress--bar--border-radius;
+  
+  @extend %common-font-ral-med-150;
+}

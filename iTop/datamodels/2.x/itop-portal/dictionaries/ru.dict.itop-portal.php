@@ -1,0 +1,30 @@
+<?php
+
+/**
+ * Localized data
+ *
+ * @copyright Copyright (C) 2010-2024 Combodo SAS
+ * @license    https://opensource.org/licenses/AGPL-3.0
+ *
+ */
+/**
+ * @author Benjamin Planque <benjamin.planque@combodo.com>
+ *
+ */
+Dict::Add('RU RU', 'Russian', 'Русский', [
+	'portal:itop-portal' => 'Пользовательский портал',
+	'Page:DefaultTitle' => '%1$s - Пользовательский портал',
+	'Brick:Portal:UserProfile:Title' => 'Мой профиль',
+	'Brick:Portal:NewRequest:Title' => 'Новый запрос',
+	'Brick:Portal:NewRequest:Title+' => '<p>Нужна помощь?</p><p>Выберите услугу из&nbsp;каталога и&nbsp;отправьте свой запрос команде поддержки.</p>',
+	'Brick:Portal:OngoingRequests:Title' => 'Текущие запросы',
+	'Brick:Portal:OngoingRequests:Title+' => '<p>Следите за&nbsp;открытыми запросами.</p><p>Проверяйте ход решения, добавляйте комментарии и&nbsp;вложения, подтверждайте решение.</p>',
+	'Brick:Portal:OngoingRequests:Tab:OnGoing' => 'В работе',
+	'Brick:Portal:OngoingRequests:Tab:Resolved' => 'Решенные',
+	'Brick:Portal:ClosedRequests:Title' => 'Закрытые запросы',
+	'Brick:Portal:ListAllRequests:Title' => 'Все запросы',
+	'Brick:Portal:ListAllRequests:Title+' => '<p>Просмотр всех запросов независимо от статуса.</p>',
+	'Brick:Portal:ListAllRequests:Tab' => 'Текущие и закрытые',
+	'Brick:Portal:SearchInAllRequests:Title' => 'Поиск по всем запросам',
+	'Brick:Portal:SearchInAllRequests:Title+' => '<p>Независимо от статуса.</p>',
+]);

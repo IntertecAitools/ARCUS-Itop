@@ -1,0 +1,74 @@
+<?php
+
+/**
+ * Localized data
+ *
+ * @copyright Copyright (C) 2010-2024 Combodo SAS
+ * @license    https://opensource.org/licenses/AGPL-3.0
+ *
+ */
+/**
+ * @author Lukáš Dvořák <lukas.dvorak@itopportal.cz>
+ * @author Daniel Rokos <daniel.rokos@itopportal.cz>
+ *
+ */
+Dict::Add('CS CZ', 'Czech', 'Čeština', [
+	'Attachments:TabTitle_Count' => 'Přílohy (%1$d)',
+	'Attachments:EmptyTabTitle' => 'Přílohy',
+	'Attachments:FieldsetTitle' => 'Přílohy',
+	'Attachments:DeleteBtn' => 'Odstranit',
+	'Attachments:History_File_Added' => 'Příloha %1$s byla přidána.',
+	'Attachments:History_File_Removed' => 'Příloha %1$s byla odstraněna.',
+	'Attachments:AddAttachment' => 'Přidat přílohu: ',
+	'Attachments:UploadNotAllowedOnThisSystem' => 'Na tomto systému není povoleno nahrávání souborů.',
+	'Attachment:Max_Go' => '(Maximální velikost souboru: %1$s GiB)',
+	'Attachment:Max_Mo' => '(Maximální velikost souboru: %1$s MiB)',
+	'Attachment:Max_Ko' => '(Maximální velikost souboru: %1$s KiB)',
+	'Attachments:NoAttachment' => 'Žádná příloha. ',
+	'Attachments:PreviewNotAvailable' => 'Pro tento typ přílohy není náhled k dispozici.',
+	'Attachments:Error:FileTooLarge' => 'Soubor je příliš velký k nahrání. %1$s',
+	'Attachments:Error:UploadedFileEmpty' => 'Obdržený soubr je prázný a nemůže být přiložen.
+Buťo jste odeslali prázný soubor,
+nebe se zeptejte'.ITOP_APPLICATION_SHORT.' správce '.ITOP_APPLICATION_SHORT.' zda není zaplněný disk.',
+	'Attachments:Render:Icons' => 'Zobrazit jako ikony',
+	'Attachments:Render:Table' => 'Zobrazit jako seznam',
+	'UI:Attachments:DropYourFileHint' => 'Drop files anywhere in this area~~',
+	'Class:Attachment' => 'Příloha',
+	'Class:Attachment+' => 'File: text or image, linked to a single object. It can\'t be modified, only deleted. Attachment can\'t be created outside of its object edition.~~',
+	'Class:Attachment/Attribute:expire' => 'Exspirace',
+	'Class:Attachment/Attribute:expire+' => '~~',
+	'Class:Attachment/Attribute:temp_id' => 'Dočasné id',
+	'Class:Attachment/Attribute:temp_id+' => '~~',
+	'Class:Attachment/Attribute:item_class' => 'Položka třídy',
+	'Class:Attachment/Attribute:item_class+' => '~~',
+	'Class:Attachment/Attribute:item_id' => 'Položka',
+	'Class:Attachment/Attribute:item_id+' => '~~',
+	'Class:Attachment/Attribute:item_org_id' => 'Organizace',
+	'Class:Attachment/Attribute:item_org_id+' => '~~',
+	'Class:Attachment/Attribute:contents' => 'Obsah',
+	'Class:Attachment/Attribute:contents+' => '~~',
+	'Attachments:File:Thumbnail' => 'Ikona',
+	'Attachments:File:Name' => 'Jméno souboru',
+	'Attachments:File:Date' => 'Datum nahrání',
+	'Attachments:File:Uploader' => 'Nahráno',
+	'Attachments:File:Size' => 'Velikost',
+	'Attachments:File:MimeType' => 'Typ',
+	'Attachments:File:DownloadsCount' => 'Staženo',
+	'Class:Attachment/Attribute:creation_date' => 'Datum vytvoření',
+	'Class:Attachment/Attribute:creation_date+' => '~~',
+	'Class:Attachment/Attribute:user_id' => 'Jméno uživatele',
+	'Class:Attachment/Attribute:user_id+' => '~~',
+	'Class:Attachment/Attribute:contact_id' => 'Kontakt',
+	'Class:Attachment/Attribute:contact_id+' => '~~',
+	'Class:TriggerOnAttachmentDownload' => 'Trigger (on object\'s attachment download)~~',
+	'Class:TriggerOnAttachmentDownload+' => 'Trigger on object\'s attachment download of [a child class of] the given class~~',
+	'Class:TriggerOnAttachmentCreate' => 'Trigger (on object\'s attachment creation)~~',
+	'Class:TriggerOnAttachmentCreate+' => 'Trigger on object\'s attachment creation~~',
+	'Class:TriggerOnAttachmentDelete' => 'Trigger (on object\'s attachment deletion)~~',
+	'Class:TriggerOnAttachmentDelete+' => 'Trigger on object\'s attachment deletion~~',
+	'Class:TriggerOnAttachmentCreate/Attribute:file_in_email' => 'Add file in email~~',
+	'Class:TriggerOnAttachmentCreate/Attribute:file_in_email+' => 'If checked, the file will be automatically attached to the email when an email action is triggered~~',
+	'Class:TriggerOnAttachmentDelete/Attribute:file_in_email' => 'Add deleted file in email~~',
+	'Class:TriggerOnAttachmentDelete/Attribute:file_in_email+' => 'If checked, the deleted file will be automatically attached to the email when an email action is triggered~~',
+	'Class:TriggerOnObject:TriggerClassAttachment/ReadOnlyMessage' => 'Trigger on object is not allowed on class Attachment. Please use specific trigger~~',
+]);

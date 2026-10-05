@@ -1,0 +1,65 @@
+/*
+ * @copyright   Copyright (C) 2010-2024 Combodo SAS
+ * @license     http://opensource.org/licenses/AGPL-3.0
+ */
+
+/* SCSS variables (can be overloaded) */
+$ibo-top-bar--height: 54px !default;
+$ibo-top-bar--padding-left: $ibo-spacing-500 !default; /* Should be align with the page content padding-left */
+$ibo-top-bar--padding-right: $ibo-spacing-500 !default;
+$ibo-top-bar--padding-y: $ibo-spacing-0 !default;
+$ibo-top-bar--background-color: $ibo-color-white-100 !default;
+$ibo-top-bar--elements-spacing: $ibo-spacing-700 !default;
+
+$ibo-top-bar--quick-actions--margin-right: $ibo-top-bar--elements-spacing !default;
+
+$ibo-top-bar--toolbar-dashboard-title--max-width: 350px !default;
+
+/* CSS variables (can be changed directly from the browser) */
+:root{
+	--ibo-top-bar--height: #{$ibo-top-bar--height};
+	--ibo-top-bar--padding-left: #{$ibo-top-bar--padding-left};
+	--ibo-top-bar--padding-right: #{$ibo-top-bar--padding-right};
+	--ibo-top-bar--padding-y: #{$ibo-top-bar--padding-y};
+	--ibo-top-bar--background-color: #{$ibo-top-bar--background-color};
+	--ibo-top-bar--elements-spacing: #{$ibo-top-bar--elements-spacing};
+
+	--ibo-top-bar--quick-actions--margin-right: #{$ibo-top-bar--quick-actions--margin-right};
+}
+.ibo-top-bar{
+	@extend %ibo-full-height-content;
+	height: var(--ibo-top-bar--height);
+	padding: var(--ibo-top-bar--padding-y) var(--ibo-top-bar--padding-right) var(--ibo-top-bar--padding-y) var(--ibo-top-bar--padding-left);
+	background-color: var(--ibo-top-bar--background-color);
+	@extend %ibo-elevation-100;
+
+	.ibo-breadcrumbs {
+		flex-grow: 1; /* Occupy as much width as possible */
+		overflow-x: hidden; /* Avoid glitches when too many items */
+	}
+}
+
+.ibo-top-bar--quick-actions {
+	@extend %ibo-full-height-content;
+	margin-right: var(--ibo-top-bar--quick-actions--margin-right);
+
+	.ibo-global-search {
+
+	}
+}
+
+.ibo-top-bar--toolbar {
+	@extend %ibo-full-height-content;
+}
+
+.ibo-top-bar--toolbar-dashboard-title {
+	@extend %ibo-font-size-250;
+  @extend %ibo-text-truncated-with-ellipsis;
+  max-width: $ibo-top-bar--toolbar-dashboard-title--max-width;
+}
+
+.ibo-top-bar--toolbar-dashboard-menu-toggler {
+	@extend %ibo-full-height-content;
+	display: flex;
+	align-items: center;
+}

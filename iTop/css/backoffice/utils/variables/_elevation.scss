@@ -1,0 +1,18 @@
+/*
+ * @copyright   Copyright (C) 2010-2024 Combodo SAS
+ * @license     http://opensource.org/licenses/AGPL-3.0
+ */
+
+$ibo-elevation-100: $common-elevation-100 !default;
+$ibo-elevation-200: $common-elevation-200 !default;
+$ibo-elevation-300: $common-elevation-300 !default;
+$ibo-elevation-400: $common-elevation-400 !default;
+$ibo-elevation-500: $common-elevation-500 !default;
+
+:root{
+	--ibo-elevation-100: #{$ibo-elevation-100};
+	--ibo-elevation-200: #{$ibo-elevation-200};
+	--ibo-elevation-300: #{$ibo-elevation-300};
+	--ibo-elevation-400: #{$ibo-elevation-400};
+	--ibo-elevation-500: #{$ibo-elevation-500};
+}
