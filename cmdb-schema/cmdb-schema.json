@@ -1,0 +1,7923 @@
+{
+ "ApplicationSolution": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "FunctionalCI"
+  ],
+  "abstract": false,
+  "is_ci": true,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "FunctionalCI",
+    "required": true
+   },
+   "description": {
+    "type": "Text",
+    "owner": "FunctionalCI"
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "FunctionalCI",
+    "target": "Organization",
+    "required": true
+   },
+   "organization_name": {
+    "type": "ExternalField",
+    "owner": "FunctionalCI",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "business_criticity": {
+    "type": "Enum",
+    "owner": "FunctionalCI",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "move2production": {
+    "type": "Date",
+    "owner": "FunctionalCI"
+   },
+   "contacts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkContactToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "documents_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkDocumentToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "applicationsolution_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "softwares_list": {
+    "type": "LinkedSet",
+    "owner": "FunctionalCI",
+    "linked": "SoftwareInstance",
+    "link_key": "system_id"
+   },
+   "groups_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkGroupToCI",
+    "link_key": "ci_id"
+   },
+   "providercontracts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "link_key": "functionalci_id"
+   },
+   "services_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToService",
+    "link_key": "functionalci_id"
+   },
+   "tickets_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToTicket",
+    "link_key": "functionalci_id"
+   },
+   "functionalcis_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "ApplicationSolution",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "link_key": "applicationsolution_id"
+   },
+   "businessprocess_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "ApplicationSolution",
+    "linked": "lnkApplicationSolutionToBusinessProcess",
+    "link_key": "applicationsolution_id"
+   },
+   "status": {
+    "type": "Enum",
+    "owner": "ApplicationSolution",
+    "values": [
+     "active",
+     "inactive"
+    ]
+   },
+   "redundancy": {
+    "type": "RedundancySettings",
+    "owner": "ApplicationSolution"
+   },
+   "logo": {
+    "type": "Image",
+    "owner": "ApplicationSolution"
+   }
+  }
+ },
+ "BusinessProcess": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "FunctionalCI"
+  ],
+  "abstract": false,
+  "is_ci": true,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "FunctionalCI",
+    "required": true
+   },
+   "description": {
+    "type": "Text",
+    "owner": "FunctionalCI"
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "FunctionalCI",
+    "target": "Organization",
+    "required": true
+   },
+   "organization_name": {
+    "type": "ExternalField",
+    "owner": "FunctionalCI",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "business_criticity": {
+    "type": "Enum",
+    "owner": "FunctionalCI",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "move2production": {
+    "type": "Date",
+    "owner": "FunctionalCI"
+   },
+   "contacts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkContactToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "documents_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkDocumentToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "applicationsolution_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "softwares_list": {
+    "type": "LinkedSet",
+    "owner": "FunctionalCI",
+    "linked": "SoftwareInstance",
+    "link_key": "system_id"
+   },
+   "groups_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkGroupToCI",
+    "link_key": "ci_id"
+   },
+   "providercontracts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "link_key": "functionalci_id"
+   },
+   "services_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToService",
+    "link_key": "functionalci_id"
+   },
+   "tickets_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToTicket",
+    "link_key": "functionalci_id"
+   },
+   "applicationsolutions_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "BusinessProcess",
+    "linked": "lnkApplicationSolutionToBusinessProcess",
+    "link_key": "businessprocess_id"
+   },
+   "status": {
+    "type": "Enum",
+    "owner": "BusinessProcess",
+    "values": [
+     "active",
+     "inactive"
+    ]
+   },
+   "logo": {
+    "type": "Image",
+    "owner": "BusinessProcess"
+   }
+  }
+ },
+ "Cloud": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "FunctionalCI",
+   "VirtualDevice",
+   "VirtualHost"
+  ],
+  "abstract": false,
+  "is_ci": true,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "FunctionalCI",
+    "required": true
+   },
+   "description": {
+    "type": "Text",
+    "owner": "FunctionalCI"
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "FunctionalCI",
+    "target": "Organization",
+    "required": true
+   },
+   "organization_name": {
+    "type": "ExternalField",
+    "owner": "FunctionalCI",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "business_criticity": {
+    "type": "Enum",
+    "owner": "FunctionalCI",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "move2production": {
+    "type": "Date",
+    "owner": "FunctionalCI"
+   },
+   "contacts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkContactToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "documents_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkDocumentToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "applicationsolution_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "softwares_list": {
+    "type": "LinkedSet",
+    "owner": "FunctionalCI",
+    "linked": "SoftwareInstance",
+    "link_key": "system_id"
+   },
+   "groups_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkGroupToCI",
+    "link_key": "ci_id"
+   },
+   "providercontracts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "link_key": "functionalci_id"
+   },
+   "services_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToService",
+    "link_key": "functionalci_id"
+   },
+   "tickets_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToTicket",
+    "link_key": "functionalci_id"
+   },
+   "status": {
+    "type": "Enum",
+    "owner": "VirtualDevice",
+    "values": [
+     "production",
+     "implementation",
+     "stock",
+     "obsolete"
+    ]
+   },
+   "logicalvolumes_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "VirtualDevice",
+    "linked": "lnkVirtualDeviceToVolume",
+    "link_key": "virtualdevice_id"
+   },
+   "virtualmachine_list": {
+    "type": "LinkedSet",
+    "owner": "VirtualHost",
+    "linked": "VirtualMachine",
+    "link_key": "virtualhost_id"
+   },
+   "provider_id": {
+    "type": "ExternalKey",
+    "owner": "Cloud",
+    "target": "Organization"
+   },
+   "location_id": {
+    "type": "ExternalKey",
+    "owner": "Cloud",
+    "target": "Location"
+   },
+   "logo": {
+    "type": "Image",
+    "owner": "Cloud"
+   }
+  }
+ },
+ "ConnectableCI": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "FunctionalCI",
+   "PhysicalDevice"
+  ],
+  "abstract": true,
+  "is_ci": true,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "FunctionalCI",
+    "required": true
+   },
+   "description": {
+    "type": "Text",
+    "owner": "FunctionalCI"
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "FunctionalCI",
+    "target": "Organization",
+    "required": true
+   },
+   "organization_name": {
+    "type": "ExternalField",
+    "owner": "FunctionalCI",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "business_criticity": {
+    "type": "Enum",
+    "owner": "FunctionalCI",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "move2production": {
+    "type": "Date",
+    "owner": "FunctionalCI"
+   },
+   "contacts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkContactToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "documents_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkDocumentToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "applicationsolution_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "softwares_list": {
+    "type": "LinkedSet",
+    "owner": "FunctionalCI",
+    "linked": "SoftwareInstance",
+    "link_key": "system_id"
+   },
+   "groups_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkGroupToCI",
+    "link_key": "ci_id"
+   },
+   "providercontracts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "link_key": "functionalci_id"
+   },
+   "services_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToService",
+    "link_key": "functionalci_id"
+   },
+   "tickets_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToTicket",
+    "link_key": "functionalci_id"
+   },
+   "serialnumber": {
+    "type": "String",
+    "owner": "PhysicalDevice"
+   },
+   "location_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Location"
+   },
+   "location_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "location_id",
+    "via_att": "name"
+   },
+   "status": {
+    "type": "Enum",
+    "owner": "PhysicalDevice",
+    "values": [
+     "production",
+     "implementation",
+     "stock",
+     "obsolete"
+    ]
+   },
+   "brand_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Brand"
+   },
+   "brand_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "brand_id",
+    "via_att": "name"
+   },
+   "model_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Model"
+   },
+   "model_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "model_id",
+    "via_att": "name"
+   },
+   "model_end_of_support": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "model_id",
+    "via_att": "end_of_support"
+   },
+   "asset_number": {
+    "type": "String",
+    "owner": "PhysicalDevice"
+   },
+   "purchase_date": {
+    "type": "Date",
+    "owner": "PhysicalDevice"
+   },
+   "end_of_warranty": {
+    "type": "Date",
+    "owner": "PhysicalDevice"
+   },
+   "networkdevice_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "ConnectableCI",
+    "linked": "lnkConnectableCIToNetworkDevice",
+    "link_key": "connectableci_id"
+   },
+   "physicalinterface_list": {
+    "type": "LinkedSet",
+    "owner": "ConnectableCI",
+    "linked": "PhysicalInterface",
+    "link_key": "connectableci_id"
+   }
+  }
+ },
+ "DBServer": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "FunctionalCI",
+   "SoftwareInstance"
+  ],
+  "abstract": false,
+  "is_ci": true,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "FunctionalCI",
+    "required": true
+   },
+   "description": {
+    "type": "Text",
+    "owner": "FunctionalCI"
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "FunctionalCI",
+    "target": "Organization",
+    "required": true
+   },
+   "organization_name": {
+    "type": "ExternalField",
+    "owner": "FunctionalCI",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "business_criticity": {
+    "type": "Enum",
+    "owner": "FunctionalCI",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "move2production": {
+    "type": "Date",
+    "owner": "FunctionalCI"
+   },
+   "contacts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkContactToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "documents_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkDocumentToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "applicationsolution_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "softwares_list": {
+    "type": "LinkedSet",
+    "owner": "FunctionalCI",
+    "linked": "SoftwareInstance",
+    "link_key": "system_id"
+   },
+   "groups_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkGroupToCI",
+    "link_key": "ci_id"
+   },
+   "providercontracts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "link_key": "functionalci_id"
+   },
+   "services_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToService",
+    "link_key": "functionalci_id"
+   },
+   "tickets_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToTicket",
+    "link_key": "functionalci_id"
+   },
+   "system_id": {
+    "type": "ExternalKey",
+    "owner": "SoftwareInstance",
+    "target": "FunctionalCI",
+    "required": true
+   },
+   "system_name": {
+    "type": "ExternalField",
+    "owner": "SoftwareInstance",
+    "via_key": "system_id",
+    "via_att": "name"
+   },
+   "software_id": {
+    "type": "ExternalKey",
+    "owner": "SoftwareInstance",
+    "target": "Software"
+   },
+   "software_name": {
+    "type": "ExternalField",
+    "owner": "SoftwareInstance",
+    "via_key": "software_id",
+    "via_att": "name"
+   },
+   "software_end_of_support": {
+    "type": "ExternalField",
+    "owner": "SoftwareInstance",
+    "via_key": "software_id",
+    "via_att": "end_of_support"
+   },
+   "softwarelicence_id": {
+    "type": "ExternalKey",
+    "owner": "SoftwareInstance",
+    "target": "SoftwareLicence"
+   },
+   "softwarelicence_name": {
+    "type": "ExternalField",
+    "owner": "SoftwareInstance",
+    "via_key": "softwarelicence_id",
+    "via_att": "name"
+   },
+   "path": {
+    "type": "String",
+    "owner": "SoftwareInstance"
+   },
+   "status": {
+    "type": "Enum",
+    "owner": "SoftwareInstance",
+    "values": [
+     "active",
+     "inactive"
+    ]
+   },
+   "dbschema_list": {
+    "type": "LinkedSet",
+    "owner": "DBServer",
+    "linked": "DatabaseSchema",
+    "link_key": "dbserver_id"
+   }
+  }
+ },
+ "DatabaseSchema": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "FunctionalCI"
+  ],
+  "abstract": false,
+  "is_ci": true,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "FunctionalCI",
+    "required": true
+   },
+   "description": {
+    "type": "Text",
+    "owner": "FunctionalCI"
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "FunctionalCI",
+    "target": "Organization",
+    "required": true
+   },
+   "organization_name": {
+    "type": "ExternalField",
+    "owner": "FunctionalCI",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "business_criticity": {
+    "type": "Enum",
+    "owner": "FunctionalCI",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "move2production": {
+    "type": "Date",
+    "owner": "FunctionalCI"
+   },
+   "contacts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkContactToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "documents_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkDocumentToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "applicationsolution_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "softwares_list": {
+    "type": "LinkedSet",
+    "owner": "FunctionalCI",
+    "linked": "SoftwareInstance",
+    "link_key": "system_id"
+   },
+   "groups_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkGroupToCI",
+    "link_key": "ci_id"
+   },
+   "providercontracts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "link_key": "functionalci_id"
+   },
+   "services_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToService",
+    "link_key": "functionalci_id"
+   },
+   "tickets_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToTicket",
+    "link_key": "functionalci_id"
+   },
+   "dbserver_id": {
+    "type": "ExternalKey",
+    "owner": "DatabaseSchema",
+    "target": "DBServer",
+    "required": true
+   },
+   "dbserver_name": {
+    "type": "ExternalField",
+    "owner": "DatabaseSchema",
+    "via_key": "dbserver_id",
+    "via_att": "name"
+   }
+  }
+ },
+ "DatacenterDevice": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "FunctionalCI",
+   "PhysicalDevice",
+   "ConnectableCI"
+  ],
+  "abstract": true,
+  "is_ci": true,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "FunctionalCI",
+    "required": true
+   },
+   "description": {
+    "type": "Text",
+    "owner": "FunctionalCI"
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "FunctionalCI",
+    "target": "Organization",
+    "required": true
+   },
+   "organization_name": {
+    "type": "ExternalField",
+    "owner": "FunctionalCI",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "business_criticity": {
+    "type": "Enum",
+    "owner": "FunctionalCI",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "move2production": {
+    "type": "Date",
+    "owner": "FunctionalCI"
+   },
+   "contacts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkContactToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "documents_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkDocumentToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "applicationsolution_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "softwares_list": {
+    "type": "LinkedSet",
+    "owner": "FunctionalCI",
+    "linked": "SoftwareInstance",
+    "link_key": "system_id"
+   },
+   "groups_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkGroupToCI",
+    "link_key": "ci_id"
+   },
+   "providercontracts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "link_key": "functionalci_id"
+   },
+   "services_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToService",
+    "link_key": "functionalci_id"
+   },
+   "tickets_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToTicket",
+    "link_key": "functionalci_id"
+   },
+   "serialnumber": {
+    "type": "String",
+    "owner": "PhysicalDevice"
+   },
+   "location_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Location"
+   },
+   "location_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "location_id",
+    "via_att": "name"
+   },
+   "status": {
+    "type": "Enum",
+    "owner": "PhysicalDevice",
+    "values": [
+     "production",
+     "implementation",
+     "stock",
+     "obsolete"
+    ]
+   },
+   "brand_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Brand"
+   },
+   "brand_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "brand_id",
+    "via_att": "name"
+   },
+   "model_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Model"
+   },
+   "model_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "model_id",
+    "via_att": "name"
+   },
+   "model_end_of_support": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "model_id",
+    "via_att": "end_of_support"
+   },
+   "asset_number": {
+    "type": "String",
+    "owner": "PhysicalDevice"
+   },
+   "purchase_date": {
+    "type": "Date",
+    "owner": "PhysicalDevice"
+   },
+   "end_of_warranty": {
+    "type": "Date",
+    "owner": "PhysicalDevice"
+   },
+   "networkdevice_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "ConnectableCI",
+    "linked": "lnkConnectableCIToNetworkDevice",
+    "link_key": "connectableci_id"
+   },
+   "physicalinterface_list": {
+    "type": "LinkedSet",
+    "owner": "ConnectableCI",
+    "linked": "PhysicalInterface",
+    "link_key": "connectableci_id"
+   },
+   "rack_id": {
+    "type": "ExternalKey",
+    "owner": "DatacenterDevice",
+    "target": "Rack"
+   },
+   "rack_name": {
+    "type": "ExternalField",
+    "owner": "DatacenterDevice",
+    "via_key": "rack_id",
+    "via_att": "name"
+   },
+   "enclosure_id": {
+    "type": "ExternalKey",
+    "owner": "DatacenterDevice",
+    "target": "Enclosure"
+   },
+   "enclosure_name": {
+    "type": "ExternalField",
+    "owner": "DatacenterDevice",
+    "via_key": "enclosure_id",
+    "via_att": "name"
+   },
+   "nb_u": {
+    "type": "Integer",
+    "owner": "DatacenterDevice"
+   },
+   "managementip": {
+    "type": "IPAddress",
+    "owner": "DatacenterDevice"
+   },
+   "powerA_id": {
+    "type": "ExternalKey",
+    "owner": "DatacenterDevice",
+    "target": "PowerConnection"
+   },
+   "powerA_name": {
+    "type": "ExternalField",
+    "owner": "DatacenterDevice",
+    "via_key": "powerA_id",
+    "via_att": "name"
+   },
+   "powerB_id": {
+    "type": "ExternalKey",
+    "owner": "DatacenterDevice",
+    "target": "PowerConnection"
+   },
+   "powerB_name": {
+    "type": "ExternalField",
+    "owner": "DatacenterDevice",
+    "via_key": "powerB_id",
+    "via_att": "name"
+   },
+   "fiberinterfacelist_list": {
+    "type": "LinkedSet",
+    "owner": "DatacenterDevice",
+    "linked": "FiberChannelInterface",
+    "link_key": "datacenterdevice_id"
+   },
+   "san_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "DatacenterDevice",
+    "linked": "lnkSanToDatacenterDevice",
+    "link_key": "datacenterdevice_id"
+   },
+   "redundancy": {
+    "type": "RedundancySettings",
+    "owner": "DatacenterDevice"
+   }
+  }
+ },
+ "Enclosure": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "FunctionalCI",
+   "PhysicalDevice"
+  ],
+  "abstract": false,
+  "is_ci": true,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "FunctionalCI",
+    "required": true
+   },
+   "description": {
+    "type": "Text",
+    "owner": "FunctionalCI"
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "FunctionalCI",
+    "target": "Organization",
+    "required": true
+   },
+   "organization_name": {
+    "type": "ExternalField",
+    "owner": "FunctionalCI",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "business_criticity": {
+    "type": "Enum",
+    "owner": "FunctionalCI",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "move2production": {
+    "type": "Date",
+    "owner": "FunctionalCI"
+   },
+   "contacts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkContactToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "documents_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkDocumentToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "applicationsolution_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "softwares_list": {
+    "type": "LinkedSet",
+    "owner": "FunctionalCI",
+    "linked": "SoftwareInstance",
+    "link_key": "system_id"
+   },
+   "groups_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkGroupToCI",
+    "link_key": "ci_id"
+   },
+   "providercontracts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "link_key": "functionalci_id"
+   },
+   "services_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToService",
+    "link_key": "functionalci_id"
+   },
+   "tickets_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToTicket",
+    "link_key": "functionalci_id"
+   },
+   "serialnumber": {
+    "type": "String",
+    "owner": "PhysicalDevice"
+   },
+   "location_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Location"
+   },
+   "location_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "location_id",
+    "via_att": "name"
+   },
+   "status": {
+    "type": "Enum",
+    "owner": "PhysicalDevice",
+    "values": [
+     "production",
+     "implementation",
+     "stock",
+     "obsolete"
+    ]
+   },
+   "brand_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Brand"
+   },
+   "brand_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "brand_id",
+    "via_att": "name"
+   },
+   "model_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Model"
+   },
+   "model_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "model_id",
+    "via_att": "name"
+   },
+   "model_end_of_support": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "model_id",
+    "via_att": "end_of_support"
+   },
+   "asset_number": {
+    "type": "String",
+    "owner": "PhysicalDevice"
+   },
+   "purchase_date": {
+    "type": "Date",
+    "owner": "PhysicalDevice"
+   },
+   "end_of_warranty": {
+    "type": "Date",
+    "owner": "PhysicalDevice"
+   },
+   "rack_id": {
+    "type": "ExternalKey",
+    "owner": "Enclosure",
+    "target": "Rack",
+    "required": true
+   },
+   "rack_name": {
+    "type": "ExternalField",
+    "owner": "Enclosure",
+    "via_key": "rack_id",
+    "via_att": "name"
+   },
+   "nb_u": {
+    "type": "Integer",
+    "owner": "Enclosure"
+   },
+   "device_list": {
+    "type": "LinkedSet",
+    "owner": "Enclosure",
+    "linked": "DatacenterDevice",
+    "link_key": "enclosure_id"
+   }
+  }
+ },
+ "Farm": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "FunctionalCI",
+   "VirtualDevice",
+   "VirtualHost"
+  ],
+  "abstract": false,
+  "is_ci": true,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "FunctionalCI",
+    "required": true
+   },
+   "description": {
+    "type": "Text",
+    "owner": "FunctionalCI"
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "FunctionalCI",
+    "target": "Organization",
+    "required": true
+   },
+   "organization_name": {
+    "type": "ExternalField",
+    "owner": "FunctionalCI",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "business_criticity": {
+    "type": "Enum",
+    "owner": "FunctionalCI",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "move2production": {
+    "type": "Date",
+    "owner": "FunctionalCI"
+   },
+   "contacts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkContactToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "documents_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkDocumentToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "applicationsolution_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "softwares_list": {
+    "type": "LinkedSet",
+    "owner": "FunctionalCI",
+    "linked": "SoftwareInstance",
+    "link_key": "system_id"
+   },
+   "groups_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkGroupToCI",
+    "link_key": "ci_id"
+   },
+   "providercontracts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "link_key": "functionalci_id"
+   },
+   "services_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToService",
+    "link_key": "functionalci_id"
+   },
+   "tickets_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToTicket",
+    "link_key": "functionalci_id"
+   },
+   "status": {
+    "type": "Enum",
+    "owner": "VirtualDevice",
+    "values": [
+     "production",
+     "implementation",
+     "stock",
+     "obsolete"
+    ]
+   },
+   "logicalvolumes_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "VirtualDevice",
+    "linked": "lnkVirtualDeviceToVolume",
+    "link_key": "virtualdevice_id"
+   },
+   "virtualmachine_list": {
+    "type": "LinkedSet",
+    "owner": "VirtualHost",
+    "linked": "VirtualMachine",
+    "link_key": "virtualhost_id"
+   },
+   "hypervisor_list": {
+    "type": "LinkedSet",
+    "owner": "Farm",
+    "linked": "Hypervisor",
+    "link_key": "farm_id"
+   },
+   "redundancy": {
+    "type": "RedundancySettings",
+    "owner": "Farm"
+   }
+  }
+ },
+ "FunctionalCI": {
+  "inherits": [
+   "cmdbAbstractObject"
+  ],
+  "abstract": true,
+  "is_ci": true,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "FunctionalCI",
+    "required": true
+   },
+   "description": {
+    "type": "Text",
+    "owner": "FunctionalCI"
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "FunctionalCI",
+    "target": "Organization",
+    "required": true
+   },
+   "organization_name": {
+    "type": "ExternalField",
+    "owner": "FunctionalCI",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "business_criticity": {
+    "type": "Enum",
+    "owner": "FunctionalCI",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "move2production": {
+    "type": "Date",
+    "owner": "FunctionalCI"
+   },
+   "contacts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkContactToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "documents_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkDocumentToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "applicationsolution_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "softwares_list": {
+    "type": "LinkedSet",
+    "owner": "FunctionalCI",
+    "linked": "SoftwareInstance",
+    "link_key": "system_id"
+   },
+   "groups_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkGroupToCI",
+    "link_key": "ci_id"
+   },
+   "providercontracts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "link_key": "functionalci_id"
+   },
+   "services_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToService",
+    "link_key": "functionalci_id"
+   },
+   "tickets_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToTicket",
+    "link_key": "functionalci_id"
+   }
+  }
+ },
+ "Hypervisor": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "FunctionalCI",
+   "VirtualDevice",
+   "VirtualHost"
+  ],
+  "abstract": false,
+  "is_ci": true,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "FunctionalCI",
+    "required": true
+   },
+   "description": {
+    "type": "Text",
+    "owner": "FunctionalCI"
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "FunctionalCI",
+    "target": "Organization",
+    "required": true
+   },
+   "organization_name": {
+    "type": "ExternalField",
+    "owner": "FunctionalCI",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "business_criticity": {
+    "type": "Enum",
+    "owner": "FunctionalCI",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "move2production": {
+    "type": "Date",
+    "owner": "FunctionalCI"
+   },
+   "contacts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkContactToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "documents_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkDocumentToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "applicationsolution_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "softwares_list": {
+    "type": "LinkedSet",
+    "owner": "FunctionalCI",
+    "linked": "SoftwareInstance",
+    "link_key": "system_id"
+   },
+   "groups_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkGroupToCI",
+    "link_key": "ci_id"
+   },
+   "providercontracts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "link_key": "functionalci_id"
+   },
+   "services_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToService",
+    "link_key": "functionalci_id"
+   },
+   "tickets_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToTicket",
+    "link_key": "functionalci_id"
+   },
+   "status": {
+    "type": "Enum",
+    "owner": "VirtualDevice",
+    "values": [
+     "production",
+     "implementation",
+     "stock",
+     "obsolete"
+    ]
+   },
+   "logicalvolumes_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "VirtualDevice",
+    "linked": "lnkVirtualDeviceToVolume",
+    "link_key": "virtualdevice_id"
+   },
+   "virtualmachine_list": {
+    "type": "LinkedSet",
+    "owner": "VirtualHost",
+    "linked": "VirtualMachine",
+    "link_key": "virtualhost_id"
+   },
+   "farm_id": {
+    "type": "ExternalKey",
+    "owner": "Hypervisor",
+    "target": "Farm"
+   },
+   "farm_name": {
+    "type": "ExternalField",
+    "owner": "Hypervisor",
+    "via_key": "farm_id",
+    "via_att": "name"
+   },
+   "server_id": {
+    "type": "ExternalKey",
+    "owner": "Hypervisor",
+    "target": "Server"
+   },
+   "server_name": {
+    "type": "ExternalField",
+    "owner": "Hypervisor",
+    "via_key": "server_id",
+    "via_att": "name"
+   }
+  }
+ },
+ "IPPhone": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "FunctionalCI",
+   "PhysicalDevice",
+   "TelephonyCI"
+  ],
+  "abstract": false,
+  "is_ci": true,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "FunctionalCI",
+    "required": true
+   },
+   "description": {
+    "type": "Text",
+    "owner": "FunctionalCI"
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "FunctionalCI",
+    "target": "Organization",
+    "required": true
+   },
+   "organization_name": {
+    "type": "ExternalField",
+    "owner": "FunctionalCI",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "business_criticity": {
+    "type": "Enum",
+    "owner": "FunctionalCI",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "move2production": {
+    "type": "Date",
+    "owner": "FunctionalCI"
+   },
+   "contacts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkContactToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "documents_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkDocumentToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "applicationsolution_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "softwares_list": {
+    "type": "LinkedSet",
+    "owner": "FunctionalCI",
+    "linked": "SoftwareInstance",
+    "link_key": "system_id"
+   },
+   "groups_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkGroupToCI",
+    "link_key": "ci_id"
+   },
+   "providercontracts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "link_key": "functionalci_id"
+   },
+   "services_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToService",
+    "link_key": "functionalci_id"
+   },
+   "tickets_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToTicket",
+    "link_key": "functionalci_id"
+   },
+   "serialnumber": {
+    "type": "String",
+    "owner": "PhysicalDevice"
+   },
+   "location_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Location"
+   },
+   "location_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "location_id",
+    "via_att": "name"
+   },
+   "status": {
+    "type": "Enum",
+    "owner": "PhysicalDevice",
+    "values": [
+     "production",
+     "implementation",
+     "stock",
+     "obsolete"
+    ]
+   },
+   "brand_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Brand"
+   },
+   "brand_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "brand_id",
+    "via_att": "name"
+   },
+   "model_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Model"
+   },
+   "model_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "model_id",
+    "via_att": "name"
+   },
+   "model_end_of_support": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "model_id",
+    "via_att": "end_of_support"
+   },
+   "asset_number": {
+    "type": "String",
+    "owner": "PhysicalDevice"
+   },
+   "purchase_date": {
+    "type": "Date",
+    "owner": "PhysicalDevice"
+   },
+   "end_of_warranty": {
+    "type": "Date",
+    "owner": "PhysicalDevice"
+   },
+   "phonenumber": {
+    "type": "String",
+    "owner": "TelephonyCI"
+   }
+  }
+ },
+ "Middleware": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "FunctionalCI",
+   "SoftwareInstance"
+  ],
+  "abstract": false,
+  "is_ci": true,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "FunctionalCI",
+    "required": true
+   },
+   "description": {
+    "type": "Text",
+    "owner": "FunctionalCI"
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "FunctionalCI",
+    "target": "Organization",
+    "required": true
+   },
+   "organization_name": {
+    "type": "ExternalField",
+    "owner": "FunctionalCI",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "business_criticity": {
+    "type": "Enum",
+    "owner": "FunctionalCI",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "move2production": {
+    "type": "Date",
+    "owner": "FunctionalCI"
+   },
+   "contacts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkContactToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "documents_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkDocumentToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "applicationsolution_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "softwares_list": {
+    "type": "LinkedSet",
+    "owner": "FunctionalCI",
+    "linked": "SoftwareInstance",
+    "link_key": "system_id"
+   },
+   "groups_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkGroupToCI",
+    "link_key": "ci_id"
+   },
+   "providercontracts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "link_key": "functionalci_id"
+   },
+   "services_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToService",
+    "link_key": "functionalci_id"
+   },
+   "tickets_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToTicket",
+    "link_key": "functionalci_id"
+   },
+   "system_id": {
+    "type": "ExternalKey",
+    "owner": "SoftwareInstance",
+    "target": "FunctionalCI",
+    "required": true
+   },
+   "system_name": {
+    "type": "ExternalField",
+    "owner": "SoftwareInstance",
+    "via_key": "system_id",
+    "via_att": "name"
+   },
+   "software_id": {
+    "type": "ExternalKey",
+    "owner": "SoftwareInstance",
+    "target": "Software"
+   },
+   "software_name": {
+    "type": "ExternalField",
+    "owner": "SoftwareInstance",
+    "via_key": "software_id",
+    "via_att": "name"
+   },
+   "software_end_of_support": {
+    "type": "ExternalField",
+    "owner": "SoftwareInstance",
+    "via_key": "software_id",
+    "via_att": "end_of_support"
+   },
+   "softwarelicence_id": {
+    "type": "ExternalKey",
+    "owner": "SoftwareInstance",
+    "target": "SoftwareLicence"
+   },
+   "softwarelicence_name": {
+    "type": "ExternalField",
+    "owner": "SoftwareInstance",
+    "via_key": "softwarelicence_id",
+    "via_att": "name"
+   },
+   "path": {
+    "type": "String",
+    "owner": "SoftwareInstance"
+   },
+   "status": {
+    "type": "Enum",
+    "owner": "SoftwareInstance",
+    "values": [
+     "active",
+     "inactive"
+    ]
+   },
+   "middlewareinstance_list": {
+    "type": "LinkedSet",
+    "owner": "Middleware",
+    "linked": "MiddlewareInstance",
+    "link_key": "middleware_id"
+   }
+  }
+ },
+ "MiddlewareInstance": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "FunctionalCI"
+  ],
+  "abstract": false,
+  "is_ci": true,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "FunctionalCI",
+    "required": true
+   },
+   "description": {
+    "type": "Text",
+    "owner": "FunctionalCI"
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "FunctionalCI",
+    "target": "Organization",
+    "required": true
+   },
+   "organization_name": {
+    "type": "ExternalField",
+    "owner": "FunctionalCI",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "business_criticity": {
+    "type": "Enum",
+    "owner": "FunctionalCI",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "move2production": {
+    "type": "Date",
+    "owner": "FunctionalCI"
+   },
+   "contacts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkContactToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "documents_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkDocumentToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "applicationsolution_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "softwares_list": {
+    "type": "LinkedSet",
+    "owner": "FunctionalCI",
+    "linked": "SoftwareInstance",
+    "link_key": "system_id"
+   },
+   "groups_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkGroupToCI",
+    "link_key": "ci_id"
+   },
+   "providercontracts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "link_key": "functionalci_id"
+   },
+   "services_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToService",
+    "link_key": "functionalci_id"
+   },
+   "tickets_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToTicket",
+    "link_key": "functionalci_id"
+   },
+   "middleware_id": {
+    "type": "ExternalKey",
+    "owner": "MiddlewareInstance",
+    "target": "Middleware",
+    "required": true
+   },
+   "middleware_name": {
+    "type": "ExternalField",
+    "owner": "MiddlewareInstance",
+    "via_key": "middleware_id",
+    "via_att": "name"
+   },
+   "logo": {
+    "type": "Image",
+    "owner": "MiddlewareInstance"
+   }
+  }
+ },
+ "MobilePhone": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "FunctionalCI",
+   "PhysicalDevice",
+   "TelephonyCI"
+  ],
+  "abstract": false,
+  "is_ci": true,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "FunctionalCI",
+    "required": true
+   },
+   "description": {
+    "type": "Text",
+    "owner": "FunctionalCI"
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "FunctionalCI",
+    "target": "Organization",
+    "required": true
+   },
+   "organization_name": {
+    "type": "ExternalField",
+    "owner": "FunctionalCI",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "business_criticity": {
+    "type": "Enum",
+    "owner": "FunctionalCI",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "move2production": {
+    "type": "Date",
+    "owner": "FunctionalCI"
+   },
+   "contacts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkContactToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "documents_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkDocumentToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "applicationsolution_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "softwares_list": {
+    "type": "LinkedSet",
+    "owner": "FunctionalCI",
+    "linked": "SoftwareInstance",
+    "link_key": "system_id"
+   },
+   "groups_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkGroupToCI",
+    "link_key": "ci_id"
+   },
+   "providercontracts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "link_key": "functionalci_id"
+   },
+   "services_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToService",
+    "link_key": "functionalci_id"
+   },
+   "tickets_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToTicket",
+    "link_key": "functionalci_id"
+   },
+   "serialnumber": {
+    "type": "String",
+    "owner": "PhysicalDevice"
+   },
+   "location_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Location"
+   },
+   "location_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "location_id",
+    "via_att": "name"
+   },
+   "status": {
+    "type": "Enum",
+    "owner": "PhysicalDevice",
+    "values": [
+     "production",
+     "implementation",
+     "stock",
+     "obsolete"
+    ]
+   },
+   "brand_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Brand"
+   },
+   "brand_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "brand_id",
+    "via_att": "name"
+   },
+   "model_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Model"
+   },
+   "model_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "model_id",
+    "via_att": "name"
+   },
+   "model_end_of_support": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "model_id",
+    "via_att": "end_of_support"
+   },
+   "asset_number": {
+    "type": "String",
+    "owner": "PhysicalDevice"
+   },
+   "purchase_date": {
+    "type": "Date",
+    "owner": "PhysicalDevice"
+   },
+   "end_of_warranty": {
+    "type": "Date",
+    "owner": "PhysicalDevice"
+   },
+   "phonenumber": {
+    "type": "String",
+    "owner": "TelephonyCI"
+   },
+   "imei": {
+    "type": "String",
+    "owner": "MobilePhone"
+   },
+   "hw_pin": {
+    "type": "String",
+    "owner": "MobilePhone"
+   }
+  }
+ },
+ "NAS": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "FunctionalCI",
+   "PhysicalDevice",
+   "ConnectableCI",
+   "DatacenterDevice"
+  ],
+  "abstract": false,
+  "is_ci": true,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "FunctionalCI",
+    "required": true
+   },
+   "description": {
+    "type": "Text",
+    "owner": "FunctionalCI"
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "FunctionalCI",
+    "target": "Organization",
+    "required": true
+   },
+   "organization_name": {
+    "type": "ExternalField",
+    "owner": "FunctionalCI",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "business_criticity": {
+    "type": "Enum",
+    "owner": "FunctionalCI",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "move2production": {
+    "type": "Date",
+    "owner": "FunctionalCI"
+   },
+   "contacts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkContactToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "documents_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkDocumentToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "applicationsolution_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "softwares_list": {
+    "type": "LinkedSet",
+    "owner": "FunctionalCI",
+    "linked": "SoftwareInstance",
+    "link_key": "system_id"
+   },
+   "groups_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkGroupToCI",
+    "link_key": "ci_id"
+   },
+   "providercontracts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "link_key": "functionalci_id"
+   },
+   "services_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToService",
+    "link_key": "functionalci_id"
+   },
+   "tickets_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToTicket",
+    "link_key": "functionalci_id"
+   },
+   "serialnumber": {
+    "type": "String",
+    "owner": "PhysicalDevice"
+   },
+   "location_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Location"
+   },
+   "location_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "location_id",
+    "via_att": "name"
+   },
+   "status": {
+    "type": "Enum",
+    "owner": "PhysicalDevice",
+    "values": [
+     "production",
+     "implementation",
+     "stock",
+     "obsolete"
+    ]
+   },
+   "brand_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Brand"
+   },
+   "brand_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "brand_id",
+    "via_att": "name"
+   },
+   "model_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Model"
+   },
+   "model_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "model_id",
+    "via_att": "name"
+   },
+   "model_end_of_support": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "model_id",
+    "via_att": "end_of_support"
+   },
+   "asset_number": {
+    "type": "String",
+    "owner": "PhysicalDevice"
+   },
+   "purchase_date": {
+    "type": "Date",
+    "owner": "PhysicalDevice"
+   },
+   "end_of_warranty": {
+    "type": "Date",
+    "owner": "PhysicalDevice"
+   },
+   "networkdevice_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "ConnectableCI",
+    "linked": "lnkConnectableCIToNetworkDevice",
+    "link_key": "connectableci_id"
+   },
+   "physicalinterface_list": {
+    "type": "LinkedSet",
+    "owner": "ConnectableCI",
+    "linked": "PhysicalInterface",
+    "link_key": "connectableci_id"
+   },
+   "rack_id": {
+    "type": "ExternalKey",
+    "owner": "DatacenterDevice",
+    "target": "Rack"
+   },
+   "rack_name": {
+    "type": "ExternalField",
+    "owner": "DatacenterDevice",
+    "via_key": "rack_id",
+    "via_att": "name"
+   },
+   "enclosure_id": {
+    "type": "ExternalKey",
+    "owner": "DatacenterDevice",
+    "target": "Enclosure"
+   },
+   "enclosure_name": {
+    "type": "ExternalField",
+    "owner": "DatacenterDevice",
+    "via_key": "enclosure_id",
+    "via_att": "name"
+   },
+   "nb_u": {
+    "type": "Integer",
+    "owner": "DatacenterDevice"
+   },
+   "managementip": {
+    "type": "IPAddress",
+    "owner": "DatacenterDevice"
+   },
+   "powerA_id": {
+    "type": "ExternalKey",
+    "owner": "DatacenterDevice",
+    "target": "PowerConnection"
+   },
+   "powerA_name": {
+    "type": "ExternalField",
+    "owner": "DatacenterDevice",
+    "via_key": "powerA_id",
+    "via_att": "name"
+   },
+   "powerB_id": {
+    "type": "ExternalKey",
+    "owner": "DatacenterDevice",
+    "target": "PowerConnection"
+   },
+   "powerB_name": {
+    "type": "ExternalField",
+    "owner": "DatacenterDevice",
+    "via_key": "powerB_id",
+    "via_att": "name"
+   },
+   "fiberinterfacelist_list": {
+    "type": "LinkedSet",
+    "owner": "DatacenterDevice",
+    "linked": "FiberChannelInterface",
+    "link_key": "datacenterdevice_id"
+   },
+   "san_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "DatacenterDevice",
+    "linked": "lnkSanToDatacenterDevice",
+    "link_key": "datacenterdevice_id"
+   },
+   "redundancy": {
+    "type": "RedundancySettings",
+    "owner": "DatacenterDevice"
+   },
+   "nasfilesystem_list": {
+    "type": "LinkedSet",
+    "owner": "NAS",
+    "linked": "NASFileSystem",
+    "link_key": "nas_id"
+   }
+  }
+ },
+ "NetworkDevice": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "FunctionalCI",
+   "PhysicalDevice",
+   "ConnectableCI",
+   "DatacenterDevice"
+  ],
+  "abstract": false,
+  "is_ci": true,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "FunctionalCI",
+    "required": true
+   },
+   "description": {
+    "type": "Text",
+    "owner": "FunctionalCI"
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "FunctionalCI",
+    "target": "Organization",
+    "required": true
+   },
+   "organization_name": {
+    "type": "ExternalField",
+    "owner": "FunctionalCI",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "business_criticity": {
+    "type": "Enum",
+    "owner": "FunctionalCI",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "move2production": {
+    "type": "Date",
+    "owner": "FunctionalCI"
+   },
+   "contacts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkContactToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "documents_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkDocumentToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "applicationsolution_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "softwares_list": {
+    "type": "LinkedSet",
+    "owner": "FunctionalCI",
+    "linked": "SoftwareInstance",
+    "link_key": "system_id"
+   },
+   "groups_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkGroupToCI",
+    "link_key": "ci_id"
+   },
+   "providercontracts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "link_key": "functionalci_id"
+   },
+   "services_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToService",
+    "link_key": "functionalci_id"
+   },
+   "tickets_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToTicket",
+    "link_key": "functionalci_id"
+   },
+   "serialnumber": {
+    "type": "String",
+    "owner": "PhysicalDevice"
+   },
+   "location_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Location"
+   },
+   "location_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "location_id",
+    "via_att": "name"
+   },
+   "status": {
+    "type": "Enum",
+    "owner": "PhysicalDevice",
+    "values": [
+     "production",
+     "implementation",
+     "stock",
+     "obsolete"
+    ]
+   },
+   "brand_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Brand"
+   },
+   "brand_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "brand_id",
+    "via_att": "name"
+   },
+   "model_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Model"
+   },
+   "model_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "model_id",
+    "via_att": "name"
+   },
+   "model_end_of_support": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "model_id",
+    "via_att": "end_of_support"
+   },
+   "asset_number": {
+    "type": "String",
+    "owner": "PhysicalDevice"
+   },
+   "purchase_date": {
+    "type": "Date",
+    "owner": "PhysicalDevice"
+   },
+   "end_of_warranty": {
+    "type": "Date",
+    "owner": "PhysicalDevice"
+   },
+   "networkdevice_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "ConnectableCI",
+    "linked": "lnkConnectableCIToNetworkDevice",
+    "link_key": "connectableci_id"
+   },
+   "physicalinterface_list": {
+    "type": "LinkedSet",
+    "owner": "ConnectableCI",
+    "linked": "PhysicalInterface",
+    "link_key": "connectableci_id"
+   },
+   "rack_id": {
+    "type": "ExternalKey",
+    "owner": "DatacenterDevice",
+    "target": "Rack"
+   },
+   "rack_name": {
+    "type": "ExternalField",
+    "owner": "DatacenterDevice",
+    "via_key": "rack_id",
+    "via_att": "name"
+   },
+   "enclosure_id": {
+    "type": "ExternalKey",
+    "owner": "DatacenterDevice",
+    "target": "Enclosure"
+   },
+   "enclosure_name": {
+    "type": "ExternalField",
+    "owner": "DatacenterDevice",
+    "via_key": "enclosure_id",
+    "via_att": "name"
+   },
+   "nb_u": {
+    "type": "Integer",
+    "owner": "DatacenterDevice"
+   },
+   "managementip": {
+    "type": "IPAddress",
+    "owner": "DatacenterDevice"
+   },
+   "powerA_id": {
+    "type": "ExternalKey",
+    "owner": "DatacenterDevice",
+    "target": "PowerConnection"
+   },
+   "powerA_name": {
+    "type": "ExternalField",
+    "owner": "DatacenterDevice",
+    "via_key": "powerA_id",
+    "via_att": "name"
+   },
+   "powerB_id": {
+    "type": "ExternalKey",
+    "owner": "DatacenterDevice",
+    "target": "PowerConnection"
+   },
+   "powerB_name": {
+    "type": "ExternalField",
+    "owner": "DatacenterDevice",
+    "via_key": "powerB_id",
+    "via_att": "name"
+   },
+   "fiberinterfacelist_list": {
+    "type": "LinkedSet",
+    "owner": "DatacenterDevice",
+    "linked": "FiberChannelInterface",
+    "link_key": "datacenterdevice_id"
+   },
+   "san_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "DatacenterDevice",
+    "linked": "lnkSanToDatacenterDevice",
+    "link_key": "datacenterdevice_id"
+   },
+   "redundancy": {
+    "type": "RedundancySettings",
+    "owner": "DatacenterDevice"
+   },
+   "networkdevicetype_id": {
+    "type": "ExternalKey",
+    "owner": "NetworkDevice",
+    "target": "NetworkDeviceType",
+    "required": true
+   },
+   "networkdevicetype_name": {
+    "type": "ExternalField",
+    "owner": "NetworkDevice",
+    "via_key": "networkdevicetype_id",
+    "via_att": "name"
+   },
+   "connectablecis_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "NetworkDevice",
+    "linked": "lnkConnectableCIToNetworkDevice",
+    "link_key": "networkdevice_id"
+   },
+   "iosversion_id": {
+    "type": "ExternalKey",
+    "owner": "NetworkDevice",
+    "target": "IOSVersion"
+   },
+   "iosversion_name": {
+    "type": "ExternalField",
+    "owner": "NetworkDevice",
+    "via_key": "iosversion_id",
+    "via_att": "name"
+   },
+   "ios_end_of_support": {
+    "type": "ExternalField",
+    "owner": "NetworkDevice",
+    "via_key": "iosversion_id",
+    "via_att": "end_of_support"
+   },
+   "ram": {
+    "type": "String",
+    "owner": "NetworkDevice"
+   }
+  }
+ },
+ "OtherSoftware": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "FunctionalCI",
+   "SoftwareInstance"
+  ],
+  "abstract": false,
+  "is_ci": true,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "FunctionalCI",
+    "required": true
+   },
+   "description": {
+    "type": "Text",
+    "owner": "FunctionalCI"
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "FunctionalCI",
+    "target": "Organization",
+    "required": true
+   },
+   "organization_name": {
+    "type": "ExternalField",
+    "owner": "FunctionalCI",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "business_criticity": {
+    "type": "Enum",
+    "owner": "FunctionalCI",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "move2production": {
+    "type": "Date",
+    "owner": "FunctionalCI"
+   },
+   "contacts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkContactToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "documents_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkDocumentToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "applicationsolution_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "softwares_list": {
+    "type": "LinkedSet",
+    "owner": "FunctionalCI",
+    "linked": "SoftwareInstance",
+    "link_key": "system_id"
+   },
+   "groups_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkGroupToCI",
+    "link_key": "ci_id"
+   },
+   "providercontracts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "link_key": "functionalci_id"
+   },
+   "services_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToService",
+    "link_key": "functionalci_id"
+   },
+   "tickets_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToTicket",
+    "link_key": "functionalci_id"
+   },
+   "system_id": {
+    "type": "ExternalKey",
+    "owner": "SoftwareInstance",
+    "target": "FunctionalCI",
+    "required": true
+   },
+   "system_name": {
+    "type": "ExternalField",
+    "owner": "SoftwareInstance",
+    "via_key": "system_id",
+    "via_att": "name"
+   },
+   "software_id": {
+    "type": "ExternalKey",
+    "owner": "SoftwareInstance",
+    "target": "Software"
+   },
+   "software_name": {
+    "type": "ExternalField",
+    "owner": "SoftwareInstance",
+    "via_key": "software_id",
+    "via_att": "name"
+   },
+   "software_end_of_support": {
+    "type": "ExternalField",
+    "owner": "SoftwareInstance",
+    "via_key": "software_id",
+    "via_att": "end_of_support"
+   },
+   "softwarelicence_id": {
+    "type": "ExternalKey",
+    "owner": "SoftwareInstance",
+    "target": "SoftwareLicence"
+   },
+   "softwarelicence_name": {
+    "type": "ExternalField",
+    "owner": "SoftwareInstance",
+    "via_key": "softwarelicence_id",
+    "via_att": "name"
+   },
+   "path": {
+    "type": "String",
+    "owner": "SoftwareInstance"
+   },
+   "status": {
+    "type": "Enum",
+    "owner": "SoftwareInstance",
+    "values": [
+     "active",
+     "inactive"
+    ]
+   }
+  }
+ },
+ "PC": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "FunctionalCI",
+   "PhysicalDevice",
+   "ConnectableCI"
+  ],
+  "abstract": false,
+  "is_ci": true,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "FunctionalCI",
+    "required": true
+   },
+   "description": {
+    "type": "Text",
+    "owner": "FunctionalCI"
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "FunctionalCI",
+    "target": "Organization",
+    "required": true
+   },
+   "organization_name": {
+    "type": "ExternalField",
+    "owner": "FunctionalCI",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "business_criticity": {
+    "type": "Enum",
+    "owner": "FunctionalCI",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "move2production": {
+    "type": "Date",
+    "owner": "FunctionalCI"
+   },
+   "contacts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkContactToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "documents_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkDocumentToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "applicationsolution_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "softwares_list": {
+    "type": "LinkedSet",
+    "owner": "FunctionalCI",
+    "linked": "SoftwareInstance",
+    "link_key": "system_id"
+   },
+   "groups_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkGroupToCI",
+    "link_key": "ci_id"
+   },
+   "providercontracts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "link_key": "functionalci_id"
+   },
+   "services_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToService",
+    "link_key": "functionalci_id"
+   },
+   "tickets_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToTicket",
+    "link_key": "functionalci_id"
+   },
+   "serialnumber": {
+    "type": "String",
+    "owner": "PhysicalDevice"
+   },
+   "location_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Location"
+   },
+   "location_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "location_id",
+    "via_att": "name"
+   },
+   "status": {
+    "type": "Enum",
+    "owner": "PhysicalDevice",
+    "values": [
+     "production",
+     "implementation",
+     "stock",
+     "obsolete"
+    ]
+   },
+   "brand_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Brand"
+   },
+   "brand_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "brand_id",
+    "via_att": "name"
+   },
+   "model_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Model"
+   },
+   "model_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "model_id",
+    "via_att": "name"
+   },
+   "model_end_of_support": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "model_id",
+    "via_att": "end_of_support"
+   },
+   "asset_number": {
+    "type": "String",
+    "owner": "PhysicalDevice"
+   },
+   "purchase_date": {
+    "type": "Date",
+    "owner": "PhysicalDevice"
+   },
+   "end_of_warranty": {
+    "type": "Date",
+    "owner": "PhysicalDevice"
+   },
+   "networkdevice_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "ConnectableCI",
+    "linked": "lnkConnectableCIToNetworkDevice",
+    "link_key": "connectableci_id"
+   },
+   "physicalinterface_list": {
+    "type": "LinkedSet",
+    "owner": "ConnectableCI",
+    "linked": "PhysicalInterface",
+    "link_key": "connectableci_id"
+   },
+   "osfamily_id": {
+    "type": "ExternalKey",
+    "owner": "PC",
+    "target": "OSFamily"
+   },
+   "osfamily_name": {
+    "type": "ExternalField",
+    "owner": "PC",
+    "via_key": "osfamily_id",
+    "via_att": "name"
+   },
+   "osversion_id": {
+    "type": "ExternalKey",
+    "owner": "PC",
+    "target": "OSVersion"
+   },
+   "osversion_name": {
+    "type": "ExternalField",
+    "owner": "PC",
+    "via_key": "osversion_id",
+    "via_att": "name"
+   },
+   "os_end_of_support": {
+    "type": "ExternalField",
+    "owner": "PC",
+    "via_key": "osversion_id",
+    "via_att": "end_of_support"
+   },
+   "cpu": {
+    "type": "String",
+    "owner": "PC"
+   },
+   "ram": {
+    "type": "String",
+    "owner": "PC"
+   },
+   "type": {
+    "type": "Enum",
+    "owner": "PC",
+    "values": [
+     "laptop",
+     "desktop"
+    ]
+   }
+  }
+ },
+ "PCSoftware": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "FunctionalCI",
+   "SoftwareInstance"
+  ],
+  "abstract": false,
+  "is_ci": true,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "FunctionalCI",
+    "required": true
+   },
+   "description": {
+    "type": "Text",
+    "owner": "FunctionalCI"
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "FunctionalCI",
+    "target": "Organization",
+    "required": true
+   },
+   "organization_name": {
+    "type": "ExternalField",
+    "owner": "FunctionalCI",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "business_criticity": {
+    "type": "Enum",
+    "owner": "FunctionalCI",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "move2production": {
+    "type": "Date",
+    "owner": "FunctionalCI"
+   },
+   "contacts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkContactToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "documents_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkDocumentToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "applicationsolution_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "softwares_list": {
+    "type": "LinkedSet",
+    "owner": "FunctionalCI",
+    "linked": "SoftwareInstance",
+    "link_key": "system_id"
+   },
+   "groups_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkGroupToCI",
+    "link_key": "ci_id"
+   },
+   "providercontracts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "link_key": "functionalci_id"
+   },
+   "services_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToService",
+    "link_key": "functionalci_id"
+   },
+   "tickets_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToTicket",
+    "link_key": "functionalci_id"
+   },
+   "system_id": {
+    "type": "ExternalKey",
+    "owner": "SoftwareInstance",
+    "target": "FunctionalCI",
+    "required": true
+   },
+   "system_name": {
+    "type": "ExternalField",
+    "owner": "SoftwareInstance",
+    "via_key": "system_id",
+    "via_att": "name"
+   },
+   "software_id": {
+    "type": "ExternalKey",
+    "owner": "SoftwareInstance",
+    "target": "Software"
+   },
+   "software_name": {
+    "type": "ExternalField",
+    "owner": "SoftwareInstance",
+    "via_key": "software_id",
+    "via_att": "name"
+   },
+   "software_end_of_support": {
+    "type": "ExternalField",
+    "owner": "SoftwareInstance",
+    "via_key": "software_id",
+    "via_att": "end_of_support"
+   },
+   "softwarelicence_id": {
+    "type": "ExternalKey",
+    "owner": "SoftwareInstance",
+    "target": "SoftwareLicence"
+   },
+   "softwarelicence_name": {
+    "type": "ExternalField",
+    "owner": "SoftwareInstance",
+    "via_key": "softwarelicence_id",
+    "via_att": "name"
+   },
+   "path": {
+    "type": "String",
+    "owner": "SoftwareInstance"
+   },
+   "status": {
+    "type": "Enum",
+    "owner": "SoftwareInstance",
+    "values": [
+     "active",
+     "inactive"
+    ]
+   }
+  }
+ },
+ "PDU": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "FunctionalCI",
+   "PhysicalDevice",
+   "PowerConnection"
+  ],
+  "abstract": false,
+  "is_ci": true,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "FunctionalCI",
+    "required": true
+   },
+   "description": {
+    "type": "Text",
+    "owner": "FunctionalCI"
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "FunctionalCI",
+    "target": "Organization",
+    "required": true
+   },
+   "organization_name": {
+    "type": "ExternalField",
+    "owner": "FunctionalCI",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "business_criticity": {
+    "type": "Enum",
+    "owner": "FunctionalCI",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "move2production": {
+    "type": "Date",
+    "owner": "FunctionalCI"
+   },
+   "contacts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkContactToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "documents_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkDocumentToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "applicationsolution_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "softwares_list": {
+    "type": "LinkedSet",
+    "owner": "FunctionalCI",
+    "linked": "SoftwareInstance",
+    "link_key": "system_id"
+   },
+   "groups_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkGroupToCI",
+    "link_key": "ci_id"
+   },
+   "providercontracts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "link_key": "functionalci_id"
+   },
+   "services_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToService",
+    "link_key": "functionalci_id"
+   },
+   "tickets_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToTicket",
+    "link_key": "functionalci_id"
+   },
+   "serialnumber": {
+    "type": "String",
+    "owner": "PhysicalDevice"
+   },
+   "location_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Location"
+   },
+   "location_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "location_id",
+    "via_att": "name"
+   },
+   "status": {
+    "type": "Enum",
+    "owner": "PhysicalDevice",
+    "values": [
+     "production",
+     "implementation",
+     "stock",
+     "obsolete"
+    ]
+   },
+   "brand_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Brand"
+   },
+   "brand_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "brand_id",
+    "via_att": "name"
+   },
+   "model_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Model"
+   },
+   "model_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "model_id",
+    "via_att": "name"
+   },
+   "model_end_of_support": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "model_id",
+    "via_att": "end_of_support"
+   },
+   "asset_number": {
+    "type": "String",
+    "owner": "PhysicalDevice"
+   },
+   "purchase_date": {
+    "type": "Date",
+    "owner": "PhysicalDevice"
+   },
+   "end_of_warranty": {
+    "type": "Date",
+    "owner": "PhysicalDevice"
+   },
+   "rack_id": {
+    "type": "ExternalKey",
+    "owner": "PDU",
+    "target": "Rack",
+    "required": true
+   },
+   "rack_name": {
+    "type": "ExternalField",
+    "owner": "PDU",
+    "via_key": "rack_id",
+    "via_att": "name"
+   },
+   "powerstart_id": {
+    "type": "ExternalKey",
+    "owner": "PDU",
+    "target": "PowerConnection"
+   },
+   "powerstart_name": {
+    "type": "ExternalField",
+    "owner": "PDU",
+    "via_key": "powerstart_id",
+    "via_att": "name"
+   }
+  }
+ },
+ "Peripheral": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "FunctionalCI",
+   "PhysicalDevice"
+  ],
+  "abstract": false,
+  "is_ci": true,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "FunctionalCI",
+    "required": true
+   },
+   "description": {
+    "type": "Text",
+    "owner": "FunctionalCI"
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "FunctionalCI",
+    "target": "Organization",
+    "required": true
+   },
+   "organization_name": {
+    "type": "ExternalField",
+    "owner": "FunctionalCI",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "business_criticity": {
+    "type": "Enum",
+    "owner": "FunctionalCI",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "move2production": {
+    "type": "Date",
+    "owner": "FunctionalCI"
+   },
+   "contacts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkContactToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "documents_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkDocumentToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "applicationsolution_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "softwares_list": {
+    "type": "LinkedSet",
+    "owner": "FunctionalCI",
+    "linked": "SoftwareInstance",
+    "link_key": "system_id"
+   },
+   "groups_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkGroupToCI",
+    "link_key": "ci_id"
+   },
+   "providercontracts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "link_key": "functionalci_id"
+   },
+   "services_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToService",
+    "link_key": "functionalci_id"
+   },
+   "tickets_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToTicket",
+    "link_key": "functionalci_id"
+   },
+   "serialnumber": {
+    "type": "String",
+    "owner": "PhysicalDevice"
+   },
+   "location_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Location"
+   },
+   "location_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "location_id",
+    "via_att": "name"
+   },
+   "status": {
+    "type": "Enum",
+    "owner": "PhysicalDevice",
+    "values": [
+     "production",
+     "implementation",
+     "stock",
+     "obsolete"
+    ]
+   },
+   "brand_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Brand"
+   },
+   "brand_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "brand_id",
+    "via_att": "name"
+   },
+   "model_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Model"
+   },
+   "model_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "model_id",
+    "via_att": "name"
+   },
+   "model_end_of_support": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "model_id",
+    "via_att": "end_of_support"
+   },
+   "asset_number": {
+    "type": "String",
+    "owner": "PhysicalDevice"
+   },
+   "purchase_date": {
+    "type": "Date",
+    "owner": "PhysicalDevice"
+   },
+   "end_of_warranty": {
+    "type": "Date",
+    "owner": "PhysicalDevice"
+   }
+  }
+ },
+ "Phone": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "FunctionalCI",
+   "PhysicalDevice",
+   "TelephonyCI"
+  ],
+  "abstract": false,
+  "is_ci": true,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "FunctionalCI",
+    "required": true
+   },
+   "description": {
+    "type": "Text",
+    "owner": "FunctionalCI"
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "FunctionalCI",
+    "target": "Organization",
+    "required": true
+   },
+   "organization_name": {
+    "type": "ExternalField",
+    "owner": "FunctionalCI",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "business_criticity": {
+    "type": "Enum",
+    "owner": "FunctionalCI",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "move2production": {
+    "type": "Date",
+    "owner": "FunctionalCI"
+   },
+   "contacts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkContactToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "documents_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkDocumentToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "applicationsolution_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "softwares_list": {
+    "type": "LinkedSet",
+    "owner": "FunctionalCI",
+    "linked": "SoftwareInstance",
+    "link_key": "system_id"
+   },
+   "groups_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkGroupToCI",
+    "link_key": "ci_id"
+   },
+   "providercontracts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "link_key": "functionalci_id"
+   },
+   "services_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToService",
+    "link_key": "functionalci_id"
+   },
+   "tickets_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToTicket",
+    "link_key": "functionalci_id"
+   },
+   "serialnumber": {
+    "type": "String",
+    "owner": "PhysicalDevice"
+   },
+   "location_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Location"
+   },
+   "location_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "location_id",
+    "via_att": "name"
+   },
+   "status": {
+    "type": "Enum",
+    "owner": "PhysicalDevice",
+    "values": [
+     "production",
+     "implementation",
+     "stock",
+     "obsolete"
+    ]
+   },
+   "brand_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Brand"
+   },
+   "brand_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "brand_id",
+    "via_att": "name"
+   },
+   "model_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Model"
+   },
+   "model_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "model_id",
+    "via_att": "name"
+   },
+   "model_end_of_support": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "model_id",
+    "via_att": "end_of_support"
+   },
+   "asset_number": {
+    "type": "String",
+    "owner": "PhysicalDevice"
+   },
+   "purchase_date": {
+    "type": "Date",
+    "owner": "PhysicalDevice"
+   },
+   "end_of_warranty": {
+    "type": "Date",
+    "owner": "PhysicalDevice"
+   },
+   "phonenumber": {
+    "type": "String",
+    "owner": "TelephonyCI"
+   }
+  }
+ },
+ "PhysicalDevice": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "FunctionalCI"
+  ],
+  "abstract": true,
+  "is_ci": true,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "FunctionalCI",
+    "required": true
+   },
+   "description": {
+    "type": "Text",
+    "owner": "FunctionalCI"
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "FunctionalCI",
+    "target": "Organization",
+    "required": true
+   },
+   "organization_name": {
+    "type": "ExternalField",
+    "owner": "FunctionalCI",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "business_criticity": {
+    "type": "Enum",
+    "owner": "FunctionalCI",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "move2production": {
+    "type": "Date",
+    "owner": "FunctionalCI"
+   },
+   "contacts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkContactToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "documents_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkDocumentToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "applicationsolution_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "softwares_list": {
+    "type": "LinkedSet",
+    "owner": "FunctionalCI",
+    "linked": "SoftwareInstance",
+    "link_key": "system_id"
+   },
+   "groups_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkGroupToCI",
+    "link_key": "ci_id"
+   },
+   "providercontracts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "link_key": "functionalci_id"
+   },
+   "services_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToService",
+    "link_key": "functionalci_id"
+   },
+   "tickets_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToTicket",
+    "link_key": "functionalci_id"
+   },
+   "serialnumber": {
+    "type": "String",
+    "owner": "PhysicalDevice"
+   },
+   "location_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Location"
+   },
+   "location_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "location_id",
+    "via_att": "name"
+   },
+   "status": {
+    "type": "Enum",
+    "owner": "PhysicalDevice",
+    "values": [
+     "production",
+     "implementation",
+     "stock",
+     "obsolete"
+    ]
+   },
+   "brand_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Brand"
+   },
+   "brand_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "brand_id",
+    "via_att": "name"
+   },
+   "model_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Model"
+   },
+   "model_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "model_id",
+    "via_att": "name"
+   },
+   "model_end_of_support": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "model_id",
+    "via_att": "end_of_support"
+   },
+   "asset_number": {
+    "type": "String",
+    "owner": "PhysicalDevice"
+   },
+   "purchase_date": {
+    "type": "Date",
+    "owner": "PhysicalDevice"
+   },
+   "end_of_warranty": {
+    "type": "Date",
+    "owner": "PhysicalDevice"
+   }
+  }
+ },
+ "PowerConnection": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "FunctionalCI",
+   "PhysicalDevice"
+  ],
+  "abstract": true,
+  "is_ci": true,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "FunctionalCI",
+    "required": true
+   },
+   "description": {
+    "type": "Text",
+    "owner": "FunctionalCI"
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "FunctionalCI",
+    "target": "Organization",
+    "required": true
+   },
+   "organization_name": {
+    "type": "ExternalField",
+    "owner": "FunctionalCI",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "business_criticity": {
+    "type": "Enum",
+    "owner": "FunctionalCI",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "move2production": {
+    "type": "Date",
+    "owner": "FunctionalCI"
+   },
+   "contacts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkContactToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "documents_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkDocumentToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "applicationsolution_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "softwares_list": {
+    "type": "LinkedSet",
+    "owner": "FunctionalCI",
+    "linked": "SoftwareInstance",
+    "link_key": "system_id"
+   },
+   "groups_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkGroupToCI",
+    "link_key": "ci_id"
+   },
+   "providercontracts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "link_key": "functionalci_id"
+   },
+   "services_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToService",
+    "link_key": "functionalci_id"
+   },
+   "tickets_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToTicket",
+    "link_key": "functionalci_id"
+   },
+   "serialnumber": {
+    "type": "String",
+    "owner": "PhysicalDevice"
+   },
+   "location_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Location"
+   },
+   "location_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "location_id",
+    "via_att": "name"
+   },
+   "status": {
+    "type": "Enum",
+    "owner": "PhysicalDevice",
+    "values": [
+     "production",
+     "implementation",
+     "stock",
+     "obsolete"
+    ]
+   },
+   "brand_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Brand"
+   },
+   "brand_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "brand_id",
+    "via_att": "name"
+   },
+   "model_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Model"
+   },
+   "model_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "model_id",
+    "via_att": "name"
+   },
+   "model_end_of_support": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "model_id",
+    "via_att": "end_of_support"
+   },
+   "asset_number": {
+    "type": "String",
+    "owner": "PhysicalDevice"
+   },
+   "purchase_date": {
+    "type": "Date",
+    "owner": "PhysicalDevice"
+   },
+   "end_of_warranty": {
+    "type": "Date",
+    "owner": "PhysicalDevice"
+   }
+  }
+ },
+ "PowerSource": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "FunctionalCI",
+   "PhysicalDevice",
+   "PowerConnection"
+  ],
+  "abstract": false,
+  "is_ci": true,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "FunctionalCI",
+    "required": true
+   },
+   "description": {
+    "type": "Text",
+    "owner": "FunctionalCI"
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "FunctionalCI",
+    "target": "Organization",
+    "required": true
+   },
+   "organization_name": {
+    "type": "ExternalField",
+    "owner": "FunctionalCI",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "business_criticity": {
+    "type": "Enum",
+    "owner": "FunctionalCI",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "move2production": {
+    "type": "Date",
+    "owner": "FunctionalCI"
+   },
+   "contacts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkContactToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "documents_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkDocumentToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "applicationsolution_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "softwares_list": {
+    "type": "LinkedSet",
+    "owner": "FunctionalCI",
+    "linked": "SoftwareInstance",
+    "link_key": "system_id"
+   },
+   "groups_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkGroupToCI",
+    "link_key": "ci_id"
+   },
+   "providercontracts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "link_key": "functionalci_id"
+   },
+   "services_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToService",
+    "link_key": "functionalci_id"
+   },
+   "tickets_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToTicket",
+    "link_key": "functionalci_id"
+   },
+   "serialnumber": {
+    "type": "String",
+    "owner": "PhysicalDevice"
+   },
+   "location_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Location"
+   },
+   "location_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "location_id",
+    "via_att": "name"
+   },
+   "status": {
+    "type": "Enum",
+    "owner": "PhysicalDevice",
+    "values": [
+     "production",
+     "implementation",
+     "stock",
+     "obsolete"
+    ]
+   },
+   "brand_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Brand"
+   },
+   "brand_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "brand_id",
+    "via_att": "name"
+   },
+   "model_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Model"
+   },
+   "model_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "model_id",
+    "via_att": "name"
+   },
+   "model_end_of_support": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "model_id",
+    "via_att": "end_of_support"
+   },
+   "asset_number": {
+    "type": "String",
+    "owner": "PhysicalDevice"
+   },
+   "purchase_date": {
+    "type": "Date",
+    "owner": "PhysicalDevice"
+   },
+   "end_of_warranty": {
+    "type": "Date",
+    "owner": "PhysicalDevice"
+   },
+   "pdus_list": {
+    "type": "LinkedSet",
+    "owner": "PowerSource",
+    "linked": "PDU",
+    "link_key": "powerstart_id"
+   }
+  }
+ },
+ "Printer": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "FunctionalCI",
+   "PhysicalDevice",
+   "ConnectableCI"
+  ],
+  "abstract": false,
+  "is_ci": true,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "FunctionalCI",
+    "required": true
+   },
+   "description": {
+    "type": "Text",
+    "owner": "FunctionalCI"
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "FunctionalCI",
+    "target": "Organization",
+    "required": true
+   },
+   "organization_name": {
+    "type": "ExternalField",
+    "owner": "FunctionalCI",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "business_criticity": {
+    "type": "Enum",
+    "owner": "FunctionalCI",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "move2production": {
+    "type": "Date",
+    "owner": "FunctionalCI"
+   },
+   "contacts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkContactToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "documents_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkDocumentToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "applicationsolution_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "softwares_list": {
+    "type": "LinkedSet",
+    "owner": "FunctionalCI",
+    "linked": "SoftwareInstance",
+    "link_key": "system_id"
+   },
+   "groups_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkGroupToCI",
+    "link_key": "ci_id"
+   },
+   "providercontracts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "link_key": "functionalci_id"
+   },
+   "services_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToService",
+    "link_key": "functionalci_id"
+   },
+   "tickets_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToTicket",
+    "link_key": "functionalci_id"
+   },
+   "serialnumber": {
+    "type": "String",
+    "owner": "PhysicalDevice"
+   },
+   "location_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Location"
+   },
+   "location_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "location_id",
+    "via_att": "name"
+   },
+   "status": {
+    "type": "Enum",
+    "owner": "PhysicalDevice",
+    "values": [
+     "production",
+     "implementation",
+     "stock",
+     "obsolete"
+    ]
+   },
+   "brand_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Brand"
+   },
+   "brand_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "brand_id",
+    "via_att": "name"
+   },
+   "model_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Model"
+   },
+   "model_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "model_id",
+    "via_att": "name"
+   },
+   "model_end_of_support": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "model_id",
+    "via_att": "end_of_support"
+   },
+   "asset_number": {
+    "type": "String",
+    "owner": "PhysicalDevice"
+   },
+   "purchase_date": {
+    "type": "Date",
+    "owner": "PhysicalDevice"
+   },
+   "end_of_warranty": {
+    "type": "Date",
+    "owner": "PhysicalDevice"
+   },
+   "networkdevice_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "ConnectableCI",
+    "linked": "lnkConnectableCIToNetworkDevice",
+    "link_key": "connectableci_id"
+   },
+   "physicalinterface_list": {
+    "type": "LinkedSet",
+    "owner": "ConnectableCI",
+    "linked": "PhysicalInterface",
+    "link_key": "connectableci_id"
+   }
+  }
+ },
+ "Rack": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "FunctionalCI",
+   "PhysicalDevice"
+  ],
+  "abstract": false,
+  "is_ci": true,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "FunctionalCI",
+    "required": true
+   },
+   "description": {
+    "type": "Text",
+    "owner": "FunctionalCI"
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "FunctionalCI",
+    "target": "Organization",
+    "required": true
+   },
+   "organization_name": {
+    "type": "ExternalField",
+    "owner": "FunctionalCI",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "business_criticity": {
+    "type": "Enum",
+    "owner": "FunctionalCI",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "move2production": {
+    "type": "Date",
+    "owner": "FunctionalCI"
+   },
+   "contacts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkContactToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "documents_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkDocumentToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "applicationsolution_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "softwares_list": {
+    "type": "LinkedSet",
+    "owner": "FunctionalCI",
+    "linked": "SoftwareInstance",
+    "link_key": "system_id"
+   },
+   "groups_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkGroupToCI",
+    "link_key": "ci_id"
+   },
+   "providercontracts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "link_key": "functionalci_id"
+   },
+   "services_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToService",
+    "link_key": "functionalci_id"
+   },
+   "tickets_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToTicket",
+    "link_key": "functionalci_id"
+   },
+   "serialnumber": {
+    "type": "String",
+    "owner": "PhysicalDevice"
+   },
+   "location_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Location"
+   },
+   "location_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "location_id",
+    "via_att": "name"
+   },
+   "status": {
+    "type": "Enum",
+    "owner": "PhysicalDevice",
+    "values": [
+     "production",
+     "implementation",
+     "stock",
+     "obsolete"
+    ]
+   },
+   "brand_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Brand"
+   },
+   "brand_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "brand_id",
+    "via_att": "name"
+   },
+   "model_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Model"
+   },
+   "model_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "model_id",
+    "via_att": "name"
+   },
+   "model_end_of_support": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "model_id",
+    "via_att": "end_of_support"
+   },
+   "asset_number": {
+    "type": "String",
+    "owner": "PhysicalDevice"
+   },
+   "purchase_date": {
+    "type": "Date",
+    "owner": "PhysicalDevice"
+   },
+   "end_of_warranty": {
+    "type": "Date",
+    "owner": "PhysicalDevice"
+   },
+   "nb_u": {
+    "type": "Integer",
+    "owner": "Rack"
+   },
+   "device_list": {
+    "type": "LinkedSet",
+    "owner": "Rack",
+    "linked": "DatacenterDevice",
+    "link_key": "rack_id"
+   },
+   "enclosure_list": {
+    "type": "LinkedSet",
+    "owner": "Rack",
+    "linked": "Enclosure",
+    "link_key": "rack_id"
+   }
+  }
+ },
+ "SANSwitch": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "FunctionalCI",
+   "PhysicalDevice",
+   "ConnectableCI",
+   "DatacenterDevice"
+  ],
+  "abstract": false,
+  "is_ci": true,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "FunctionalCI",
+    "required": true
+   },
+   "description": {
+    "type": "Text",
+    "owner": "FunctionalCI"
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "FunctionalCI",
+    "target": "Organization",
+    "required": true
+   },
+   "organization_name": {
+    "type": "ExternalField",
+    "owner": "FunctionalCI",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "business_criticity": {
+    "type": "Enum",
+    "owner": "FunctionalCI",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "move2production": {
+    "type": "Date",
+    "owner": "FunctionalCI"
+   },
+   "contacts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkContactToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "documents_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkDocumentToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "applicationsolution_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "softwares_list": {
+    "type": "LinkedSet",
+    "owner": "FunctionalCI",
+    "linked": "SoftwareInstance",
+    "link_key": "system_id"
+   },
+   "groups_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkGroupToCI",
+    "link_key": "ci_id"
+   },
+   "providercontracts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "link_key": "functionalci_id"
+   },
+   "services_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToService",
+    "link_key": "functionalci_id"
+   },
+   "tickets_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToTicket",
+    "link_key": "functionalci_id"
+   },
+   "serialnumber": {
+    "type": "String",
+    "owner": "PhysicalDevice"
+   },
+   "location_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Location"
+   },
+   "location_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "location_id",
+    "via_att": "name"
+   },
+   "status": {
+    "type": "Enum",
+    "owner": "PhysicalDevice",
+    "values": [
+     "production",
+     "implementation",
+     "stock",
+     "obsolete"
+    ]
+   },
+   "brand_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Brand"
+   },
+   "brand_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "brand_id",
+    "via_att": "name"
+   },
+   "model_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Model"
+   },
+   "model_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "model_id",
+    "via_att": "name"
+   },
+   "model_end_of_support": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "model_id",
+    "via_att": "end_of_support"
+   },
+   "asset_number": {
+    "type": "String",
+    "owner": "PhysicalDevice"
+   },
+   "purchase_date": {
+    "type": "Date",
+    "owner": "PhysicalDevice"
+   },
+   "end_of_warranty": {
+    "type": "Date",
+    "owner": "PhysicalDevice"
+   },
+   "networkdevice_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "ConnectableCI",
+    "linked": "lnkConnectableCIToNetworkDevice",
+    "link_key": "connectableci_id"
+   },
+   "physicalinterface_list": {
+    "type": "LinkedSet",
+    "owner": "ConnectableCI",
+    "linked": "PhysicalInterface",
+    "link_key": "connectableci_id"
+   },
+   "rack_id": {
+    "type": "ExternalKey",
+    "owner": "DatacenterDevice",
+    "target": "Rack"
+   },
+   "rack_name": {
+    "type": "ExternalField",
+    "owner": "DatacenterDevice",
+    "via_key": "rack_id",
+    "via_att": "name"
+   },
+   "enclosure_id": {
+    "type": "ExternalKey",
+    "owner": "DatacenterDevice",
+    "target": "Enclosure"
+   },
+   "enclosure_name": {
+    "type": "ExternalField",
+    "owner": "DatacenterDevice",
+    "via_key": "enclosure_id",
+    "via_att": "name"
+   },
+   "nb_u": {
+    "type": "Integer",
+    "owner": "DatacenterDevice"
+   },
+   "managementip": {
+    "type": "IPAddress",
+    "owner": "DatacenterDevice"
+   },
+   "powerA_id": {
+    "type": "ExternalKey",
+    "owner": "DatacenterDevice",
+    "target": "PowerConnection"
+   },
+   "powerA_name": {
+    "type": "ExternalField",
+    "owner": "DatacenterDevice",
+    "via_key": "powerA_id",
+    "via_att": "name"
+   },
+   "powerB_id": {
+    "type": "ExternalKey",
+    "owner": "DatacenterDevice",
+    "target": "PowerConnection"
+   },
+   "powerB_name": {
+    "type": "ExternalField",
+    "owner": "DatacenterDevice",
+    "via_key": "powerB_id",
+    "via_att": "name"
+   },
+   "fiberinterfacelist_list": {
+    "type": "LinkedSet",
+    "owner": "DatacenterDevice",
+    "linked": "FiberChannelInterface",
+    "link_key": "datacenterdevice_id"
+   },
+   "san_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "DatacenterDevice",
+    "linked": "lnkSanToDatacenterDevice",
+    "link_key": "datacenterdevice_id"
+   },
+   "redundancy": {
+    "type": "RedundancySettings",
+    "owner": "DatacenterDevice"
+   },
+   "datacenterdevice_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "SANSwitch",
+    "linked": "lnkSanToDatacenterDevice",
+    "link_key": "san_id"
+   }
+  }
+ },
+ "Server": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "FunctionalCI",
+   "PhysicalDevice",
+   "ConnectableCI",
+   "DatacenterDevice"
+  ],
+  "abstract": false,
+  "is_ci": true,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "FunctionalCI",
+    "required": true
+   },
+   "description": {
+    "type": "Text",
+    "owner": "FunctionalCI"
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "FunctionalCI",
+    "target": "Organization",
+    "required": true
+   },
+   "organization_name": {
+    "type": "ExternalField",
+    "owner": "FunctionalCI",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "business_criticity": {
+    "type": "Enum",
+    "owner": "FunctionalCI",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "move2production": {
+    "type": "Date",
+    "owner": "FunctionalCI"
+   },
+   "contacts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkContactToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "documents_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkDocumentToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "applicationsolution_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "softwares_list": {
+    "type": "LinkedSet",
+    "owner": "FunctionalCI",
+    "linked": "SoftwareInstance",
+    "link_key": "system_id"
+   },
+   "groups_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkGroupToCI",
+    "link_key": "ci_id"
+   },
+   "providercontracts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "link_key": "functionalci_id"
+   },
+   "services_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToService",
+    "link_key": "functionalci_id"
+   },
+   "tickets_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToTicket",
+    "link_key": "functionalci_id"
+   },
+   "serialnumber": {
+    "type": "String",
+    "owner": "PhysicalDevice"
+   },
+   "location_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Location"
+   },
+   "location_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "location_id",
+    "via_att": "name"
+   },
+   "status": {
+    "type": "Enum",
+    "owner": "PhysicalDevice",
+    "values": [
+     "production",
+     "implementation",
+     "stock",
+     "obsolete"
+    ]
+   },
+   "brand_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Brand"
+   },
+   "brand_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "brand_id",
+    "via_att": "name"
+   },
+   "model_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Model"
+   },
+   "model_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "model_id",
+    "via_att": "name"
+   },
+   "model_end_of_support": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "model_id",
+    "via_att": "end_of_support"
+   },
+   "asset_number": {
+    "type": "String",
+    "owner": "PhysicalDevice"
+   },
+   "purchase_date": {
+    "type": "Date",
+    "owner": "PhysicalDevice"
+   },
+   "end_of_warranty": {
+    "type": "Date",
+    "owner": "PhysicalDevice"
+   },
+   "networkdevice_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "ConnectableCI",
+    "linked": "lnkConnectableCIToNetworkDevice",
+    "link_key": "connectableci_id"
+   },
+   "physicalinterface_list": {
+    "type": "LinkedSet",
+    "owner": "ConnectableCI",
+    "linked": "PhysicalInterface",
+    "link_key": "connectableci_id"
+   },
+   "rack_id": {
+    "type": "ExternalKey",
+    "owner": "DatacenterDevice",
+    "target": "Rack"
+   },
+   "rack_name": {
+    "type": "ExternalField",
+    "owner": "DatacenterDevice",
+    "via_key": "rack_id",
+    "via_att": "name"
+   },
+   "enclosure_id": {
+    "type": "ExternalKey",
+    "owner": "DatacenterDevice",
+    "target": "Enclosure"
+   },
+   "enclosure_name": {
+    "type": "ExternalField",
+    "owner": "DatacenterDevice",
+    "via_key": "enclosure_id",
+    "via_att": "name"
+   },
+   "nb_u": {
+    "type": "Integer",
+    "owner": "DatacenterDevice"
+   },
+   "managementip": {
+    "type": "IPAddress",
+    "owner": "DatacenterDevice"
+   },
+   "powerA_id": {
+    "type": "ExternalKey",
+    "owner": "DatacenterDevice",
+    "target": "PowerConnection"
+   },
+   "powerA_name": {
+    "type": "ExternalField",
+    "owner": "DatacenterDevice",
+    "via_key": "powerA_id",
+    "via_att": "name"
+   },
+   "powerB_id": {
+    "type": "ExternalKey",
+    "owner": "DatacenterDevice",
+    "target": "PowerConnection"
+   },
+   "powerB_name": {
+    "type": "ExternalField",
+    "owner": "DatacenterDevice",
+    "via_key": "powerB_id",
+    "via_att": "name"
+   },
+   "fiberinterfacelist_list": {
+    "type": "LinkedSet",
+    "owner": "DatacenterDevice",
+    "linked": "FiberChannelInterface",
+    "link_key": "datacenterdevice_id"
+   },
+   "san_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "DatacenterDevice",
+    "linked": "lnkSanToDatacenterDevice",
+    "link_key": "datacenterdevice_id"
+   },
+   "redundancy": {
+    "type": "RedundancySettings",
+    "owner": "DatacenterDevice"
+   },
+   "osfamily_id": {
+    "type": "ExternalKey",
+    "owner": "Server",
+    "target": "OSFamily"
+   },
+   "osfamily_name": {
+    "type": "ExternalField",
+    "owner": "Server",
+    "via_key": "osfamily_id",
+    "via_att": "name"
+   },
+   "osversion_id": {
+    "type": "ExternalKey",
+    "owner": "Server",
+    "target": "OSVersion"
+   },
+   "osversion_name": {
+    "type": "ExternalField",
+    "owner": "Server",
+    "via_key": "osversion_id",
+    "via_att": "name"
+   },
+   "os_end_of_support": {
+    "type": "ExternalField",
+    "owner": "Server",
+    "via_key": "osversion_id",
+    "via_att": "end_of_support"
+   },
+   "oslicence_id": {
+    "type": "ExternalKey",
+    "owner": "Server",
+    "target": "OSLicence"
+   },
+   "oslicence_name": {
+    "type": "ExternalField",
+    "owner": "Server",
+    "via_key": "oslicence_id",
+    "via_att": "name"
+   },
+   "cpu": {
+    "type": "String",
+    "owner": "Server"
+   },
+   "ram": {
+    "type": "String",
+    "owner": "Server"
+   },
+   "logicalvolumes_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "Server",
+    "linked": "lnkServerToVolume",
+    "link_key": "server_id"
+   }
+  }
+ },
+ "SoftwareInstance": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "FunctionalCI"
+  ],
+  "abstract": true,
+  "is_ci": true,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "FunctionalCI",
+    "required": true
+   },
+   "description": {
+    "type": "Text",
+    "owner": "FunctionalCI"
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "FunctionalCI",
+    "target": "Organization",
+    "required": true
+   },
+   "organization_name": {
+    "type": "ExternalField",
+    "owner": "FunctionalCI",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "business_criticity": {
+    "type": "Enum",
+    "owner": "FunctionalCI",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "move2production": {
+    "type": "Date",
+    "owner": "FunctionalCI"
+   },
+   "contacts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkContactToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "documents_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkDocumentToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "applicationsolution_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "softwares_list": {
+    "type": "LinkedSet",
+    "owner": "FunctionalCI",
+    "linked": "SoftwareInstance",
+    "link_key": "system_id"
+   },
+   "groups_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkGroupToCI",
+    "link_key": "ci_id"
+   },
+   "providercontracts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "link_key": "functionalci_id"
+   },
+   "services_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToService",
+    "link_key": "functionalci_id"
+   },
+   "tickets_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToTicket",
+    "link_key": "functionalci_id"
+   },
+   "system_id": {
+    "type": "ExternalKey",
+    "owner": "SoftwareInstance",
+    "target": "FunctionalCI",
+    "required": true
+   },
+   "system_name": {
+    "type": "ExternalField",
+    "owner": "SoftwareInstance",
+    "via_key": "system_id",
+    "via_att": "name"
+   },
+   "software_id": {
+    "type": "ExternalKey",
+    "owner": "SoftwareInstance",
+    "target": "Software"
+   },
+   "software_name": {
+    "type": "ExternalField",
+    "owner": "SoftwareInstance",
+    "via_key": "software_id",
+    "via_att": "name"
+   },
+   "software_end_of_support": {
+    "type": "ExternalField",
+    "owner": "SoftwareInstance",
+    "via_key": "software_id",
+    "via_att": "end_of_support"
+   },
+   "softwarelicence_id": {
+    "type": "ExternalKey",
+    "owner": "SoftwareInstance",
+    "target": "SoftwareLicence"
+   },
+   "softwarelicence_name": {
+    "type": "ExternalField",
+    "owner": "SoftwareInstance",
+    "via_key": "softwarelicence_id",
+    "via_att": "name"
+   },
+   "path": {
+    "type": "String",
+    "owner": "SoftwareInstance"
+   },
+   "status": {
+    "type": "Enum",
+    "owner": "SoftwareInstance",
+    "values": [
+     "active",
+     "inactive"
+    ]
+   }
+  }
+ },
+ "StorageSystem": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "FunctionalCI",
+   "PhysicalDevice",
+   "ConnectableCI",
+   "DatacenterDevice"
+  ],
+  "abstract": false,
+  "is_ci": true,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "FunctionalCI",
+    "required": true
+   },
+   "description": {
+    "type": "Text",
+    "owner": "FunctionalCI"
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "FunctionalCI",
+    "target": "Organization",
+    "required": true
+   },
+   "organization_name": {
+    "type": "ExternalField",
+    "owner": "FunctionalCI",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "business_criticity": {
+    "type": "Enum",
+    "owner": "FunctionalCI",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "move2production": {
+    "type": "Date",
+    "owner": "FunctionalCI"
+   },
+   "contacts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkContactToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "documents_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkDocumentToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "applicationsolution_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "softwares_list": {
+    "type": "LinkedSet",
+    "owner": "FunctionalCI",
+    "linked": "SoftwareInstance",
+    "link_key": "system_id"
+   },
+   "groups_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkGroupToCI",
+    "link_key": "ci_id"
+   },
+   "providercontracts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "link_key": "functionalci_id"
+   },
+   "services_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToService",
+    "link_key": "functionalci_id"
+   },
+   "tickets_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToTicket",
+    "link_key": "functionalci_id"
+   },
+   "serialnumber": {
+    "type": "String",
+    "owner": "PhysicalDevice"
+   },
+   "location_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Location"
+   },
+   "location_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "location_id",
+    "via_att": "name"
+   },
+   "status": {
+    "type": "Enum",
+    "owner": "PhysicalDevice",
+    "values": [
+     "production",
+     "implementation",
+     "stock",
+     "obsolete"
+    ]
+   },
+   "brand_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Brand"
+   },
+   "brand_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "brand_id",
+    "via_att": "name"
+   },
+   "model_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Model"
+   },
+   "model_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "model_id",
+    "via_att": "name"
+   },
+   "model_end_of_support": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "model_id",
+    "via_att": "end_of_support"
+   },
+   "asset_number": {
+    "type": "String",
+    "owner": "PhysicalDevice"
+   },
+   "purchase_date": {
+    "type": "Date",
+    "owner": "PhysicalDevice"
+   },
+   "end_of_warranty": {
+    "type": "Date",
+    "owner": "PhysicalDevice"
+   },
+   "networkdevice_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "ConnectableCI",
+    "linked": "lnkConnectableCIToNetworkDevice",
+    "link_key": "connectableci_id"
+   },
+   "physicalinterface_list": {
+    "type": "LinkedSet",
+    "owner": "ConnectableCI",
+    "linked": "PhysicalInterface",
+    "link_key": "connectableci_id"
+   },
+   "rack_id": {
+    "type": "ExternalKey",
+    "owner": "DatacenterDevice",
+    "target": "Rack"
+   },
+   "rack_name": {
+    "type": "ExternalField",
+    "owner": "DatacenterDevice",
+    "via_key": "rack_id",
+    "via_att": "name"
+   },
+   "enclosure_id": {
+    "type": "ExternalKey",
+    "owner": "DatacenterDevice",
+    "target": "Enclosure"
+   },
+   "enclosure_name": {
+    "type": "ExternalField",
+    "owner": "DatacenterDevice",
+    "via_key": "enclosure_id",
+    "via_att": "name"
+   },
+   "nb_u": {
+    "type": "Integer",
+    "owner": "DatacenterDevice"
+   },
+   "managementip": {
+    "type": "IPAddress",
+    "owner": "DatacenterDevice"
+   },
+   "powerA_id": {
+    "type": "ExternalKey",
+    "owner": "DatacenterDevice",
+    "target": "PowerConnection"
+   },
+   "powerA_name": {
+    "type": "ExternalField",
+    "owner": "DatacenterDevice",
+    "via_key": "powerA_id",
+    "via_att": "name"
+   },
+   "powerB_id": {
+    "type": "ExternalKey",
+    "owner": "DatacenterDevice",
+    "target": "PowerConnection"
+   },
+   "powerB_name": {
+    "type": "ExternalField",
+    "owner": "DatacenterDevice",
+    "via_key": "powerB_id",
+    "via_att": "name"
+   },
+   "fiberinterfacelist_list": {
+    "type": "LinkedSet",
+    "owner": "DatacenterDevice",
+    "linked": "FiberChannelInterface",
+    "link_key": "datacenterdevice_id"
+   },
+   "san_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "DatacenterDevice",
+    "linked": "lnkSanToDatacenterDevice",
+    "link_key": "datacenterdevice_id"
+   },
+   "redundancy": {
+    "type": "RedundancySettings",
+    "owner": "DatacenterDevice"
+   },
+   "logicalvolume_list": {
+    "type": "LinkedSet",
+    "owner": "StorageSystem",
+    "linked": "LogicalVolume",
+    "link_key": "storagesystem_id"
+   }
+  }
+ },
+ "Tablet": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "FunctionalCI",
+   "PhysicalDevice"
+  ],
+  "abstract": false,
+  "is_ci": true,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "FunctionalCI",
+    "required": true
+   },
+   "description": {
+    "type": "Text",
+    "owner": "FunctionalCI"
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "FunctionalCI",
+    "target": "Organization",
+    "required": true
+   },
+   "organization_name": {
+    "type": "ExternalField",
+    "owner": "FunctionalCI",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "business_criticity": {
+    "type": "Enum",
+    "owner": "FunctionalCI",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "move2production": {
+    "type": "Date",
+    "owner": "FunctionalCI"
+   },
+   "contacts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkContactToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "documents_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkDocumentToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "applicationsolution_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "softwares_list": {
+    "type": "LinkedSet",
+    "owner": "FunctionalCI",
+    "linked": "SoftwareInstance",
+    "link_key": "system_id"
+   },
+   "groups_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkGroupToCI",
+    "link_key": "ci_id"
+   },
+   "providercontracts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "link_key": "functionalci_id"
+   },
+   "services_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToService",
+    "link_key": "functionalci_id"
+   },
+   "tickets_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToTicket",
+    "link_key": "functionalci_id"
+   },
+   "serialnumber": {
+    "type": "String",
+    "owner": "PhysicalDevice"
+   },
+   "location_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Location"
+   },
+   "location_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "location_id",
+    "via_att": "name"
+   },
+   "status": {
+    "type": "Enum",
+    "owner": "PhysicalDevice",
+    "values": [
+     "production",
+     "implementation",
+     "stock",
+     "obsolete"
+    ]
+   },
+   "brand_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Brand"
+   },
+   "brand_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "brand_id",
+    "via_att": "name"
+   },
+   "model_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Model"
+   },
+   "model_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "model_id",
+    "via_att": "name"
+   },
+   "model_end_of_support": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "model_id",
+    "via_att": "end_of_support"
+   },
+   "asset_number": {
+    "type": "String",
+    "owner": "PhysicalDevice"
+   },
+   "purchase_date": {
+    "type": "Date",
+    "owner": "PhysicalDevice"
+   },
+   "end_of_warranty": {
+    "type": "Date",
+    "owner": "PhysicalDevice"
+   }
+  }
+ },
+ "TapeLibrary": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "FunctionalCI",
+   "PhysicalDevice",
+   "ConnectableCI",
+   "DatacenterDevice"
+  ],
+  "abstract": false,
+  "is_ci": true,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "FunctionalCI",
+    "required": true
+   },
+   "description": {
+    "type": "Text",
+    "owner": "FunctionalCI"
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "FunctionalCI",
+    "target": "Organization",
+    "required": true
+   },
+   "organization_name": {
+    "type": "ExternalField",
+    "owner": "FunctionalCI",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "business_criticity": {
+    "type": "Enum",
+    "owner": "FunctionalCI",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "move2production": {
+    "type": "Date",
+    "owner": "FunctionalCI"
+   },
+   "contacts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkContactToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "documents_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkDocumentToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "applicationsolution_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "softwares_list": {
+    "type": "LinkedSet",
+    "owner": "FunctionalCI",
+    "linked": "SoftwareInstance",
+    "link_key": "system_id"
+   },
+   "groups_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkGroupToCI",
+    "link_key": "ci_id"
+   },
+   "providercontracts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "link_key": "functionalci_id"
+   },
+   "services_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToService",
+    "link_key": "functionalci_id"
+   },
+   "tickets_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToTicket",
+    "link_key": "functionalci_id"
+   },
+   "serialnumber": {
+    "type": "String",
+    "owner": "PhysicalDevice"
+   },
+   "location_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Location"
+   },
+   "location_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "location_id",
+    "via_att": "name"
+   },
+   "status": {
+    "type": "Enum",
+    "owner": "PhysicalDevice",
+    "values": [
+     "production",
+     "implementation",
+     "stock",
+     "obsolete"
+    ]
+   },
+   "brand_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Brand"
+   },
+   "brand_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "brand_id",
+    "via_att": "name"
+   },
+   "model_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Model"
+   },
+   "model_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "model_id",
+    "via_att": "name"
+   },
+   "model_end_of_support": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "model_id",
+    "via_att": "end_of_support"
+   },
+   "asset_number": {
+    "type": "String",
+    "owner": "PhysicalDevice"
+   },
+   "purchase_date": {
+    "type": "Date",
+    "owner": "PhysicalDevice"
+   },
+   "end_of_warranty": {
+    "type": "Date",
+    "owner": "PhysicalDevice"
+   },
+   "networkdevice_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "ConnectableCI",
+    "linked": "lnkConnectableCIToNetworkDevice",
+    "link_key": "connectableci_id"
+   },
+   "physicalinterface_list": {
+    "type": "LinkedSet",
+    "owner": "ConnectableCI",
+    "linked": "PhysicalInterface",
+    "link_key": "connectableci_id"
+   },
+   "rack_id": {
+    "type": "ExternalKey",
+    "owner": "DatacenterDevice",
+    "target": "Rack"
+   },
+   "rack_name": {
+    "type": "ExternalField",
+    "owner": "DatacenterDevice",
+    "via_key": "rack_id",
+    "via_att": "name"
+   },
+   "enclosure_id": {
+    "type": "ExternalKey",
+    "owner": "DatacenterDevice",
+    "target": "Enclosure"
+   },
+   "enclosure_name": {
+    "type": "ExternalField",
+    "owner": "DatacenterDevice",
+    "via_key": "enclosure_id",
+    "via_att": "name"
+   },
+   "nb_u": {
+    "type": "Integer",
+    "owner": "DatacenterDevice"
+   },
+   "managementip": {
+    "type": "IPAddress",
+    "owner": "DatacenterDevice"
+   },
+   "powerA_id": {
+    "type": "ExternalKey",
+    "owner": "DatacenterDevice",
+    "target": "PowerConnection"
+   },
+   "powerA_name": {
+    "type": "ExternalField",
+    "owner": "DatacenterDevice",
+    "via_key": "powerA_id",
+    "via_att": "name"
+   },
+   "powerB_id": {
+    "type": "ExternalKey",
+    "owner": "DatacenterDevice",
+    "target": "PowerConnection"
+   },
+   "powerB_name": {
+    "type": "ExternalField",
+    "owner": "DatacenterDevice",
+    "via_key": "powerB_id",
+    "via_att": "name"
+   },
+   "fiberinterfacelist_list": {
+    "type": "LinkedSet",
+    "owner": "DatacenterDevice",
+    "linked": "FiberChannelInterface",
+    "link_key": "datacenterdevice_id"
+   },
+   "san_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "DatacenterDevice",
+    "linked": "lnkSanToDatacenterDevice",
+    "link_key": "datacenterdevice_id"
+   },
+   "redundancy": {
+    "type": "RedundancySettings",
+    "owner": "DatacenterDevice"
+   },
+   "tapes_list": {
+    "type": "LinkedSet",
+    "owner": "TapeLibrary",
+    "linked": "Tape",
+    "link_key": "tapelibrary_id"
+   }
+  }
+ },
+ "TelephonyCI": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "FunctionalCI",
+   "PhysicalDevice"
+  ],
+  "abstract": true,
+  "is_ci": true,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "FunctionalCI",
+    "required": true
+   },
+   "description": {
+    "type": "Text",
+    "owner": "FunctionalCI"
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "FunctionalCI",
+    "target": "Organization",
+    "required": true
+   },
+   "organization_name": {
+    "type": "ExternalField",
+    "owner": "FunctionalCI",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "business_criticity": {
+    "type": "Enum",
+    "owner": "FunctionalCI",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "move2production": {
+    "type": "Date",
+    "owner": "FunctionalCI"
+   },
+   "contacts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkContactToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "documents_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkDocumentToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "applicationsolution_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "softwares_list": {
+    "type": "LinkedSet",
+    "owner": "FunctionalCI",
+    "linked": "SoftwareInstance",
+    "link_key": "system_id"
+   },
+   "groups_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkGroupToCI",
+    "link_key": "ci_id"
+   },
+   "providercontracts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "link_key": "functionalci_id"
+   },
+   "services_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToService",
+    "link_key": "functionalci_id"
+   },
+   "tickets_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToTicket",
+    "link_key": "functionalci_id"
+   },
+   "serialnumber": {
+    "type": "String",
+    "owner": "PhysicalDevice"
+   },
+   "location_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Location"
+   },
+   "location_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "location_id",
+    "via_att": "name"
+   },
+   "status": {
+    "type": "Enum",
+    "owner": "PhysicalDevice",
+    "values": [
+     "production",
+     "implementation",
+     "stock",
+     "obsolete"
+    ]
+   },
+   "brand_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Brand"
+   },
+   "brand_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "brand_id",
+    "via_att": "name"
+   },
+   "model_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalDevice",
+    "target": "Model"
+   },
+   "model_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "model_id",
+    "via_att": "name"
+   },
+   "model_end_of_support": {
+    "type": "ExternalField",
+    "owner": "PhysicalDevice",
+    "via_key": "model_id",
+    "via_att": "end_of_support"
+   },
+   "asset_number": {
+    "type": "String",
+    "owner": "PhysicalDevice"
+   },
+   "purchase_date": {
+    "type": "Date",
+    "owner": "PhysicalDevice"
+   },
+   "end_of_warranty": {
+    "type": "Date",
+    "owner": "PhysicalDevice"
+   },
+   "phonenumber": {
+    "type": "String",
+    "owner": "TelephonyCI"
+   }
+  }
+ },
+ "VirtualDevice": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "FunctionalCI"
+  ],
+  "abstract": true,
+  "is_ci": true,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "FunctionalCI",
+    "required": true
+   },
+   "description": {
+    "type": "Text",
+    "owner": "FunctionalCI"
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "FunctionalCI",
+    "target": "Organization",
+    "required": true
+   },
+   "organization_name": {
+    "type": "ExternalField",
+    "owner": "FunctionalCI",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "business_criticity": {
+    "type": "Enum",
+    "owner": "FunctionalCI",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "move2production": {
+    "type": "Date",
+    "owner": "FunctionalCI"
+   },
+   "contacts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkContactToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "documents_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkDocumentToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "applicationsolution_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "softwares_list": {
+    "type": "LinkedSet",
+    "owner": "FunctionalCI",
+    "linked": "SoftwareInstance",
+    "link_key": "system_id"
+   },
+   "groups_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkGroupToCI",
+    "link_key": "ci_id"
+   },
+   "providercontracts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "link_key": "functionalci_id"
+   },
+   "services_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToService",
+    "link_key": "functionalci_id"
+   },
+   "tickets_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToTicket",
+    "link_key": "functionalci_id"
+   },
+   "status": {
+    "type": "Enum",
+    "owner": "VirtualDevice",
+    "values": [
+     "production",
+     "implementation",
+     "stock",
+     "obsolete"
+    ]
+   },
+   "logicalvolumes_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "VirtualDevice",
+    "linked": "lnkVirtualDeviceToVolume",
+    "link_key": "virtualdevice_id"
+   }
+  }
+ },
+ "VirtualHost": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "FunctionalCI",
+   "VirtualDevice"
+  ],
+  "abstract": true,
+  "is_ci": true,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "FunctionalCI",
+    "required": true
+   },
+   "description": {
+    "type": "Text",
+    "owner": "FunctionalCI"
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "FunctionalCI",
+    "target": "Organization",
+    "required": true
+   },
+   "organization_name": {
+    "type": "ExternalField",
+    "owner": "FunctionalCI",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "business_criticity": {
+    "type": "Enum",
+    "owner": "FunctionalCI",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "move2production": {
+    "type": "Date",
+    "owner": "FunctionalCI"
+   },
+   "contacts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkContactToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "documents_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkDocumentToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "applicationsolution_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "softwares_list": {
+    "type": "LinkedSet",
+    "owner": "FunctionalCI",
+    "linked": "SoftwareInstance",
+    "link_key": "system_id"
+   },
+   "groups_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkGroupToCI",
+    "link_key": "ci_id"
+   },
+   "providercontracts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "link_key": "functionalci_id"
+   },
+   "services_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToService",
+    "link_key": "functionalci_id"
+   },
+   "tickets_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToTicket",
+    "link_key": "functionalci_id"
+   },
+   "status": {
+    "type": "Enum",
+    "owner": "VirtualDevice",
+    "values": [
+     "production",
+     "implementation",
+     "stock",
+     "obsolete"
+    ]
+   },
+   "logicalvolumes_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "VirtualDevice",
+    "linked": "lnkVirtualDeviceToVolume",
+    "link_key": "virtualdevice_id"
+   },
+   "virtualmachine_list": {
+    "type": "LinkedSet",
+    "owner": "VirtualHost",
+    "linked": "VirtualMachine",
+    "link_key": "virtualhost_id"
+   }
+  }
+ },
+ "VirtualMachine": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "FunctionalCI",
+   "VirtualDevice"
+  ],
+  "abstract": false,
+  "is_ci": true,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "FunctionalCI",
+    "required": true
+   },
+   "description": {
+    "type": "Text",
+    "owner": "FunctionalCI"
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "FunctionalCI",
+    "target": "Organization",
+    "required": true
+   },
+   "organization_name": {
+    "type": "ExternalField",
+    "owner": "FunctionalCI",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "business_criticity": {
+    "type": "Enum",
+    "owner": "FunctionalCI",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "move2production": {
+    "type": "Date",
+    "owner": "FunctionalCI"
+   },
+   "contacts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkContactToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "documents_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkDocumentToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "applicationsolution_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "softwares_list": {
+    "type": "LinkedSet",
+    "owner": "FunctionalCI",
+    "linked": "SoftwareInstance",
+    "link_key": "system_id"
+   },
+   "groups_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkGroupToCI",
+    "link_key": "ci_id"
+   },
+   "providercontracts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "link_key": "functionalci_id"
+   },
+   "services_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToService",
+    "link_key": "functionalci_id"
+   },
+   "tickets_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToTicket",
+    "link_key": "functionalci_id"
+   },
+   "status": {
+    "type": "Enum",
+    "owner": "VirtualDevice",
+    "values": [
+     "production",
+     "implementation",
+     "stock",
+     "obsolete"
+    ]
+   },
+   "logicalvolumes_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "VirtualDevice",
+    "linked": "lnkVirtualDeviceToVolume",
+    "link_key": "virtualdevice_id"
+   },
+   "virtualhost_id": {
+    "type": "ExternalKey",
+    "owner": "VirtualMachine",
+    "target": "VirtualHost",
+    "required": true
+   },
+   "virtualhost_name": {
+    "type": "ExternalField",
+    "owner": "VirtualMachine",
+    "via_key": "virtualhost_id",
+    "via_att": "name"
+   },
+   "osfamily_id": {
+    "type": "ExternalKey",
+    "owner": "VirtualMachine",
+    "target": "OSFamily"
+   },
+   "osfamily_name": {
+    "type": "ExternalField",
+    "owner": "VirtualMachine",
+    "via_key": "osfamily_id",
+    "via_att": "name"
+   },
+   "osversion_id": {
+    "type": "ExternalKey",
+    "owner": "VirtualMachine",
+    "target": "OSVersion"
+   },
+   "osversion_name": {
+    "type": "ExternalField",
+    "owner": "VirtualMachine",
+    "via_key": "osversion_id",
+    "via_att": "name"
+   },
+   "os_end_of_support": {
+    "type": "ExternalField",
+    "owner": "VirtualMachine",
+    "via_key": "osversion_id",
+    "via_att": "end_of_support"
+   },
+   "oslicence_id": {
+    "type": "ExternalKey",
+    "owner": "VirtualMachine",
+    "target": "OSLicence"
+   },
+   "oslicence_name": {
+    "type": "ExternalField",
+    "owner": "VirtualMachine",
+    "via_key": "oslicence_id",
+    "via_att": "name"
+   },
+   "cpu": {
+    "type": "String",
+    "owner": "VirtualMachine"
+   },
+   "ram": {
+    "type": "String",
+    "owner": "VirtualMachine"
+   },
+   "logicalinterface_list": {
+    "type": "LinkedSet",
+    "owner": "VirtualMachine",
+    "linked": "LogicalInterface",
+    "link_key": "virtualmachine_id"
+   },
+   "managementip": {
+    "type": "IPAddress",
+    "owner": "VirtualMachine"
+   }
+  }
+ },
+ "WebApplication": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "FunctionalCI"
+  ],
+  "abstract": false,
+  "is_ci": true,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "FunctionalCI",
+    "required": true
+   },
+   "description": {
+    "type": "Text",
+    "owner": "FunctionalCI"
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "FunctionalCI",
+    "target": "Organization",
+    "required": true
+   },
+   "organization_name": {
+    "type": "ExternalField",
+    "owner": "FunctionalCI",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "business_criticity": {
+    "type": "Enum",
+    "owner": "FunctionalCI",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "move2production": {
+    "type": "Date",
+    "owner": "FunctionalCI"
+   },
+   "contacts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkContactToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "documents_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkDocumentToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "applicationsolution_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "softwares_list": {
+    "type": "LinkedSet",
+    "owner": "FunctionalCI",
+    "linked": "SoftwareInstance",
+    "link_key": "system_id"
+   },
+   "groups_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkGroupToCI",
+    "link_key": "ci_id"
+   },
+   "providercontracts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "link_key": "functionalci_id"
+   },
+   "services_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToService",
+    "link_key": "functionalci_id"
+   },
+   "tickets_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToTicket",
+    "link_key": "functionalci_id"
+   },
+   "webserver_id": {
+    "type": "ExternalKey",
+    "owner": "WebApplication",
+    "target": "WebServer",
+    "required": true
+   },
+   "webserver_name": {
+    "type": "ExternalField",
+    "owner": "WebApplication",
+    "via_key": "webserver_id",
+    "via_att": "name"
+   },
+   "url": {
+    "type": "URL",
+    "owner": "WebApplication"
+   },
+   "logo": {
+    "type": "Image",
+    "owner": "WebApplication"
+   }
+  }
+ },
+ "WebServer": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "FunctionalCI",
+   "SoftwareInstance"
+  ],
+  "abstract": false,
+  "is_ci": true,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "FunctionalCI",
+    "required": true
+   },
+   "description": {
+    "type": "Text",
+    "owner": "FunctionalCI"
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "FunctionalCI",
+    "target": "Organization",
+    "required": true
+   },
+   "organization_name": {
+    "type": "ExternalField",
+    "owner": "FunctionalCI",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "business_criticity": {
+    "type": "Enum",
+    "owner": "FunctionalCI",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "move2production": {
+    "type": "Date",
+    "owner": "FunctionalCI"
+   },
+   "contacts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkContactToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "documents_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkDocumentToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "applicationsolution_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "link_key": "functionalci_id"
+   },
+   "softwares_list": {
+    "type": "LinkedSet",
+    "owner": "FunctionalCI",
+    "linked": "SoftwareInstance",
+    "link_key": "system_id"
+   },
+   "groups_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkGroupToCI",
+    "link_key": "ci_id"
+   },
+   "providercontracts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "link_key": "functionalci_id"
+   },
+   "services_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToService",
+    "link_key": "functionalci_id"
+   },
+   "tickets_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "FunctionalCI",
+    "linked": "lnkFunctionalCIToTicket",
+    "link_key": "functionalci_id"
+   },
+   "system_id": {
+    "type": "ExternalKey",
+    "owner": "SoftwareInstance",
+    "target": "FunctionalCI",
+    "required": true
+   },
+   "system_name": {
+    "type": "ExternalField",
+    "owner": "SoftwareInstance",
+    "via_key": "system_id",
+    "via_att": "name"
+   },
+   "software_id": {
+    "type": "ExternalKey",
+    "owner": "SoftwareInstance",
+    "target": "Software"
+   },
+   "software_name": {
+    "type": "ExternalField",
+    "owner": "SoftwareInstance",
+    "via_key": "software_id",
+    "via_att": "name"
+   },
+   "software_end_of_support": {
+    "type": "ExternalField",
+    "owner": "SoftwareInstance",
+    "via_key": "software_id",
+    "via_att": "end_of_support"
+   },
+   "softwarelicence_id": {
+    "type": "ExternalKey",
+    "owner": "SoftwareInstance",
+    "target": "SoftwareLicence"
+   },
+   "softwarelicence_name": {
+    "type": "ExternalField",
+    "owner": "SoftwareInstance",
+    "via_key": "softwarelicence_id",
+    "via_att": "name"
+   },
+   "path": {
+    "type": "String",
+    "owner": "SoftwareInstance"
+   },
+   "status": {
+    "type": "Enum",
+    "owner": "SoftwareInstance",
+    "values": [
+     "active",
+     "inactive"
+    ]
+   },
+   "webapp_list": {
+    "type": "LinkedSet",
+    "owner": "WebServer",
+    "linked": "WebApplication",
+    "link_key": "webserver_id"
+   }
+  }
+ },
+ "Organization": {
+  "inherits": [
+   "cmdbAbstractObject"
+  ],
+  "abstract": false,
+  "is_ci": false,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "Organization",
+    "required": true
+   },
+   "code": {
+    "type": "String",
+    "owner": "Organization"
+   },
+   "status": {
+    "type": "Enum",
+    "owner": "Organization",
+    "values": [
+     "active",
+     "inactive"
+    ]
+   },
+   "parent_id": {
+    "type": "HierarchicalKey",
+    "owner": "Organization"
+   },
+   "parent_name": {
+    "type": "ExternalField",
+    "owner": "Organization",
+    "via_key": "parent_id",
+    "via_att": "name"
+   },
+   "overview": {
+    "type": "Dashboard",
+    "owner": "Organization"
+   },
+   "deliverymodel_id": {
+    "type": "ExternalKey",
+    "owner": "Organization",
+    "target": "DeliveryModel"
+   },
+   "deliverymodel_name": {
+    "type": "ExternalField",
+    "owner": "Organization",
+    "via_key": "deliverymodel_id",
+    "via_att": "name"
+   }
+  }
+ },
+ "Location": {
+  "inherits": [
+   "cmdbAbstractObject"
+  ],
+  "abstract": false,
+  "is_ci": false,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "Location",
+    "required": true
+   },
+   "status": {
+    "type": "Enum",
+    "owner": "Location",
+    "values": [
+     "active",
+     "inactive"
+    ]
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "Location",
+    "target": "Organization",
+    "required": true
+   },
+   "org_name": {
+    "type": "ExternalField",
+    "owner": "Location",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "address": {
+    "type": "Text",
+    "owner": "Location"
+   },
+   "postal_code": {
+    "type": "String",
+    "owner": "Location"
+   },
+   "city": {
+    "type": "String",
+    "owner": "Location"
+   },
+   "country": {
+    "type": "String",
+    "owner": "Location"
+   },
+   "person_list": {
+    "type": "LinkedSet",
+    "owner": "Location",
+    "linked": "Person",
+    "link_key": "location_id"
+   },
+   "physicaldevice_list": {
+    "type": "LinkedSet",
+    "owner": "Location",
+    "linked": "PhysicalDevice",
+    "link_key": "location_id"
+   }
+  }
+ },
+ "Contact": {
+  "inherits": [
+   "cmdbAbstractObject"
+  ],
+  "abstract": true,
+  "is_ci": false,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "Contact",
+    "required": true
+   },
+   "status": {
+    "type": "Enum",
+    "owner": "Contact",
+    "required": true,
+    "values": [
+     "active",
+     "inactive"
+    ]
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "Contact",
+    "target": "Organization",
+    "required": true
+   },
+   "org_name": {
+    "type": "ExternalField",
+    "owner": "Contact",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "email": {
+    "type": "EmailAddress",
+    "owner": "Contact"
+   },
+   "phone": {
+    "type": "PhoneNumber",
+    "owner": "Contact"
+   },
+   "notify": {
+    "type": "Enum",
+    "owner": "Contact",
+    "values": [
+     "yes",
+     "no"
+    ]
+   },
+   "function": {
+    "type": "String",
+    "owner": "Contact"
+   },
+   "cis_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "Contact",
+    "linked": "lnkContactToFunctionalCI",
+    "link_key": "contact_id"
+   }
+  }
+ },
+ "Person": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "Contact"
+  ],
+  "abstract": false,
+  "is_ci": false,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "Contact",
+    "required": true
+   },
+   "status": {
+    "type": "Enum",
+    "owner": "Contact",
+    "required": true,
+    "values": [
+     "active",
+     "inactive"
+    ]
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "Contact",
+    "target": "Organization",
+    "required": true
+   },
+   "org_name": {
+    "type": "ExternalField",
+    "owner": "Contact",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "email": {
+    "type": "EmailAddress",
+    "owner": "Contact"
+   },
+   "phone": {
+    "type": "PhoneNumber",
+    "owner": "Contact"
+   },
+   "notify": {
+    "type": "Enum",
+    "owner": "Contact",
+    "values": [
+     "yes",
+     "no"
+    ]
+   },
+   "function": {
+    "type": "String",
+    "owner": "Contact"
+   },
+   "cis_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "Contact",
+    "linked": "lnkContactToFunctionalCI",
+    "link_key": "contact_id"
+   },
+   "picture": {
+    "type": "Image",
+    "owner": "Person"
+   },
+   "first_name": {
+    "type": "String",
+    "owner": "Person",
+    "required": true
+   },
+   "employee_number": {
+    "type": "String",
+    "owner": "Person"
+   },
+   "mobile_phone": {
+    "type": "PhoneNumber",
+    "owner": "Person"
+   },
+   "location_id": {
+    "type": "ExternalKey",
+    "owner": "Person",
+    "target": "Location"
+   },
+   "location_name": {
+    "type": "ExternalField",
+    "owner": "Person",
+    "via_key": "location_id",
+    "via_att": "name"
+   },
+   "manager_id": {
+    "type": "ExternalKey",
+    "owner": "Person",
+    "target": "Person"
+   },
+   "manager_name": {
+    "type": "ExternalField",
+    "owner": "Person",
+    "via_key": "manager_id",
+    "via_att": "name"
+   },
+   "team_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "Person",
+    "linked": "lnkPersonToTeam",
+    "link_key": "person_id"
+   },
+   "user_list": {
+    "type": "LinkedSet",
+    "owner": "Person",
+    "linked": "User",
+    "link_key": "contactid"
+   },
+   "tickets_list": {
+    "type": "LinkedSet",
+    "owner": "Person",
+    "linked": "Ticket",
+    "link_key": "caller_id"
+   }
+  }
+ },
+ "Team": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "Contact"
+  ],
+  "abstract": false,
+  "is_ci": false,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "Contact",
+    "required": true
+   },
+   "status": {
+    "type": "Enum",
+    "owner": "Contact",
+    "required": true,
+    "values": [
+     "active",
+     "inactive"
+    ]
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "Contact",
+    "target": "Organization",
+    "required": true
+   },
+   "org_name": {
+    "type": "ExternalField",
+    "owner": "Contact",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "email": {
+    "type": "EmailAddress",
+    "owner": "Contact"
+   },
+   "phone": {
+    "type": "PhoneNumber",
+    "owner": "Contact"
+   },
+   "notify": {
+    "type": "Enum",
+    "owner": "Contact",
+    "values": [
+     "yes",
+     "no"
+    ]
+   },
+   "function": {
+    "type": "String",
+    "owner": "Contact"
+   },
+   "cis_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "Contact",
+    "linked": "lnkContactToFunctionalCI",
+    "link_key": "contact_id"
+   },
+   "overview": {
+    "type": "Dashboard",
+    "owner": "Team"
+   },
+   "persons_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "Team",
+    "linked": "lnkPersonToTeam",
+    "link_key": "team_id"
+   },
+   "tickets_list": {
+    "type": "LinkedSet",
+    "owner": "Team",
+    "linked": "Ticket",
+    "link_key": "team_id"
+   }
+  }
+ },
+ "Brand": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "Typology"
+  ],
+  "abstract": false,
+  "is_ci": false,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "Typology",
+    "required": true
+   },
+   "logo": {
+    "type": "Image",
+    "owner": "Brand"
+   },
+   "physicaldevices_list": {
+    "type": "LinkedSet",
+    "owner": "Brand",
+    "linked": "PhysicalDevice",
+    "link_key": "brand_id"
+   },
+   "models_list": {
+    "type": "LinkedSet",
+    "owner": "Brand",
+    "linked": "Model",
+    "link_key": "brand_id"
+   },
+   "iosversions_list": {
+    "type": "LinkedSet",
+    "owner": "Brand",
+    "linked": "IOSVersion",
+    "link_key": "brand_id"
+   }
+  }
+ },
+ "Model": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "Typology"
+  ],
+  "abstract": false,
+  "is_ci": false,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "Typology",
+    "required": true
+   },
+   "brand_id": {
+    "type": "ExternalKey",
+    "owner": "Model",
+    "target": "Brand",
+    "required": true
+   },
+   "brand_name": {
+    "type": "ExternalField",
+    "owner": "Model",
+    "via_key": "brand_id",
+    "via_att": "name"
+   },
+   "picture": {
+    "type": "Image",
+    "owner": "Model"
+   },
+   "end_of_support": {
+    "type": "Date",
+    "owner": "Model"
+   },
+   "type": {
+    "type": "Enum",
+    "owner": "Model",
+    "required": true,
+    "values": [
+     "NetworkDevice",
+     "Server",
+     "SANSwitch",
+     "StorageSystem",
+     "Rack",
+     "Enclosure",
+     "PC",
+     "Tablet",
+     "Phone",
+     "MobilePhone",
+     "Printer",
+     "DiskArray",
+     "NAS",
+     "TapeLibrary",
+     "IPPhone",
+     "Peripheral",
+     "PowerSource",
+     "PDU"
+    ]
+   },
+   "physicaldevices_list": {
+    "type": "LinkedSet",
+    "owner": "Model",
+    "linked": "PhysicalDevice",
+    "link_key": "model_id"
+   }
+  }
+ },
+ "OSFamily": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "Typology"
+  ],
+  "abstract": false,
+  "is_ci": false,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "Typology",
+    "required": true
+   },
+   "logo": {
+    "type": "Image",
+    "owner": "OSFamily"
+   },
+   "osversions_list": {
+    "type": "LinkedSet",
+    "owner": "OSFamily",
+    "linked": "OSVersion",
+    "link_key": "osfamily_id"
+   }
+  }
+ },
+ "OSVersion": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "Typology"
+  ],
+  "abstract": false,
+  "is_ci": false,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "Typology",
+    "required": true
+   },
+   "osfamily_id": {
+    "type": "ExternalKey",
+    "owner": "OSVersion",
+    "target": "OSFamily",
+    "required": true
+   },
+   "osfamily_name": {
+    "type": "ExternalField",
+    "owner": "OSVersion",
+    "via_key": "osfamily_id",
+    "via_att": "name"
+   },
+   "end_of_support": {
+    "type": "Date",
+    "owner": "OSVersion"
+   },
+   "ospatches_list": {
+    "type": "LinkedSet",
+    "owner": "OSVersion",
+    "linked": "OSPatch",
+    "link_key": "osversion_id"
+   }
+  }
+ },
+ "NetworkDeviceType": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "Typology"
+  ],
+  "abstract": false,
+  "is_ci": false,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "Typology",
+    "required": true
+   },
+   "logo": {
+    "type": "Image",
+    "owner": "NetworkDeviceType"
+   },
+   "networkdevicesdevices_list": {
+    "type": "LinkedSet",
+    "owner": "NetworkDeviceType",
+    "linked": "NetworkDevice",
+    "link_key": "networkdevicetype_id"
+   }
+  }
+ },
+ "IOSVersion": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "Typology"
+  ],
+  "abstract": false,
+  "is_ci": false,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "Typology",
+    "required": true
+   },
+   "brand_id": {
+    "type": "ExternalKey",
+    "owner": "IOSVersion",
+    "target": "Brand",
+    "required": true
+   },
+   "brand_name": {
+    "type": "ExternalField",
+    "owner": "IOSVersion",
+    "via_key": "brand_id",
+    "via_att": "name"
+   },
+   "end_of_support": {
+    "type": "Date",
+    "owner": "IOSVersion"
+   },
+   "networkdevices_list": {
+    "type": "LinkedSet",
+    "owner": "IOSVersion",
+    "linked": "NetworkDevice",
+    "link_key": "iosversion_id"
+   }
+  }
+ },
+ "Software": {
+  "inherits": [
+   "cmdbAbstractObject"
+  ],
+  "abstract": false,
+  "is_ci": false,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "Software",
+    "required": true
+   },
+   "vendor": {
+    "type": "String",
+    "owner": "Software",
+    "required": true
+   },
+   "version": {
+    "type": "String",
+    "owner": "Software",
+    "required": true
+   },
+   "documents_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "Software",
+    "linked": "lnkDocumentToSoftware",
+    "link_key": "software_id"
+   },
+   "type": {
+    "type": "Enum",
+    "owner": "Software",
+    "values": [
+     "Middleware",
+     "DBServer",
+     "PCSoftware",
+     "OtherSoftware",
+     "WebServer"
+    ]
+   },
+   "logo": {
+    "type": "Image",
+    "owner": "Software"
+   },
+   "end_of_support": {
+    "type": "Date",
+    "owner": "Software"
+   },
+   "softwareinstance_list": {
+    "type": "LinkedSet",
+    "owner": "Software",
+    "linked": "SoftwareInstance",
+    "link_key": "software_id"
+   },
+   "softwarepatch_list": {
+    "type": "LinkedSet",
+    "owner": "Software",
+    "linked": "SoftwarePatch",
+    "link_key": "software_id"
+   },
+   "softwarelicence_list": {
+    "type": "LinkedSet",
+    "owner": "Software",
+    "linked": "SoftwareLicence",
+    "link_key": "software_id"
+   }
+  }
+ },
+ "OSLicence": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "Licence"
+  ],
+  "abstract": false,
+  "is_ci": false,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "Licence",
+    "required": true
+   },
+   "documents_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "Licence",
+    "linked": "lnkDocumentToLicence",
+    "link_key": "licence_id"
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "Licence",
+    "target": "Organization",
+    "required": true
+   },
+   "organization_name": {
+    "type": "ExternalField",
+    "owner": "Licence",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "usage_limit": {
+    "type": "String",
+    "owner": "Licence"
+   },
+   "description": {
+    "type": "Text",
+    "owner": "Licence"
+   },
+   "start_date": {
+    "type": "Date",
+    "owner": "Licence"
+   },
+   "end_date": {
+    "type": "Date",
+    "owner": "Licence"
+   },
+   "licence_key": {
+    "type": "String",
+    "owner": "Licence"
+   },
+   "perpetual": {
+    "type": "Enum",
+    "owner": "Licence",
+    "required": true,
+    "values": [
+     "yes",
+     "no"
+    ]
+   },
+   "osversion_id": {
+    "type": "ExternalKey",
+    "owner": "OSLicence",
+    "target": "OSVersion",
+    "required": true
+   },
+   "osfamily_id": {
+    "type": "ExternalField",
+    "owner": "OSLicence",
+    "via_key": "osversion_id",
+    "via_att": "osfamily_id"
+   },
+   "osversion_name": {
+    "type": "ExternalField",
+    "owner": "OSLicence",
+    "via_key": "osversion_id",
+    "via_att": "name"
+   },
+   "virtualmachines_list": {
+    "type": "LinkedSet",
+    "owner": "OSLicence",
+    "linked": "VirtualMachine",
+    "link_key": "oslicence_id"
+   },
+   "servers_list": {
+    "type": "LinkedSet",
+    "owner": "OSLicence",
+    "linked": "Server",
+    "link_key": "oslicence_id"
+   }
+  }
+ },
+ "SoftwareLicence": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "Licence"
+  ],
+  "abstract": false,
+  "is_ci": false,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "Licence",
+    "required": true
+   },
+   "documents_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "Licence",
+    "linked": "lnkDocumentToLicence",
+    "link_key": "licence_id"
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "Licence",
+    "target": "Organization",
+    "required": true
+   },
+   "organization_name": {
+    "type": "ExternalField",
+    "owner": "Licence",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "usage_limit": {
+    "type": "String",
+    "owner": "Licence"
+   },
+   "description": {
+    "type": "Text",
+    "owner": "Licence"
+   },
+   "start_date": {
+    "type": "Date",
+    "owner": "Licence"
+   },
+   "end_date": {
+    "type": "Date",
+    "owner": "Licence"
+   },
+   "licence_key": {
+    "type": "String",
+    "owner": "Licence"
+   },
+   "perpetual": {
+    "type": "Enum",
+    "owner": "Licence",
+    "required": true,
+    "values": [
+     "yes",
+     "no"
+    ]
+   },
+   "software_id": {
+    "type": "ExternalKey",
+    "owner": "SoftwareLicence",
+    "target": "Software",
+    "required": true
+   },
+   "software_name": {
+    "type": "ExternalField",
+    "owner": "SoftwareLicence",
+    "via_key": "software_id",
+    "via_att": "name"
+   },
+   "softwareinstance_list": {
+    "type": "LinkedSet",
+    "owner": "SoftwareLicence",
+    "linked": "SoftwareInstance",
+    "link_key": "softwarelicence_id"
+   }
+  }
+ },
+ "Group": {
+  "inherits": [
+   "cmdbAbstractObject"
+  ],
+  "abstract": false,
+  "is_ci": false,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "Group",
+    "required": true
+   },
+   "status": {
+    "type": "Enum",
+    "owner": "Group",
+    "required": true,
+    "values": [
+     "production",
+     "implementation",
+     "obsolete"
+    ]
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "Group",
+    "target": "Organization",
+    "required": true
+   },
+   "owner_name": {
+    "type": "ExternalField",
+    "owner": "Group",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "description": {
+    "type": "Text",
+    "owner": "Group"
+   },
+   "type": {
+    "type": "String",
+    "owner": "Group"
+   },
+   "parent_id": {
+    "type": "HierarchicalKey",
+    "owner": "Group"
+   },
+   "parent_name": {
+    "type": "ExternalField",
+    "owner": "Group",
+    "via_key": "parent_id",
+    "via_att": "name"
+   },
+   "ci_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "Group",
+    "linked": "lnkGroupToCI",
+    "link_key": "group_id"
+   }
+  }
+ },
+ "Document": {
+  "inherits": [
+   "cmdbAbstractObject"
+  ],
+  "abstract": true,
+  "is_ci": false,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "Document",
+    "required": true
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "Document",
+    "target": "Organization",
+    "required": true
+   },
+   "org_name": {
+    "type": "ExternalField",
+    "owner": "Document",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "documenttype_id": {
+    "type": "ExternalKey",
+    "owner": "Document",
+    "target": "DocumentType"
+   },
+   "documenttype_name": {
+    "type": "ExternalField",
+    "owner": "Document",
+    "via_key": "documenttype_id",
+    "via_att": "name"
+   },
+   "version": {
+    "type": "String",
+    "owner": "Document"
+   },
+   "description": {
+    "type": "Text",
+    "owner": "Document"
+   },
+   "status": {
+    "type": "Enum",
+    "owner": "Document",
+    "values": [
+     "draft",
+     "published",
+     "obsolete"
+    ]
+   },
+   "cis_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "Document",
+    "linked": "lnkDocumentToFunctionalCI",
+    "link_key": "document_id"
+   },
+   "contracts_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "Document",
+    "linked": "lnkContractToDocument",
+    "link_key": "document_id"
+   },
+   "services_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "Document",
+    "linked": "lnkDocumentToService",
+    "link_key": "document_id"
+   }
+  }
+ },
+ "Subnet": {
+  "inherits": [
+   "cmdbAbstractObject"
+  ],
+  "abstract": false,
+  "is_ci": false,
+  "fields": {
+   "description": {
+    "type": "Text",
+    "owner": "Subnet"
+   },
+   "subnet_name": {
+    "type": "String",
+    "owner": "Subnet"
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "Subnet",
+    "target": "Organization",
+    "required": true
+   },
+   "org_name": {
+    "type": "ExternalField",
+    "owner": "Subnet",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "ip": {
+    "type": "IPAddress",
+    "owner": "Subnet",
+    "required": true
+   },
+   "ip_mask": {
+    "type": "IPAddress",
+    "owner": "Subnet",
+    "required": true
+   },
+   "vlans_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "Subnet",
+    "linked": "lnkSubnetToVLAN",
+    "link_key": "subnet_id"
+   }
+  }
+ },
+ "VLAN": {
+  "inherits": [
+   "cmdbAbstractObject"
+  ],
+  "abstract": false,
+  "is_ci": false,
+  "fields": {
+   "vlan_tag": {
+    "type": "String",
+    "owner": "VLAN",
+    "required": true
+   },
+   "description": {
+    "type": "Text",
+    "owner": "VLAN"
+   },
+   "org_id": {
+    "type": "ExternalKey",
+    "owner": "VLAN",
+    "target": "Organization",
+    "required": true
+   },
+   "org_name": {
+    "type": "ExternalField",
+    "owner": "VLAN",
+    "via_key": "org_id",
+    "via_att": "name"
+   },
+   "subnets_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "VLAN",
+    "linked": "lnkSubnetToVLAN",
+    "link_key": "vlan_id"
+   },
+   "physicalinterfaces_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "VLAN",
+    "linked": "lnkPhysicalInterfaceToVLAN",
+    "link_key": "vlan_id"
+   }
+  }
+ },
+ "NetworkInterface": {
+  "inherits": [
+   "cmdbAbstractObject"
+  ],
+  "abstract": true,
+  "is_ci": false,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "NetworkInterface",
+    "required": true
+   }
+  }
+ },
+ "PhysicalInterface": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "NetworkInterface",
+   "IPInterface"
+  ],
+  "abstract": false,
+  "is_ci": false,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "NetworkInterface",
+    "required": true
+   },
+   "ipaddress": {
+    "type": "IPAddress",
+    "owner": "IPInterface"
+   },
+   "macaddress": {
+    "type": "String",
+    "owner": "IPInterface"
+   },
+   "comment": {
+    "type": "Text",
+    "owner": "IPInterface"
+   },
+   "ipgateway": {
+    "type": "IPAddress",
+    "owner": "IPInterface"
+   },
+   "ipmask": {
+    "type": "IPAddress",
+    "owner": "IPInterface"
+   },
+   "speed": {
+    "type": "Decimal",
+    "owner": "IPInterface"
+   },
+   "connectableci_id": {
+    "type": "ExternalKey",
+    "owner": "PhysicalInterface",
+    "target": "ConnectableCI",
+    "required": true
+   },
+   "connectableci_name": {
+    "type": "ExternalField",
+    "owner": "PhysicalInterface",
+    "via_key": "connectableci_id",
+    "via_att": "name"
+   },
+   "org_id": {
+    "type": "ExternalField",
+    "owner": "PhysicalInterface",
+    "via_key": "connectableci_id",
+    "via_att": "org_id"
+   },
+   "location_id": {
+    "type": "ExternalField",
+    "owner": "PhysicalInterface",
+    "via_key": "connectableci_id",
+    "via_att": "location_id"
+   },
+   "vlans_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "PhysicalInterface",
+    "linked": "lnkPhysicalInterfaceToVLAN",
+    "link_key": "physicalinterface_id"
+   }
+  }
+ },
+ "IPInterface": {
+  "inherits": [
+   "cmdbAbstractObject",
+   "NetworkInterface"
+  ],
+  "abstract": true,
+  "is_ci": false,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "NetworkInterface",
+    "required": true
+   },
+   "ipaddress": {
+    "type": "IPAddress",
+    "owner": "IPInterface"
+   },
+   "macaddress": {
+    "type": "String",
+    "owner": "IPInterface"
+   },
+   "comment": {
+    "type": "Text",
+    "owner": "IPInterface"
+   },
+   "ipgateway": {
+    "type": "IPAddress",
+    "owner": "IPInterface"
+   },
+   "ipmask": {
+    "type": "IPAddress",
+    "owner": "IPInterface"
+   },
+   "speed": {
+    "type": "Decimal",
+    "owner": "IPInterface"
+   }
+  }
+ },
+ "LogicalVolume": {
+  "inherits": [
+   "cmdbAbstractObject"
+  ],
+  "abstract": false,
+  "is_ci": false,
+  "fields": {
+   "name": {
+    "type": "String",
+    "owner": "LogicalVolume",
+    "required": true
+   },
+   "lun_id": {
+    "type": "String",
+    "owner": "LogicalVolume",
+    "required": true
+   },
+   "description": {
+    "type": "Text",
+    "owner": "LogicalVolume"
+   },
+   "raid_level": {
+    "type": "String",
+    "owner": "LogicalVolume"
+   },
+   "size": {
+    "type": "String",
+    "owner": "LogicalVolume"
+   },
+   "storagesystem_id": {
+    "type": "ExternalKey",
+    "owner": "LogicalVolume",
+    "target": "StorageSystem",
+    "required": true
+   },
+   "storagesystem_name": {
+    "type": "ExternalField",
+    "owner": "LogicalVolume",
+    "via_key": "storagesystem_id",
+    "via_att": "name"
+   },
+   "org_id": {
+    "type": "ExternalField",
+    "owner": "LogicalVolume",
+    "via_key": "storagesystem_id",
+    "via_att": "org_id"
+   },
+   "location_id": {
+    "type": "ExternalField",
+    "owner": "LogicalVolume",
+    "via_key": "storagesystem_id",
+    "via_att": "location_id"
+   },
+   "location_name": {
+    "type": "ExternalField",
+    "owner": "LogicalVolume",
+    "via_key": "storagesystem_id",
+    "via_att": "location_name"
+   },
+   "servers_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "LogicalVolume",
+    "linked": "lnkServerToVolume",
+    "link_key": "volume_id"
+   },
+   "virtualdevices_list": {
+    "type": "LinkedSetIndirect",
+    "owner": "LogicalVolume",
+    "linked": "lnkVirtualDeviceToVolume",
+    "link_key": "volume_id"
+   }
+  }
+ }
+}

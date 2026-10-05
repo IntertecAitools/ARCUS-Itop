@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #0b0f14;
+  --color-surface: #121821;
+  --color-surface-2: #1a222d;
+  --color-edge: #243040;
+  --color-ink: #e8edf4;
+  --color-ink-2: #9aa9bc;
+  --color-ink-3: #64748b;
+  --color-accent: #3ddc97;
+  --color-accent-hover: #2fc985;
+  --color-warn: #f5b942;
+  --color-critical: #ff5c5c;
+  --color-info: #5ba4f5;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono-face), ui-monospace, "JetBrains Mono", monospace;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: #3ddc9733;
+}
+
+.eyebrow {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-ink-3);
+}
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-edge);
+  border-radius: 8px;
+}
+
+.focusable:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

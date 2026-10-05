@@ -1,0 +1,35 @@
+# Fast variant of the dev stack.
+#
+# The default compose file bind-mounts C:\iTop\iTop so edits on Windows are
+# live. That crossing costs roughly 10ms per file open, and an iTop page touches
+# thousands of files, so pages take about a minute to render.
+#
+# This variant serves the same code from a Docker named volume instead, which
+# lives on the VM's own ext4 filesystem at native speed. The trade-off is that
+# you cannot edit the code from Windows directly - use this when you want to
+# USE iTop, and the default stack when you want to change its source.
+#
+#   Start:   docker compose -f docker-compose.fast.yml up -d
+#   Stop:    docker compose -f docker-compose.fast.yml down
+#   Refresh the code from Windows after editing:
+#     docker run --rm -v "C:\iTop\iTop:/src:ro" -v itop-code:/dst itop-dev:php8.3 \
+#       bash -c "cd /src && tar --exclude=./.git -cf - . | tar -C /dst -xf -"
+#
+# Both instances share the same MySQL database, so they show the same data.
+
+services:
+  itop-fast:
+    image: itop-dev:php8.3
+    container_name: itop-fast
+    ports:
+      - "8081:80"
+    volumes:
+      - itop-code:/var/www/html
+    extra_hosts:
+      # Reaches MySQL 8.0 on the Windows host, same as the default stack
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+volumes:
+  itop-code:
+    external: true
