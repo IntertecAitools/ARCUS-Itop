@@ -1,0 +1,323 @@
+@import 'tailwindcss';
+
+/* ============================================================================
+   ARCUS Helpdesk — design tokens
+   ----------------------------------------------------------------------------
+   Raw values live here ONLY. Never hardcode a hex in a component — use the
+   Tailwind utilities these tokens generate (bg-surface, text-ink, border-line …)
+   or read them from `src/theme`.
+
+   Light and dark are two SELECTED sets of steps, not an automatic inversion.
+   The chart series ramps were validated with the dataviz palette validator:
+   both modes pass lightness band, chroma floor, CVD separation, normal-vision
+   separation and contrast-vs-surface. Do not re-order or re-step the series
+   slots without re-running that validator — the ORDER is the CVD-safety
+   mechanism, not a cosmetic choice.
+   ========================================================================== */
+
+:root {
+  color-scheme: light;
+
+  /* --- Surfaces ---------------------------------------------------------- */
+  --arcus-canvas: #f3f6fb; /* page plane behind the cards */
+  --arcus-surface: #ffffff; /* card / panel */
+  --arcus-surface-raised: #ffffff; /* popovers, dropdowns, modals */
+  --arcus-surface-sunken: #f8fafc; /* table headers, inset wells */
+  --arcus-surface-hover: #f1f5f9;
+
+  /* --- Ink --------------------------------------------------------------- */
+  --arcus-ink: #0f172a; /* headings, primary text */
+  --arcus-ink-secondary: #475569; /* body copy */
+  --arcus-ink-muted: #94a3b8; /* labels, axis ticks, meta */
+  --arcus-ink-inverse: #ffffff;
+
+  /* --- Lines ------------------------------------------------------------- */
+  --arcus-line: #e5eaf2; /* card borders, dividers */
+  --arcus-line-strong: #cbd5e1; /* input borders */
+  --arcus-grid: #eef2f7; /* chart gridlines (hairline) */
+
+  /* --- Brand ------------------------------------------------------------- */
+  --arcus-brand: #2563eb;
+  --arcus-brand-hover: #1d4ed8;
+  --arcus-brand-active: #1e40af;
+  --arcus-brand-soft: #eff6ff; /* tinted background for active nav / chips */
+  --arcus-brand-soft-hover: #dbeafe;
+  --arcus-brand-ink: #1d4ed8; /* brand-coloured text on a soft background */
+  --arcus-ring: #93c5fd; /* focus ring */
+
+  /* --- Status (RESERVED) -------------------------------------------------
+     These four roles are never reused as a chart series colour, and never
+     carry meaning alone — always icon + label alongside. */
+  --arcus-good: #16a34a;
+  --arcus-good-soft: #dcfce7;
+  --arcus-good-ink: #15803d;
+  --arcus-warning: #d97706;
+  --arcus-warning-soft: #fef3c7;
+  --arcus-warning-ink: #b45309;
+  --arcus-serious: #ea580c;
+  --arcus-serious-soft: #ffedd5;
+  --arcus-serious-ink: #c2410c;
+  --arcus-critical: #dc2626;
+  --arcus-critical-soft: #fee2e2;
+  --arcus-critical-ink: #b91c1c;
+  --arcus-neutral: #64748b;
+  --arcus-neutral-soft: #f1f5f9;
+  --arcus-neutral-ink: #475569;
+  --arcus-info: #2563eb;
+  --arcus-info-soft: #eff6ff;
+  --arcus-info-ink: #1d4ed8;
+
+  /* --- Chart series (validated order — see header comment) --------------- */
+  --arcus-series-1: #2563eb; /* blue   */
+  --arcus-series-2: #ea580c; /* orange */
+  --arcus-series-3: #0d9488; /* teal   */
+  --arcus-series-4: #d97706; /* amber  */
+  --arcus-series-5: #7c3aed; /* violet */
+  --arcus-series-6: #16a34a; /* green  */
+  --arcus-series-7: #0284c7; /* sky    */
+  --arcus-series-8: #dc2626; /* red    */
+
+  /* Sequential ramp (one hue, light → dark) for magnitude encodings. */
+  --arcus-seq-100: #dbeafe;
+  --arcus-seq-200: #bfdbfe;
+  --arcus-seq-300: #93c5fd;
+  --arcus-seq-400: #60a5fa;
+  --arcus-seq-500: #3b82f6;
+  --arcus-seq-600: #2563eb;
+  --arcus-seq-700: #1d4ed8;
+
+  /* --- Elevation --------------------------------------------------------- */
+  --arcus-shadow-xs: 0 1px 2px rgb(16 24 40 / 0.04);
+  --arcus-shadow-sm: 0 1px 2px rgb(16 24 40 / 0.04), 0 1px 3px rgb(16 24 40 / 0.06);
+  --arcus-shadow-md: 0 2px 4px rgb(16 24 40 / 0.04), 0 4px 12px rgb(16 24 40 / 0.08);
+  --arcus-shadow-lg: 0 8px 24px rgb(16 24 40 / 0.10), 0 2px 6px rgb(16 24 40 / 0.06);
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --arcus-canvas: #0b1220;
+  --arcus-surface: #111827;
+  --arcus-surface-raised: #161f33;
+  --arcus-surface-sunken: #0e1626;
+  --arcus-surface-hover: #1a2439;
+
+  --arcus-ink: #f1f5f9;
+  --arcus-ink-secondary: #cbd5e1;
+  --arcus-ink-muted: #8295ad;
+  --arcus-ink-inverse: #0b1220;
+
+  --arcus-line: #1f2a3d;
+  --arcus-line-strong: #2c3a52;
+  --arcus-grid: #1a2334;
+
+  --arcus-brand: #3b82f6;
+  --arcus-brand-hover: #60a5fa;
+  --arcus-brand-active: #93c5fd;
+  --arcus-brand-soft: #16233c;
+  --arcus-brand-soft-hover: #1c2d4d;
+  --arcus-brand-ink: #93c5fd;
+  --arcus-ring: #3b82f6;
+
+  --arcus-good: #22c55e;
+  --arcus-good-soft: #10291b;
+  --arcus-good-ink: #4ade80;
+  --arcus-warning: #f59e0b;
+  --arcus-warning-soft: #2a2008;
+  --arcus-warning-ink: #fbbf24;
+  --arcus-serious: #f97316;
+  --arcus-serious-soft: #2c1a0b;
+  --arcus-serious-ink: #fb923c;
+  --arcus-critical: #ef4444;
+  --arcus-critical-soft: #2d1416;
+  --arcus-critical-ink: #f87171;
+  --arcus-neutral: #94a3b8;
+  --arcus-neutral-soft: #1a2334;
+  --arcus-neutral-ink: #cbd5e1;
+  --arcus-info: #3b82f6;
+  --arcus-info-soft: #16233c;
+  --arcus-info-ink: #93c5fd;
+
+  /* Dark series: the same eight hues re-stepped for the dark surface and
+     re-validated as a set — NOT an automatic flip of the light values. */
+  --arcus-series-1: #3b82f6;
+  --arcus-series-2: #e06a12;
+  --arcus-series-3: #0d9488;
+  --arcus-series-4: #d97706;
+  --arcus-series-5: #8b5cf6;
+  --arcus-series-6: #16a34a;
+  --arcus-series-7: #0d96d4;
+  --arcus-series-8: #ef4444;
+
+  --arcus-seq-100: #172554;
+  --arcus-seq-200: #1e3a8a;
+  --arcus-seq-300: #1e40af;
+  --arcus-seq-400: #1d4ed8;
+  --arcus-seq-500: #2563eb;
+  --arcus-seq-600: #3b82f6;
+  --arcus-seq-700: #60a5fa;
+
+  --arcus-shadow-xs: 0 1px 2px rgb(0 0 0 / 0.30);
+  --arcus-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.30), 0 1px 3px rgb(0 0 0 / 0.36);
+  --arcus-shadow-md: 0 2px 4px rgb(0 0 0 / 0.30), 0 4px 12px rgb(0 0 0 / 0.40);
+  --arcus-shadow-lg: 0 8px 24px rgb(0 0 0 / 0.50), 0 2px 6px rgb(0 0 0 / 0.36);
+}
+
+/* ---------------------------------------------------------------------------
+   Map the tokens onto Tailwind's theme so they become real utilities:
+   bg-surface, text-ink-muted, border-line, shadow-card, rounded-card, …
+   `inline` keeps the var() reference, so a theme switch is a single attribute
+   flip with no re-render.
+   ------------------------------------------------------------------------ */
+/* `@theme` is a Tailwind v4 at-rule. JetBrains' CSS parser only knows the
+   standard ones, so it flags this line; the suppression below is for the IDE
+   and has no effect on the build. It must stay a bare single-line comment —
+   adding prose inside it stops the IDE recognising it. */
+/*noinspection CssInvalidAtRule*/
+@theme inline {
+  --color-canvas: var(--arcus-canvas);
+  --color-surface: var(--arcus-surface);
+  --color-surface-raised: var(--arcus-surface-raised);
+  --color-surface-sunken: var(--arcus-surface-sunken);
+  --color-surface-hover: var(--arcus-surface-hover);
+
+  --color-ink: var(--arcus-ink);
+  --color-ink-secondary: var(--arcus-ink-secondary);
+  --color-ink-muted: var(--arcus-ink-muted);
+  --color-ink-inverse: var(--arcus-ink-inverse);
+
+  --color-line: var(--arcus-line);
+  --color-line-strong: var(--arcus-line-strong);
+  --color-grid: var(--arcus-grid);
+
+  --color-brand: var(--arcus-brand);
+  --color-brand-hover: var(--arcus-brand-hover);
+  --color-brand-active: var(--arcus-brand-active);
+  --color-brand-soft: var(--arcus-brand-soft);
+  --color-brand-soft-hover: var(--arcus-brand-soft-hover);
+  --color-brand-ink: var(--arcus-brand-ink);
+  --color-ring: var(--arcus-ring);
+
+  --color-good: var(--arcus-good);
+  --color-good-soft: var(--arcus-good-soft);
+  --color-good-ink: var(--arcus-good-ink);
+  --color-warning: var(--arcus-warning);
+  --color-warning-soft: var(--arcus-warning-soft);
+  --color-warning-ink: var(--arcus-warning-ink);
+  --color-serious: var(--arcus-serious);
+  --color-serious-soft: var(--arcus-serious-soft);
+  --color-serious-ink: var(--arcus-serious-ink);
+  --color-critical: var(--arcus-critical);
+  --color-critical-soft: var(--arcus-critical-soft);
+  --color-critical-ink: var(--arcus-critical-ink);
+  --color-neutral: var(--arcus-neutral);
+  --color-neutral-soft: var(--arcus-neutral-soft);
+  --color-neutral-ink: var(--arcus-neutral-ink);
+  --color-info: var(--arcus-info);
+  --color-info-soft: var(--arcus-info-soft);
+  --color-info-ink: var(--arcus-info-ink);
+
+  --color-series-1: var(--arcus-series-1);
+  --color-series-2: var(--arcus-series-2);
+  --color-series-3: var(--arcus-series-3);
+  --color-series-4: var(--arcus-series-4);
+  --color-series-5: var(--arcus-series-5);
+  --color-series-6: var(--arcus-series-6);
+  --color-series-7: var(--arcus-series-7);
+  --color-series-8: var(--arcus-series-8);
+
+  --radius-control: 0.625rem; /* 10px — buttons, inputs, chips */
+  --radius-card: 0.875rem; /* 14px — cards, panels */
+  --radius-panel: 1rem; /* 16px — modals, drawers */
+
+  --shadow-xs: var(--arcus-shadow-xs);
+  --shadow-card: var(--arcus-shadow-sm);
+  --shadow-raised: var(--arcus-shadow-md);
+  --shadow-overlay: var(--arcus-shadow-lg);
+
+  --font-sans:
+    'Inter var', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --spacing-sidebar: 15rem; /* 240px expanded rail */
+  --spacing-sidebar-collapsed: 4.5rem; /* 72px icon-only rail */
+  --spacing-topbar: 3.5rem; /* 56px */
+}
+
+/* --------------------------------------------------------------------------
+   Base layer
+   ------------------------------------------------------------------------ */
+@layer base {
+  * {
+    border-color: var(--arcus-line);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--arcus-canvas);
+    color: var(--arcus-ink);
+    /* Trailing generic keeps text readable if the custom property fails to
+       resolve (and satisfies the "no generic family" lint). */
+    font-family: var(--font-sans), sans-serif;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* One focus treatment everywhere, so keyboard users always see where they are. */
+  :focus-visible {
+    outline: 2px solid var(--arcus-ring);
+    outline-offset: 2px;
+    border-radius: var(--radius-control);
+  }
+
+  /* Columns of numbers must line up; standalone figures stay proportional. */
+  th,
+  td,
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--arcus-line-strong);
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--arcus-ink-muted);
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+}
+
+@layer components {
+  /* The subtle mountain wash anchoring the bottom of the sidebar. */
+  .sidebar-wash {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 120' preserveAspectRatio='none'%3E%3Cpath d='M0 92 L48 54 L86 80 L126 36 L170 74 L210 50 L240 70 L240 120 L0 120 Z' fill='%232563eb' fill-opacity='0.05'/%3E%3Cpath d='M0 108 L40 82 L78 100 L120 68 L164 96 L206 76 L240 94 L240 120 L0 120 Z' fill='%232563eb' fill-opacity='0.07'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: bottom center;
+    /* Explicit height: the inline SVG has no intrinsic size, so `auto` would
+       stretch the wash up the full rail instead of hugging the bottom. */
+    background-size: 100% 180px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
