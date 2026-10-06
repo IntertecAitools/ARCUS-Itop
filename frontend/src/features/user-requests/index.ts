@@ -1,1 +1,4 @@
-// user-requests: public API. Other features may import ONLY from this file.
+export type { UserRequestSummary } from './types';
+export { userRequestStatuses } from './schemas';
+export { useUserRequestLookup } from './api/lookups';
+export { UserRequestPicker } from './components/UserRequestPicker';

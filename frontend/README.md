@@ -1,168 +1,90 @@
-# ARCUS Helpdesk — Frontend
+# ARCUS frontend (IRAOPS)
 
-Branded ITSM / Helpdesk UI. iTop is the system of record; this app **never talks to
-iTop directly**. It calls the BFF in `../itop-bff`, which hides iTop's API and data model.
+Problem Management UI for ARCUS. **iTop 3.4** is the system of record; the frontend talks only to the
+**BFF**, which maps requests to iTop REST/JSON (`core/get`, `core/create`, `core/update`,
+`core/apply_stimulus`). Until the BFF exists, **MSW** plays the BFF in the browser.
 
-The BFF already exists and runs on `http://localhost:4000` — see `../itop-bff/README.md`
-for its API. Until a screen is wired to it, API calls are served by **MSW mocks**
-(`src/mocks`); switch to the real BFF by changing one env var (`VITE_API_MODE=live`).
+Stack: React 19 · Next.js 16 (App Router) · TypeScript strict · Tailwind CSS 4 · TanStack Query · Zustand ·
+React Hook Form + Zod · i18next · MSW · Recharts · Vitest + Testing Library · Playwright.
 
-## Tech stack
+## Getting started
 
-| Concern            | Choice                                   |
-| ------------------ | ---------------------------------------- |
-| Framework / build  | React 19 + TypeScript + Vite             |
-| Styling            | Tailwind CSS 4 + design tokens (`src/theme`) |
-| Routing            | React Router                             |
-| Server state       | TanStack Query                           |
-| Client/UI state    | Zustand (`src/stores`)                   |
-| Forms + validation | React Hook Form + Zod                    |
-| Tables             | TanStack Table                           |
-| i18n               | i18next                                  |
-| API mocking        | MSW (Mock Service Worker)                |
-| Unit tests         | Vitest + React Testing Library           |
-| E2E tests          | Playwright                               |
-
-## Users / app areas
-
-| Area       | Route prefix | Who                      | Purpose                                       |
-| ---------- | ------------ | ------------------------ | --------------------------------------------- |
-| **Portal** | `/portal`    | End users / requesters   | Raise requests, track my tickets, browse KB   |
-| **Agent**  | `/agent`     | Support agents, managers | Queues, work tickets, dashboards, reports     |
-| **Auth**   | `/login` …   | Everyone                 | Login, SSO callback, forgot password          |
-
-Each area has its own layout in `src/app/layouts`.
-
-## Folder structure
-
-```
-frontend/
-├── public/                     # Static files served as-is (favicon, robots.txt)
-│   └── brand/                  # Logos used by index.html / emails / PWA manifest
-├── docs/                       # Frontend docs: UI guidelines, screen specs, decisions
-├── tests/
-│   ├── e2e/                    # Playwright end-to-end specs
-│   └── fixtures/               # Shared E2E test data
-└── src/
-    ├── main.tsx                # Entry point (starts MSW in mock mode, mounts <App/>)
-    ├── App.tsx                 # Root component -> providers + router
-    │
-    ├── app/                    # App shell — wiring only, no business logic
-    │   ├── providers/          # QueryClient, Theme, i18n, Auth, Toast providers
-    │   ├── router/             # Route table (lazy-loads feature pages)
-    │   │   └── guards/         # RequireAuth, RequireRole (portal vs agent)
-    │   └── layouts/            # AgentLayout, PortalLayout, AuthLayout
-    │
-    ├── assets/                 # Imported assets (bundled by Vite)
-    │   ├── brand/              # ARCUS logo variants, wordmark
-    │   ├── fonts/
-    │   ├── icons/              # Custom SVG icons
-    │   ├── images/
-    │   └── illustrations/      # Empty states, error pages
-    │
-    ├── theme/                  # Design tokens: colors, typography, spacing, radii, shadows
-    ├── styles/                 # globals.css, Tailwind entry, base resets
-    │
-    ├── components/             # Shared, feature-agnostic UI (no API calls in here!)
-    │   ├── ui/                 # Primitives: Button, Input, Select, Checkbox, Badge, Avatar, Tabs, Tooltip
-    │   ├── layout/             # Sidebar, Topbar, PageHeader, Breadcrumbs, Container
-    │   ├── data-display/       # DataTable, StatusPill, PriorityBadge, Timeline, KpiCard, Charts
-    │   ├── forms/              # FormField, DatePicker, RichTextEditor, FileUpload, ComboBox
-    │   ├── feedback/           # Toast, Alert, Skeleton, Spinner, EmptyState, ErrorBoundary
-    │   └── overlays/           # Modal, Drawer, ConfirmDialog, Popover, CommandPalette
-    │
-    ├── features/               # ⭐ One folder per business domain (see below)
-    │   ├── auth/               # Login, SSO, session, current user
-    │   ├── dashboard/          # Agent home, KPIs, my queue summary
-    │   ├── tickets/            # Shared ticket building blocks (case log, timeline,
-    │   │                       #   attachments, assign/resolve/close actions, SLA timer)
-    │   ├── user-requests/      # iTop UserRequest  — service requests
-    │   ├── incidents/          # iTop Incident
-    │   ├── problems/           # iTop Problem
-    │   ├── changes/            # iTop Change (Normal / Routine / Emergency)
-    │   ├── service-catalog/    # Services & subcategories (request catalogue for portal)
-    │   ├── knowledge-base/     # FAQ / Known errors
-    │   ├── cmdb/               # CI lookup & linking to tickets (read-only here)
-    │   ├── contacts/           # Persons, teams, organizations (caller / agent pickers)
-    │   ├── sla/                # SLA / SLT display, breach indicators
-    │   ├── notifications/      # In-app notification centre
-    │   ├── search/             # Global search (Ctrl+K)
-    │   ├── reports/            # Reports & exports
-    │   └── settings/           # User profile, preferences, theme, language
-    │
-    ├── lib/                    # Framework-level helpers (no React components)
-    │   ├── api-client/         # fetch wrapper for the BFF: base URL, auth header,
-    │   │                       #   error normalisation, retries
-    │   ├── query/              # QueryClient config + query-key factory
-    │   ├── i18n/               # i18next setup
-    │   │   └── locales/        # en.json, ...
-    │   └── utils/              # date, format, cn(), debounce …
-    │
-    ├── hooks/                  # Global hooks: useDebounce, useMediaQuery, useHotkeys
-    ├── stores/                 # Zustand stores: ui (sidebar, theme), session
-    ├── types/                  # Shared TS types / API DTOs (mirror ../itop-bff responses)
-    ├── config/                 # env.ts, constants, navigation menu, feature flags
-    ├── mocks/                  # MSW — fake BFF until the real one is ready
-    │   ├── handlers/           # One handler file per feature (tickets.ts, auth.ts …)
-    │   └── fixtures/           # Realistic sample data
-    └── test/                   # Vitest setup, render helpers, test utils
+```bash
+cp .env.example .env.local   # NEXT_PUBLIC_API_MODE=mock by default
+npm install
+npm run dev                  # http://localhost:3000
 ```
 
-### Inside every feature
+Demo accounts in mock mode:
 
-Every folder in `src/features/<feature>/` follows the same layout:
+| Login | Password | Profile |
+|---|---|---|
+| `admin` | `admin` | Administrator + Problem Manager (full access) |
+| `agent` | `agent` | Support Agent (read-only) |
+
+The mock database lives in `localStorage`. Run `resetMockDb()` in the browser console to restore the seed.
+
+| Script | |
+|---|---|
+| `npm run dev` / `build` / `start` | Next.js |
+| `npm run lint` | ESLint, including the architecture rules below |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm test` | Vitest (unit + component + BFF-contract tests against the MSW handlers) |
+| `npm run test:e2e` | Playwright on a production build in mock mode (`npx playwright install chromium` once) |
+
+### Switching to the real BFF
+
+```env
+NEXT_PUBLIC_API_MODE=bff
+NEXT_PUBLIC_BFF_URL=https://bff.example.com/api
+```
+
+No code changes. The contract is in [`docs/bff-contract.md`](docs/bff-contract.md).
+
+## Structure
 
 ```
-features/incidents/
-├── api/            # Query & mutation hooks calling the BFF
-│                   #   incidents.api.ts  -> getIncidents(), createIncident() …
-│                   #   useIncidents.ts, useIncident.ts, useCreateIncident.ts
-├── components/     # Components used only by this feature (IncidentForm, IncidentRow)
-├── hooks/          # Feature-only hooks (useIncidentFilters …)
-├── pages/          # Route-level screens (IncidentListPage, IncidentDetailPage, NewIncidentPage)
-├── types.ts        # Feature types
-├── schemas.ts      # Zod schemas for forms
-└── index.ts        # Public API — the ONLY file other features may import from
+src/
+├─ main.tsx          client bootstrap: starts MSW when API_MODE=mock
+├─ App.tsx           root client component: providers + shell + guards
+├─ app/              Next.js App Router root + app shell (wiring only)
+│  ├─ providers/     Query · Theme · i18n · Auth
+│  ├─ router/        route metadata (layout, permission) + guards/RequireAuth, RequireRole
+│  ├─ layouts/       Agent · Auth · Portal
+│  └─ **/page.tsx    thin route files that render a feature page
+├─ theme/            design tokens (tokens.css → Tailwind @theme) and tone maps
+├─ styles/           globals.css (Tailwind entry)
+├─ assets/           brand, icons, illustrations
+├─ components/       shared UI, no API calls (ui, layout, data-display, forms, feedback, overlays)
+├─ lib/              api-client, query (QueryClient + query keys), i18n, utils
+├─ hooks/ stores/ types/ config/
+├─ mocks/            MSW fake BFF: handlers (one per feature) + fixtures
+├─ test/             Vitest setup, render helpers, next/navigation mock
+└─ features/<name>/  api/ · components/ · hooks/ · pages/ · types.ts · schemas.ts · index.ts
 ```
 
-## Rules of the road
+Built features: **problems** (main work), **knowledge-base** (KEDB), plus the minimal pieces Problems
+reuses: `tickets` (case log, linked tickets, badges), `cmdb`, `contacts`, `service-catalog`, `changes`,
+`incidents`, `user-requests`, `auth`, `dashboard`. Other nav items render one shared placeholder page.
 
-1. **Dependency direction:** `app → features → components / lib / hooks / types`.
-   `components/` and `lib/` must never import from `features/`.
-2. **Features don't reach into each other.** Import from `features/x/index.ts` only.
-   If two features need the same thing, move it to `components/` or `features/tickets/`.
-3. **No iTop concepts in the UI.** Components use our DTOs (`status: "in_progress"`),
-   not iTop internals (`status: "assigned"`, `org_id`, OQL). Mapping happens in the BFF.
-4. **No hardcoded colours / brand values** — use tokens from `src/theme`.
-5. **All network calls go through `lib/api-client`** and are wrapped in TanStack Query hooks
-   inside the feature's `api/` folder.
-6. **Every new endpoint gets an MSW handler** in `src/mocks/handlers` so the UI works without the BFF.
+### How Next.js maps onto this structure
 
-## Naming conventions
+- `src/app/` is the App Router root. Folders without `page.tsx` (`providers/`, `router/`, `layouts/`) are not routes.
+- Route files are one-liners that render a page exported from a feature's `index.ts`.
+- `layout.tsx` renders `<App>`, which waits for MSW (mock mode), then picks the layout and guards from
+  `app/router/routes.ts`. Pages render only on the client, so there is no server data and no hydration mismatch.
+- Typed path builders live in `config/routes.ts` (re-exported by `app/router`) so features and shared code
+  can build links without importing the app shell.
 
-| Thing             | Convention               | Example                    |
-| ----------------- | ------------------------ | -------------------------- |
-| Components        | `PascalCase.tsx`         | `TicketTimeline.tsx`       |
-| Hooks             | `useCamelCase.ts`        | `useTicketFilters.ts`      |
-| Pages             | `<Name>Page.tsx`         | `IncidentDetailPage.tsx`   |
-| API modules       | `<feature>.api.ts`       | `incidents.api.ts`         |
-| Tests             | next to file, `.test.tsx`| `TicketTimeline.test.tsx`  |
-| Folders           | `kebab-case`             | `user-requests/`           |
+## Rules (enforced by ESLint where possible)
 
-## Environment
+1. **app → features → shared.** Shared layers never import features, mocks or the shell (`import/no-restricted-paths`).
+2. **Features import each other only via `index.ts`** (`no-restricted-imports` on `@/features/*/*`).
+3. **All API calls go through `lib/api-client`** (`fetch` is banned elsewhere).
+4. **Every endpoint has an MSW handler** in `src/mocks/handlers/` with fixtures in `src/mocks/fixtures/`.
+5. **No hardcoded colours**: tokens in `theme/tokens.css`, `tone` props in components (hex literals are a lint error).
+6. **All UI text goes through i18next** (`lib/i18n/locales/en.json`, one namespace per feature).
+7. **Query keys live only in `lib/query/keys.ts`** (`qk.problems.list(filters)` …).
+8. Never send `status` or `priority`. Status changes only through stimuli shown by `/transitions`.
 
-See `.env.example`. Key switch:
-
-- `VITE_API_MODE=mock` → MSW intercepts all calls (default for now)
-- `VITE_API_MODE=live` → calls the BFF at `VITE_BFF_URL`
-
-## Suggested ownership (split for the team)
-
-| Track                              | Folders                                                          |
-| ---------------------------------- | ---------------------------------------------------------------- |
-| Design system & shell              | `theme/`, `styles/`, `components/`, `app/layouts/`               |
-| Auth & platform                    | `features/auth`, `lib/`, `app/providers`, `app/router`, `mocks/` |
-| Ticketing core                     | `features/tickets`, `incidents`, `user-requests`                 |
-| Portal                             | `features/service-catalog`, `knowledge-base`, portal pages       |
-| ITIL extended                      | `features/problems`, `changes`, `cmdb`                           |
-| Insights                           | `features/dashboard`, `reports`, `sla`                           |
+More detail: [`docs/problems-ui-spec.md`](docs/problems-ui-spec.md).
