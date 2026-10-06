@@ -444,10 +444,17 @@ export class ObjectsService {
     assertIdentifier(stimulus, "stimulus");
 
     // Fields are optional for a transition, but iTop still requires the key.
-    const fields =
-      rawFields === undefined || rawFields === null
-        ? {}
-        : validateWrite(info, rawFields, { mode: "update", strict: true }).fields;
+    // An EMPTY object counts as "none": plenty of stimuli (ev_close, ev_reopen)
+    // carry no data, and validateWrite rightly rejects an empty update -- which
+    // would otherwise make those transitions impossible to apply.
+    const hasFields =
+      rawFields !== undefined &&
+      rawFields !== null &&
+      !(typeof rawFields === "object" && !Array.isArray(rawFields) && Object.keys(rawFields).length === 0);
+
+    const fields = hasFields
+      ? validateWrite(info, rawFields, { mode: "update", strict: true }).fields
+      : {};
 
     const result = await this.client.call("core/apply_stimulus", {
       class: info.name,

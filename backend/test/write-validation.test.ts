@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import { AppError } from "../src/core/errors.js";
 import { validateWrite } from "../src/shared/write-validation.js";
+import type { ClassInfo } from "../src/schema/types.js";
 import { sampleSchema } from "./helpers.js";
 
 const schema = sampleSchema();
@@ -168,5 +169,47 @@ describe("validateWrite", () => {
 
   it("rejects a payload with nothing writable in it", () => {
     assert.throws(() => validateWrite(server, {}, { mode: "update" }), AppError);
+  });
+});
+
+describe("validateWrite — lifecycle classes", () => {
+  /** A Ticket-like class: status is required AND is the lifecycle attribute. */
+  const lifecycleClass = {
+    name: "Incident",
+    abstract: false,
+    writable: ["title", "status", "org_id"],
+    readonlyFields: [],
+    relatedFields: [],
+    pickerFields: ["org_id"],
+    lifecycle: { attribute: "status", states: { new: ["ev_assign"] } },
+    fields: {
+      title: { type: "String", ui: "scalar", required: true },
+      status: { type: "Enum", ui: "scalar", required: true, values: ["new", "assigned"] },
+      org_id: { type: "ExternalKey", ui: "picker", required: true, target: "Organization" },
+    },
+  } as unknown as ClassInfo;
+
+  it("does not demand the lifecycle attribute on create", () => {
+    // iTop assigns the initial state itself; requiring it here would make it
+    // impossible to create any ticket through the BFF.
+    assert.doesNotThrow(() =>
+      validateWrite(lifecycleClass, { title: "VPN down", org_id: 1 }, { mode: "create" }),
+    );
+  });
+
+  it("still demands the other required attributes on create", () => {
+    assert.throws(
+      () => validateWrite(lifecycleClass, { title: "VPN down" }, { mode: "create" }),
+      /org_id/,
+    );
+  });
+
+  it("still accepts the lifecycle attribute when it is supplied", () => {
+    const result = validateWrite(
+      lifecycleClass,
+      { title: "VPN down", org_id: 1, status: "new" },
+      { mode: "create" },
+    );
+    assert.equal(result.fields.status, "new");
   });
 });

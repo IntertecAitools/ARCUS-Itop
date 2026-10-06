@@ -38,7 +38,7 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     lookups: new LookupsService(client, schema, config.lookupCacheTtlMs),
     relations: new RelationsService(client, schema),
     dashboard: new DashboardService(objects),
-    incidents: new IncidentsService(objects),
+    incidents: new IncidentsService(objects, schema),
   };
 }
 

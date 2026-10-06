@@ -110,3 +110,120 @@ export function toTicket(item: ObjectDto): TicketDto {
 export function oqlString(value: string): string {
   return value.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
 }
+
+/* ------------------------------------------------------------------------ *
+ * Lifecycle
+ * ------------------------------------------------------------------------ */
+
+/**
+ * The actions a user can take, mapped onto iTop's stimuli.
+ *
+ * Only user-driven transitions are exposed. `ev_timeout` and `ev_autoresolve`
+ * are fired by iTop's background tasks, so offering them as buttons would let
+ * someone fake an SLA timeout.
+ */
+export const TRANSITIONS = {
+  assign: { stimulus: "ev_assign", label: "Assign", requires: ["agent_id"] },
+  reassign: { stimulus: "ev_reassign", label: "Reassign", requires: ["agent_id"] },
+  hold: { stimulus: "ev_pending", label: "Put on hold", requires: [] },
+  resolve: { stimulus: "ev_resolve", label: "Resolve", requires: ["solution"] },
+  close: { stimulus: "ev_close", label: "Close", requires: [] },
+  reopen: { stimulus: "ev_reopen", label: "Reopen", requires: [] },
+} as const;
+
+export type TransitionAction = keyof typeof TRANSITIONS;
+
+export const TRANSITION_ACTIONS = Object.keys(TRANSITIONS) as TransitionAction[];
+
+/** Reverse index: iTop stimulus -> our action name. */
+const STIMULUS_TO_ACTION = new Map<string, TransitionAction>(
+  TRANSITION_ACTIONS.map((action) => [TRANSITIONS[action].stimulus, action]),
+);
+
+/**
+ * Which of our actions are legal from a RAW iTop state.
+ *
+ * Driven by the datamodel's own lifecycle rather than a hand-kept list, so it
+ * cannot drift from what iTop will actually accept. Takes the raw state, not
+ * our mapped status: our "open" covers three iTop states that each permit a
+ * different set of stimuli.
+ */
+export function actionsForState(
+  rawStatus: string,
+  lifecycle: { states: Record<string, string[]> } | null,
+): TransitionAction[] {
+  const stimuli = lifecycle?.states?.[rawStatus] ?? [];
+  return stimuli
+    .map((stimulus) => STIMULUS_TO_ACTION.get(stimulus))
+    .filter((action): action is TransitionAction => action !== undefined);
+}
+
+/* ------------------------------------------------------------------------ *
+ * Enums iTop stores as numbers or snake_case
+ * ------------------------------------------------------------------------ */
+
+export const IMPACT_MAP: Record<string, string> = {
+  "1": "department",
+  "2": "service",
+  "3": "person",
+};
+
+export const URGENCY_MAP: Record<string, string> = {
+  "1": "critical",
+  "2": "high",
+  "3": "medium",
+  "4": "low",
+};
+
+export const ORIGINS = [
+  "in_person",
+  "chat",
+  "mail",
+  "phone",
+  "portal",
+  "monitoring",
+] as const;
+
+export const RESOLUTION_CODES = [
+  "assistance",
+  "bug fixed",
+  "hardware repair",
+  "software patch",
+  "system update",
+  "training",
+  "other",
+] as const;
+
+/**
+ * iTop's CaseLog comes back either as a rendered string or as an object with
+ * an `entries` array, depending on the REST version and the field. Normalising
+ * both here keeps every caller from re-discovering that.
+ */
+export interface CaseLogEntry {
+  date: string;
+  author: string;
+  message: string;
+}
+
+export function toCaseLog(value: unknown): CaseLogEntry[] {
+  if (!value) return [];
+
+  if (typeof value === "object" && value !== null && "entries" in value) {
+    const entries = (value as { entries?: unknown }).entries;
+    if (Array.isArray(entries)) {
+      return entries.map((entry) => {
+        const e = (entry ?? {}) as Record<string, unknown>;
+        return {
+          date: str(e["date"]),
+          author: str(e["user_login"] ?? e["user_id_friendlyname"] ?? e["author"]),
+          message: str(e["message"] ?? e["message_html"]),
+        };
+      });
+    }
+  }
+
+  // A plain string is the whole log already rendered; keep it as one entry
+  // rather than dropping it.
+  const text = str(value);
+  return text ? [{ date: "", author: "", message: text }] : [];
+}

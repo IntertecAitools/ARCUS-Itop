@@ -1,15 +1,31 @@
-import { notFound } from "../../core/errors.js";
+import { badRequest, notFound } from "../../core/errors.js";
+import type { CmdbSchema } from "../../schema/load.js";
 import type { ObjectDto, ObjectsService } from "../../platform/objects/objects.service.js";
 import {
+  actionsForState,
+  IMPACT_MAP,
   isTrue,
+  ORIGINS,
   oqlString,
   PRIORITY_TO_ITOP,
+  RESOLUTION_CODES,
   STATUS_TO_ITOP,
   str,
   TICKET_FIELDS,
+  toCaseLog,
   toTicket,
+  TRANSITIONS,
+  URGENCY_MAP,
 } from "../../shared/ticket-mapping.js";
-import type { IncidentDetail, IncidentListQuery, IncidentListResult } from "./incidents.types.js";
+import type {
+  CreateIncidentInput,
+  IncidentDetail,
+  IncidentListQuery,
+  IncidentListResult,
+  IncidentOptions,
+  TransitionInput,
+  UpdateIncidentInput,
+} from "./incidents.types.js";
 
 /** Extra fields the detail screen needs on top of a list row. */
 const DETAIL_FIELDS = [
@@ -25,6 +41,7 @@ const DETAIL_FIELDS = [
   "servicesubcategory_name",
   "impact",
   "urgency",
+  "origin",
   "resolution_date",
   "close_date",
   "last_update",
@@ -33,17 +50,33 @@ const DETAIL_FIELDS = [
   "tto_escalation_deadline",
   "ttr_escalation_deadline",
   "solution",
+  "resolution_code",
+  "public_log",
 ].join(",");
+
+/** Turns a snake_case enum value into something a human reads. */
+const humanise = (value: string) =>
+  value.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
+
+const options = (values: readonly string[]) =>
+  values.map((value) => ({ value, label: humanise(value) }));
 
 /**
  * Incidents — unplanned interruptions to a service.
  *
- * All OQL stops here. Callers pass our vocabulary (`status: "open"`,
- * `priority: "critical"`) and get our DTOs back; iTop's `assigned`,
- * `escalated_ttr` and numeric priorities never cross this boundary.
+ * All OQL and every iTop stimulus stop here. Callers pass our vocabulary
+ * (`status: "open"`, `action: "resolve"`) and get our DTOs back; iTop's
+ * `assigned`, `ev_resolve` and numeric priorities never cross this boundary.
  */
 export class IncidentsService {
-  constructor(private readonly objects: ObjectsService) {}
+  constructor(
+    private readonly objects: ObjectsService,
+    private readonly schema: CmdbSchema,
+  ) {}
+
+  /* --------------------------------------------------------------------- *
+   * Read
+   * --------------------------------------------------------------------- */
 
   /**
    * Builds the WHERE clause from our filter vocabulary.
@@ -86,14 +119,7 @@ export class IncidentsService {
     const where = this.buildWhere(query);
 
     if (where === null) {
-      return {
-        items: [],
-        page: query.page,
-        limit: query.limit,
-        total: 0,
-        pages: 0,
-        hasMore: false,
-      };
+      return { items: [], page: query.page, limit: query.limit, total: 0, pages: 0, hasMore: false };
     }
 
     const result = await this.objects.list("Incident", {
@@ -139,10 +165,10 @@ export class IncidentsService {
       return id && id !== "0" ? { id, name: str(f[nameKey]) } : undefined;
     };
 
-    const optional = (key: string) => {
-      const value = str(f[key]);
-      return value ? value : undefined;
-    };
+    const optional = (key: string) => str(f[key]) || undefined;
+
+    const rawStatus = str(f["status"]);
+    const lifecycle = this.schema.get("Incident")?.lifecycle ?? null;
 
     return {
       ...toTicket(item),
@@ -152,8 +178,9 @@ export class IncidentsService {
       team: link("team_id", "team_name"),
       service: optional("service_name"),
       serviceSubcategory: optional("servicesubcategory_name"),
-      impact: optional("impact"),
-      urgency: optional("urgency"),
+      impact: IMPACT_MAP[str(f["impact"])] ?? optional("impact"),
+      urgency: URGENCY_MAP[str(f["urgency"])] ?? optional("urgency"),
+      origin: optional("origin"),
       resolvedAt: optional("resolution_date"),
       closedAt: optional("close_date"),
       lastUpdatedAt: optional("last_update"),
@@ -164,6 +191,192 @@ export class IncidentsService {
         ttrDeadline: optional("ttr_escalation_deadline"),
       },
       resolution: optional("solution"),
+      resolutionCode: optional("resolution_code"),
+      log: toCaseLog(f["public_log"]),
+      availableActions: actionsForState(rawStatus, lifecycle),
+    };
+  }
+
+  /* --------------------------------------------------------------------- *
+   * Write
+   * --------------------------------------------------------------------- */
+
+  async create(input: CreateIncidentInput): Promise<IncidentDetail> {
+    const fields: Record<string, unknown> = {
+      title: input.title,
+      description: input.description,
+      org_id: Number(input.organizationId),
+      urgency: input.urgency ?? "3",
+      impact: input.impact ?? "2",
+      // iTop is contradictory here: `priority` is flagged NOT NULL, so create
+      // fails without it — yet iTop immediately recomputes it from
+      // urgency x impact and discards whatever was sent. So this is a
+      // placeholder that satisfies the constraint, not a value with meaning.
+      // That is also why `priority` is not part of CreateIncidentInput: it
+      // would be an input that silently does nothing.
+      priority: "3",
+    };
+
+    if (input.callerId) fields["caller_id"] = Number(input.callerId);
+    if (input.origin) fields["origin"] = input.origin;
+    if (input.serviceId) fields["service_id"] = Number(input.serviceId);
+    if (input.serviceSubcategoryId) {
+      fields["servicesubcategory_id"] = Number(input.serviceSubcategoryId);
+    }
+    if (input.agentId) fields["agent_id"] = Number(input.agentId);
+    if (input.teamId) fields["team_id"] = Number(input.teamId);
+
+    const { object } = await this.objects.create("Incident", fields, {
+      fields: DETAIL_FIELDS,
+      comment: "Incident created via ARCUS",
+    });
+
+    return this.toDetail(object);
+  }
+
+  async update(id: string, input: UpdateIncidentInput): Promise<IncidentDetail> {
+    const fields: Record<string, unknown> = {};
+
+    if (input.title !== undefined) fields["title"] = input.title;
+    if (input.description !== undefined) fields["description"] = input.description;
+    if (input.urgency !== undefined) fields["urgency"] = input.urgency;
+    if (input.impact !== undefined) fields["impact"] = input.impact;
+
+    // `null` means "clear the link", which iTop expresses as 0. Leaving the
+    // key out entirely means "don't touch it" — the two must stay distinct.
+    const link = (value: string | null | undefined, key: string) => {
+      if (value === undefined) return;
+      fields[key] = value === null || value === "" ? 0 : Number(value);
+    };
+    link(input.agentId, "agent_id");
+    link(input.teamId, "team_id");
+    link(input.serviceId, "service_id");
+    link(input.serviceSubcategoryId, "servicesubcategory_id");
+
+    if (Object.keys(fields).length === 0) {
+      throw badRequest("No changes were supplied.");
+    }
+
+    const { object } = await this.objects.update("Incident", Number(id), fields, {
+      fields: DETAIL_FIELDS,
+      comment: "Incident updated via ARCUS",
+    });
+
+    return this.toDetail(object);
+  }
+
+  /**
+   * Applies a lifecycle action.
+   *
+   * The action is checked against iTop's own lifecycle for the CURRENT state
+   * before being sent, so an illegal transition fails as a clear 400 here
+   * rather than a generic upstream error.
+   */
+  async transition(id: string, input: TransitionInput): Promise<IncidentDetail> {
+    const current = await this.get(id);
+
+    if (!current.availableActions.includes(input.action)) {
+      throw badRequest(
+        `"${input.action}" is not available for an incident that is ${current.status}. ` +
+          `Available: ${current.availableActions.join(", ") || "none"}.`,
+      );
+    }
+
+    const transition = TRANSITIONS[input.action];
+    const fields: Record<string, unknown> = {};
+
+    if (input.agentId) fields["agent_id"] = Number(input.agentId);
+    if (input.solution) fields["solution"] = input.solution;
+    if (input.resolutionCode) fields["resolution_code"] = input.resolutionCode;
+    if (input.pendingReason) fields["pending_reason"] = input.pendingReason;
+    if (input.comment) fields["public_log"] = input.comment;
+
+    for (const required of transition.requires) {
+      if (fields[required] === undefined) {
+        throw badRequest(`"${input.action}" requires ${required}.`);
+      }
+    }
+
+    const object = await this.objects.applyStimulus(
+      "Incident",
+      Number(id),
+      transition.stimulus,
+      fields,
+      { fields: DETAIL_FIELDS, comment: `${transition.label} via ARCUS` },
+    );
+
+    return this.toDetail(object);
+  }
+
+  /** Appends a message to the public case log. */
+  async addLogEntry(id: string, message: string): Promise<IncidentDetail> {
+    const { object } = await this.objects.update(
+      "Incident",
+      Number(id),
+      { public_log: message },
+      { fields: DETAIL_FIELDS, comment: "Comment added via ARCUS" },
+    );
+    return this.toDetail(object);
+  }
+
+  /* --------------------------------------------------------------------- *
+   * Form options
+   * --------------------------------------------------------------------- */
+
+  /**
+   * Everything a create/edit form needs, in ONE request.
+   *
+   * The alternative is five round trips before a form can render, and iTop is
+   * roughly half a second per call.
+   */
+  async formOptions(): Promise<IncidentOptions> {
+    const pick = async (className: string, label = "friendlyname") => {
+      try {
+        const result = await this.objects.list(className, {
+          page: 1,
+          limit: 200,
+          oql: `SELECT ${className}`,
+          fields: `id,${label}`,
+        });
+        return result.items.map((item) => ({
+          value: String(item.id),
+          label: str(item.fields[label]) || item.label || `#${item.id}`,
+        }));
+      } catch {
+        // A class the instance does not have must not take the whole form
+        // down — the picker simply renders empty.
+        return [];
+      }
+    };
+
+    const [organizations, agents, teams, services] = await Promise.all([
+      pick("Organization"),
+      pick("Person"),
+      pick("Team"),
+      pick("Service"),
+    ]);
+
+    return {
+      priorities: [
+        { value: "critical", label: "Critical" },
+        { value: "high", label: "High" },
+        { value: "medium", label: "Medium" },
+        { value: "low", label: "Low" },
+      ],
+      urgencies: Object.entries(URGENCY_MAP).map(([value, label]) => ({
+        value,
+        label: humanise(label),
+      })),
+      impacts: Object.entries(IMPACT_MAP).map(([value, label]) => ({
+        value,
+        label: `A ${label}`,
+      })),
+      origins: options(ORIGINS),
+      resolutionCodes: options(RESOLUTION_CODES),
+      organizations,
+      agents,
+      teams,
+      services,
     };
   }
 }

@@ -98,7 +98,14 @@ export function validateWrite(
   }
 
   if (options.mode === "create") {
+    // The lifecycle attribute (`status` on a Ticket) is marked required in the
+    // datamodel, but iTop assigns the initial state itself on create. Demanding
+    // it here is stricter than iTop and would block creating ANY
+    // lifecycle-managed object -- every ticket class included.
+    const lifecycleAttribute = info.lifecycle?.attribute;
+
     const missing = info.writable.filter((code) => {
+      if (code === lifecycleAttribute) return false;
       if (!info.fields[code]?.required) return false;
       const value = fields[code];
       return value === undefined || value === null || value === "";

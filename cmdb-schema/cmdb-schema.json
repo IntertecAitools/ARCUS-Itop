@@ -1290,7 +1290,7 @@
   "is_ci": false,
   "is_ticket": true,
   "lifecycle": {
-   "attribute": null,
+   "attribute": "status",
    "states": {
     "approved": [],
     "assigned": [],
@@ -5526,7 +5526,7 @@
   "is_ci": false,
   "is_ticket": true,
   "lifecycle": {
-   "attribute": null,
+   "attribute": "status",
    "states": {
     "assigned": [
      "ev_pending",
@@ -16322,7 +16322,7 @@
   "is_ci": false,
   "is_ticket": true,
   "lifecycle": {
-   "attribute": null,
+   "attribute": "status",
    "states": {
     "approved": [
      "ev_timeout",
@@ -17507,7 +17507,7 @@
   "is_ci": false,
   "is_ticket": false,
   "lifecycle": {
-   "attribute": null,
+   "attribute": "status",
    "states": {
     "closed": [],
     "open": [

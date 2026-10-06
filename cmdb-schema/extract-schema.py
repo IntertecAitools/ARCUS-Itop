@@ -200,6 +200,32 @@ def main():
     exported = [c for c in candidates if resolve(c)]
     undefined = [c for c in candidates if not resolve(c)]
 
+    def resolve_lifecycle(cid, resolved):
+        """Lifecycle with its driving attribute filled in.
+
+        iTop declares <states> on the concrete class but frequently omits
+        <attribute>, because the convention (`status`) is implicit. A consumer
+        cannot act on states without knowing which field holds them -- a BFF
+        needs it to tell "the lifecycle manages this" from "the caller must
+        supply it". So infer it: the attribute is the Enum whose declared
+        values cover every state id.
+        """
+        lifecycle = lifecycle_of(cid)
+        if not lifecycle or lifecycle.get('attribute'):
+            return lifecycle
+
+        states = set(lifecycle.get('states') or {})
+        if not states:
+            return lifecycle
+
+        for attcode, spec in sorted(resolved.items()):
+            if spec.get('type') != 'Enum':
+                continue
+            if states.issubset(set(spec.get('values') or [])):
+                return {**lifecycle, 'attribute': attcode}
+
+        return lifecycle
+
     schema = {}
     for cid in exported:
         resolved = resolve(cid)
@@ -210,7 +236,7 @@ def main():
             'category': props.get(cid, {}).get('category', ''),
             'abstract': props.get(cid, {}).get('abstract') == 'true',
             'inherits': chain(cid)[:-1],
-            'lifecycle': lifecycle_of(cid),
+            'lifecycle': resolve_lifecycle(cid, resolved),
             # Precomputed so the BFF can strip read-only fields from writes
             # without walking every field itself.
             'writable': sorted(a for a, f in resolved.items() if f['ui'] in ('scalar', 'picker')),
