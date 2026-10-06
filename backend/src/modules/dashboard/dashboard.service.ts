@@ -1,4 +1,17 @@
 import type { ObjectsService, ObjectDto } from "../../platform/objects/objects.service.js";
+import {
+  OPEN_STATES,
+  oqlDate,
+  isTrue,
+  str,
+  TICKET_FIELDS,
+  toTicket,
+  type TicketDto,
+} from "../../shared/ticket-mapping.js";
+
+// Re-exported so existing importers of this module keep working; the type is
+// owned by shared/ticket-mapping.ts, which every ticket module shares.
+export type { TicketDto };
 
 /**
  * Aggregates the agent dashboard into ONE response.
@@ -18,40 +31,8 @@ const RANGE_DAYS: Record<DateRange, number> = {
   "90d": 90,
 };
 
-/** iTop's Incident/UserRequest states, mapped onto the UI's vocabulary. */
-const STATUS_MAP: Record<string, string> = {
-  new: "new",
-  assigned: "open",
-  // Escalation is an SLA concern, not a separate workflow state for the user.
-  escalated_tto: "open",
-  escalated_ttr: "open",
-  pending: "pending",
-  resolved: "resolved",
-  closed: "closed",
-};
-
-/** iTop stores priority as 1..4. */
-const PRIORITY_MAP: Record<string, string> = {
-  "1": "critical",
-  "2": "high",
-  "3": "medium",
-  "4": "low",
-};
-
-/** Statuses that mean "still being worked". Used for the open/queue counts. */
-const OPEN_STATES = "'new','assigned','escalated_tto','escalated_ttr','pending'";
-
-const str = (value: unknown): string => (value == null ? "" : String(value));
-const isTrue = (value: unknown): boolean => value === "1" || value === 1 || value === true;
-
-/** `YYYY-MM-DD HH:MM:SS`, the only datetime literal iTop's OQL accepts. */
-function oqlDate(date: Date): string {
-  const p = (n: number) => String(n).padStart(2, "0");
-  return (
-    `${date.getFullYear()}-${p(date.getMonth() + 1)}-${p(date.getDate())} ` +
-    `${p(date.getHours())}:${p(date.getMinutes())}:${p(date.getSeconds())}`
-  );
-}
+// Ticket vocabulary (status/priority maps, OPEN_STATES, oqlDate, toTicket)
+// lives in shared/ticket-mapping.ts so this module and incidents cannot drift.
 
 function dayKey(value: unknown): string | null {
   const raw = str(value);
@@ -76,16 +57,6 @@ export interface DashboardOverview {
   catalogShortcuts: Array<{ id: string; label: string; description: string; icon: string }>;
   changeCalendar: Array<{ id: string; ref: string; title: string; scheduledAt: string; risk: string }>;
   knowledgeArticles: Array<{ id: string; title: string; views: number }>;
-}
-
-export interface TicketDto {
-  id: string;
-  ref: string;
-  summary: string;
-  status: string;
-  priority: string;
-  assignee?: { id: string; name: string };
-  createdAt: string;
 }
 
 export interface NavCounts {
@@ -120,21 +91,6 @@ export class DashboardService {
       fields,
     });
     return result.items;
-  }
-
-  private toTicket(item: ObjectDto): TicketDto {
-    const f = item.fields;
-    const agentId = str(f["agent_id"]);
-    const agentName = str(f["agent_name"]);
-    return {
-      id: String(item.id),
-      ref: str(f["ref"]) || `#${item.id}`,
-      summary: str(f["title"]),
-      status: STATUS_MAP[str(f["status"])] ?? "open",
-      priority: PRIORITY_MAP[str(f["priority"])] ?? "medium",
-      ...(agentId && agentId !== "0" ? { assignee: { id: agentId, name: agentName } } : {}),
-      createdAt: str(f["start_date"]),
-    };
   }
 
   async navCounts(): Promise<NavCounts> {
@@ -255,7 +211,7 @@ export class DashboardService {
       trend,
       categories,
       sla: { compliance, onTime, atRisk, breached },
-      recentIncidents: recent.map((item) => this.toTicket(item)),
+      recentIncidents: recent.map((item) => toTicket(item)),
       // The BFF authenticates as one service account, so there is no "me" to
       // resolve yet. These stay empty until the auth module lands and the
       // caller's identity reaches this layer.

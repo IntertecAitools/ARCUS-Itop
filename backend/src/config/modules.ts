@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 
 import type { Services } from "../services.js";
 import { registerDashboardRoutes } from "../modules/dashboard/index.js";
+import { registerIncidentRoutes } from "../modules/incidents/index.js";
 
 /**
  * ════════════════════════════════════════════════════════════════════════════
@@ -54,6 +55,12 @@ export const modules: BackendModule[] = [
     basePath: "/api/dashboard",
     description: "Aggregated KPIs, trends and queues for the agent home screen.",
     register: registerDashboardRoutes,
+  },
+  {
+    id: "incidents",
+    basePath: "/api/incidents",
+    description: "Unplanned interruptions to a service.",
+    register: registerIncidentRoutes,
   },
 ];
 
