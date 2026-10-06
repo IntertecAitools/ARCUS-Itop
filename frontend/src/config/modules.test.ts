@@ -51,11 +51,16 @@ describe('isModuleRegistered', () => {
     expect(isModuleRegistered('/dashboard?range=7d')).toBe(true);
   });
 
+  it('recognises incidents now that the module is built', () => {
+    expect(isModuleRegistered('/incidents')).toBe(true);
+    expect(isModuleRegistered('/incidents/42')).toBe(true);
+  });
+
   it('rejects a module that has not been built', () => {
     // Cross-links in the UI hang off this, so an unbuilt module must never
     // report as present — that is what stops the dashboard offering dead links.
-    expect(isModuleRegistered('/incidents')).toBe(false);
-    expect(isModuleRegistered('/incidents/42')).toBe(false);
+    expect(isModuleRegistered('/problems')).toBe(false);
+    expect(isModuleRegistered('/changes')).toBe(false);
     expect(isModuleRegistered('/knowledge')).toBe(false);
   });
 });

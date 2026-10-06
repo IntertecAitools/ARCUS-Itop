@@ -5,6 +5,10 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
+  // Capped: launching one chromium per core intermittently fails on Windows
+  // with "Target page, context or browser has been closed" before a test even
+  // runs. Four is still fast and doesn't contend.
+  workers: 4,
   reporter: 'list',
   use: {
     baseURL: 'http://localhost:4173',

@@ -51,22 +51,32 @@ test('an unbuilt module has no nav entry and no route', async ({ page }) => {
 
   // Only built modules appear anywhere in the shell.
   const nav = page.getByRole('navigation', { name: 'Main navigation' });
-  await expect(nav.getByRole('link')).toHaveCount(1);
+  await expect(nav.getByRole('link')).toHaveCount(2);
   await expect(nav.getByRole('link', { name: /Dashboard/ })).toBeVisible();
-  await expect(nav.getByRole('link', { name: /Incidents|Problems|CMDB/ })).toHaveCount(0);
+  await expect(nav.getByRole('link', { name: /Incidents/ })).toBeVisible();
+  await expect(nav.getByRole('link', { name: /Problems|CMDB|Knowledge/ })).toHaveCount(0);
 
   // And its path is genuinely absent rather than showing an apology screen.
   await page.goto('/problems');
   await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible();
 });
 
-test('the dashboard hides cross-links to modules that do not exist', async ({ page }) => {
+test('dashboard cross-links follow the module registry', async ({ page }) => {
   await page.goto('/dashboard');
-
   await expect(page.getByRole('heading', { name: 'Incidents by Category' })).toBeVisible();
-  // "View all →" would dead-end today, so it isn't offered at all.
-  await expect(page.getByRole('link', { name: /View all/ })).toHaveCount(0);
-  await expect(page.getByRole('link', { name: /View details/ })).toHaveCount(0);
+
+  // Incidents is built, so its "View all" links appeared on their own — no
+  // edit to the dashboard was needed when the module landed.
+  const viewAll = page.getByRole('link', { name: /View all/ });
+  await expect(viewAll.first()).toBeVisible();
+  for (const link of await viewAll.all()) {
+    await expect(link).toHaveAttribute('href', /^\/incidents/);
+  }
+
+  // Everything still unbuilt is simply not offered, so no card can dead-end.
+  for (const path of ['/sla', '/changes', '/knowledge', '/service-catalog']) {
+    await expect(page.locator(`a[href^="${path}"]`)).toHaveCount(0);
+  }
 });
 
 test('an unknown path falls through to Not found', async ({ page }) => {
@@ -99,10 +109,19 @@ test('Ctrl-K opens the palette and navigates to a module', async ({ page }) => {
 
   // The palette lists built modules only — it never surfaces a screen that
   // doesn't exist.
-  await expect(dialog.getByRole('option')).toHaveCount(1);
+  await expect(dialog.getByRole('option')).toHaveCount(2);
   await expect(dialog.getByRole('option', { name: /Dashboard/ })).toBeVisible();
 
+  // A built module is reachable from the palette...
   await dialog.getByPlaceholder(/jump to a module/i).fill('incidents');
+  await expect(dialog.getByRole('option', { name: /Incidents/ })).toBeVisible();
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(/\/incidents$/);
+  await expect(page.getByRole('heading', { name: 'Incidents', level: 1 })).toBeVisible();
+
+  // ...and one that does not exist is simply not there.
+  await page.keyboard.press('Control+k');
+  await dialog.getByPlaceholder(/jump to a module/i).fill('problems');
   await expect(dialog.getByText(/No module matches/i)).toBeVisible();
 });
 

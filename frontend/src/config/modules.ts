@@ -1,5 +1,5 @@
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
-import { LayoutDashboard, type LucideIcon } from 'lucide-react';
+import { LayoutDashboard, LifeBuoy, type LucideIcon } from 'lucide-react';
 
 /**
  * ════════════════════════════════════════════════════════════════════════════
@@ -89,6 +89,18 @@ export const modules: ModuleDefinition[] = [
     description: 'KPIs, trends and your queue at a glance.',
     component: lazy(() =>
       import('@/features/dashboard').then((m) => ({ default: m.DashboardPage })),
+    ),
+  },
+  {
+    id: 'incidents',
+    label: 'Incidents',
+    path: 'incidents',
+    icon: LifeBuoy,
+    group: 'operations',
+    description: 'Unplanned interruptions to a service.',
+    badgeKey: 'openIncidents',
+    component: lazy(() =>
+      import('@/features/incidents').then((m) => ({ default: m.IncidentListPage })),
     ),
   },
 ];
