@@ -102,6 +102,23 @@ export const modules: ModuleDefinition[] = [
     component: lazy(() =>
       import('@/features/incidents').then((m) => ({ default: m.IncidentListPage })),
     ),
+    children: [
+      // `new` is declared before `:id` so it is matched as a literal rather
+      // than parsed as an incident id.
+      {
+        path: 'new',
+        label: 'New incident',
+        component: lazy(() =>
+          import('@/features/incidents').then((m) => ({ default: m.NewIncidentPage })),
+        ),
+      },
+      {
+        path: ':id',
+        component: lazy(() =>
+          import('@/features/incidents').then((m) => ({ default: m.IncidentDetailPage })),
+        ),
+      },
+    ],
   },
 ];
 

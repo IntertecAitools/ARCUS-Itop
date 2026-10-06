@@ -41,39 +41,56 @@ npm run dev              # http://localhost:5173
 | `npm test`          | Vitest unit tests (`src/**/*.test.ts(x)`)            |
 | `npm run e2e`       | Playwright shell smoke tests against the real build  |
 
-## Live BFF vs mocks
+## Data comes from the backend
 
-`VITE_API_MODE` picks where data comes from. **`.env` is currently set to
-`live`** — the dashboard reads real iTop data through the BFF:
+`.env` ships as `VITE_API_MODE=live`: every screen reads real iTop data through
+the BFF. **There is no mock data in the running app.**
 
 ```
-browser ──> frontend :5173 ──> backend  :4000 ──> iTop :8080
+browser ──> frontend :5173 ──> backend :4000 ──> iTop :8080
 ```
 
-To run it live you need the BFF up (`cd ../backend && npm run dev`) and iTop
-reachable. The BFF serves the screen-shaped endpoints this app calls:
+So you need both up:
 
-| Endpoint                       | Used by                   |
-| ------------------------------ | ------------------------- |
+```bash
+cd docker && docker compose up -d     # iTop on :8080
+cd backend && npm run dev             # BFF  on :4000
+```
+
+| Endpoint                             | Used by                     |
+| ------------------------------------ | --------------------------- |
 | `GET /api/dashboard/overview?range=` | the whole dashboard, in one request |
-| `GET /api/nav/counts`          | sidebar badge counts      |
+| `GET /api/nav/counts`                | sidebar badge counts        |
+| `GET /api/incidents`                 | the incident queue          |
+| `GET /api/incidents/:id`             | incident detail             |
+| `GET /api/incidents/options`         | form pickers, in one request |
+| `POST /api/incidents`                | raise an incident           |
+| `PATCH /api/incidents/:id`           | edit fields                 |
+| `POST /api/incidents/:id/transitions`| assign / hold / resolve / close / reopen |
+| `POST /api/incidents/:id/log`        | post a public update        |
 
-Set `VITE_API_MODE=mock` to work without a BFF; MSW then intercepts everything.
-`.env.example` still defaults to `mock` so a fresh clone runs with no backend.
+MSW handlers still exist in `src/mocks` for working offline — set
+`VITE_API_MODE=mock` if the backend is unavailable. They are opt-in, and nothing
+uses them by default.
 
-In mock mode the dashboard serves an **empty** dataset — the honest state of an
-instance with no tickets, and the state every empty view is designed against.
-Each card shows its own empty copy rather than an invented number, and a KPI
-with no baseline shows no delta at all (a "0%" delta would read as "unchanged"
-when the truth is "nothing to compare against"). For a populated screen to demo
-or style against, flip one constant in `src/mocks/handlers/dashboard.ts`:
+> **iTop is slow.** A single REST call takes **6–8 seconds** on this instance,
+> so a page that makes several feels sluggish. That is upstream, not the UI;
+> the BFF already batches what it can (the dashboard is one request, not twelve).
 
-```ts
-const SEEDED = true;
+## Tests
+
+```bash
+npm test        # Vitest units — no servers needed
+npm run e2e     # Playwright against the REAL stack
 ```
 
-The e2e suite always forces `mock`, so tests never depend on a BFF being up or
-on whatever happens to be in iTop that day.
+The e2e suite runs with **no mocks**: it drives the live backend and creates
+real incidents in iTop, which is the only way to catch what a mock papers over
+(iTop deriving priority, rejecting a stimulus, or demanding a field). A global
+setup fails fast with instructions if the backend or iTop is not reachable.
+
+Those incidents are left in iTop deliberately, and each run uses unique titles
+so reruns never collide.
 
 ## Adding a module
 

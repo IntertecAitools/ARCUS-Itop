@@ -51,7 +51,14 @@ async function request<T>(method: string, path: string, options: RequestOptions 
   const payload = isJson ? await response.json().catch(() => null) : await response.text();
 
   if (!response.ok) {
-    const problem = (payload ?? {}) as { message?: string; code?: string; details?: unknown };
+    // The BFF nests its problem under `error`: { error: { code, message } }.
+    // Reading the top level only would discard every server message and leave
+    // the UI showing "Request failed (400)" for a precise, actionable reason.
+    // The unwrapped shape is still accepted, so a plainer error source works too.
+    type Problem = { message?: string; code?: string; details?: unknown };
+    const body = (payload ?? {}) as Problem & { error?: Problem };
+    const problem: Problem = body.error ?? body;
+
     throw new ApiError(
       problem.message ?? `Request failed (${response.status})`,
       response.status,

@@ -1,5 +1,13 @@
 import { apiClient } from '@/lib/api-client';
-import type { IncidentDetail, IncidentFilters, IncidentListResult } from '../types';
+import type {
+  CreateIncidentInput,
+  IncidentDetail,
+  IncidentFilters,
+  IncidentListResult,
+  IncidentOptions,
+  TransitionInput,
+  UpdateIncidentInput,
+} from '../types';
 
 const PAGE_SIZE = 25;
 
@@ -26,4 +34,26 @@ export function getIncidents(filters: IncidentFilters) {
 
 export function getIncident(id: string) {
   return apiClient.get<IncidentDetail>(`/incidents/${id}`);
+}
+
+/** Pickers for the create/edit forms, in one request. */
+export function getIncidentOptions() {
+  return apiClient.get<IncidentOptions>('/incidents/options');
+}
+
+export function createIncident(input: CreateIncidentInput) {
+  return apiClient.post<IncidentDetail>('/incidents', input);
+}
+
+export function updateIncident(id: string, input: UpdateIncidentInput) {
+  return apiClient.patch<IncidentDetail>(`/incidents/${id}`, input);
+}
+
+/** Applies a lifecycle action: assign, reassign, hold, resolve, close, reopen. */
+export function transitionIncident(id: string, input: TransitionInput) {
+  return apiClient.post<IncidentDetail>(`/incidents/${id}/transitions`, input);
+}
+
+export function addIncidentLogEntry(id: string, message: string) {
+  return apiClient.post<IncidentDetail>(`/incidents/${id}/log`, { message });
 }

@@ -38,6 +38,15 @@ export interface IncidentFilters {
   order?: 'asc' | 'desc';
 }
 
+export interface CaseLogEntry {
+  date: string;
+  author: string;
+  message: string;
+}
+
+/** The lifecycle actions the backend exposes. */
+export type TransitionAction = 'assign' | 'reassign' | 'hold' | 'resolve' | 'close' | 'reopen';
+
 export interface IncidentDetail extends Incident {
   description: string;
   caller?: { id: string; name: string };
@@ -47,6 +56,7 @@ export interface IncidentDetail extends Incident {
   serviceSubcategory?: string;
   impact?: string;
   urgency?: string;
+  origin?: string;
   resolvedAt?: string;
   closedAt?: string;
   lastUpdatedAt?: string;
@@ -57,4 +67,66 @@ export interface IncidentDetail extends Incident {
     ttrDeadline?: string;
   };
   resolution?: string;
+  resolutionCode?: string;
+  log: CaseLogEntry[];
+  /**
+   * Which actions are legal right now, computed by the backend from iTop's own
+   * lifecycle. Render buttons from this — never guess, or the UI will offer a
+   * transition iTop rejects.
+   */
+  availableActions: TransitionAction[];
+}
+
+/**
+ * NOTE: no `priority`. iTop DERIVES priority from urgency × impact and ignores
+ * an explicit value, so the form sets urgency and impact; priority comes back
+ * computed.
+ */
+export interface CreateIncidentInput {
+  title: string;
+  description: string;
+  organizationId: string;
+  callerId?: string;
+  urgency?: string;
+  impact?: string;
+  origin?: string;
+  serviceId?: string;
+  agentId?: string;
+  teamId?: string;
+}
+
+export interface UpdateIncidentInput {
+  title?: string;
+  description?: string;
+  urgency?: string;
+  impact?: string;
+  agentId?: string | null;
+  teamId?: string | null;
+  serviceId?: string | null;
+}
+
+export interface TransitionInput {
+  action: TransitionAction;
+  agentId?: string;
+  solution?: string;
+  resolutionCode?: string;
+  pendingReason?: string;
+  comment?: string;
+}
+
+export interface SelectOption {
+  value: string;
+  label: string;
+}
+
+export interface IncidentOptions {
+  priorities: SelectOption[];
+  urgencies: SelectOption[];
+  impacts: SelectOption[];
+  origins: SelectOption[];
+  resolutionCodes: SelectOption[];
+  organizations: SelectOption[];
+  agents: SelectOption[];
+  teams: SelectOption[];
+  services: SelectOption[];
 }

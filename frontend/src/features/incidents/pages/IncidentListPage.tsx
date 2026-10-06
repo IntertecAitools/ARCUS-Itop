@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { LifeBuoy, MoreVertical } from 'lucide-react';
+import { LifeBuoy, MoreVertical, Plus } from 'lucide-react';
 import { PageHeader } from '@/components/layout';
-import { Avatar, Card, IconButton } from '@/components/ui';
+import { Avatar, buttonClasses, Card, IconButton } from '@/components/ui';
 import {
   DataTable,
   PriorityBadge,
@@ -120,6 +120,12 @@ export function IncidentListPage() {
             ? `${data.total} ${data.total === 1 ? 'incident' : 'incidents'} matching this view.`
             : 'Unplanned interruptions to a service.'
         }
+        actions={
+          <Link to="/incidents/new" className={buttonClasses({ size: 'sm' })}>
+            <Plus className="mr-1.5 size-4" />
+            New incident
+          </Link>
+        }
       />
 
       {isError ? (
@@ -147,6 +153,13 @@ export function IncidentListPage() {
               activeCount > 0
                 ? 'Try widening the filters, or clear them to see the whole queue.'
                 : 'Incidents raised in iTop will appear here.'
+            }
+            action={
+              activeCount === 0 ? (
+                <Link to="/incidents/new" className={buttonClasses({ size: 'sm' })}>
+                  Raise the first one
+                </Link>
+              ) : undefined
             }
           />
         ) : (

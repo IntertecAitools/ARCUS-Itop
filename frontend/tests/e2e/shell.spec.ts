@@ -8,7 +8,7 @@ import { expect, test } from '@playwright/test';
  * They should keep passing as modules land one by one.
  */
 
-test('dashboard renders every card against an empty dataset', async ({ page }) => {
+test('dashboard renders every card against live data', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
 
@@ -16,33 +16,36 @@ test('dashboard renders every card against an empty dataset', async ({ page }) =
 
   await expect(page.getByRole('heading', { name: /good (morning|afternoon|evening)/i })).toBeVisible();
 
-  // KPI tiles still render, showing a real zero rather than a blank.
+  // Every card is present. The assertions are deliberately about STRUCTURE,
+  // not values: these run against a real iTop whose contents change, so
+  // pinning a number here would make the suite fail for the wrong reason.
+  for (const heading of [
+    'Incident Trend',
+    'Incidents by Category',
+    'SLA Performance',
+    'Recent Incidents',
+    'My Assignments',
+    'Service Requests',
+    'Change Calendar',
+    'Knowledge Articles',
+  ]) {
+    await expect(page.getByRole('heading', { name: heading })).toBeVisible();
+  }
+
+  // KPI tiles show a real figure rather than a blank, whatever that figure is.
   const totalTile = page.getByText('Total Incidents').locator('xpath=../..');
-  await expect(totalTile.getByText('0', { exact: true })).toBeVisible();
+  await expect(totalTile.getByText(/^\d+$/)).toBeVisible();
   await expect(page.getByText('SLA Compliance')).toBeVisible();
-
-  // With no history there is no delta — "0%" would read as "unchanged" when
-  // the truth is "nothing to compare against".
-  await expect(page.getByText('vs last week')).toHaveCount(0);
-
-  // Charts degrade to empty states instead of drawing an empty ring or axis.
-  await expect(page.getByRole('heading', { name: 'Incident Trend' })).toBeVisible();
-  await expect(page.getByText('No activity in this period')).toBeVisible();
-  await expect(page.getByText('No incidents yet')).toBeVisible();
-  await expect(page.getByText('Nothing under SLA yet')).toBeVisible();
-
-  // Tables use their own empty copy.
-  await expect(page.getByText('No incidents in this window')).toBeVisible();
-  await expect(page.getByText('Nothing assigned to you')).toBeVisible();
 
   expect(errors).toEqual([]);
 });
 
-test('the sidebar shows no count badges when nothing is outstanding', async ({ page }) => {
+test('the sidebar never renders a zero badge', async ({ page }) => {
   await page.goto('/dashboard');
 
   const nav = page.getByRole('navigation', { name: 'Main navigation' });
-  // A zero badge is noise — the absence of a badge is the signal.
+  // A zero badge is noise — the absence of a badge is the signal. This holds
+  // whatever the real counts are, so it survives running against live iTop.
   await expect(nav.getByText(/^0$/)).toHaveCount(0);
 });
 
