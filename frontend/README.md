@@ -1,10 +1,11 @@
 # ARCUS Helpdesk — Frontend
 
 Branded ITSM / Helpdesk UI. iTop is the system of record; this app **never talks to
-iTop directly**. It calls the ARCUS BFF (`../backend`), which hides iTop's API and data model.
+iTop directly**. It calls the BFF in `../itop-bff`, which hides iTop's API and data model.
 
-Until the BFF exists, every API call is served by **MSW mocks** (`src/mocks`), so the UI
-can be built end to end now and switched to the real BFF by changing one env var.
+The BFF already exists and runs on `http://localhost:4000` — see `../itop-bff/README.md`
+for its API. Until a screen is wired to it, API calls are served by **MSW mocks**
+(`src/mocks`); switch to the real BFF by changing one env var (`VITE_API_MODE=live`).
 
 ## Tech stack
 
@@ -99,7 +100,7 @@ frontend/
     │
     ├── hooks/                  # Global hooks: useDebounce, useMediaQuery, useHotkeys
     ├── stores/                 # Zustand stores: ui (sidebar, theme), session
-    ├── types/                  # Shared TS types / API DTOs (mirror backend/contracts)
+    ├── types/                  # Shared TS types / API DTOs (mirror ../itop-bff responses)
     ├── config/                 # env.ts, constants, navigation menu, feature flags
     ├── mocks/                  # MSW — fake BFF until the real one is ready
     │   ├── handlers/           # One handler file per feature (tickets.ts, auth.ts …)
