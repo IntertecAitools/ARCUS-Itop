@@ -1,1 +1,0 @@
-// cmdb: module types.
