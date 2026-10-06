@@ -1,0 +1,267 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1780" height="934" viewBox="0 0 1780 934" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+<rect width="1780" height="934" fill="#fff"/>
+<text x="40" y="52" font-size="30" font-weight="700" fill="#0F172A">ARCUS Helpdesk — Backend (BFF) Folder Structure</text>
+<text x="40" y="82" font-size="15.5" fill="#64748B">Node.js 22 · TypeScript · Fastify · Zod · OpenAPI   |   Browser → BFF → iTop REST API   |   all BFF code lives in  <tspan font-family="Consolas, monospace" fill="#0F172A">backend/</tspan></text>
+<rect x="40" y="104" width="560" height="576" rx="12" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1.5"/>
+<path d="M58,129 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#0F172A"/>
+<text x="84" y="140" font-size="18" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">backend/</text>
+<text x="180.0" y="140" font-size="13" fill="#64748B">project root &amp; server</text>
+<path d="M66,146 V169 H75" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M86,180 V196 H95" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M86,180 V223 H95" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M66,146 V250 H75" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M66,146 V277 H75" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M66,146 V304 H75" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M86,315 V331 H95" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M86,315 V358 H95" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M86,315 V385 H95" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M106,396 V412 H115" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M66,146 V439 H75" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M66,146 V466 H75" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M66,146 V493 H75" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M86,504 V520 H95" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M86,504 V547 H95" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M86,504 V574 H95" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M106,585 V601 H115" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M106,585 V628 H115" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M78,163 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#DC2626"/>
+<text x="102" y="174" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">contracts/</text>
+<text x="302" y="174" font-size="13" fill="#475569">API contract  FE ↔ BFF</text>
+<path d="M99,189 h9 l4,4 v11 h-13z" fill="#fff" stroke="#94A3B8" stroke-width="1.3"/>
+<text x="122" y="201" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">openapi.yaml</text>
+<text x="302" y="201" font-size="13" fill="#475569">⭐ single source of truth</text>
+<path d="M99,216 h9 l4,4 v11 h-13z" fill="#fff" stroke="#94A3B8" stroke-width="1.3"/>
+<text x="122" y="228" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">README.md</text>
+<text x="302" y="228" font-size="13" fill="#475569">how the contract is used</text>
+<path d="M78,244 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B"/>
+<text x="102" y="255" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">docs/</text>
+<text x="302" y="255" font-size="13" fill="#475569">iTop field mappings, ADRs</text>
+<path d="M78,271 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B"/>
+<text x="102" y="282" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">scripts/</text>
+<text x="302" y="282" font-size="13" fill="#475569">seed iTop, generate types</text>
+<path d="M78,298 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B"/>
+<text x="102" y="309" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">tests/</text>
+<path d="M98,325 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B"/>
+<text x="122" y="336" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">unit/</text>
+<text x="302" y="336" font-size="13" fill="#475569">mappers, services</text>
+<path d="M98,352 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B"/>
+<text x="122" y="363" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">integration/</text>
+<text x="302" y="363" font-size="13" fill="#475569">routes vs mocked iTop</text>
+<path d="M98,379 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B"/>
+<text x="122" y="390" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">fixtures/</text>
+<path d="M118,406 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B"/>
+<text x="142" y="417" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">itop/</text>
+<text x="302" y="417" font-size="13" fill="#475569">recorded iTop REST responses</text>
+<path d="M79,432 h9 l4,4 v11 h-13z" fill="#fff" stroke="#94A3B8" stroke-width="1.3"/>
+<text x="102" y="444" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">.env.example</text>
+<text x="302" y="444" font-size="13" fill="#475569">ITOP_URL, REST user, PORT</text>
+<path d="M79,459 h9 l4,4 v11 h-13z" fill="#fff" stroke="#94A3B8" stroke-width="1.3"/>
+<text x="102" y="471" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">README.md</text>
+<text x="302" y="471" font-size="13" fill="#475569">structure, rules, conventions</text>
+<path d="M78,487 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B"/>
+<text x="102" y="498" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">src/</text>
+<path d="M99,513 h9 l4,4 v11 h-13z" fill="#fff" stroke="#94A3B8" stroke-width="1.3"/>
+<text x="122" y="525" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">server.ts</text>
+<text x="302" y="525" font-size="13" fill="#475569">starts the HTTP server</text>
+<path d="M99,540 h9 l4,4 v11 h-13z" fill="#fff" stroke="#94A3B8" stroke-width="1.3"/>
+<text x="122" y="552" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">app.ts</text>
+<text x="302" y="552" font-size="13" fill="#475569">plugins · middleware · routes</text>
+<path d="M98,568 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#0F172A"/>
+<text x="122" y="579" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">config/</text>
+<text x="302" y="579" font-size="13" fill="#475569">configuration</text>
+<path d="M119,594 h9 l4,4 v11 h-13z" fill="#fff" stroke="#94A3B8" stroke-width="1.3"/>
+<text x="142" y="606" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">env.ts</text>
+<text x="302" y="606" font-size="13" fill="#475569">Zod-validated env vars</text>
+<path d="M119,621 h9 l4,4 v11 h-13z" fill="#fff" stroke="#94A3B8" stroke-width="1.3"/>
+<text x="142" y="633" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">constants.ts</text>
+<text x="302" y="633" font-size="13" fill="#475569">app-wide constants</text>
+<rect x="610" y="104" width="560" height="630" rx="12" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1.5"/>
+<path d="M628,129 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#0F172A"/>
+<text x="654" y="140" font-size="18" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">src/</text>
+<text x="708.0" y="140" font-size="13" fill="#64748B">cross-cutting &amp; iTop integration</text>
+<path d="M636,146 V169 H645" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M656,180 V196 H665" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M656,180 V223 H665" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M656,180 V250 H665" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M656,180 V277 H665" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M636,146 V304 H645" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M656,315 V331 H665" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M656,315 V358 H665" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M656,315 V385 H665" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M636,146 V412 H645" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M636,146 V439 H645" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M636,146 V466 H645" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M656,477 V493 H665" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M676,504 V520 H685" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M676,504 V547 H685" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M676,504 V574 H685" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M676,504 V601 H685" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M676,504 V628 H685" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M656,477 V655 H665" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M656,477 V682 H665" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M648,163 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#0F172A"/>
+<text x="672" y="174" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">middleware/</text>
+<text x="872" y="174" font-size="13" fill="#475569">runs on every request</text>
+<path d="M669,189 h9 l4,4 v11 h-13z" fill="#fff" stroke="#94A3B8" stroke-width="1.3"/>
+<text x="692" y="201" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">auth.ts</text>
+<text x="872" y="201" font-size="13" fill="#475569">session / token check</text>
+<path d="M669,216 h9 l4,4 v11 h-13z" fill="#fff" stroke="#94A3B8" stroke-width="1.3"/>
+<text x="692" y="228" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">error-handler.ts</text>
+<text x="872" y="228" font-size="13" fill="#475569">AppError → HTTP response</text>
+<path d="M669,243 h9 l4,4 v11 h-13z" fill="#fff" stroke="#94A3B8" stroke-width="1.3"/>
+<text x="692" y="255" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">request-id.ts</text>
+<text x="872" y="255" font-size="13" fill="#475569">trace id per request</text>
+<path d="M669,270 h9 l4,4 v11 h-13z" fill="#fff" stroke="#94A3B8" stroke-width="1.3"/>
+<text x="692" y="282" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">rate-limit.ts</text>
+<text x="872" y="282" font-size="13" fill="#475569">protect iTop from bursts</text>
+<path d="M648,298 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#0F172A"/>
+<text x="672" y="309" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">common/</text>
+<text x="872" y="309" font-size="13" fill="#475569">shared helpers</text>
+<path d="M668,325 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B"/>
+<text x="692" y="336" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">errors/</text>
+<text x="872" y="336" font-size="13" fill="#475569">AppError · NotFound · Forbidden</text>
+<path d="M668,352 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B"/>
+<text x="692" y="363" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">pagination/</text>
+<text x="872" y="363" font-size="13" fill="#475569">limit / page helpers</text>
+<path d="M668,379 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B"/>
+<text x="692" y="390" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">utils/</text>
+<path d="M648,406 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B"/>
+<text x="672" y="417" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">cache/</text>
+<text x="872" y="417" font-size="13" fill="#475569">lookups: services, teams, orgs</text>
+<path d="M648,433 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B"/>
+<text x="672" y="444" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">jobs/</text>
+<text x="872" y="444" font-size="13" fill="#475569">SLA polling · notifications</text>
+<path d="M648,460 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#0F172A"/>
+<text x="672" y="471" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">integrations/</text>
+<text x="872" y="471" font-size="13" fill="#475569">external systems</text>
+<path d="M668,487 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#DC2626"/>
+<text x="692" y="498" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">itop/</text>
+<text x="872" y="498" font-size="13" fill="#475569">⭐ the ONLY code that knows iTop</text>
+<path d="M689,513 h9 l4,4 v11 h-13z" fill="#fff" stroke="#94A3B8" stroke-width="1.3"/>
+<text x="712" y="525" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">itop.client.ts</text>
+<text x="872" y="525" font-size="13" fill="#475569">core/get · create · update · stimulus</text>
+<path d="M689,540 h9 l4,4 v11 h-13z" fill="#fff" stroke="#94A3B8" stroke-width="1.3"/>
+<text x="712" y="552" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">itop.errors.ts</text>
+<text x="872" y="552" font-size="13" fill="#475569">iTop codes → AppError</text>
+<path d="M688,568 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B"/>
+<text x="712" y="579" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">oql/</text>
+<text x="872" y="579" font-size="13" fill="#475569">safe OQL query builders</text>
+<path d="M688,595 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B"/>
+<text x="712" y="606" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">mappers/</text>
+<text x="872" y="606" font-size="13" fill="#475569">iTop objects ⇄ ARCUS DTOs</text>
+<path d="M688,622 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B"/>
+<text x="712" y="633" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">types/</text>
+<text x="872" y="633" font-size="13" fill="#475569">iTop classes &amp; attributes</text>
+<path d="M668,649 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B"/>
+<text x="692" y="660" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">auth/</text>
+<text x="872" y="660" font-size="13" fill="#475569">SSO · OIDC · LDAP adapters</text>
+<path d="M668,676 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B"/>
+<text x="692" y="687" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">storage/</text>
+<text x="872" y="687" font-size="13" fill="#475569">attachment handling</text>
+<rect x="1180" y="104" width="560" height="684" rx="12" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1.5"/>
+<path d="M1198,129 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#0F172A"/>
+<text x="1224" y="140" font-size="18" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">src/modules/</text>
+<text x="1362.0" y="140" font-size="13" fill="#64748B">one folder per domain (mirrors frontend)</text>
+<path d="M1206,146 V169 H1215" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1206,146 V196 H1215" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1226,207 V223 H1235" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1226,207 V250 H1235" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1226,207 V277 H1235" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1226,207 V304 H1235" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1226,207 V331 H1235" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1226,207 V358 H1235" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1206,146 V385 H1215" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1206,146 V412 H1215" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1206,146 V439 H1215" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1206,146 V466 H1215" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1206,146 V493 H1215" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1206,146 V520 H1215" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1206,146 V547 H1215" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1206,146 V574 H1215" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1206,146 V601 H1215" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1206,146 V628 H1215" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1206,146 V655 H1215" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1206,146 V682 H1215" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1206,146 V709 H1215" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1206,146 V736 H1215" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1218,163 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#4338CA"/>
+<text x="1242" y="174" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">tickets/</text>
+<text x="1480" y="174" font-size="13" fill="#475569">case log · stimuli · my tickets</text>
+<path d="M1218,190 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#4338CA"/>
+<text x="1242" y="201" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">incidents/</text>
+<text x="1480" y="201" font-size="13" fill="#475569">iTop Incident   ▼ example</text>
+<path d="M1239,216 h9 l4,4 v11 h-13z" fill="#fff" stroke="#94A3B8" stroke-width="1.3"/>
+<text x="1262" y="228" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">incidents.routes.ts</text>
+<text x="1480" y="228" font-size="13" fill="#475569">HTTP routes + OpenAPI refs</text>
+<path d="M1239,243 h9 l4,4 v11 h-13z" fill="#fff" stroke="#94A3B8" stroke-width="1.3"/>
+<text x="1262" y="255" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">incidents.controller.ts</text>
+<text x="1480" y="255" font-size="13" fill="#475569">request → service → reply</text>
+<path d="M1239,270 h9 l4,4 v11 h-13z" fill="#fff" stroke="#94A3B8" stroke-width="1.3"/>
+<text x="1262" y="282" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">incidents.service.ts</text>
+<text x="1480" y="282" font-size="13" fill="#475569">business logic</text>
+<path d="M1239,297 h9 l4,4 v11 h-13z" fill="#fff" stroke="#94A3B8" stroke-width="1.3"/>
+<text x="1262" y="309" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">incidents.schema.ts</text>
+<text x="1480" y="309" font-size="13" fill="#475569">Zod request / response</text>
+<path d="M1239,324 h9 l4,4 v11 h-13z" fill="#fff" stroke="#94A3B8" stroke-width="1.3"/>
+<text x="1262" y="336" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">incidents.mapper.ts</text>
+<text x="1480" y="336" font-size="13" fill="#475569">DTO shaping</text>
+<path d="M1239,351 h9 l4,4 v11 h-13z" fill="#fff" stroke="#94A3B8" stroke-width="1.3"/>
+<text x="1262" y="363" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">incidents.types.ts</text>
+<text x="1480" y="363" font-size="13" fill="#475569">module types</text>
+<path d="M1218,379 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#4338CA"/>
+<text x="1242" y="390" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">user-requests/</text>
+<text x="1480" y="390" font-size="13" fill="#475569">iTop UserRequest</text>
+<path d="M1218,406 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#4338CA"/>
+<text x="1242" y="417" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">sla/</text>
+<text x="1480" y="417" font-size="13" fill="#475569">SLA / SLT</text>
+<path d="M1218,433 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#4338CA"/>
+<text x="1242" y="444" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">attachments/</text>
+<text x="1480" y="444" font-size="13" fill="#475569">upload / download</text>
+<path d="M1218,460 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#0F766E"/>
+<text x="1242" y="471" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">service-catalog/</text>
+<text x="1480" y="471" font-size="13" fill="#475569">Service · ServiceSubcategory</text>
+<path d="M1218,487 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#0F766E"/>
+<text x="1242" y="498" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">knowledge-base/</text>
+<text x="1480" y="498" font-size="13" fill="#475569">FAQ · KnownError</text>
+<path d="M1218,514 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#B45309"/>
+<text x="1242" y="525" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">problems/</text>
+<text x="1480" y="525" font-size="13" fill="#475569">iTop Problem</text>
+<path d="M1218,541 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#B45309"/>
+<text x="1242" y="552" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">changes/</text>
+<text x="1480" y="552" font-size="13" fill="#475569">iTop Change</text>
+<path d="M1218,568 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#B45309"/>
+<text x="1242" y="579" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">cmdb/</text>
+<text x="1480" y="579" font-size="13" fill="#475569">FunctionalCI lookup</text>
+<path d="M1218,595 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#15803D"/>
+<text x="1242" y="606" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">dashboard/</text>
+<text x="1480" y="606" font-size="13" fill="#475569">KPI aggregates</text>
+<path d="M1218,622 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#15803D"/>
+<text x="1242" y="633" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">reports/</text>
+<text x="1480" y="633" font-size="13" fill="#475569">reports · exports</text>
+<path d="M1218,649 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#475569"/>
+<text x="1242" y="660" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">auth/</text>
+<text x="1480" y="660" font-size="13" fill="#475569">login · logout · me · refresh</text>
+<path d="M1218,676 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#475569"/>
+<text x="1242" y="687" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">contacts/</text>
+<text x="1480" y="687" font-size="13" fill="#475569">Person · Team · Organization</text>
+<path d="M1218,703 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#475569"/>
+<text x="1242" y="714" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">notifications/</text>
+<text x="1480" y="714" font-size="13" fill="#475569">in-app notifications</text>
+<path d="M1218,730 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#475569"/>
+<text x="1242" y="741" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">search/</text>
+<text x="1480" y="741" font-size="13" fill="#475569">global search</text>
+<text x="40" y="844" font-size="14" font-weight="700" fill="#0F172A">Module colours</text>
+<path d="M170,834 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#4338CA"/>
+<text x="194" y="844" font-size="13.5" fill="#334155">Ticketing core</text>
+<path d="M322,834 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#0F766E"/>
+<text x="346" y="844" font-size="13.5" fill="#334155">Portal</text>
+<path d="M410,834 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#B45309"/>
+<text x="434" y="844" font-size="13.5" fill="#334155">ITIL extended</text>
+<path d="M554,834 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#15803D"/>
+<text x="578" y="844" font-size="13.5" fill="#334155">Insights</text>
+<path d="M658,834 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#475569"/>
+<text x="682" y="844" font-size="13.5" fill="#334155">Platform</text>
+<path d="M762,834 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#DC2626"/>
+<text x="786" y="844" font-size="13.5" fill="#334155">Contract &amp; iTop boundary</text>
+<text x="40" y="876" font-size="13.5" fill="#334155">Rules:  routes → controller → service → integrations/itop (never skip)  ·  only integrations/itop calls iTop  ·  never return raw iTop data  ·  no OQL from user input  ·  contract first: openapi.yaml → MSW mock → implement</text>
+</svg>

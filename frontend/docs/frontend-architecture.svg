@@ -1,0 +1,175 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="1080" viewBox="0 0 1400 1080" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#475569"/>
+    </marker>
+    <style>
+      .layer { fill: #F8FAFC; stroke: #CBD5E1; stroke-width: 1.5; }
+      .layerTitle { font-size: 17px; font-weight: 700; fill: #0F172A; }
+      .layerSub { font-size: 13px; fill: #64748B; }
+      .box { stroke-width: 1.5; }
+      .bt { font-size: 15px; font-weight: 600; fill: #0F172A; }
+      .bs { font-size: 12.5px; fill: #475569; }
+      .ft { font-size: 14px; font-weight: 600; fill: #FFFFFF; }
+      .fs { font-size: 11.5px; fill: #E2E8F0; }
+      .mono { font-family: Consolas, Menlo, monospace; }
+      .line { stroke: #475569; stroke-width: 2; fill: none; }
+      .dash { stroke-dasharray: 6 5; }
+    </style>
+  </defs>
+
+  <rect width="1400" height="1080" fill="#FFFFFF"/>
+
+  <!-- Title -->
+  <text x="40" y="48" font-size="28" font-weight="700" fill="#0F172A">ARCUS Helpdesk — Frontend Architecture</text>
+  <text x="40" y="74" font-size="15" fill="#64748B">React 19 · TypeScript · Vite · Tailwind 4 · TanStack Query · MSW   |   iTop is the backend, reached only through the ARCUS BFF</text>
+
+  <!-- Users -->
+  <rect x="300" y="98" width="330" height="52" rx="26" fill="#0F766E"/>
+  <text x="465" y="130" text-anchor="middle" font-size="16" font-weight="600" fill="#FFF">👤 End user  →  /portal</text>
+  <rect x="770" y="98" width="330" height="52" rx="26" fill="#4338CA"/>
+  <text x="935" y="130" text-anchor="middle" font-size="16" font-weight="600" fill="#FFF">🎧 Agent / Manager  →  /agent</text>
+  <line x1="465" y1="150" x2="465" y2="176" class="line" marker-end="url(#arrow)"/>
+  <line x1="935" y1="150" x2="935" y2="176" class="line" marker-end="url(#arrow)"/>
+
+  <!-- Layer 1: App shell -->
+  <rect x="40" y="180" width="1320" height="112" rx="12" class="layer"/>
+  <text x="60" y="206" class="layerTitle">1 · App shell</text>
+  <text x="185" y="206" class="layerSub mono">src/app/</text>
+  <rect x="60" y="218" width="420" height="60" rx="8" fill="#EEF2FF" stroke="#A5B4FC" class="box"/>
+  <text x="76" y="242" class="bt">Router + Guards</text>
+  <text x="76" y="263" class="bs">lazy routes · RequireAuth · RequireRole (portal / agent)</text>
+  <rect x="490" y="218" width="420" height="60" rx="8" fill="#EEF2FF" stroke="#A5B4FC" class="box"/>
+  <text x="506" y="242" class="bt">Layouts</text>
+  <text x="506" y="263" class="bs">PortalLayout · AgentLayout · AuthLayout</text>
+  <rect x="920" y="218" width="420" height="60" rx="8" fill="#EEF2FF" stroke="#A5B4FC" class="box"/>
+  <text x="936" y="242" class="bt">Providers</text>
+  <text x="936" y="263" class="bs">QueryClient · Theme · i18n · Auth session · Toasts</text>
+
+  <line x1="700" y1="292" x2="700" y2="318" class="line" marker-end="url(#arrow)"/>
+
+  <!-- Layer 2: Features -->
+  <rect x="40" y="322" width="1320" height="262" rx="12" class="layer"/>
+  <text x="60" y="348" class="layerTitle">2 · Features</text>
+  <text x="180" y="348" class="layerSub"><tspan class="mono">src/features/</tspan>  — one folder per business domain</text>
+
+  <!-- feature legend -->
+  <g font-size="12" fill="#334155">
+    <rect x="600" y="337" width="12" height="12" rx="3" fill="#4338CA"/><text x="617" y="348">Ticketing core</text>
+    <rect x="715" y="337" width="12" height="12" rx="3" fill="#0F766E"/><text x="732" y="348">Portal</text>
+    <rect x="785" y="337" width="12" height="12" rx="3" fill="#B45309"/><text x="802" y="348">ITIL extended</text>
+    <rect x="900" y="337" width="12" height="12" rx="3" fill="#15803D"/><text x="917" y="348">Insights</text>
+    <rect x="985" y="337" width="12" height="12" rx="3" fill="#475569"/><text x="1002" y="348">Platform</text>
+  </g>
+
+  <!-- feature grid: 4 cols x 4 rows -->
+  <g>
+    <!-- row 1 -->
+    <rect x="60"  y="364" width="225" height="48" rx="8" fill="#4338CA"/><text x="74"  y="384" class="ft">tickets</text><text x="74"  y="402" class="fs">case log · timeline · actions</text>
+    <rect x="295" y="364" width="225" height="48" rx="8" fill="#4338CA"/><text x="309" y="384" class="ft">incidents</text><text x="309" y="402" class="fs">iTop Incident</text>
+    <rect x="530" y="364" width="225" height="48" rx="8" fill="#4338CA"/><text x="544" y="384" class="ft">user-requests</text><text x="544" y="402" class="fs">iTop UserRequest</text>
+    <rect x="765" y="364" width="225" height="48" rx="8" fill="#4338CA"/><text x="779" y="384" class="ft">sla</text><text x="779" y="402" class="fs">SLA / SLT · breach timers</text>
+    <!-- row 2 -->
+    <rect x="60"  y="418" width="225" height="48" rx="8" fill="#0F766E"/><text x="74"  y="438" class="ft">service-catalog</text><text x="74"  y="456" class="fs">services · subcategories</text>
+    <rect x="295" y="418" width="225" height="48" rx="8" fill="#0F766E"/><text x="309" y="438" class="ft">knowledge-base</text><text x="309" y="456" class="fs">FAQ · known errors</text>
+    <rect x="530" y="418" width="225" height="48" rx="8" fill="#B45309"/><text x="544" y="438" class="ft">problems</text><text x="544" y="456" class="fs">iTop Problem</text>
+    <rect x="765" y="418" width="225" height="48" rx="8" fill="#B45309"/><text x="779" y="438" class="ft">changes</text><text x="779" y="456" class="fs">normal · routine · emergency</text>
+    <!-- row 3 -->
+    <rect x="60"  y="472" width="225" height="48" rx="8" fill="#B45309"/><text x="74"  y="492" class="ft">cmdb</text><text x="74"  y="510" class="fs">CI lookup &amp; linking</text>
+    <rect x="295" y="472" width="225" height="48" rx="8" fill="#15803D"/><text x="309" y="492" class="ft">dashboard</text><text x="309" y="510" class="fs">KPIs · my queue</text>
+    <rect x="530" y="472" width="225" height="48" rx="8" fill="#15803D"/><text x="544" y="492" class="ft">reports</text><text x="544" y="510" class="fs">reports · exports</text>
+    <rect x="765" y="472" width="225" height="48" rx="8" fill="#475569"/><text x="779" y="492" class="ft">contacts</text><text x="779" y="510" class="fs">persons · teams · orgs</text>
+    <!-- row 4 -->
+    <rect x="60"  y="526" width="225" height="48" rx="8" fill="#475569"/><text x="74"  y="546" class="ft">auth</text><text x="74"  y="564" class="fs">login · SSO · current user</text>
+    <rect x="295" y="526" width="225" height="48" rx="8" fill="#475569"/><text x="309" y="546" class="ft">notifications</text><text x="309" y="564" class="fs">in-app notification centre</text>
+    <rect x="530" y="526" width="225" height="48" rx="8" fill="#475569"/><text x="544" y="546" class="ft">search</text><text x="544" y="564" class="fs">global search (Ctrl+K)</text>
+    <rect x="765" y="526" width="225" height="48" rx="8" fill="#475569"/><text x="779" y="546" class="ft">settings</text><text x="779" y="564" class="fs">profile · theme · language</text>
+  </g>
+
+  <!-- zoom: inside a feature -->
+  <rect x="1012" y="364" width="328" height="210" rx="10" fill="#FFFFFF" stroke="#4338CA" stroke-width="2" stroke-dasharray="6 4"/>
+  <text x="1028" y="388" class="bt">Inside every feature</text>
+  <text x="1188" y="388" class="bs mono">e.g. incidents/</text>
+  <g class="mono" font-size="13" fill="#1E293B">
+    <text x="1032" y="414">├─ api/</text>        <text x="1150" y="414" class="bs">query &amp; mutation hooks</text>
+    <text x="1032" y="436">├─ components/</text> <text x="1150" y="436" class="bs">IncidentForm, Row …</text>
+    <text x="1032" y="458">├─ hooks/</text>      <text x="1150" y="458" class="bs">feature-only hooks</text>
+    <text x="1032" y="480">├─ pages/</text>      <text x="1150" y="480" class="bs">List / Detail / New</text>
+    <text x="1032" y="502">├─ types.ts</text>    <text x="1150" y="502" class="bs">feature types</text>
+    <text x="1032" y="524">├─ schemas.ts</text>  <text x="1150" y="524" class="bs">Zod form schemas</text>
+    <text x="1032" y="546">└─ index.ts</text>    <text x="1150" y="546" class="bs">public API (only import)</text>
+  </g>
+  <line x1="990" y1="388" x2="1010" y2="388" class="line dash"/>
+
+  <line x1="700" y1="584" x2="700" y2="610" class="line" marker-end="url(#arrow)"/>
+
+  <!-- Layer 3: Shared -->
+  <rect x="40" y="614" width="1320" height="160" rx="12" class="layer"/>
+  <text x="60" y="640" class="layerTitle">3 · Shared foundation</text>
+  <text x="250" y="640" class="layerSub">feature-agnostic — never imports from features/</text>
+
+  <rect x="60" y="654" width="310" height="106" rx="8" fill="#FFFFFF" stroke="#94A3B8" class="box"/>
+  <text x="76" y="678" class="bt mono">components/</text>
+  <text x="76" y="700" class="bs">ui · layout · data-display</text>
+  <text x="76" y="719" class="bs">forms · feedback · overlays</text>
+  <text x="76" y="742" class="bs">Button, DataTable, Modal, Toast …</text>
+
+  <rect x="384" y="654" width="310" height="106" rx="8" fill="#FDF4FF" stroke="#D946EF" class="box"/>
+  <text x="400" y="678" class="bt mono">theme/ · styles/ · assets/</text>
+  <text x="400" y="700" class="bs">🎨 ARCUS branding lives here</text>
+  <text x="400" y="719" class="bs">design tokens · logo · fonts · icons</text>
+  <text x="400" y="742" class="bs">Tailwind entry · global CSS</text>
+
+  <rect x="708" y="654" width="310" height="106" rx="8" fill="#FFFFFF" stroke="#94A3B8" class="box"/>
+  <text x="724" y="678" class="bt mono">lib/</text>
+  <text x="724" y="700" class="bs">api-client · query (keys, client)</text>
+  <text x="724" y="719" class="bs">i18n (locales) · utils</text>
+  <text x="724" y="742" class="bs">no React components</text>
+
+  <rect x="1032" y="654" width="308" height="106" rx="8" fill="#FFFFFF" stroke="#94A3B8" class="box"/>
+  <text x="1048" y="678" class="bt mono">hooks/ · stores/</text>
+  <text x="1048" y="700" class="bt mono">types/ · config/</text>
+  <text x="1048" y="722" class="bs">global hooks · Zustand stores</text>
+  <text x="1048" y="742" class="bs">DTO types · env · nav · flags</text>
+
+  <!-- Layer 4: Data flow -->
+  <rect x="40" y="794" width="1320" height="186" rx="12" class="layer"/>
+  <text x="60" y="820" class="layerTitle">4 · Data flow</text>
+  <text x="185" y="820" class="layerSub">every network call goes through lib/api-client</text>
+
+  <line x1="863" y1="760" x2="863" y2="790" class="line dash"/>
+  <rect x="60" y="866" width="230" height="64" rx="8" fill="#1E293B"/>
+  <text x="175" y="894" text-anchor="middle" class="ft mono">lib/api-client</text>
+  <text x="175" y="914" text-anchor="middle" class="fs">auth header · errors · retries</text>
+
+  <line x1="290" y1="898" x2="355" y2="898" class="line" marker-end="url(#arrow)"/>
+  <polygon points="460,850 562,898 460,946 358,898" fill="#FEF3C7" stroke="#D97706" stroke-width="1.5"/>
+  <text x="460" y="894" text-anchor="middle" font-size="12.5" font-weight="700" fill="#78350F" class="mono">VITE_API_MODE</text>
+  <text x="460" y="912" text-anchor="middle" font-size="11" fill="#92400E">.env switch</text>
+
+  <path d="M562,898 L600,898 L600,866 L640,866" class="line" marker-end="url(#arrow)"/>
+  <path d="M562,898 L600,898 L600,940 L640,940" class="line" marker-end="url(#arrow)"/>
+  <text x="604" y="858" font-size="12" font-weight="600" fill="#0F766E">mock</text>
+  <text x="604" y="960" font-size="12" font-weight="600" fill="#4338CA">live</text>
+
+  <rect x="644" y="836" width="330" height="58" rx="8" fill="#CCFBF1" stroke="#0F766E" class="box"/>
+  <text x="660" y="860" class="bt">MSW mocks  <tspan class="bs mono">src/mocks/</tspan></text>
+  <text x="660" y="880" class="bs">✅ NOW — fake API + fixtures, no backend needed</text>
+
+  <rect x="644" y="910" width="330" height="58" rx="8" fill="#E0E7FF" stroke="#4338CA" class="box"/>
+  <text x="660" y="934" class="bt">ARCUS BFF  <tspan class="bs mono">backend/</tspan></text>
+  <text x="660" y="954" class="bs">⏳ LATER — Node API, clean DTOs, auth</text>
+
+  <line x1="974" y1="939" x2="1036" y2="939" class="line" marker-end="url(#arrow)"/>
+  <text x="980" y="930" font-size="11" fill="#475569">REST/JSON</text>
+  <rect x="1040" y="910" width="300" height="58" rx="8" fill="#F1F5F9" stroke="#64748B" class="box"/>
+  <text x="1056" y="934" class="bt">iTop</text>
+  <text x="1056" y="954" class="bs mono">/webservices/rest.php</text>
+  <text x="1056" y="874" class="bs">Browser never talks to iTop directly.</text>
+  <text x="1056" y="892" class="bs">Same API contract for mock &amp; live.</text>
+
+  <!-- Rules footer -->
+  <text x="40" y="1012" font-size="14" font-weight="700" fill="#0F172A">Rules</text>
+  <text x="90" y="1012" font-size="13.5" fill="#334155">① Dependencies flow downward only: app → features → shared.   ② Features import each other only via index.ts.</text>
+  <text x="90" y="1036" font-size="13.5" fill="#334155">③ No iTop concepts in the UI (no OQL, class names, stimuli).   ④ No hardcoded colours — use theme tokens.   ⑤ Every endpoint gets an MSW mock.</text>
+</svg>

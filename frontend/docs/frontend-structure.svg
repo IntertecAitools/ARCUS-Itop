@@ -1,0 +1,299 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1780" height="988" viewBox="0 0 1780 988" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+<rect width="1780" height="988" fill="#fff"/>
+<text x="40" y="52" font-size="30" font-weight="700" fill="#0F172A">ARCUS Helpdesk — Frontend Folder Structure</text>
+<text x="40" y="82" font-size="15.5" fill="#64748B">React 19 · TypeScript · Vite · Tailwind 4   |   all frontend code lives in  <tspan font-family="Consolas, monospace" fill="#0F172A">frontend/</tspan></text>
+<rect x="40" y="104" width="560" height="738" rx="12" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1.5"/>
+<path d="M58,129 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#0F172A" transform="translate(0,0)"/>
+<text x="84" y="140" font-size="18" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">frontend/</text>
+<text x="190.5" y="140" font-size="13" fill="#64748B">project root &amp; app shell</text>
+<path d="M66,146 V169 H75" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M86,180 V196 H95" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M66,146 V223 H75" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M66,146 V250 H75" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M86,261 V277 H95" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M86,261 V304 H95" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M66,146 V331 H75" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M66,146 V358 H75" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M66,146 V385 H75" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M86,396 V412 H95" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M86,396 V439 H95" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M86,396 V466 H95" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M106,477 V493 H115" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M106,477 V520 H115" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M126,531 V547 H135" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M106,477 V574 H115" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M86,396 V601 H95" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M86,396 V628 H95" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M86,396 V655 H95" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M106,666 V682 H115" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M106,666 V709 H115" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M106,666 V736 H115" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M106,666 V763 H115" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M106,666 V790 H115" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M78,163 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B" transform="translate(0,0)"/>
+<text x="102" y="174" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">public/</text>
+<text x="302" y="174" font-size="13" fill="#475569">static files, served as-is</text>
+<path d="M98,190 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B" transform="translate(0,0)"/>
+<text x="122" y="201" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">brand/</text>
+<text x="302" y="201" font-size="13" fill="#475569">logos for index.html / manifest</text>
+<path d="M78,217 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B" transform="translate(0,0)"/>
+<text x="102" y="228" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">docs/</text>
+<text x="302" y="228" font-size="13" fill="#475569">diagrams, UI specs, decisions</text>
+<path d="M78,244 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B" transform="translate(0,0)"/>
+<text x="102" y="255" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">tests/</text>
+<path d="M98,271 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B" transform="translate(0,0)"/>
+<text x="122" y="282" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">e2e/</text>
+<text x="302" y="282" font-size="13" fill="#475569">Playwright end-to-end specs</text>
+<path d="M98,298 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B" transform="translate(0,0)"/>
+<text x="122" y="309" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">fixtures/</text>
+<text x="302" y="309" font-size="13" fill="#475569">E2E test data</text>
+<path d="M79,324 h9 l4,4 v11 h-13z" fill="#fff" stroke="#94A3B8" stroke-width="1.3"/>
+<text x="102" y="336" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">.env.example</text>
+<text x="302" y="336" font-size="13" fill="#475569">VITE_API_MODE, VITE_BFF_URL</text>
+<path d="M79,351 h9 l4,4 v11 h-13z" fill="#fff" stroke="#94A3B8" stroke-width="1.3"/>
+<text x="102" y="363" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">README.md</text>
+<text x="302" y="363" font-size="13" fill="#475569">structure, rules, conventions</text>
+<path d="M78,379 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B" transform="translate(0,0)"/>
+<text x="102" y="390" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">src/</text>
+<path d="M99,405 h9 l4,4 v11 h-13z" fill="#fff" stroke="#94A3B8" stroke-width="1.3"/>
+<text x="122" y="417" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">main.tsx</text>
+<text x="302" y="417" font-size="13" fill="#475569">entry · starts MSW in mock mode</text>
+<path d="M99,432 h9 l4,4 v11 h-13z" fill="#fff" stroke="#94A3B8" stroke-width="1.3"/>
+<text x="122" y="444" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">App.tsx</text>
+<text x="302" y="444" font-size="13" fill="#475569">providers + router</text>
+<path d="M98,460 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#4338CA" transform="translate(0,0)"/>
+<text x="122" y="471" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">app/</text>
+<text x="302" y="471" font-size="13" fill="#475569">app shell — wiring only</text>
+<path d="M118,487 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B" transform="translate(0,0)"/>
+<text x="142" y="498" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">providers/</text>
+<text x="302" y="498" font-size="13" fill="#475569">Query · Theme · i18n · Auth</text>
+<path d="M118,514 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B" transform="translate(0,0)"/>
+<text x="142" y="525" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">router/</text>
+<text x="302" y="525" font-size="13" fill="#475569">route table, lazy pages</text>
+<path d="M138,541 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B" transform="translate(0,0)"/>
+<text x="162" y="552" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">guards/</text>
+<text x="302" y="552" font-size="13" fill="#475569">RequireAuth · RequireRole</text>
+<path d="M118,568 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B" transform="translate(0,0)"/>
+<text x="142" y="579" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">layouts/</text>
+<text x="302" y="579" font-size="13" fill="#475569">Portal · Agent · Auth</text>
+<path d="M98,595 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#C026D3" transform="translate(0,0)"/>
+<text x="122" y="606" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">theme/</text>
+<text x="302" y="606" font-size="13" fill="#475569">🎨 design tokens (brand)</text>
+<path d="M98,622 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#C026D3" transform="translate(0,0)"/>
+<text x="122" y="633" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">styles/</text>
+<text x="302" y="633" font-size="13" fill="#475569">globals.css · Tailwind entry</text>
+<path d="M98,649 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#C026D3" transform="translate(0,0)"/>
+<text x="122" y="660" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">assets/</text>
+<text x="302" y="660" font-size="13" fill="#475569">bundled assets</text>
+<path d="M118,676 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B" transform="translate(0,0)"/>
+<text x="142" y="687" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">brand/</text>
+<text x="302" y="687" font-size="13" fill="#475569">ARCUS logo, wordmark</text>
+<path d="M118,703 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B" transform="translate(0,0)"/>
+<text x="142" y="714" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">fonts/</text>
+<path d="M118,730 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B" transform="translate(0,0)"/>
+<text x="142" y="741" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">icons/</text>
+<text x="302" y="741" font-size="13" fill="#475569">custom SVG icons</text>
+<path d="M118,757 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B" transform="translate(0,0)"/>
+<text x="142" y="768" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">images/</text>
+<path d="M118,784 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B" transform="translate(0,0)"/>
+<text x="142" y="795" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">illustrations/</text>
+<text x="302" y="795" font-size="13" fill="#475569">empty states, error pages</text>
+<rect x="610" y="104" width="560" height="657" rx="12" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1.5"/>
+<path d="M628,129 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#0F172A" transform="translate(0,0)"/>
+<text x="654" y="140" font-size="18" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">src/</text>
+<text x="708.0" y="140" font-size="13" fill="#64748B">shared foundation (continued)</text>
+<path d="M636,146 V169 H645" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M656,180 V196 H665" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M656,180 V223 H665" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M656,180 V250 H665" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M656,180 V277 H665" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M656,180 V304 H665" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M656,180 V331 H665" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M636,146 V358 H645" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M656,369 V385 H665" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M656,369 V412 H665" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M656,369 V439 H665" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M676,450 V466 H685" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M656,369 V493 H665" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M636,146 V520 H645" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M636,146 V547 H645" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M636,146 V574 H645" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M636,146 V601 H645" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M636,146 V628 H645" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M656,639 V655 H665" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M656,639 V682 H665" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M636,146 V709 H645" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M648,163 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#0F172A" transform="translate(0,0)"/>
+<text x="672" y="174" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">components/</text>
+<text x="872" y="174" font-size="13" fill="#475569">shared UI — no API calls</text>
+<path d="M668,190 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B" transform="translate(0,0)"/>
+<text x="692" y="201" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">ui/</text>
+<text x="872" y="201" font-size="13" fill="#475569">Button · Input · Select · Badge · Tabs</text>
+<path d="M668,217 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B" transform="translate(0,0)"/>
+<text x="692" y="228" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">layout/</text>
+<text x="872" y="228" font-size="13" fill="#475569">Sidebar · Topbar · PageHeader</text>
+<path d="M668,244 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B" transform="translate(0,0)"/>
+<text x="692" y="255" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">data-display/</text>
+<text x="872" y="255" font-size="13" fill="#475569">DataTable · StatusPill · Timeline</text>
+<path d="M668,271 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B" transform="translate(0,0)"/>
+<text x="692" y="282" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">forms/</text>
+<text x="872" y="282" font-size="13" fill="#475569">FormField · DatePicker · FileUpload</text>
+<path d="M668,298 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B" transform="translate(0,0)"/>
+<text x="692" y="309" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">feedback/</text>
+<text x="872" y="309" font-size="13" fill="#475569">Toast · Skeleton · EmptyState</text>
+<path d="M668,325 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B" transform="translate(0,0)"/>
+<text x="692" y="336" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">overlays/</text>
+<text x="872" y="336" font-size="13" fill="#475569">Modal · Drawer · ConfirmDialog</text>
+<path d="M648,352 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#0F172A" transform="translate(0,0)"/>
+<text x="672" y="363" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">lib/</text>
+<text x="872" y="363" font-size="13" fill="#475569">helpers — no React components</text>
+<path d="M668,379 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B" transform="translate(0,0)"/>
+<text x="692" y="390" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">api-client/</text>
+<text x="872" y="390" font-size="13" fill="#475569">fetch wrapper → BFF</text>
+<path d="M668,406 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B" transform="translate(0,0)"/>
+<text x="692" y="417" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">query/</text>
+<text x="872" y="417" font-size="13" fill="#475569">QueryClient · query keys</text>
+<path d="M668,433 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B" transform="translate(0,0)"/>
+<text x="692" y="444" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">i18n/</text>
+<text x="872" y="444" font-size="13" fill="#475569">i18next setup</text>
+<path d="M688,460 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B" transform="translate(0,0)"/>
+<text x="712" y="471" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">locales/</text>
+<text x="872" y="471" font-size="13" fill="#475569">en.json …</text>
+<path d="M668,487 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B" transform="translate(0,0)"/>
+<text x="692" y="498" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">utils/</text>
+<text x="872" y="498" font-size="13" fill="#475569">date · format · cn()</text>
+<path d="M648,514 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B" transform="translate(0,0)"/>
+<text x="672" y="525" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">hooks/</text>
+<text x="872" y="525" font-size="13" fill="#475569">useDebounce · useHotkeys</text>
+<path d="M648,541 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B" transform="translate(0,0)"/>
+<text x="672" y="552" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">stores/</text>
+<text x="872" y="552" font-size="13" fill="#475569">Zustand: ui, session</text>
+<path d="M648,568 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B" transform="translate(0,0)"/>
+<text x="672" y="579" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">types/</text>
+<text x="872" y="579" font-size="13" fill="#475569">shared DTO types</text>
+<path d="M648,595 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B" transform="translate(0,0)"/>
+<text x="672" y="606" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">config/</text>
+<text x="872" y="606" font-size="13" fill="#475569">env · nav menu · feature flags</text>
+<path d="M648,622 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#0F766E" transform="translate(0,0)"/>
+<text x="672" y="633" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">mocks/</text>
+<text x="872" y="633" font-size="13" fill="#475569">MSW — fake BFF for now</text>
+<path d="M668,649 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B" transform="translate(0,0)"/>
+<text x="692" y="660" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">handlers/</text>
+<text x="872" y="660" font-size="13" fill="#475569">one file per feature</text>
+<path d="M668,676 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B" transform="translate(0,0)"/>
+<text x="692" y="687" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">fixtures/</text>
+<text x="872" y="687" font-size="13" fill="#475569">realistic sample data</text>
+<path d="M648,703 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B" transform="translate(0,0)"/>
+<text x="672" y="714" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">test/</text>
+<text x="872" y="714" font-size="13" fill="#475569">Vitest setup · render helpers</text>
+<rect x="1180" y="104" width="560" height="711" rx="12" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1.5"/>
+<path d="M1198,129 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#0F172A" transform="translate(0,0)"/>
+<text x="1224" y="140" font-size="18" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">src/features/</text>
+<text x="1372.5" y="140" font-size="13" fill="#64748B">one folder per business domain</text>
+<path d="M1206,146 V169 H1215" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1206,146 V196 H1215" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1226,207 V223 H1235" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1226,207 V250 H1235" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1226,207 V277 H1235" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1226,207 V304 H1235" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1226,207 V331 H1235" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1226,207 V358 H1235" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1226,207 V385 H1235" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1206,146 V412 H1215" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1206,146 V439 H1215" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1206,146 V466 H1215" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1206,146 V493 H1215" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1206,146 V520 H1215" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1206,146 V547 H1215" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1206,146 V574 H1215" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1206,146 V601 H1215" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1206,146 V628 H1215" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1206,146 V655 H1215" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1206,146 V682 H1215" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1206,146 V709 H1215" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1206,146 V736 H1215" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1206,146 V763 H1215" fill="none" stroke="#CBD5E1" stroke-width="1.3"/>
+<path d="M1218,163 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#4338CA" transform="translate(0,0)"/>
+<text x="1242" y="174" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">tickets/</text>
+<text x="1442" y="174" font-size="13" fill="#475569">case log · timeline · actions</text>
+<path d="M1218,190 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#4338CA" transform="translate(0,0)"/>
+<text x="1242" y="201" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">incidents/</text>
+<text x="1442" y="201" font-size="13" fill="#475569">iTop Incident   ▼ example</text>
+<path d="M1238,217 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B" transform="translate(0,0)"/>
+<text x="1262" y="228" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">api/</text>
+<text x="1442" y="228" font-size="13" fill="#475569">query &amp; mutation hooks</text>
+<path d="M1238,244 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B" transform="translate(0,0)"/>
+<text x="1262" y="255" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">components/</text>
+<text x="1442" y="255" font-size="13" fill="#475569">IncidentForm, IncidentRow …</text>
+<path d="M1238,271 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B" transform="translate(0,0)"/>
+<text x="1262" y="282" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">hooks/</text>
+<text x="1442" y="282" font-size="13" fill="#475569">feature-only hooks</text>
+<path d="M1238,298 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#F59E0B" transform="translate(0,0)"/>
+<text x="1262" y="309" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">pages/</text>
+<text x="1442" y="309" font-size="13" fill="#475569">List · Detail · New pages</text>
+<path d="M1239,324 h9 l4,4 v11 h-13z" fill="#fff" stroke="#94A3B8" stroke-width="1.3"/>
+<text x="1262" y="336" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">types.ts</text>
+<text x="1442" y="336" font-size="13" fill="#475569">feature types</text>
+<path d="M1239,351 h9 l4,4 v11 h-13z" fill="#fff" stroke="#94A3B8" stroke-width="1.3"/>
+<text x="1262" y="363" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">schemas.ts</text>
+<text x="1442" y="363" font-size="13" fill="#475569">Zod form schemas</text>
+<path d="M1239,378 h9 l4,4 v11 h-13z" fill="#fff" stroke="#94A3B8" stroke-width="1.3"/>
+<text x="1262" y="390" font-size="14.5" fill="#0F172A" font-family="Consolas, monospace">index.ts</text>
+<text x="1442" y="390" font-size="13" fill="#475569">public API — only import</text>
+<path d="M1218,406 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#4338CA" transform="translate(0,0)"/>
+<text x="1242" y="417" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">user-requests/</text>
+<text x="1442" y="417" font-size="13" fill="#475569">iTop UserRequest</text>
+<path d="M1218,433 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#4338CA" transform="translate(0,0)"/>
+<text x="1242" y="444" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">sla/</text>
+<text x="1442" y="444" font-size="13" fill="#475569">SLA / SLT · breach timers</text>
+<path d="M1218,460 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#0F766E" transform="translate(0,0)"/>
+<text x="1242" y="471" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">service-catalog/</text>
+<text x="1442" y="471" font-size="13" fill="#475569">services · subcategories</text>
+<path d="M1218,487 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#0F766E" transform="translate(0,0)"/>
+<text x="1242" y="498" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">knowledge-base/</text>
+<text x="1442" y="498" font-size="13" fill="#475569">FAQ · known errors</text>
+<path d="M1218,514 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#B45309" transform="translate(0,0)"/>
+<text x="1242" y="525" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">problems/</text>
+<text x="1442" y="525" font-size="13" fill="#475569">iTop Problem</text>
+<path d="M1218,541 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#B45309" transform="translate(0,0)"/>
+<text x="1242" y="552" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">changes/</text>
+<text x="1442" y="552" font-size="13" fill="#475569">normal · routine · emergency</text>
+<path d="M1218,568 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#B45309" transform="translate(0,0)"/>
+<text x="1242" y="579" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">cmdb/</text>
+<text x="1442" y="579" font-size="13" fill="#475569">CI lookup &amp; linking</text>
+<path d="M1218,595 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#15803D" transform="translate(0,0)"/>
+<text x="1242" y="606" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">dashboard/</text>
+<text x="1442" y="606" font-size="13" fill="#475569">KPIs · my queue</text>
+<path d="M1218,622 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#15803D" transform="translate(0,0)"/>
+<text x="1242" y="633" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">reports/</text>
+<text x="1442" y="633" font-size="13" fill="#475569">reports · exports</text>
+<path d="M1218,649 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#475569" transform="translate(0,0)"/>
+<text x="1242" y="660" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">auth/</text>
+<text x="1442" y="660" font-size="13" fill="#475569">login · SSO · current user</text>
+<path d="M1218,676 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#475569" transform="translate(0,0)"/>
+<text x="1242" y="687" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">contacts/</text>
+<text x="1442" y="687" font-size="13" fill="#475569">persons · teams · orgs</text>
+<path d="M1218,703 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#475569" transform="translate(0,0)"/>
+<text x="1242" y="714" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">notifications/</text>
+<text x="1442" y="714" font-size="13" fill="#475569">in-app notification centre</text>
+<path d="M1218,730 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#475569" transform="translate(0,0)"/>
+<text x="1242" y="741" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">search/</text>
+<text x="1442" y="741" font-size="13" fill="#475569">global search (Ctrl+K)</text>
+<path d="M1218,757 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#475569" transform="translate(0,0)"/>
+<text x="1242" y="768" font-size="14.5" font-weight="700" fill="#0F172A" font-family="Consolas, monospace">settings/</text>
+<text x="1442" y="768" font-size="13" fill="#475569">profile · theme · language</text>
+<text x="40" y="898" font-size="14" font-weight="700" fill="#0F172A">Feature colours</text>
+<path d="M170,888 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#4338CA" transform="translate(0,0)"/>
+<text x="194" y="898" font-size="13.5" fill="#334155">Ticketing core</text>
+<path d="M322,888 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#0F766E" transform="translate(0,0)"/>
+<text x="346" y="898" font-size="13.5" fill="#334155">Portal</text>
+<path d="M410,888 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#B45309" transform="translate(0,0)"/>
+<text x="434" y="898" font-size="13.5" fill="#334155">ITIL extended</text>
+<path d="M554,888 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#15803D" transform="translate(0,0)"/>
+<text x="578" y="898" font-size="13.5" fill="#334155">Insights</text>
+<path d="M658,888 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#475569" transform="translate(0,0)"/>
+<text x="682" y="898" font-size="13.5" fill="#334155">Platform</text>
+<path d="M762,888 h6 l2,2 h8 a1.5,1.5 0 0 1 1.5,1.5 v9 a1.5,1.5 0 0 1 -1.5,1.5 h-14.5 a1.5,1.5 0 0 1 -1.5,-1.5 v-11 a1.5,1.5 0 0 1 1.5,-1.5z" fill="#C026D3" transform="translate(0,0)"/>
+<text x="786" y="898" font-size="13.5" fill="#334155">Branding</text>
+<text x="40" y="930" font-size="13.5" fill="#334155">Rules:  app → features → shared (never upward)  ·  features import each other only via index.ts  ·  all API calls via lib/api-client  ·  every endpoint gets an MSW mock  ·  no hardcoded colours</text>
+</svg>
