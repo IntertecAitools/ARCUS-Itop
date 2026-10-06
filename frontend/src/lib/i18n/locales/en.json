@@ -1,0 +1,502 @@
+{
+  "common": {
+    "table": {
+      "columns": "Columns",
+      "visibleColumns": "Visible columns",
+      "empty": "No records to show.",
+      "range": "Showing {{from}}–{{to}} of {{total}}",
+      "rowsPerPage": "Rows per page",
+      "previousPage": "Previous page",
+      "nextPage": "Next page",
+      "pageOf": "Page {{page}} of {{pages}}"
+    },
+    "upload": {
+      "uploading": "Uploading…",
+      "prompt": "Drop files here or click to browse",
+      "limit": "Up to {{size}} per file"
+    },
+    "richText": {
+      "toolbar": "Formatting",
+      "bold": "Bold",
+      "italic": "Italic",
+      "bulletList": "Bulleted list",
+      "numberedList": "Numbered list"
+    },
+    "lookup": {
+      "placeholder": "Type to search…",
+      "clear": "Clear selection",
+      "noResults": "No matches",
+      "loading": "Searching…"
+    },
+    "topbar": {
+      "openMenu": "Open navigation",
+      "searchLabel": "Search",
+      "searchPlaceholder": "Search incidents, requests, changes, assets…",
+      "notifications": "Notifications",
+      "help": "Help",
+      "settings": "Settings",
+      "signOut": "Sign out",
+      "userMenu": "Account menu for {{name}}"
+    },
+    "validation": {
+      "required": "This field is required.",
+      "tooLong": "This value is too long (255 characters max)."
+    },
+    "actions": {
+      "cancel": "Cancel",
+      "select": "Select…",
+      "removeItem": "Remove {{label}}",
+      "discard": "Discard changes",
+      "save": "Save changes",
+      "delete": "Delete",
+      "dismiss": "Dismiss",
+      "retry": "Try again"
+    },
+    "errors": {
+      "requestFailed": "Something went wrong",
+      "pageTitle": "This page could not be displayed"
+    },
+    "access": {
+      "deniedTitle": "You don't have access to this page",
+      "deniedDescription": "Your profile can view problems but not create or change them. Ask a Problem Manager if you need access.",
+      "back": "Back to Problem Management"
+    },
+    "notFound": {
+      "title": "Page not found",
+      "description": "The page you are looking for does not exist or has moved.",
+      "back": "Go to Problem Management"
+    },
+    "placeholder": {
+      "title": "{{module}} is coming soon",
+      "description": "This module is not part of the current release. Problem Management and the Known Error Database are available now."
+    }
+  },
+  "nav": {
+    "mainNavigation": "Main navigation",
+    "home": "IRAOPS home",
+    "administration": "Administration",
+    "skipToContent": "Skip to content",
+    "closeMenu": "Close navigation",
+    "dashboard": "Dashboard",
+    "serviceMap": "Service Map",
+    "incidents": "Incidents",
+    "serviceRequests": "Service Requests",
+    "problems": "Problems",
+    "changes": "Changes",
+    "releases": "Releases",
+    "assets": "Assets",
+    "knowledgeBase": "Knowledge Base",
+    "reports": "Reports",
+    "usersAccess": "Users & Access",
+    "departments": "Departments",
+    "serviceCatalogue": "Service Catalogue",
+    "slas": "SLAs",
+    "settings": "Settings"
+  },
+  "auth": {
+    "title": "Sign in",
+    "subtitle": "Use your ARCUS account to continue.",
+    "login": "Login",
+    "password": "Password",
+    "signIn": "Sign in",
+    "demoTitle": "Demo accounts (mock mode)",
+    "demoManager": "admin / admin: Problem Manager, full access",
+    "demoAgent": "agent / agent: Support Agent, read-only"
+  },
+  "dashboard": {
+    "eyebrow": "Welcome back,",
+    "title": "Dashboard",
+    "subtitle": "Your service management overview"
+  },
+  "tickets": {
+    "priority": {
+      "1": "Critical",
+      "2": "High",
+      "3": "Medium",
+      "4": "Low"
+    },
+    "status": {
+      "new": "New",
+      "assigned": "Assigned",
+      "escalated_tto": "Escalated (TTO)",
+      "escalated_ttr": "Escalated (TTR)",
+      "waiting_for_approval": "Waiting for approval",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "pending": "Pending",
+      "resolved": "Resolved",
+      "closed": "Closed"
+    },
+    "caseLog": {
+      "label": "Case log",
+      "emptyTitle": "No entries yet",
+      "emptyDescription": "Notes added to this ticket will appear here.",
+      "addNote": "Add a note",
+      "placeholder": "Write an update for the team…",
+      "submit": "Add note"
+    },
+    "columns": {
+      "ref": "ID",
+      "title": "Title",
+      "priority": "Priority",
+      "status": "Status",
+      "created": "Created",
+      "actions": "Actions"
+    },
+    "unlink": "Unlink",
+    "unlinkTicket": "Unlink {{ref}}"
+  },
+  "problems": {
+    "status": {
+      "new": "New",
+      "assigned": "Assigned",
+      "resolved": "Resolved",
+      "closed": "Closed"
+    },
+    "priority": {
+      "1": "Critical",
+      "2": "High",
+      "3": "Medium",
+      "4": "Low"
+    },
+    "impact": {
+      "1": "A department",
+      "2": "A service",
+      "3": "A person"
+    },
+    "urgency": {
+      "1": "Critical",
+      "2": "High",
+      "3": "Medium",
+      "4": "Low"
+    },
+    "stimulus": {
+      "ev_assign": "Assign",
+      "ev_reassign": "Reassign",
+      "ev_resolve": "Resolve",
+      "ev_close": "Close"
+    },
+    "priorityPreviewHint": "Computed by iTop from impact and urgency",
+    "create": {
+      "label": "Create",
+      "problem": "New problem",
+      "knownError": "New known error"
+    },
+    "fields": {
+      "ref": "Ref",
+      "title": "Title",
+      "org_id": "Organization",
+      "caller_id": "Caller",
+      "description": "Description",
+      "service_id": "Service",
+      "servicesubcategory_id": "Service subcategory",
+      "product": "Product",
+      "impact": "Impact",
+      "urgency": "Urgency",
+      "priority": "Priority",
+      "status": "Status",
+      "team_id": "Team",
+      "agent_id": "Agent",
+      "start_date": "Start date",
+      "last_update": "Last update",
+      "assignment_date": "Assignment date",
+      "resolution_date": "Resolution date",
+      "close_date": "Close date",
+      "functionalcis_list": "Configuration items",
+      "contacts_list": "Contacts"
+    },
+    "columns": {
+      "id": "ID",
+      "summary": "Summary",
+      "created": "Created",
+      "actions": "Actions"
+    },
+    "list": {
+      "title": "Problems",
+      "subtitle": "Every problem record, filtered and sorted your way",
+      "caption": "Problems",
+      "tabsLabel": "Problem views",
+      "tabs": {
+        "all": "All",
+        "open": "Open",
+        "unassigned": "Unassigned",
+        "mine": "My Problems",
+        "resolved": "Resolved",
+        "closed": "Closed"
+      },
+      "emptyTitle": "No problems match",
+      "emptyDescription": "Try another view or clear some filters.",
+      "refreshing": "Refreshing…",
+      "exportCsv": "Export CSV",
+      "exportTruncated": "Only the first {{count}} problems were exported. Narrow the filters to export the rest."
+    },
+    "filters": {
+      "label": "Problem filters",
+      "search": "Search problems",
+      "searchPlaceholder": "Search by ref, title, description or product…",
+      "reset": "Clear filters ({{count}})",
+      "allOrgs": "All organizations",
+      "allServices": "All services",
+      "allTeams": "All teams",
+      "allAgents": "All agents",
+      "from": "Created from",
+      "to": "to"
+    },
+    "new": {
+      "title": "New problem",
+      "subtitle": "Record a problem to investigate the root cause of one or more incidents",
+      "sections": {
+        "general": "General information",
+        "qualification": "Qualification",
+        "relations": "Relations"
+      },
+      "callerHint": "Choose an organization first.",
+      "descriptionPlaceholder": "Describe the symptoms, scope and what is already known…",
+      "addCi": "Add a configuration item…",
+      "addContact": "Add a contact…",
+      "linkIncidents": "Link incidents",
+      "linkIncidentsHint": "Linked incidents get this problem as their parent problem.",
+      "addIncident": "Search incidents…",
+      "submit": "Create problem",
+      "created": "Problem {{ref}} created"
+    },
+    "dashboard": {
+      "eyebrow": "Welcome back,",
+      "title": "Problem Management",
+      "subtitle": "Track root causes and known errors",
+      "vsLastWeek": "vs last week",
+      "kpi": {
+        "open": "Open Problems",
+        "unassigned": "Unassigned",
+        "resolvedThisWeek": "Resolved This Week",
+        "knownErrors": "Known Errors"
+      },
+      "range": {
+        "label": "Time range",
+        "7d": "Last 7 days",
+        "30d": "Last 30 days",
+        "90d": "Last 90 days"
+      },
+      "trendTitle": "Problems Trend",
+      "trendAria": "{{created}} problems created and {{resolved}} resolved in the {{range}}",
+      "created": "Created",
+      "resolved": "Resolved",
+      "byPriorityTitle": "Problems by Priority",
+      "byPriorityAria": "Problems by priority: {{summary}}",
+      "total": "Total",
+      "recentTitle": "Recent Problems",
+      "myTitle": "My Problems",
+      "myEmpty": "No open problems assigned to you",
+      "topServicesTitle": "Top Affected Services",
+      "topServicesEmpty": "No services affected in this period",
+      "serviceCount": "{{name}}: {{count}} problems",
+      "viewAll": "View all"
+    },
+    "transition": {
+      "note": "Note",
+      "noteHint": "Optional. Added to the case log.",
+      "title": {
+        "ev_assign": "Assign {{ref}}",
+        "ev_reassign": "Reassign {{ref}}",
+        "ev_resolve": "Resolve {{ref}}",
+        "ev_close": "Close {{ref}}"
+      },
+      "description": {
+        "ev_assign": "Choose the team and agent who will investigate the root cause.",
+        "ev_reassign": "Hand the problem over to another team or agent.",
+        "ev_resolve": "Confirm the service affected. The root cause should be documented as a known error.",
+        "ev_close": "Closing makes the problem read-only."
+      },
+      "success": {
+        "ev_assign": "{{ref}} assigned",
+        "ev_reassign": "{{ref}} reassigned",
+        "ev_resolve": "{{ref}} resolved",
+        "ev_close": "{{ref}} closed"
+      }
+    },
+    "detail": {
+      "backToList": "Back to problems",
+      "actions": "Lifecycle actions",
+      "assignedTo": "Assigned to",
+      "lifecycle": "Lifecycle",
+      "tabsLabel": "Problem sections",
+      "saved": "Changes saved",
+      "notFoundTitle": "Problem not found",
+      "notFoundDescription": "There is no problem with id {{id}}. It may have been deleted.",
+      "errorTitle": "The problem could not be loaded",
+      "sections": {
+        "general": "General information",
+        "qualification": "Qualification",
+        "assignment": "Assignment",
+        "dates": "Dates"
+      },
+      "tabs": {
+        "details": "Details",
+        "activity": "Activity",
+        "incidents": "Incidents",
+        "requests": "User Requests",
+        "cis": "Configuration Items",
+        "contacts": "Contacts",
+        "known-errors": "Known Errors",
+        "change": "Related Change",
+        "attachments": "Attachments"
+      }
+    },
+    "activity": {
+      "caseLog": "Case log",
+      "timeline": "Timeline",
+      "created": "Problem created",
+      "assigned": "Assigned",
+      "resolved": "Resolved",
+      "closed": "Closed",
+      "note": "Note by {{name}}"
+    },
+    "linked": {
+      "link": "Link",
+      "unlink": "Unlink",
+      "incidents": {
+        "title": "Related incidents",
+        "pickerLabel": "Link an incident",
+        "emptyTitle": "No incidents linked",
+        "emptyDescription": "Link the incidents caused by this problem.",
+        "linked": "{{ref}} linked",
+        "unlinked": "{{ref}} unlinked",
+        "unlinkTitle": "Unlink incident?",
+        "unlinkDescription": "{{ref}} will no longer have {{problem}} as its parent problem."
+      },
+      "requests": {
+        "title": "Related user requests",
+        "pickerLabel": "Link a user request",
+        "emptyTitle": "No user requests linked",
+        "emptyDescription": "Link user requests related to this problem.",
+        "linked": "{{ref}} linked",
+        "unlinked": "{{ref}} unlinked",
+        "unlinkTitle": "Unlink user request?",
+        "unlinkDescription": "{{ref}} will no longer have {{problem}} as its parent problem."
+      }
+    },
+    "cis": {
+      "title": "Configuration items",
+      "pickerLabel": "Add a configuration item",
+      "name": "Name",
+      "class": "Class",
+      "impact": "Impact",
+      "impactCode": {
+        "manual": "Added manually",
+        "computed": "Computed",
+        "not_impacted": "Not impacted"
+      },
+      "linked": "{{name}} added",
+      "remove": "Remove {{name}}",
+      "emptyTitle": "No configuration items",
+      "emptyDescription": "Add the CIs involved in this problem."
+    },
+    "contacts": {
+      "title": "Contacts",
+      "pickerLabel": "Add a contact",
+      "name": "Name",
+      "email": "Email",
+      "role": "Role",
+      "roleCode": {
+        "manual": "Added manually",
+        "computed": "Computed",
+        "do_not_notify": "Do not notify"
+      },
+      "linked": "{{name}} added",
+      "remove": "Remove {{name}}",
+      "emptyTitle": "No contacts",
+      "emptyDescription": "Add people who should follow this problem."
+    },
+    "knownErrors": {
+      "title": "Known errors",
+      "new": "New known error",
+      "create": "Create known error",
+      "created": "Known error \"{{name}}\" created",
+      "searchTitle": "Search the KEDB",
+      "emptyTitle": "No known errors yet",
+      "emptyDescription": "Document the root cause and workaround as a known error."
+    },
+    "change": {
+      "title": "Related change",
+      "current": "Linked change",
+      "pickerLabel": "Change (open changes only)",
+      "save": "Save",
+      "clear": "Remove link",
+      "linked": "Linked to {{ref}}",
+      "cleared": "Change link removed",
+      "emptyTitle": "No related change",
+      "emptyDescription": "Link the change that will permanently fix this problem."
+    },
+    "attachments": {
+      "title": "Attachments",
+      "uploaded": "{{name}} uploaded",
+      "tooLarge": "{{name}} is larger than {{size}}",
+      "downloadFailed": "Download failed",
+      "download": "Download {{name}}",
+      "delete": "Delete {{name}}",
+      "deleteTitle": "Delete attachment?",
+      "deleteDescription": "{{name}} will be removed from this problem.",
+      "emptyTitle": "No attachments",
+      "emptyDescription": "Logs, screenshots and analysis documents can be attached here."
+    }
+  },
+  "knowledgeBase": {
+    "eyebrow": "Knowledge Base",
+    "listTitle": "Known Error Database",
+    "listSubtitle": "Root causes, workarounds and permanent solutions",
+    "tableCaption": "Known errors",
+    "new": "New known error",
+    "create": "Create known error",
+    "created": "Known error \"{{name}}\" created",
+    "edit": "Edit",
+    "save": "Save changes",
+    "saved": "Known error saved",
+    "backToList": "Back to known errors",
+    "notFoundTitle": "Known error not found",
+    "notFoundDescription": "It may have been deleted.",
+    "allDomains": "All domains",
+    "emptyTitle": "No known errors",
+    "emptyDescription": "Try another search or domain.",
+    "noCis": "No configuration items linked.",
+    "noDocuments": "No documents linked.",
+    "addCi": "Add a configuration item…",
+    "ciReasonFor": "Reason for {{name}}",
+    "removeCi": "Remove {{name}}",
+    "domain": {
+      "Network": "Network",
+      "Server": "Server",
+      "Application": "Application",
+      "Desktop": "Desktop"
+    },
+    "fields": {
+      "name": "Name",
+      "org": "Organization",
+      "problem": "Problem",
+      "domain": "Domain",
+      "errorCode": "Error code",
+      "vendor": "Vendor",
+      "model": "Model",
+      "version": "Version",
+      "vendorModelVersion": "Vendor · Model · Version",
+      "symptom": "Symptom",
+      "rootCause": "Root cause",
+      "workaround": "Workaround",
+      "solution": "Solution",
+      "cis": "Configuration items",
+      "reason": "Reason"
+    },
+    "sections": {
+      "symptom": "Symptom",
+      "rootCause": "Root cause",
+      "workaround": "Workaround",
+      "solution": "Solution",
+      "properties": "Properties",
+      "documents": "Documents"
+    },
+    "kedbSearch": {
+      "label": "Search known errors",
+      "placeholder": "Search by symptom, error code, vendor or model…",
+      "noResults": "No known errors match."
+    }
+  }
+}

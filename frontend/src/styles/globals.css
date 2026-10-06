@@ -1,0 +1,79 @@
+@import 'tailwindcss';
+@import '../theme/tokens.css';
+
+@layer base {
+  html,
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+  }
+
+  body {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']) {
+    cursor: pointer;
+  }
+}
+
+@layer components {
+  /* Faint light-blue diagonal shape in the top-right of every agent page */
+  .page-backdrop {
+    position: relative;
+    isolation: isolate;
+    overflow-x: hidden;
+  }
+  .page-backdrop::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    top: -180px;
+    right: -120px;
+    width: 640px;
+    height: 360px;
+    border-radius: 64px;
+    background: linear-gradient(135deg, var(--color-primary-soft), transparent 70%);
+    transform: rotate(-14deg);
+    pointer-events: none;
+  }
+
+  /* Sanitised iTop HTML (descriptions, case log entries) */
+  .rich-text {
+    overflow-wrap: anywhere;
+  }
+  .rich-text p {
+    margin: 0 0 0.5rem;
+  }
+  .rich-text p:last-child {
+    margin-bottom: 0;
+  }
+  .rich-text ul {
+    list-style: disc;
+    padding-left: 1.25rem;
+    margin-bottom: 0.5rem;
+  }
+  .rich-text ol {
+    list-style: decimal;
+    padding-left: 1.25rem;
+    margin-bottom: 0.5rem;
+  }
+  .rich-text a {
+    color: var(--color-link);
+    text-decoration: underline;
+  }
+  .rich-text pre,
+  .rich-text code {
+    font-family: ui-monospace, monospace;
+    background: var(--color-surface-muted);
+    border-radius: var(--radius-chip);
+    padding: 0 0.25rem;
+  }
+}

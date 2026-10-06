@@ -1,0 +1,45 @@
+/*
+ * IRAOPS design tokens. The single source of colour for the app.
+ * Mapped into Tailwind 4 via @theme, so every token is also a utility class
+ * (bg-primary, text-text-muted, border-border, rounded-card, shadow-card …).
+ */
+@theme {
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --color-primary-soft: #e8f0fe;
+
+  --color-bg: #f5f8fc;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f8fafc;
+  --color-border: #e6ebf2;
+  --color-text: #0f172a;
+  --color-text-muted: #64748b;
+  --color-link: #1d4ed8;
+
+  --color-success: #16a34a;
+  --color-success-soft: #dcfce7;
+  --color-success-strong: #15803d;
+  --color-danger: #ef4444;
+  --color-danger-soft: #fee2e2;
+  --color-danger-strong: #b91c1c;
+  /* Solid red that still meets WCAG AA with white text */
+  --color-danger-solid: #dc2626;
+  --color-warning: #f59e0b;
+  --color-warning-soft: #fef3c7;
+  --color-warning-strong: #b45309;
+  --color-orange: #f97316;
+  --color-yellow: #facc15;
+  --color-purple: #7c3aed;
+  --color-purple-soft: #ede9fe;
+  --color-neutral-soft: #f1f5f9;
+  --color-neutral-strong: #475569;
+
+  --radius-card: 14px;
+  --radius-control: 10px;
+  --radius-chip: 6px;
+
+  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 4px 16px rgb(15 23 42 / 0.04);
+  --shadow-popover: 0 8px 24px rgb(15 23 42 / 0.12);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
