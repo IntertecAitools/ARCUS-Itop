@@ -37,7 +37,7 @@ export function useIncident(id: string) {
 
 export function useIncidentOptions() {
   return useQuery({
-    queryKey: ['incidents', 'options'],
+    queryKey: queryKeys.incidents.options(),
     queryFn: getIncidentOptions,
     // Organisations, agents and teams barely change; re-fetching them on every
     // form open costs a round trip to iTop for nothing.

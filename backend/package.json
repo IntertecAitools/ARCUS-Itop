@@ -14,7 +14,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node --import tsx --test \"test/**/*.test.ts\"",
     "schema:pull": "node scripts/pull-schema.mjs",
-    "smoke": "node --import tsx scripts/smoke.ts"
+    "smoke": "node --import tsx scripts/smoke.ts",
+    "api:check": "node scripts/api-check.mjs"
   },
   "dependencies": {
     "fastify": "^5.2.1",

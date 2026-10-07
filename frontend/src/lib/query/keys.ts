@@ -19,6 +19,13 @@ export const queryKeys = {
     all: () => ['incidents'] as const,
     list: (filters: Record<string, unknown>) => ['incidents', 'list', filters] as const,
     detail: (id: string) => ['incidents', 'detail', id] as const,
+    /**
+     * Deliberately OUTSIDE the `incidents` root. Invalidation is prefix-based,
+     * so `['incidents', 'options']` would be swept away by every write --
+     * refetching organisations, agents, teams and services (four iTop calls)
+     * after an action that cannot possibly have changed them.
+     */
+    options: () => ['incident-options'] as const,
   },
 
   userRequests: {
