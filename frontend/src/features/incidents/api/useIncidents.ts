@@ -6,6 +6,7 @@ import {
   getIncident,
   getIncidentOptions,
   getIncidents,
+  getPeopleByOrganization,
   transitionIncident,
   updateIncident,
 } from './incidents.api';
@@ -42,6 +43,16 @@ export function useIncidentOptions() {
     // Organisations, agents and teams barely change; re-fetching them on every
     // form open costs a round trip to iTop for nothing.
     staleTime: 10 * 60_000,
+  });
+}
+
+/** Callers for one customer. Idle until a customer is chosen. */
+export function usePeopleByOrganization(organizationId: string | undefined) {
+  return useQuery({
+    queryKey: ['people', 'by-organization', organizationId ?? ''],
+    queryFn: () => getPeopleByOrganization(organizationId!),
+    enabled: Boolean(organizationId),
+    staleTime: 5 * 60_000,
   });
 }
 

@@ -1,6 +1,7 @@
 import { apiClient } from '@/lib/api-client';
 import type {
   CreateIncidentInput,
+  PersonOption,
   IncidentDetail,
   IncidentFilters,
   IncidentListResult,
@@ -56,4 +57,16 @@ export function transitionIncident(id: string, input: TransitionInput) {
 
 export function addIncidentLogEntry(id: string, message: string) {
   return apiClient.post<IncidentDetail>(`/incidents/${id}/log`, { message });
+}
+
+/**
+ * Contacts belonging to one customer.
+ *
+ * Scoped deliberately: listing every person in the instance would offer
+ * callers who do not work for the selected company.
+ */
+export function getPeopleByOrganization(organizationId: string) {
+  return apiClient.get<{ items: PersonOption[] }>('/people', {
+    query: { organizationId, limit: 200 },
+  });
 }

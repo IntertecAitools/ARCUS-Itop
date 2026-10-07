@@ -1,44 +1,28 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { PageHeader } from '@/components/layout';
-import { Button, buttonClasses, Card, CardBody, Input } from '@/components/ui';
-import { cn } from '@/lib/utils';
-import { useCreateIncident, useIncidentOptions } from '../api/useIncidents';
+import { Button, buttonClasses, Card } from '@/components/ui';
+import {
+  useCreateIncident,
+  useIncidentOptions,
+  usePeopleByOrganization,
+} from '../api/useIncidents';
+import { CONTROL, Field, SectionLabel, Select } from '../components/FormField';
 import { newIncidentSchema, type NewIncidentForm } from '../schemas';
 
-/** A labelled field with its validation message in a fixed slot. */
-function Row({
-  label,
-  htmlFor,
-  error,
-  hint,
-  required,
-  children,
-}: {
-  label: string;
-  htmlFor: string;
-  error?: string;
-  hint?: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label htmlFor={htmlFor} className="mb-1.5 block text-[13px] font-medium text-ink">
-        {label}
-        {required ? <span className="ml-0.5 text-critical">*</span> : null}
-      </label>
-      {children}
-      {error ? (
-        <p className="mt-1 text-[12px] text-critical-ink">{error}</p>
-      ) : hint ? (
-        <p className="mt-1 text-[12px] text-ink-muted">{hint}</p>
-      ) : null}
-    </div>
-  );
-}
+/**
+ * iTop's priority matrix, mirrored so the derived value can be shown BEFORE
+ * the record is saved. The server remains the authority — this is a preview,
+ * and the field is never submitted.
+ */
+const PRIORITY_MATRIX: Record<string, Record<string, string>> = {
+  // urgency -> impact -> priority
+  '1': { '1': 'Critical', '2': 'Critical', '3': 'High' },
+  '2': { '1': 'Critical', '2': 'High', '3': 'Medium' },
+  '3': { '1': 'High', '2': 'Medium', '3': 'Low' },
+  '4': { '1': 'Medium', '2': 'Low', '3': 'Low' },
+};
 
 export function NewIncidentPage() {
   const navigate = useNavigate();
@@ -49,161 +33,266 @@ export function NewIncidentPage() {
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<NewIncidentForm>({
     resolver: zodResolver(newIncidentSchema),
-    defaultValues: { urgency: '3', impact: '2' },
+    defaultValues: { origin: 'portal' },
   });
 
-  // Only one organisation exists in most instances; preselecting it saves a
-  // required click that has exactly one possible answer.
-  useEffect(() => {
-    const orgs = options?.organizations;
-    if (orgs?.length === 1) setValue('organizationId', orgs[0].value);
-  }, [options, setValue]);
+  const organizationId = watch('organizationId');
+  const serviceId = watch('serviceId');
+  const urgency = watch('urgency');
+  const impact = watch('impact');
+
+  const { data: callers, isFetching: callersLoading } =
+    usePeopleByOrganization(organizationId);
+
+  // Changing the customer invalidates whoever was selected as caller, and a
+  // subcategory only means anything under its own service. Clearing both keeps
+  // the form from submitting a pair that cannot go together.
+  useEffect(() => setValue('callerId', ''), [organizationId, setValue]);
+  useEffect(() => setValue('serviceSubcategoryId', ''), [serviceId, setValue]);
+
+  const subcategories = useMemo(
+    () => (options?.serviceSubcategories ?? []).filter((s) => s.serviceId === serviceId),
+    [options, serviceId],
+  );
+
+  const callerOptions = useMemo(
+    () => (callers?.items ?? []).map((p) => ({ value: p.id, label: p.fullName })),
+    [callers],
+  );
+
+  const derivedPriority =
+    urgency && impact ? (PRIORITY_MATRIX[urgency]?.[impact] ?? 'Medium') : '';
 
   const onSubmit = handleSubmit((values) => {
     // Strip empty optional selects — the API rejects "" where it expects an id.
     const payload = Object.fromEntries(
-      Object.entries(values).filter(([, value]) => value !== '' && value !== undefined),
+      Object.entries(values).filter(([, v]) => v !== '' && v !== undefined),
     ) as NewIncidentForm;
 
-    create.mutate(payload, {
-      onSuccess: (incident) => navigate(`/incidents/${incident.id}`),
-    });
+    create.mutate(payload, { onSuccess: (incident) => navigate(`/incidents/${incident.id}`) });
   });
 
-  const field =
-    'w-full rounded-control border border-line-strong bg-surface px-3 py-2 text-sm text-ink outline-none placeholder:text-ink-muted focus:border-brand focus:ring-2 focus:ring-ring/40';
-
   return (
-    <>
-      <PageHeader
-        breadcrumbs={[
-          { label: 'Home', to: '/' },
-          { label: 'Incidents', to: '/incidents' },
-          { label: 'New' },
-        ]}
-        title="Raise an incident"
-        description="Something is broken or degraded. Describe what users are seeing."
-      />
+    <form onSubmit={onSubmit} noValidate>
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-[11px] font-semibold tracking-wider text-brand-ink uppercase">
+            New incident
+          </p>
+          <h1 className="mt-1 text-[22px] leading-7 font-semibold tracking-tight text-ink">
+            Create a new incident
+          </h1>
+          <p className="mt-1 text-[13px] text-ink-secondary">
+            Provide details so your team can triage and resolve the issue.
+          </p>
+        </div>
 
-      <Card className="max-w-3xl">
-        <CardBody>
-          <form onSubmit={onSubmit} className="space-y-5" noValidate>
-            <Row label="Title" htmlFor="title" required error={errors.title?.message}>
-              <Input id="title" placeholder="VPN unavailable from the branch office" {...register('title')} />
-            </Row>
+        <div className="flex items-center gap-2">
+          <Link to="/incidents" className={buttonClasses({ variant: 'ghost', size: 'sm' })}>
+            Cancel
+          </Link>
+          <Button type="submit" size="sm" loading={create.isPending} disabled={optionsLoading}>
+            Submit incident
+          </Button>
+        </div>
+      </div>
 
-            <Row
+      {create.isError ? (
+        <p
+          role="alert"
+          className="mb-4 rounded-card border border-critical/30 bg-critical-soft px-4 py-3 text-[13px] text-critical-ink"
+        >
+          {create.error instanceof Error ? create.error.message : 'Could not raise the incident.'}
+        </p>
+      ) : null}
+
+      <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-3">
+        {/* ----------------------------------------------------------- main */}
+        <Card className="p-5 xl:col-span-2">
+          <SectionLabel>Customer details</SectionLabel>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field
+              label="Customer"
+              htmlFor="organizationId"
+              required
+              error={errors.organizationId?.message}
+            >
+              <Select
+                id="organizationId"
+                placeholder="Not selected"
+                options={options?.organizations ?? []}
+                {...register('organizationId')}
+              />
+            </Field>
+
+            <Field label="Caller" htmlFor="callerId" error={errors.callerId?.message}>
+              <Select
+                id="callerId"
+                placeholder={
+                  !organizationId
+                    ? 'Select a customer first'
+                    : callersLoading
+                      ? 'Loading…'
+                      : callerOptions.length
+                        ? 'Not selected'
+                        : 'No contacts for this customer'
+                }
+                options={callerOptions}
+                disabled={!organizationId || callersLoading || !callerOptions.length}
+                {...register('callerId')}
+              />
+            </Field>
+          </div>
+
+          <div className="my-5 border-t border-line" />
+
+          <SectionLabel>Incident details</SectionLabel>
+          <div className="space-y-4">
+            <Field label="Subject" htmlFor="title" required error={errors.title?.message}>
+              <input
+                id="title"
+                className={CONTROL}
+                placeholder="Short summary of the incident"
+                {...register('title')}
+              />
+            </Field>
+
+            <Field
               label="Description"
               htmlFor="description"
               required
               error={errors.description?.message}
-              hint="What is happening, who is affected, and since when."
+              hint="No length limit. A short summary is taken from the first part for list views."
             >
-              <textarea id="description" rows={5} className={field} {...register('description')} />
-            </Row>
+              <textarea
+                id="description"
+                rows={8}
+                className={CONTROL}
+                placeholder="Describe what happened, impact, and any steps taken so far. Paste error text or logs here — there is no length limit."
+                {...register('description')}
+              />
+            </Field>
+
+            <Field label="Source" htmlFor="origin">
+              <Select id="origin" options={options?.origins ?? []} {...register('origin')} />
+            </Field>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Row
-                label="Organisation"
-                htmlFor="organizationId"
-                required
-                error={errors.organizationId?.message}
+              <Field label="Urgency" htmlFor="urgency" required error={errors.urgency?.message}>
+                <Select
+                  id="urgency"
+                  placeholder="Select urgency"
+                  options={options?.urgencies ?? []}
+                  {...register('urgency')}
+                />
+              </Field>
+
+              <Field label="Impact" htmlFor="impact" required error={errors.impact?.message}>
+                <Select
+                  id="impact"
+                  placeholder="Select impact"
+                  options={options?.impacts ?? []}
+                  {...register('impact')}
+                />
+              </Field>
+
+              {/* Read-only on purpose: iTop computes priority from urgency x
+                  impact and discards anything sent directly, so an editable
+                  control here would be a field that silently does nothing. */}
+              <Field
+                label="Priority"
+                htmlFor="priority"
+                hint="Derived from urgency and impact using this unit's priority matrix."
               >
-                <select
-                  id="organizationId"
-                  className={cn(field, 'appearance-none')}
-                  {...register('organizationId')}
-                >
-                  <option value="">Select…</option>
-                  {options?.organizations.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-              </Row>
+                <input
+                  id="priority"
+                  disabled
+                  readOnly
+                  className={CONTROL}
+                  value={derivedPriority}
+                  placeholder="Set urgency and impact first"
+                />
+              </Field>
 
-              <Row label="Caller" htmlFor="callerId" hint="Who reported it.">
-                <select id="callerId" className={cn(field, 'appearance-none')} {...register('callerId')}>
-                  <option value="">Not specified</option>
-                  {options?.agents.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-              </Row>
-
-              <Row
-                label="Urgency"
-                htmlFor="urgency"
-                hint="Urgency and impact together set the priority."
+              <Field
+                label="Reported date"
+                htmlFor="startDate"
+                hint="Leave blank for now. Set it when logging a fault that started earlier."
               >
-                <select id="urgency" className={cn(field, 'appearance-none')} {...register('urgency')}>
-                  {options?.urgencies.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-              </Row>
+                <input
+                  id="startDate"
+                  type="datetime-local"
+                  className={CONTROL}
+                  {...register('startDate')}
+                />
+              </Field>
 
-              <Row label="Impact" htmlFor="impact">
-                <select id="impact" className={cn(field, 'appearance-none')} {...register('impact')}>
-                  {options?.impacts.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-              </Row>
+              <Field
+                label="Service"
+                htmlFor="serviceId"
+                hint={
+                  options?.services.length
+                    ? undefined
+                    : "An administrator adds these under the unit's business services."
+                }
+              >
+                <Select
+                  id="serviceId"
+                  placeholder={options?.services.length ? 'Not selected' : 'No services configured'}
+                  options={options?.services ?? []}
+                  disabled={!options?.services.length}
+                  {...register('serviceId')}
+                />
+              </Field>
 
-              <Row label="Origin" htmlFor="origin" hint="How it reached you.">
-                <select id="origin" className={cn(field, 'appearance-none')} {...register('origin')}>
-                  <option value="">Not specified</option>
-                  {options?.origins.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-              </Row>
-
-              <Row label="Assign to" htmlFor="agentId" hint="Leave empty to triage later.">
-                <select id="agentId" className={cn(field, 'appearance-none')} {...register('agentId')}>
-                  <option value="">Unassigned</option>
-                  {options?.agents.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-              </Row>
+              <Field label="Category" htmlFor="serviceSubcategoryId">
+                <Select
+                  id="serviceSubcategoryId"
+                  placeholder={
+                    !serviceId
+                      ? 'Select a service first'
+                      : subcategories.length
+                        ? 'Not selected'
+                        : 'No categories for this service'
+                  }
+                  options={subcategories}
+                  disabled={!serviceId || !subcategories.length}
+                  {...register('serviceSubcategoryId')}
+                />
+              </Field>
             </div>
+          </div>
+        </Card>
 
-            {create.isError ? (
-              <p
-                role="alert"
-                className="rounded-control border border-critical/30 bg-critical-soft px-3 py-2 text-[13px] text-critical-ink"
-              >
-                {create.error instanceof Error ? create.error.message : 'Could not raise the incident.'}
-              </p>
-            ) : null}
+        {/* -------------------------------------------------------- sidebar */}
+        <Card className="p-5">
+          <SectionLabel>Details</SectionLabel>
+          <div className="space-y-4">
+            <Field label="Assignment group (optional)" htmlFor="teamId">
+              <Select
+                id="teamId"
+                placeholder={options?.teams.length ? 'Auto-assign by rules' : 'No teams configured'}
+                options={options?.teams ?? []}
+                disabled={!options?.teams.length}
+                {...register('teamId')}
+              />
+            </Field>
 
-            <div className="flex items-center gap-2 border-t border-line pt-4">
-              <Button type="submit" loading={create.isPending} disabled={optionsLoading}>
-                Raise incident
-              </Button>
-              <Link to="/incidents" className={buttonClasses({ variant: 'ghost' })}>
-                Cancel
-              </Link>
-            </div>
-          </form>
-        </CardBody>
-      </Card>
-    </>
+            <Field label="Assignee (optional)" htmlFor="agentId">
+              <Select
+                id="agentId"
+                placeholder="Not assigned"
+                options={options?.agents ?? []}
+                {...register('agentId')}
+              />
+            </Field>
+          </div>
+        </Card>
+      </div>
+    </form>
   );
 }

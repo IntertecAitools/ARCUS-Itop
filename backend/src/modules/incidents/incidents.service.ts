@@ -225,6 +225,11 @@ export class IncidentsService {
     }
     if (input.agentId) fields["agent_id"] = Number(input.agentId);
     if (input.teamId) fields["team_id"] = Number(input.teamId);
+    if (input.startDate) {
+      // datetime-local gives "YYYY-MM-DDTHH:mm"; iTop wants a space and seconds.
+      const value = input.startDate.replace("T", " ");
+      fields["start_date"] = value.length === 16 ? `${value}:00` : value;
+    }
 
     const { object } = await this.objects.create("Incident", fields, {
       fields: DETAIL_FIELDS,
@@ -356,6 +361,26 @@ export class IncidentsService {
       pick("Service"),
     ]);
 
+    // Subcategories carry their parent service id so the form can narrow the
+    // second picker to the first choice, instead of listing every subcategory
+    // in the instance and letting the user pick an impossible pair.
+    let serviceSubcategories: Array<{ value: string; label: string; serviceId: string }> = [];
+    try {
+      const result = await this.objects.list("ServiceSubcategory", {
+        page: 1,
+        limit: 500,
+        oql: "SELECT ServiceSubcategory",
+        fields: "id,name,service_id",
+      });
+      serviceSubcategories = result.items.map((item) => ({
+        value: String(item.id),
+        label: str(item.fields["name"]) || item.label || `#${item.id}`,
+        serviceId: str(item.fields["service_id"]),
+      }));
+    } catch {
+      serviceSubcategories = [];
+    }
+
     return {
       priorities: [
         { value: "critical", label: "Critical" },
@@ -377,6 +402,7 @@ export class IncidentsService {
       agents,
       teams,
       services,
+      serviceSubcategories,
     };
   }
 }

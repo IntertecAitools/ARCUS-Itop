@@ -86,6 +86,8 @@ export interface CreateIncidentInput {
   serviceSubcategoryId?: string;
   agentId?: string;
   teamId?: string;
+  /** When the fault actually began, if earlier than now. */
+  startDate?: string;
 }
 
 /** Same rule as create: priority is derived, so it is not writable. */
@@ -121,4 +123,6 @@ export interface IncidentOptions {
   agents: Array<{ value: string; label: string }>;
   teams: Array<{ value: string; label: string }>;
   services: Array<{ value: string; label: string }>;
+  /** Each carries its parent service, so the picker can narrow on selection. */
+  serviceSubcategories: Array<{ value: string; label: string; serviceId: string }>;
 }

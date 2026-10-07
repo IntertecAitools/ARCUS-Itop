@@ -83,6 +83,13 @@ export const createIncidentSchema = z.object({
   serviceSubcategoryId: idString.optional(),
   agentId: idString.optional(),
   teamId: idString.optional(),
+  // Accepts an <input type="datetime-local"> value ("YYYY-MM-DDTHH:mm") as
+  // well as iTop's own "YYYY-MM-DD HH:mm:ss"; the service normalises.
+  startDate: z
+    .string()
+    .trim()
+    .regex(/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(:\d{2})?$/, "Use YYYY-MM-DD HH:mm")
+    .optional(),
 });
 
 export const updateIncidentSchema = z

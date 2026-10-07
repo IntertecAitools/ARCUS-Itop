@@ -119,6 +119,13 @@ export interface SelectOption {
   label: string;
 }
 
+/** A person, as the caller picker needs them. */
+export interface PersonOption {
+  id: string;
+  fullName: string;
+  email?: string;
+}
+
 export interface IncidentOptions {
   priorities: SelectOption[];
   urgencies: SelectOption[];
@@ -129,4 +136,6 @@ export interface IncidentOptions {
   agents: SelectOption[];
   teams: SelectOption[];
   services: SelectOption[];
+  /** Each carries its parent service, so the picker narrows on selection. */
+  serviceSubcategories: Array<SelectOption & { serviceId: string }>;
 }
