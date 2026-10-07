@@ -124,3 +124,47 @@ test('an unknown incident id shows a not-found page rather than crashing', async
   await expect(page.getByRole('heading', { name: 'Incident not found' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Back to incidents' })).toBeVisible();
 });
+
+test('edits an incident and the change persists in iTop', async ({ page }) => {
+  const title = `Keyboard unresponsive ${stamp()}`;
+  await raiseIncident(page, title);
+
+  await page.getByRole('button', { name: 'Edit' }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toBeVisible();
+
+  const edited = `${title} (edited)`;
+  await page.getByLabel('Title').fill(edited);
+  await page.getByLabel('Urgency').selectOption('1');
+  await page.getByRole('button', { name: 'Save changes' }).click();
+
+  await expect(dialog).toBeHidden();
+  await expect(page.getByRole('heading', { name: edited, level: 1 })).toBeVisible();
+
+  // Reload from iTop rather than trusting the cache: the point is that the
+  // write reached the system of record, not that React updated locally.
+  await page.reload();
+  await expect(page.getByRole('heading', { name: edited, level: 1 })).toBeVisible();
+  await expect(page.getByText('Critical', { exact: true }).first()).toBeVisible();
+});
+
+test('a closed incident cannot be edited', async ({ page }) => {
+  const title = `Cable tidy request ${stamp()}`;
+  await raiseIncident(page, title);
+
+  // new -> assigned -> resolved -> closed
+  await page.getByRole('button', { name: 'Assign', exact: true }).click();
+  await page.getByLabel('Agent').selectOption({ index: 1 });
+  await page.getByRole('button', { name: /Confirm assign/i }).click();
+
+  await page.getByRole('button', { name: 'Resolve' }).click();
+  await page.getByLabel('Resolution', { exact: true }).fill('Not required after all.');
+  await page.getByRole('button', { name: /Confirm resolve/i }).click();
+
+  await page.getByRole('button', { name: 'Close' }).click();
+  await page.getByRole('button', { name: /Confirm close/i }).click();
+
+  // A closed incident is a record, not a work item: no actions, no Edit.
+  await expect(page.getByText('This incident is closed')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Edit' })).toHaveCount(0);
+});

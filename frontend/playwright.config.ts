@@ -14,13 +14,15 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
   testDir: './tests/e2e',
-  fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  // Two workers, not one per core. These run against a real iTop at roughly
-  // half a second per REST call; more parallelism just queues up behind it and
-  // turns slow responses into spurious timeouts.
-  workers: 2,
+  // Serial, deliberately. iTop is the bottleneck and does not parallelise: two
+  // workers simply queue behind it, and the extra wait pushes the slowest page
+  // (the dashboard, which aggregates several queries) past its timeout. That
+  // reads as a product bug when it is only contention. One worker is slower in
+  // total but deterministic, which is what a suite is for.
+  workers: 1,
+  fullyParallel: false,
   reporter: 'list',
   // Measured against this instance, iTop answers a single REST call in 6-8
   // SECONDS, and a page makes several. Playwright's 5s default would fail

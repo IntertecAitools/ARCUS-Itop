@@ -1,14 +1,15 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { AlertTriangle, ArrowLeft } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Pencil } from 'lucide-react';
 import { PageHeader } from '@/components/layout';
-import { Avatar, buttonClasses, Card, CardBody, CardHeader, Skeleton } from '@/components/ui';
+import { Avatar, Button, buttonClasses, Card, CardBody, CardHeader, Skeleton } from '@/components/ui';
 import { PriorityBadge, StatusPill } from '@/components/data-display';
 import { friendlyDateTime } from '@/lib/utils';
 import { humanise, toPlainText } from '../lib/itop-text';
 import { useIncident } from '../api/useIncidents';
 import { IncidentActions } from '../components/IncidentActions';
 import { IncidentCaseLog } from '../components/IncidentCaseLog';
+import { IncidentEditDialog } from '../components/IncidentEditDialog';
 import type { IncidentDetail } from '../types';
 
 /** One labelled row in the details panel. Hidden entirely when empty. */
@@ -46,6 +47,7 @@ function SlaBanner({ sla }: { sla: IncidentDetail['sla'] }) {
 export function IncidentDetailPage() {
   const { id = '' } = useParams();
   const { data: incident, isLoading, isError, error } = useIncident(id);
+  const [editing, setEditing] = useState(false);
 
   if (isError) {
     return (
@@ -105,13 +107,27 @@ export function IncidentDetailPage() {
           </span>
         }
         actions={
-          <Link
-            to="/incidents"
-            className={buttonClasses({ variant: 'secondary', size: 'sm' })}
-          >
-            <ArrowLeft className="mr-1.5 size-4" />
-            All incidents
-          </Link>
+          <>
+            {/* A closed incident is a record, not a work item — editing it
+                would rewrite history rather than change anything. */}
+            {incident.status !== 'closed' ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                leadingIcon={<Pencil className="size-4" />}
+                onClick={() => setEditing(true)}
+              >
+                Edit
+              </Button>
+            ) : null}
+            <Link
+              to="/incidents"
+              className={buttonClasses({ variant: 'secondary', size: 'sm' })}
+            >
+              <ArrowLeft className="mr-1.5 size-4" />
+              All incidents
+            </Link>
+          </>
         }
       />
 
@@ -193,6 +209,10 @@ export function IncidentDetailPage() {
           </Card>
         </div>
       </div>
+
+      {editing ? (
+        <IncidentEditDialog incident={incident} onClose={() => setEditing(false)} />
+      ) : null}
     </>
   );
 }
