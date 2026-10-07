@@ -1,9 +1,9 @@
 # ARCUS Helpdesk — Frontend
 
 Branded ITSM / Helpdesk UI. iTop is the system of record; this app **never talks to
-iTop directly**. It calls the BFF in `../itop-bff`, which hides iTop's API and data model.
+iTop directly**. It calls the BFF in `../backend`, which hides iTop's API and data model.
 
-The BFF already exists and runs on `http://localhost:4000` — see `../itop-bff/README.md`
+The BFF already exists and runs on `http://localhost:4000` — see `../backend/README.md`
 for its API. Until a screen is wired to it, API calls are served by **MSW mocks**
 (`src/mocks`); switch to the real BFF by changing one env var (`VITE_API_MODE=live`).
 
@@ -22,6 +22,145 @@ for its API. Until a screen is wired to it, API calls are served by **MSW mocks*
 | API mocking        | MSW (Mock Service Worker)                |
 | Unit tests         | Vitest + React Testing Library           |
 | E2E tests          | Playwright                               |
+| Charts             | Recharts (palette in `src/theme/charts.ts`) |
+| Icons              | lucide-react                             |
+
+## Getting started
+
+```bash
+npm install
+cp .env.example .env     # defaults to VITE_API_MODE=mock — no BFF needed
+npm run dev              # http://localhost:5173
+```
+
+| Command             | What it does                                         |
+| ------------------- | ---------------------------------------------------- |
+| `npm run dev`       | Vite dev server with MSW mocks                       |
+| `npm run build`     | Typecheck + production build                         |
+| `npm run typecheck` | Types only                                           |
+| `npm test`          | Vitest unit tests (`src/**/*.test.ts(x)`)            |
+| `npm run e2e`       | Playwright shell smoke tests against the real build  |
+
+## Data comes from the backend
+
+`.env` ships as `VITE_API_MODE=live`: every screen reads real iTop data through
+the BFF. **There is no mock data in the running app.**
+
+```
+browser ──> frontend :5173 ──> backend :4000 ──> iTop :8080
+```
+
+So you need both up:
+
+```bash
+cd docker && docker compose up -d     # iTop on :8080
+cd backend && npm run dev             # BFF  on :4000
+```
+
+| Endpoint                             | Used by                     |
+| ------------------------------------ | --------------------------- |
+| `GET /api/dashboard/overview?range=` | the whole dashboard, in one request |
+| `GET /api/nav/counts`                | sidebar badge counts        |
+| `GET /api/incidents`                 | the incident queue          |
+| `GET /api/incidents/:id`             | incident detail             |
+| `GET /api/incidents/options`         | form pickers, in one request |
+| `POST /api/incidents`                | raise an incident           |
+| `PATCH /api/incidents/:id`           | edit fields                 |
+| `POST /api/incidents/:id/transitions`| assign / hold / resolve / close / reopen |
+| `POST /api/incidents/:id/log`        | post a public update        |
+
+MSW handlers still exist in `src/mocks` for working offline — set
+`VITE_API_MODE=mock` if the backend is unavailable. They are opt-in, and nothing
+uses them by default.
+
+> **iTop is slow.** A single REST call takes **6–8 seconds** on this instance,
+> so a page that makes several feels sluggish. That is upstream, not the UI;
+> the BFF already batches what it can (the dashboard is one request, not twelve).
+
+## Tests
+
+```bash
+npm test        # Vitest units — no servers needed
+npm run e2e     # Playwright against the REAL stack
+```
+
+The e2e suite runs with **no mocks**: it drives the live backend and creates
+real incidents in iTop, which is the only way to catch what a mock papers over
+(iTop deriving priority, rejecting a stimulus, or demanding a field). A global
+setup fails fast with instructions if the backend or iTop is not reachable.
+
+Those incidents are left in iTop deliberately, and each run uses unique titles
+so reruns never collide.
+
+## Adding a module
+
+The sidebar, the route table and the Ctrl-K palette are all **generated from
+`src/config/modules.ts`**. There is no second list to keep in sync, so a module
+lands in one edit and nobody's branch blocks anyone else's.
+
+**A module is registered only once it is built.** Nothing is listed ahead of
+time: no dead nav items, no routes that lead to an apology, no search results
+for screens that don't exist. If you can see it in the UI, it works. Today that
+means the registry holds exactly one entry — `dashboard`.
+
+To add one:
+
+1. Write the screens under `src/features/<feature>/pages/`.
+2. Export them from `src/features/<feature>/index.ts`.
+3. Add an entry to `modules` with a lazy `component`:
+
+   ```ts
+   const incidents: ModuleDefinition = {
+     id: 'incidents',
+     label: 'Incidents',
+     path: 'incidents',
+     icon: LifeBuoy,
+     group: 'operations',
+     description: 'Unplanned interruptions to a service.',
+     badgeKey: 'openIncidents', // optional sidebar count
+     component: lazy(() =>
+       import('@/features/incidents').then((m) => ({ default: m.IncidentListPage })),
+     ),
+   };
+   ```
+
+Nav item, route, breadcrumb and palette entry light up on their own. Detail
+screens go in the same entry's `children` array.
+
+### Cross-links follow the registry too
+
+Links between modules go through `isModuleRegistered()`, so a dashboard card's
+"View all →", a ticket reference, or a "Create request" button **renders only
+when its target exists**. The dashboard therefore never offers a dead link, and
+each of those links appears by itself the moment the module behind it lands —
+no edit to the dashboard required.
+
+`src/features/dashboard` is the reference implementation — it exercises every
+shared piece (KPI tiles, both chart forms, the data table, tabs, empty and
+loading states). Copy its composition pattern rather than inventing a new one.
+
+## Theme
+
+Tokens live in `src/styles/globals.css` and are the **only** place raw colour
+values appear. They surface as Tailwind utilities (`bg-surface`,
+`text-ink-muted`, `border-line`, `shadow-card`, `rounded-card`) and — for code
+that must hand a colour to a library — as `var()` references via `src/theme`.
+
+Light and dark are two *selected* sets of steps, not an automatic inversion.
+Switching theme is a single `data-theme` flip on `<html>`; nothing re-renders.
+
+The eight chart series colours are assigned in a **fixed order and never
+cycled**. That order is the colour-blind-safety mechanism: candidate orderings
+were enumerated and only one clearing every adjacent-pair gate in both modes was
+kept. If you re-order, re-step or add a hue, re-run the palette validator — see
+the header comment in `src/theme/charts.ts`. A ninth series is never a generated
+hue; fold the tail into "Other", or use small multiples.
+
+Status roles (good / warning / serious / critical) are **reserved** — never
+reused as a series colour, and never the only signal: every status chip carries
+a dot or icon plus a text label.
+
+Full rules: `docs/ui-guidelines.md`.
 
 ## Users / app areas
 
@@ -100,7 +239,7 @@ frontend/
     │
     ├── hooks/                  # Global hooks: useDebounce, useMediaQuery, useHotkeys
     ├── stores/                 # Zustand stores: ui (sidebar, theme), session
-    ├── types/                  # Shared TS types / API DTOs (mirror ../itop-bff responses)
+    ├── types/                  # Shared TS types / API DTOs (mirror ../backend responses)
     ├── config/                 # env.ts, constants, navigation menu, feature flags
     ├── mocks/                  # MSW — fake BFF until the real one is ready
     │   ├── handlers/           # One handler file per feature (tickets.ts, auth.ts …)
