@@ -54,10 +54,10 @@ test('an unbuilt module has no nav entry and no route', async ({ page }) => {
 
   // Only built modules appear anywhere in the shell.
   const nav = page.getByRole('navigation', { name: 'Main navigation' });
-  await expect(nav.getByRole('link')).toHaveCount(2);
+  await expect(nav.getByRole('link')).toHaveCount(3);
   await expect(nav.getByRole('link', { name: /Dashboard/ })).toBeVisible();
   await expect(nav.getByRole('link', { name: /Incidents/ })).toBeVisible();
-  await expect(nav.getByRole('link', { name: /Problems|CMDB|Knowledge/ })).toHaveCount(0);
+  await expect(nav.getByRole('link', { name: /Problems|Changes|Knowledge/ })).toHaveCount(0);
 
   // And its path is genuinely absent rather than showing an apology screen.
   await page.goto('/problems');
@@ -112,7 +112,7 @@ test('Ctrl-K opens the palette and navigates to a module', async ({ page }) => {
 
   // The palette lists built modules only — it never surfaces a screen that
   // doesn't exist.
-  await expect(dialog.getByRole('option')).toHaveCount(2);
+  await expect(dialog.getByRole('option')).toHaveCount(3);
   await expect(dialog.getByRole('option', { name: /Dashboard/ })).toBeVisible();
 
   // A built module is reachable from the palette...
