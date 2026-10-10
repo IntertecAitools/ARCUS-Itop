@@ -18,13 +18,17 @@ interface SessionState {
 /**
  * Placeholder session until `features/auth` lands. The auth module will own
  * hydration from the BFF; the shell only ever reads `user`.
+ *
+ * `admin` is not arbitrary: it is the iTop account the BFF actually writes
+ * through, so the name in the topbar matches who owns the change log entries
+ * every edit produces. When auth lands this is replaced by the real session.
  */
 export const useSessionStore = create<SessionState>((set) => ({
   user: {
     id: 'u-1',
-    name: 'Vasanth',
-    email: 'vasanth@intertec.local',
-    role: 'IT Operations',
+    name: 'admin',
+    email: 'admin@intertec.local',
+    role: 'Administrator',
   },
   setUser: (user) => set({ user }),
   clear: () => set({ user: null }),
