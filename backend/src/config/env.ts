@@ -82,6 +82,8 @@ export interface Config {
   corsOrigins: string[] | "*";
   schemaPath: string;
   lookupCacheTtlMs: number;
+  /** Pins the organisation new records belong to. Optional. */
+  defaultOrgId?: string;
 }
 
 export function loadConfig(envFile = resolve(PACKAGE_ROOT, ".env")): Config {
@@ -133,5 +135,6 @@ export function loadConfig(envFile = resolve(PACKAGE_ROOT, ".env")): Config {
       optional("CMDB_SCHEMA_PATH", "../cmdb-schema/cmdb-schema.json"),
     ),
     lookupCacheTtlMs: integer("LOOKUP_CACHE_TTL", 60, 0, 86_400) * 1000,
+    ...(optional("ITOP_DEFAULT_ORG_ID", "") ? { defaultOrgId: optional("ITOP_DEFAULT_ORG_ID", "") } : {}),
   };
 }

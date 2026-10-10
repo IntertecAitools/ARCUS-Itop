@@ -12,6 +12,8 @@ interface Env {
   isMock: boolean;
   bffUrl: string;
   appName: string;
+  /** The system of record, shown under the wordmark. */
+  platformName: string;
   defaultLocale: string;
   isDev: boolean;
 }
@@ -20,7 +22,8 @@ export const env: Env = {
   apiMode: mode,
   isMock: mode === 'mock',
   bffUrl: import.meta.env.VITE_BFF_URL ?? 'http://localhost:4000/api',
-  appName: import.meta.env.VITE_APP_NAME ?? 'ARCUS Helpdesk',
+  appName: import.meta.env.VITE_APP_NAME ?? 'Intertec',
+  platformName: import.meta.env.VITE_PLATFORM_NAME ?? 'iTop',
   defaultLocale: import.meta.env.VITE_DEFAULT_LOCALE ?? 'en',
   isDev: import.meta.env.DEV,
 };

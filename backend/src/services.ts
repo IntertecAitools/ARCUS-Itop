@@ -7,6 +7,7 @@ import { IncidentsService } from "./modules/incidents/index.js";
 import { LookupsService } from "./platform/lookups/lookups.service.js";
 import { ObjectsService } from "./platform/objects/objects.service.js";
 import { RelationsService } from "./shared/relations.service.js";
+import { DefaultOrganization } from "./shared/default-organization.js";
 
 export interface Services {
   config: Config;
@@ -18,6 +19,7 @@ export interface Services {
   dashboard: DashboardService;
   incidents: IncidentsService;
   directory: DirectoryService;
+  defaultOrganization: DefaultOrganization;
 }
 
 export interface BuildServicesOptions {
@@ -31,6 +33,11 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
   const schema = options.schema ?? CmdbSchema.fromFile(config.schemaPath);
   const client = options.client ?? new ItopClient(config, options.logger);
   const objects = new ObjectsService(client, schema, config.itop.defaultComment);
+  const defaultOrganization = new DefaultOrganization(
+    objects,
+    config.itop.user,
+    config.defaultOrgId,
+  );
 
   return {
     config,
@@ -40,7 +47,8 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     lookups: new LookupsService(client, schema, config.lookupCacheTtlMs),
     relations: new RelationsService(client, schema),
     dashboard: new DashboardService(objects),
-    incidents: new IncidentsService(objects, schema),
+    defaultOrganization,
+    incidents: new IncidentsService(objects, schema, defaultOrganization),
     directory: new DirectoryService(objects),
   };
 }

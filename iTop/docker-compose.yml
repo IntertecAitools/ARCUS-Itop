@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  itop:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    depends_on:
+      - db
+    environment:
+      - ITOP_DB_HOST=db
+      - ITOP_DB_USER=itop
+      - ITOP_DB_PASSWORD=itop
+      - ITOP_DB_NAME=itop
+
+  db:
+    image: mariadb:10.11
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=itop
+      - MYSQL_USER=itop
+      - MYSQL_PASSWORD=itop
+    volumes:
+      - db_data:/var/lib/mysql
+
+volumes:
+  db_data:

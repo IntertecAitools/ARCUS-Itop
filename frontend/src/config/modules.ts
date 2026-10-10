@@ -1,5 +1,5 @@
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
-import { LayoutDashboard, LifeBuoy, type LucideIcon } from 'lucide-react';
+import { Database, LayoutDashboard, LifeBuoy, type LucideIcon } from 'lucide-react';
 
 /**
  * ════════════════════════════════════════════════════════════════════════════
@@ -116,6 +116,31 @@ export const modules: ModuleDefinition[] = [
         path: ':id',
         component: lazy(() =>
           import('@/features/incidents').then((m) => ({ default: m.IncidentDetailPage })),
+        ),
+      },
+    ],
+  },
+  {
+    id: 'records',
+    label: 'Records',
+    path: 'records',
+    icon: Database,
+    group: 'resources',
+    description: 'Every class in the iTop datamodel, browsable and editable.',
+    component: lazy(() =>
+      import('@/features/records').then((m) => ({ default: m.RecordsIndexPage })),
+    ),
+    children: [
+      {
+        path: ':className',
+        component: lazy(() =>
+          import('@/features/records').then((m) => ({ default: m.RecordListPage })),
+        ),
+      },
+      {
+        path: ':className/:id',
+        component: lazy(() =>
+          import('@/features/records').then((m) => ({ default: m.RecordDetailPage })),
         ),
       },
     ],

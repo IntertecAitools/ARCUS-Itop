@@ -1,7 +1,7 @@
 @import 'tailwindcss';
 
 /* ============================================================================
-   ARCUS Helpdesk — design tokens
+   Intertec — design tokens
    ----------------------------------------------------------------------------
    Raw values live here ONLY. Never hardcode a hex in a component — use the
    Tailwind utilities these tokens generate (bg-surface, text-ink, border-line …)

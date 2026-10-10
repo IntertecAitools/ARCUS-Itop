@@ -77,7 +77,8 @@ export interface IncidentDetail extends TicketDto {
 export interface CreateIncidentInput {
   title: string;
   description: string;
-  organizationId: string;
+  /** Optional: the server resolves the default organisation when omitted. */
+  organizationId?: string;
   callerId?: string;
   urgency?: string;
   impact?: string;

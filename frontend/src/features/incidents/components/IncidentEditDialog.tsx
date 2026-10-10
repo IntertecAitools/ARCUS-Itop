@@ -15,7 +15,17 @@ const URGENCY_VALUE: Record<string, string> = {
   medium: '3',
   low: '4',
 };
-const IMPACT_VALUE: Record<string, string> = { department: '1', service: '2', person: '3' };
+const IMPACT_VALUE: Record<string, string> = {
+  critical: '1',
+  high: '2',
+  medium: '3',
+  department: '1',
+  service: '2',
+  person: '3',
+  '1': '1',
+  '2': '2',
+  '3': '3',
+};
 
 interface Props {
   incident: IncidentDetail;

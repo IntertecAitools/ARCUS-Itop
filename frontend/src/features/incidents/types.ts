@@ -85,14 +85,17 @@ export interface IncidentDetail extends Incident {
 export interface CreateIncidentInput {
   title: string;
   description: string;
-  organizationId: string;
+  /** Optional: the BFF resolves the default organisation when omitted. */
+  organizationId?: string;
   callerId?: string;
   urgency?: string;
   impact?: string;
   origin?: string;
   serviceId?: string;
+  serviceSubcategoryId?: string;
   agentId?: string;
   teamId?: string;
+  startDate?: string;
 }
 
 export interface UpdateIncidentInput {
@@ -103,6 +106,7 @@ export interface UpdateIncidentInput {
   agentId?: string | null;
   teamId?: string | null;
   serviceId?: string | null;
+  serviceSubcategoryId?: string | null;
 }
 
 export interface TransitionInput {

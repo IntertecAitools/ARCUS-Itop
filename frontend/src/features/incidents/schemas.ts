@@ -14,8 +14,8 @@ export const newIncidentSchema = z.object({
     .min(1, 'A subject is required')
     .max(255, 'Keep the title under 255 characters'),
   description: z.string().trim().min(1, 'Describe what is happening').max(10_000),
-  organizationId: z.string().min(1, 'Choose a customer'),
-  callerId: z.string().optional(),
+  // No customer or caller: the server resolves the organisation, so the
+  // reporter is not asked which company they work for.
   // Required because priority is derived from the pair; without both, iTop
   // would fall back to a default the reporter never chose.
   urgency: z.string().min(1, 'Choose an urgency'),

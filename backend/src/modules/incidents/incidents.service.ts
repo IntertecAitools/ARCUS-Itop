@@ -1,5 +1,6 @@
 import { badRequest, notFound } from "../../core/errors.js";
 import type { CmdbSchema } from "../../schema/load.js";
+import type { DefaultOrganization } from "../../shared/default-organization.js";
 import type { ObjectDto, ObjectsService } from "../../platform/objects/objects.service.js";
 import {
   actionsForState,
@@ -72,6 +73,7 @@ export class IncidentsService {
   constructor(
     private readonly objects: ObjectsService,
     private readonly schema: CmdbSchema,
+    private readonly defaultOrganization: DefaultOrganization,
   ) {}
 
   /* --------------------------------------------------------------------- *
@@ -202,10 +204,14 @@ export class IncidentsService {
    * --------------------------------------------------------------------- */
 
   async create(input: CreateIncidentInput): Promise<IncidentDetail> {
+    // The reporter is not asked which company they work for; in a helpdesk
+    // that is noise. The server resolves it -- see DefaultOrganization.
+    const organizationId = input.organizationId ?? (await this.defaultOrganization.resolve());
+
     const fields: Record<string, unknown> = {
       title: input.title,
       description: input.description,
-      org_id: Number(input.organizationId),
+      org_id: Number(organizationId),
       urgency: input.urgency ?? "3",
       impact: input.impact ?? "2",
       // iTop is contradictory here: `priority` is flagged NOT NULL, so create
@@ -394,7 +400,7 @@ export class IncidentsService {
       })),
       impacts: Object.entries(IMPACT_MAP).map(([value, label]) => ({
         value,
-        label: `A ${label}`,
+        label: humanise(label),
       })),
       origins: options(ORIGINS),
       resolutionCodes: options(RESOLUTION_CODES),

@@ -1,3 +1,4 @@
+import { badRequest } from "../core/errors.js";
 import type { ObjectDto } from "../platform/objects/objects.service.js";
 
 /**
@@ -108,6 +109,9 @@ export function toTicket(item: ObjectDto): TicketDto {
 
 /** Escapes a value for an OQL string literal. */
 export function oqlString(value: string): string {
+  if (value.includes("\0")) {
+    throw badRequest("Value contains a NUL byte, which OQL cannot represent.");
+  }
   return value.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
 }
 
@@ -162,10 +166,19 @@ export function actionsForState(
  * Enums iTop stores as numbers or snake_case
  * ------------------------------------------------------------------------ */
 
+/**
+ * Impact, on the SAME severity scale as urgency.
+ *
+ * iTop stores only three impact levels, so the four-point urgency scale cannot
+ * be mirrored exactly -- these are its top three. Offering a fourth label that
+ * saved as one of these would be a control that quietly loses the user's
+ * choice. iTop's own meaning is breadth (1 = a department, 2 = a service,
+ * 3 = a person), which maps onto severity in this order.
+ */
 export const IMPACT_MAP: Record<string, string> = {
-  "1": "department",
-  "2": "service",
-  "3": "person",
+  "1": "critical",
+  "2": "high",
+  "3": "medium",
 };
 
 export const URGENCY_MAP: Record<string, string> = {

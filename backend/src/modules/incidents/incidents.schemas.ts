@@ -72,7 +72,8 @@ export const createIncidentSchema = z.object({
   // a field-level message instead of a generic upstream failure.
   title: z.string().trim().min(1, "A title is required").max(255),
   description: z.string().trim().min(1, "A description is required").max(10_000),
-  organizationId: idString,
+  // Optional: omitted by the UI, resolved server-side.
+  organizationId: idString.optional(),
   callerId: idString.optional(),
   // No `priority`: iTop derives it from urgency x impact and ignores an
   // explicit value, so accepting one would quietly mislead the caller.
