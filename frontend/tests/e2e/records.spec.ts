@@ -79,6 +79,24 @@ test('a row opens its detail screen', async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
+test('Problem Management is reachable, as an installed iTop module', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+
+  // Problem arrived by installing itop-problem-mgmt into iTop; no frontend
+  // change was needed, because Records renders whatever the schema describes.
+  // This pins both halves: the module stays installed, and the generic screen
+  // keeps picking it up.
+  await page.goto('/records');
+  await expect(page.locator('a[href="/records/Problem"]')).toBeVisible();
+
+  await page.goto('/records/Problem');
+  await expect(page.getByRole('heading', { name: 'Problem', level: 1 })).toBeVisible();
+  await expect(page.getByRole('alert')).toHaveCount(0);
+
+  expect(errors).toEqual([]);
+});
+
 test('an unknown class does not pretend to exist', async ({ page }) => {
   await page.goto('/records/NoSuchClass');
 
