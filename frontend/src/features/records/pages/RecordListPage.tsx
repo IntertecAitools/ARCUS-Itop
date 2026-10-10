@@ -1,10 +1,11 @@
 import { useMemo } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Database, Search } from 'lucide-react';
+import { ArrowLeft, Database, Plus, Search } from 'lucide-react';
 import { PageHeader } from '@/components/layout';
 import { buttonClasses, Card, Input, Skeleton } from '@/components/ui';
 import { DataTable, type Column } from '@/components/data-display';
 import { EmptyState } from '@/components/feedback';
+import { useNavigation } from '@/features/navigation';
 import { useClassInfo, useRecords } from '../api/useRecords';
 import { humaniseAttcode } from '../components/FieldControls';
 import type { RecordDto } from '../types';
@@ -19,8 +20,23 @@ export function RecordListPage() {
 
   const page = Math.max(1, Number(params.get('page')) || 1);
   const q = params.get('q') ?? '';
+  // A navigation view id. The filter it stands for lives in the BFF; all this
+  // screen knows is that the list is narrowed and what the menu calls it.
+  const view = params.get('view') ?? undefined;
 
   const { data: info, isLoading: schemaLoading, isError: schemaError, error } = useClassInfo(className);
+
+  // The menu label for the active view, so the heading reads like iTop's own
+  // ("Open", "Under escalation") instead of showing a raw menu id.
+  const { data: navigation } = useNavigation();
+  const viewLabel = useMemo(() => {
+    if (!view || !navigation) return undefined;
+    for (const group of navigation.groups) {
+      const entry = group.entries.find((e) => e.id === view);
+      if (entry) return entry.label;
+    }
+    return undefined;
+  }, [view, navigation]);
 
   /**
    * Which columns to request.
@@ -40,7 +56,11 @@ export function RecordListPage() {
   }, [info]);
 
   const fields = columns.length ? ['id', ...columns].join(',') : undefined;
-  const { data, isLoading, isError: listError } = useRecords(className, { page, q: q || undefined }, fields);
+  const { data, isLoading, isError: listError } = useRecords(
+    className,
+    { page, q: q || undefined, view },
+    fields,
+  );
 
   const tableColumns = useMemo<Column<RecordDto>[]>(() => {
     const cells: Column<RecordDto>[] = columns.map((attcode) => ({
@@ -118,16 +138,43 @@ export function RecordListPage() {
         title={className}
         description={
           data
-            ? `${data.total} ${data.total === 1 ? 'record' : 'records'}${data.sortedInBff ? ' · sorted by the BFF' : ''}`
+            ? [
+                `${data.total} ${data.total === 1 ? 'record' : 'records'}`,
+                // Say that a filter is applied and whose it is. Without this a
+                // narrowed list is indistinguishable from an empty class.
+                viewLabel ? `filtered by iTop’s “${viewLabel}” view` : null,
+                data.sortedInBff ? 'sorted by the BFF' : null,
+              ]
+                .filter(Boolean)
+                .join(' · ')
             : info?.isCi
               ? 'A configuration item.'
               : 'An iTop class.'
         }
         actions={
-          <Link to="/records" className={buttonClasses({ variant: 'secondary', size: 'sm' })}>
-            <ArrowLeft className="mr-1.5 size-4" />
-            All classes
-          </Link>
+          <div className="flex items-center gap-2">
+            {view ? (
+              <Link
+                to={`/records/${className}`}
+                className={buttonClasses({ variant: 'secondary', size: 'sm' })}
+              >
+                Clear filter
+              </Link>
+            ) : null}
+            {info && !info.abstract ? (
+              <Link
+                to={`/records/${className}/new`}
+                className={buttonClasses({ variant: 'primary', size: 'sm' })}
+              >
+                <Plus className="mr-1.5 size-4" />
+                New
+              </Link>
+            ) : null}
+            <Link to="/records" className={buttonClasses({ variant: 'secondary', size: 'sm' })}>
+              <ArrowLeft className="mr-1.5 size-4" />
+              All classes
+            </Link>
+          </div>
         }
       />
 

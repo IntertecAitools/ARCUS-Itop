@@ -49,19 +49,41 @@ test('the sidebar never renders a zero badge', async ({ page }) => {
   await expect(nav.getByText(/^0$/)).toHaveCount(0);
 });
 
-test('an unbuilt module has no nav entry and no route', async ({ page }) => {
+test('the built-module list contains only built modules', async ({ page }) => {
   await page.goto('/dashboard');
 
-  // Only built modules appear anywhere in the shell.
-  const nav = page.getByRole('navigation', { name: 'Main navigation' });
-  await expect(nav.getByRole('link')).toHaveCount(3);
-  await expect(nav.getByRole('link', { name: /Dashboard/ })).toBeVisible();
-  await expect(nav.getByRole('link', { name: /Incidents/ })).toBeVisible();
-  await expect(nav.getByRole('link', { name: /Problems|Changes|Knowledge/ })).toHaveCount(0);
+  // The sidebar now has two parts: modules we built, and iTop's own tree
+  // rendered from what the BFF publishes. This asserts the first part only —
+  // the rule "a module is listed once it is built" applies to ours.
+  const built = page.getByRole('group', { name: 'Built modules' });
+  await expect(built.getByRole('link')).toHaveCount(4);
+  for (const name of [/Dashboard/, /Incidents/, /Records/, /Modules/]) {
+    await expect(built.getByRole('link', { name })).toBeVisible();
+  }
 
-  // And its path is genuinely absent rather than showing an apology screen.
+  // A path we never registered is genuinely absent rather than showing an
+  // apology screen. Problem data is reachable, but at /records/Problem.
   await page.goto('/problems');
   await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible();
+});
+
+test("iTop's modules arrive through the BFF, not a hardcoded list", async ({ page }) => {
+  await page.goto('/dashboard');
+
+  // These groups exist because iTop declares them and the BFF publishes them.
+  // Nothing in the frontend names them, so this failing means the navigation
+  // stopped flowing rather than that a list needs editing.
+  const itop = page.getByRole('group', { name: 'iTop modules' });
+  for (const group of [
+    'Incident Management',
+    'Problem management',
+    'Change management',
+    'Service management',
+    'Helpdesk',
+    'Configuration management',
+  ]) {
+    await expect(itop.getByRole('button', { name: group })).toBeVisible();
+  }
 });
 
 test('dashboard cross-links follow the module registry', async ({ page }) => {
@@ -112,7 +134,7 @@ test('Ctrl-K opens the palette and navigates to a module', async ({ page }) => {
 
   // The palette lists built modules only — it never surfaces a screen that
   // doesn't exist.
-  await expect(dialog.getByRole('option')).toHaveCount(3);
+  await expect(dialog.getByRole('option')).toHaveCount(4);
   await expect(dialog.getByRole('option', { name: /Dashboard/ })).toBeVisible();
 
   // A built module is reachable from the palette...

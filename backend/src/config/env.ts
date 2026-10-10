@@ -81,6 +81,8 @@ export interface Config {
   server: { host: string; port: number; logLevel: string };
   corsOrigins: string[] | "*";
   schemaPath: string;
+  /** iTop's navigation tree, from cmdb-schema/extract-navigation.py. */
+  navigationPath: string;
   lookupCacheTtlMs: number;
   /** Pins the organisation new records belong to. Optional. */
   defaultOrgId?: string;
@@ -135,6 +137,10 @@ export function loadConfig(envFile = resolve(PACKAGE_ROOT, ".env")): Config {
     schemaPath: resolve(
       PACKAGE_ROOT,
       optional("CMDB_SCHEMA_PATH", "../cmdb-schema/cmdb-schema.json"),
+    ),
+    navigationPath: resolve(
+      PACKAGE_ROOT,
+      optional("CMDB_NAVIGATION_PATH", "../cmdb-schema/cmdb-navigation.json"),
     ),
     lookupCacheTtlMs: integer("LOOKUP_CACHE_TTL", 60, 0, 86_400) * 1000,
     ...(optional("ITOP_DEFAULT_ORG_ID", "") ? { defaultOrgId: optional("ITOP_DEFAULT_ORG_ID", "") } : {}),

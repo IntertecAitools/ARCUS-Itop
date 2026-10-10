@@ -78,6 +78,14 @@ export interface RecordFilters {
   q?: string;
   sort?: string;
   order?: 'asc' | 'desc';
+  /**
+   * A navigation view id, e.g. `Incident:OpenIncidents`.
+   *
+   * The BFF turns it into the OQL iTop declares for that menu. Passing an id
+   * rather than a query is what keeps iTop's query language out of the
+   * frontend while still letting us render "Open incidents".
+   */
+  view?: string;
 }
 
 export interface PickerOption {

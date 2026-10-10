@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 
+import { badRequest } from "../../core/errors.js";
 import {
   boolParam,
   identifierParam,
@@ -20,6 +21,7 @@ const RESERVED_QUERY_KEYS = new Set([
   "order",
   "fields",
   "oql",
+  "view",
   "strict",
   "comment",
   "simulate",
@@ -33,6 +35,17 @@ const listQuerySchema = z.object({
   order: z.enum(["asc", "desc"]).optional(),
   fields: z.string().max(2_000).optional(),
   oql: z.string().max(4_000).optional(),
+  /**
+   * A navigation view id, e.g. `Incident:OpenIncidents`. The BFF resolves it to
+   * the OQL iTop declares for that menu, so the frontend can render "Open
+   * incidents" without ever holding a query. Menu ids contain a colon, so this
+   * cannot use `identifierParam`.
+   */
+  view: z
+    .string()
+    .max(120)
+    .regex(/^[A-Za-z0-9_:-]+$/, "a view id may only contain letters, digits, _, - and :")
+    .optional(),
 });
 
 const writeBodySchema = z.object({
@@ -72,6 +85,22 @@ export function registerObjectRoutes(app: FastifyInstance, services: Services): 
     const query = parse(listQuerySchema, request.query, "query parameters");
     const filters = extractFilters(request.query);
 
+    // A view supplies the OQL. Resolving it here keeps iTop's query language
+    // on this side of the boundary; `?view=` is all the frontend ever sends.
+    let oql = query.oql;
+    if (query.view !== undefined) {
+      const view = services.navigation.resolveView(query.view);
+      if (view.class !== className) {
+        throw badRequest(
+          `View "${query.view}" lists ${view.class}, not ${className}.`,
+        );
+      }
+      if (oql !== undefined) {
+        throw badRequest("Pass either `view` or `oql`, not both.");
+      }
+      oql = view.oql;
+    }
+
     return objects.list(className, {
       page: query.page,
       limit: query.limit,
@@ -79,7 +108,7 @@ export function registerObjectRoutes(app: FastifyInstance, services: Services): 
       ...(query.sort !== undefined ? { sort: query.sort } : {}),
       ...(query.order !== undefined ? { order: query.order } : {}),
       ...(query.fields !== undefined ? { fields: query.fields } : {}),
-      ...(query.oql !== undefined ? { oql: query.oql } : {}),
+      ...(oql !== undefined ? { oql } : {}),
       filters,
     });
   });

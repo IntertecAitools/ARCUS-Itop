@@ -3,6 +3,7 @@ import { ChevronLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { modulesInGroup, navGroups, type ModuleDefinition } from '@/config/modules';
 import { useUiStore } from '@/stores/ui.store';
+import { ItopNavigation } from './ItopNavigation';
 import { Logo } from './Logo';
 
 /** Counts that feed the sidebar badges, keyed by `ModuleDefinition.badgeKey`. */
@@ -98,24 +99,32 @@ export function Sidebar({ counts = {} }: SidebarProps) {
       >
         {/* Only groups that actually contain a built module are rendered —
             otherwise an empty group still draws its separator rule. */}
-        {navGroups
-          .map((group) => ({ group, items: modulesInGroup(group) }))
-          .filter(({ items }) => items.length > 0)
-          .map(({ group, items }, groupIndex) => (
-            <div
-              key={group}
-              className={cn(groupIndex > 0 && 'mt-3 border-t border-line pt-3', 'space-y-0.5')}
-            >
-              {items.map((module) => (
-                <NavItem
-                  key={module.id}
-                  module={module}
-                  collapsed={collapsed}
-                  count={module.badgeKey ? counts[module.badgeKey] : undefined}
-                />
-              ))}
-            </div>
-          ))}
+        {/* Scoped so "which modules have we built" stays answerable now that
+            iTop's whole tree is rendered below it. */}
+        <div aria-label="Built modules" role="group">
+          {navGroups
+            .map((group) => ({ group, items: modulesInGroup(group) }))
+            .filter(({ items }) => items.length > 0)
+            .map(({ group, items }, groupIndex) => (
+              <div
+                key={group}
+                className={cn(groupIndex > 0 && 'mt-3 border-t border-line pt-3', 'space-y-0.5')}
+              >
+                {items.map((module) => (
+                  <NavItem
+                    key={module.id}
+                    module={module}
+                    collapsed={collapsed}
+                    count={module.badgeKey ? counts[module.badgeKey] : undefined}
+                  />
+                ))}
+              </div>
+            ))}
+        </div>
+
+        {/* Above: modules we have built. Below: everything else iTop has,
+            rendered from the tree the BFF publishes. */}
+        <ItopNavigation collapsed={collapsed} />
       </nav>
 
       <div className="shrink-0 border-t border-line p-2.5">

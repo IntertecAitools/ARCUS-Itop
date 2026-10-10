@@ -71,7 +71,9 @@ test('a row opens its detail screen', async ({ page }) => {
   await page.goto('/records/Organization');
   await expect(page.getByRole('row').nth(1)).toBeVisible();
 
-  await page.locator('a[href^="/records/Organization/"]').first().click();
+  // Scoped to a table row on purpose: the header's "New" button is also an
+  // anchor under /records/Organization/, and matching it would test nothing.
+  await page.getByRole('row').nth(1).getByRole('link').first().click();
   await expect(page).toHaveURL(/\/records\/Organization\/\d+$/);
   // The generic detail screen renders the class's fields from the schema.
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
@@ -93,6 +95,46 @@ test('Problem Management is reachable, as an installed iTop module', async ({ pa
   await page.goto('/records/Problem');
   await expect(page.getByRole('heading', { name: 'Problem', level: 1 })).toBeVisible();
   await expect(page.getByRole('alert')).toHaveCount(0);
+
+  expect(errors).toEqual([]);
+});
+
+test('creates a Problem through the generic form and it persists', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+
+  const title = `e2e problem ${Date.now()}`;
+
+  await page.goto('/records/Problem/new');
+  await expect(page.getByRole('heading', { name: 'New Problem', level: 1 })).toBeVisible();
+
+  // Fields are addressed by attribute code rather than by label: the labels are
+  // derived from the schema, so asserting them here would test the humaniser
+  // instead of the create path.
+  await page.locator('#field-title').fill(title);
+  await page.locator('#field-description').fill('Raised by the end-to-end suite.');
+  await page.locator('#field-impact').selectOption({ index: 1 });
+  await page.locator('#field-urgency').selectOption({ index: 1 });
+  await page.locator('#field-priority').selectOption({ index: 1 });
+  await page.locator('#field-org_id').selectOption({ index: 1 });
+
+  await page.getByRole('button', { name: 'Create' }).click();
+
+  // iTop derives priority from impact and urgency, so it may refuse the value
+  // we sent. Either outcome is correct; what matters is that the record exists
+  // and that a refusal is reported rather than swallowed.
+  const openRecord = page.getByRole('link', { name: 'Open the record' });
+  if (await openRecord.isVisible().catch(() => false)) {
+    await expect(page.getByText(/did not take these fields/i)).toBeVisible();
+    await openRecord.click();
+  }
+
+  await expect(page).toHaveURL(/\/records\/Problem\/\d+$/);
+
+  // Read it back from a fresh list to prove it reached iTop, not just the form.
+  await page.goto('/records/Problem');
+  await page.getByLabel('Search Problem').fill(title);
+  await expect(page.getByRole('cell', { name: title })).toBeVisible();
 
   expect(errors).toEqual([]);
 });

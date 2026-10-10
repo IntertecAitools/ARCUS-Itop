@@ -50,8 +50,17 @@ export function useFieldOptions(className: string, attcode: string, enabled = tr
   });
 }
 
-/** Writes invalidate only this class, so one edit does not refetch the rest. */
-function useRecordMutation<TArgs>(fn: (args: TArgs) => Promise<unknown>, className: string) {
+/**
+ * Writes invalidate only this class, so one edit does not refetch the rest.
+ *
+ * Generic over the result as well as the arguments: a create needs the new
+ * record's id in order to navigate to it, and an `unknown` result would push a
+ * cast onto every caller.
+ */
+function useRecordMutation<TArgs, TResult>(
+  fn: (args: TArgs) => Promise<TResult>,
+  className: string,
+) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: fn,

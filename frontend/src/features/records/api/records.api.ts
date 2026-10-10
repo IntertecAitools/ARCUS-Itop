@@ -29,6 +29,7 @@ export function listRecords(className: string, filters: RecordFilters, fields?: 
       q: filters.q,
       sort: filters.sort,
       order: filters.order,
+      view: filters.view,
       fields,
     },
   });

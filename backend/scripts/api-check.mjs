@@ -161,6 +161,44 @@ await check('class metadata', 'GET', '/api/meta/classes/Server', {
 });
 await check('404 unknown class', 'GET', '/api/objects/NotARealClass', { status: 404 });
 
+console.log("\niTop's modules, published by the BFF");
+let navigation;
+await check('navigation tree', 'GET', '/api/meta/navigation', {
+  expect: (b) => {
+    navigation = b;
+    if (!Array.isArray(b.groups) || b.groups.length === 0) return 'no groups published';
+    if (b.counts.entries !== b.groups.reduce((n, g) => n + g.entries.length, 0)) {
+      return 'counts disagree with the groups';
+    }
+    return true;
+  },
+});
+// The boundary, asserted on the wire rather than only in a unit test: the OQL
+// behind a view must never reach the frontend.
+await check('navigation leaks no OQL', 'GET', '/api/meta/navigation', {
+  expect: (b) => (JSON.stringify(b).includes('SELECT') ? 'response contains OQL' : true),
+});
+// Every ITSM module the user expects to find, confirmed reachable by class.
+for (const cls of ['Incident', 'Problem', 'UserRequest', 'Change', 'SLA', 'FAQ', 'KnownError']) {
+  await check(`navigation covers ${cls}`, 'GET', '/api/meta/navigation', {
+    expect: (b) =>
+      b.groups.some((g) => g.entries.some((e) => e.class === cls))
+        ? true
+        : `no navigation entry lists ${cls}`,
+  });
+}
+// A view resolves to iTop's own filter, addressed only by id.
+await check('list through a view', 'GET', '/api/objects/Incident?view=Incident:OpenIncidents', {
+  expect: (b) => has(b, 'items'),
+});
+await check('404 unknown view', 'GET', '/api/objects/Incident?view=NoSuchView', { status: 404 });
+await check('rejects a view from another class', 'GET', '/api/objects/Person?view=Incident:OpenIncidents', {
+  status: 400,
+});
+await check('rejects view and oql together', 'GET', '/api/objects/Incident?view=Incident:OpenIncidents&oql=SELECT%20Incident', {
+  status: 400,
+});
+
 console.log('\nIncidents module — reads');
 await check('list', 'GET', '/api/incidents?limit=5', { expect: (b) => has(b, 'items') });
 await check('list paged', 'GET', '/api/incidents?limit=2&page=2', {

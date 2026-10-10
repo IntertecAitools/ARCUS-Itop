@@ -2,10 +2,21 @@ import assert from "node:assert/strict";
 import { after, describe, it } from "node:test";
 
 import { buildApp } from "../src/app.js";
-import { FakeItopClient, getResponse, sampleSchema, testConfig } from "./helpers.js";
+import {
+  FakeItopClient,
+  getResponse,
+  sampleNavigation,
+  sampleSchema,
+  testConfig,
+} from "./helpers.js";
 
 function app(fake: FakeItopClient) {
-  const built = buildApp(testConfig(), { client: fake.asClient(), schema: sampleSchema() });
+  const schema = sampleSchema();
+  const built = buildApp(testConfig(), {
+    client: fake.asClient(),
+    schema,
+    navigation: sampleNavigation(schema),
+  });
   after(async () => {
     await built.app.close();
   });

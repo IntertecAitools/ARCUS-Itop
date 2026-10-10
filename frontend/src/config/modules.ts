@@ -1,5 +1,5 @@
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
-import { Database, LayoutDashboard, LifeBuoy, type LucideIcon } from 'lucide-react';
+import { Database, LayoutDashboard, LayoutGrid, LifeBuoy, type LucideIcon } from 'lucide-react';
 
 /**
  * ════════════════════════════════════════════════════════════════════════════
@@ -137,6 +137,14 @@ export const modules: ModuleDefinition[] = [
           import('@/features/records').then((m) => ({ default: m.RecordListPage })),
         ),
       },
+      // `new` before `:id`, or it is matched as a record id.
+      {
+        path: ':className/new',
+        label: 'New record',
+        component: lazy(() =>
+          import('@/features/records').then((m) => ({ default: m.RecordNewPage })),
+        ),
+      },
       {
         path: ':className/:id',
         component: lazy(() =>
@@ -144,6 +152,17 @@ export const modules: ModuleDefinition[] = [
         ),
       },
     ],
+  },
+  {
+    id: 'modules',
+    label: 'Modules',
+    path: 'modules',
+    icon: LayoutGrid,
+    group: 'resources',
+    description: 'Every module iTop has, and what we render of it.',
+    component: lazy(() =>
+      import('@/features/navigation').then((m) => ({ default: m.ModulesIndexPage })),
+    ),
   },
 ];
 
