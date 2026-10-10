@@ -1,4 +1,4 @@
-# ARCUS Helpdesk — Backend
+# Intertec Helpdesk — Backend
 
 A backend-for-frontend over the iTop 3.4 REST/JSON API.
 

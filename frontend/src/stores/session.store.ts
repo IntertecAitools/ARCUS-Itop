@@ -23,7 +23,7 @@ export const useSessionStore = create<SessionState>((set) => ({
   user: {
     id: 'u-1',
     name: 'Vasanth',
-    email: 'vasanth@arcus.local',
+    email: 'vasanth@intertec.local',
     role: 'IT Operations',
   },
   setUser: (user) => set({ user }),

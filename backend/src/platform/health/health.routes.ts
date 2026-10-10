@@ -7,7 +7,7 @@ export function registerHealthRoutes(app: FastifyInstance, services: Services): 
   /** Liveness: does not touch iTop, so it stays up when the backend is down. */
   app.get("/health", async () => ({
     status: "ok",
-    service: "arcus-backend",
+    service: "intertec-backend",
     schemaClasses: services.schema.classNames.length,
     schemaDiagnostics: services.schema.diagnostics.length,
     uptimeSeconds: Math.round(process.uptime()),

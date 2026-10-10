@@ -1,4 +1,4 @@
-# ARCUS Helpdesk
+# Intertec Helpdesk
 
 Our own ITSM / helpdesk product, built on **iTop as the system of record**.
 

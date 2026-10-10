@@ -1,4 +1,4 @@
-# ARCUS Helpdesk — Frontend
+# Intertec Helpdesk — Frontend
 
 Branded ITSM / Helpdesk UI. iTop is the system of record; this app **never talks to
 iTop directly**. It calls the BFF in `../backend`, which hides iTop's API and data model.
@@ -193,7 +193,7 @@ frontend/
     │   └── layouts/            # AgentLayout, PortalLayout, AuthLayout
     │
     ├── assets/                 # Imported assets (bundled by Vite)
-    │   ├── brand/              # ARCUS logo variants, wordmark
+    │   ├── brand/              # Intertec logo variants, wordmark
     │   ├── fonts/
     │   ├── icons/              # Custom SVG icons
     │   ├── images/

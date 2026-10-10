@@ -120,7 +120,9 @@ export function loadConfig(envFile = resolve(PACKAGE_ROOT, ".env")): Config {
       version,
       timeoutMs: integer("ITOP_TIMEOUT_MS", 30_000, 1_000, 600_000),
       retries: integer("ITOP_RETRIES", 2, 0, 10),
-      defaultComment: optional("ITOP_DEFAULT_COMMENT", "via arcus-backend"),
+      // Lands in iTop's change log on every write, so it is read by humans
+      // auditing history inside iTop itself.
+      defaultComment: optional("ITOP_DEFAULT_COMMENT", "via intertec-backend"),
     },
     server: {
       host: optional("HOST", "127.0.0.1"),

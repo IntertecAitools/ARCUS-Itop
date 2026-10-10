@@ -1,9 +1,9 @@
 {
-  "name": "arcus-backend",
+  "name": "intertec-backend",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "ARCUS backend - a BFF over the iTop 3.4 REST/JSON API",
+  "description": "Intertec backend - a BFF over the iTop 3.4 REST/JSON API",
   "engines": {
     "node": ">=20.11"
   },
