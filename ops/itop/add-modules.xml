@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Adds Problem Management, Container Management and Flow Map to the existing
+  iTop 3.4.0 install.
+
+  selected_modules is generated from priv_module_install, which is the
+  database's own authoritative record of what is installed, plus the three
+  additive modules. Enumerating it that way means an upgrade cannot silently
+  drop a module that installation.xml's defaults happen not to select.
+
+  Deliberately NOT included: itop-change-mgmt, itop-request-mgmt and
+  itop-service-mgmt-provider. installation.xml declares those as alternatives
+  to itop-change-mgmt-itil, itop-request-mgmt-itil and itop-service-mgmt, all
+  of which are installed and hold live data. Selecting an alternative replaces
+  the module it is an alternative to.
+
+  sample_data is 0. This database holds real records; iTop's demo content must
+  not be mixed into it.
+
+  The installer is run without an installation_xml argument, so
+  selected_modules is used verbatim rather than recomputed from installation
+  choices.
+-->
+<installation>
+  <mode>upgrade</mode>
+  <optional_steps>
+    <log-parameters>1</log-parameters>
+    <migrate-before>1</migrate-before>
+    <migrate-after>1</migrate-after>
+    <copy>1</copy>
+  </optional_steps>
+  <source_dir>datamodels/2.x/</source_dir>
+  <datamodel_version>3.4.0</datamodel_version>
+  <extensions_dir>extensions</extensions_dir>
+  <target_env>production</target_env>
+  <workspace_dir></workspace_dir>
+  <database>
+    <server>host.docker.internal</server>
+    <user>root</user>
+    <pwd></pwd>
+    <name>itop</name>
+    <db_tls_enabled></db_tls_enabled>
+    <db_tls_ca></db_tls_ca>
+    <prefix></prefix>
+  </database>
+  <url>http://localhost:8080</url>
+  <graphviz_path>/usr/bin/dot</graphviz_path>
+  <admin_account>
+    <user></user>
+    <pwd></pwd>
+    <language></language>
+  </admin_account>
+  <language>EN US</language>
+  <selected_extensions type="array"/>
+  <sample_data>0</sample_data>
+  <old_addon></old_addon>
+  <options type="array"/>
+  <mysql_bindir></mysql_bindir>
+  <selected_modules type="array">
+    <item>authent-cas</item>
+    <item>authent-external</item>
+    <item>authent-ldap</item>
+    <item>authent-local</item>
+    <item>combodo-backoffice-darkmoon-theme</item>
+    <item>combodo-backoffice-fullmoon-high-contrast-theme</item>
+    <item>combodo-backoffice-fullmoon-protanopia-deuteranopia-theme</item>
+    <item>combodo-backoffice-fullmoon-tritanopia-theme</item>
+    <item>combodo-data-feature-removal</item>
+    <item>combodo-db-tools</item>
+    <item>itop-attachments</item>
+    <item>itop-backup</item>
+    <item>itop-bridge-cmdb-services</item>
+    <item>itop-bridge-cmdb-ticket</item>
+    <item>itop-bridge-datacenter-mgmt-services</item>
+    <item>itop-bridge-endusers-devices-services</item>
+    <item>itop-bridge-storage-mgmt-services</item>
+    <item>itop-bridge-virtualization-mgmt-services</item>
+    <item>itop-bridge-virtualization-storage</item>
+    <item>itop-change-mgmt-itil</item>
+    <item>itop-config</item>
+    <item>itop-config-mgmt</item>
+    <item>itop-container-mgmt</item>
+    <item>itop-core-update</item>
+    <item>itop-datacenter-mgmt</item>
+    <item>itop-endusers-devices</item>
+    <item>itop-faq-light</item>
+    <item>itop-files-information</item>
+    <item>itop-flow-map</item>
+    <item>itop-full-itil</item>
+    <item>itop-hub-connector</item>
+    <item>itop-incident-mgmt-itil</item>
+    <item>itop-knownerror-mgmt</item>
+    <item>itop-oauth-client</item>
+    <item>itop-portal</item>
+    <item>itop-portal-base</item>
+    <item>itop-problem-mgmt</item>
+    <item>itop-profiles-itil</item>
+    <item>itop-request-mgmt-itil</item>
+    <item>itop-service-mgmt</item>
+    <item>itop-sla-computation</item>
+    <item>itop-storage-mgmt</item>
+    <item>itop-structure</item>
+    <item>itop-themes-compat</item>
+    <item>itop-tickets</item>
+    <item>itop-virtualization-mgmt</item>
+    <item>itop-welcome-itil</item>
+  </selected_modules>
+  <use_symbolic_links>off</use_symbolic_links>
+</installation>

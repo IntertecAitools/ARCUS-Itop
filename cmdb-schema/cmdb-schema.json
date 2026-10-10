@@ -34,6 +34,11 @@
     "type": "LinkedSetIndirect",
     "ui": "related"
    },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
+    "ui": "scalar"
+   },
    "description": {
     "owner": "FunctionalCI",
     "type": "Text",
@@ -146,6 +151,7 @@
   ],
   "writable": [
    "business_criticity",
+   "dataflows",
    "description",
    "logo",
    "move2production",
@@ -858,6 +864,11 @@
     "type": "LinkedSetIndirect",
     "ui": "related"
    },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
+    "ui": "scalar"
+   },
    "description": {
     "owner": "FunctionalCI",
     "type": "Text",
@@ -958,6 +969,7 @@
   ],
   "writable": [
    "business_criticity",
+   "dataflows",
    "description",
    "logo",
    "move2production",
@@ -1373,6 +1385,18 @@
     "type": "LinkedSetIndirect",
     "ui": "related"
    },
+   "containerhosts_list": {
+    "link_key": "system_id",
+    "linked": "ContainerHost",
+    "owner": "Cloud",
+    "type": "LinkedSet",
+    "ui": "related"
+   },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
+    "ui": "scalar"
+   },
    "description": {
     "owner": "FunctionalCI",
     "type": "Text",
@@ -1507,6 +1531,7 @@
   ],
   "writable": [
    "business_criticity",
+   "dataflows",
    "description",
    "location_id",
    "logo",
@@ -1562,6 +1587,11 @@
     "owner": "FunctionalCI",
     "type": "LinkedSetIndirect",
     "ui": "related"
+   },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
+    "ui": "scalar"
    },
    "description": {
     "owner": "FunctionalCI",
@@ -1737,6 +1767,7 @@
    "asset_number",
    "brand_id",
    "business_criticity",
+   "dataflows",
    "description",
    "end_of_warranty",
    "location_id",
@@ -1855,6 +1886,855 @@
   "readonly": [],
   "writable": [
    "name"
+  ]
+ },
+ "ContainerApplication": {
+  "abstract": false,
+  "category": "bizmodel,searchable",
+  "fields": {
+   "applicationsolution_list": {
+    "link_key": "functionalci_id",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "owner": "FunctionalCI",
+    "type": "LinkedSetIndirect",
+    "ui": "related"
+   },
+   "business_criticity": {
+    "owner": "FunctionalCI",
+    "type": "Enum",
+    "ui": "scalar",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "contacts_list": {
+    "link_key": "functionalci_id",
+    "linked": "lnkContactToFunctionalCI",
+    "owner": "FunctionalCI",
+    "type": "LinkedSetIndirect",
+    "ui": "related"
+   },
+   "containerimages_list": {
+    "link_key": "containerapplication_id",
+    "linked": "lnkContainerApplicationToImage",
+    "owner": "ContainerApplication",
+    "type": "LinkedSetIndirect",
+    "ui": "related"
+   },
+   "containervirtualhost_id": {
+    "owner": "ContainerApplication",
+    "required": true,
+    "target": "ContainerVirtualHost",
+    "type": "ExternalKey",
+    "ui": "picker"
+   },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
+    "ui": "scalar"
+   },
+   "description": {
+    "owner": "FunctionalCI",
+    "type": "Text",
+    "ui": "scalar"
+   },
+   "descriptor": {
+    "owner": "ContainerApplication",
+    "type": "Blob",
+    "ui": "scalar"
+   },
+   "documents_list": {
+    "link_key": "functionalci_id",
+    "linked": "lnkDocumentToFunctionalCI",
+    "owner": "FunctionalCI",
+    "type": "LinkedSetIndirect",
+    "ui": "related"
+   },
+   "groups_list": {
+    "filter": "SELECT Group WHERE status != 'obsolete'",
+    "link_key": "ci_id",
+    "linked": "lnkGroupToCI",
+    "owner": "FunctionalCI",
+    "type": "LinkedSetIndirect",
+    "ui": "related"
+   },
+   "logo": {
+    "owner": "ContainerApplication",
+    "type": "Image",
+    "ui": "scalar"
+   },
+   "move2production": {
+    "owner": "FunctionalCI",
+    "type": "Date",
+    "ui": "scalar"
+   },
+   "name": {
+    "owner": "FunctionalCI",
+    "required": true,
+    "type": "String",
+    "ui": "scalar"
+   },
+   "org_id": {
+    "owner": "FunctionalCI",
+    "required": true,
+    "target": "Organization",
+    "type": "ExternalKey",
+    "ui": "picker"
+   },
+   "organization_name": {
+    "owner": "FunctionalCI",
+    "type": "ExternalField",
+    "ui": "readonly",
+    "via_att": "name",
+    "via_key": "org_id"
+   },
+   "path": {
+    "owner": "SoftwareInstance",
+    "type": "String",
+    "ui": "scalar"
+   },
+   "providercontracts_list": {
+    "link_key": "functionalci_id",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "owner": "FunctionalCI",
+    "type": "LinkedSetIndirect",
+    "ui": "related"
+   },
+   "services_list": {
+    "link_key": "functionalci_id",
+    "linked": "lnkFunctionalCIToService",
+    "owner": "FunctionalCI",
+    "type": "LinkedSetIndirect",
+    "ui": "related"
+   },
+   "software_end_of_support": {
+    "owner": "SoftwareInstance",
+    "type": "ExternalField",
+    "ui": "readonly",
+    "via_att": "end_of_support",
+    "via_key": "software_id"
+   },
+   "software_id": {
+    "filter": "SELECT Software WHERE type = :this->finalclass",
+    "owner": "SoftwareInstance",
+    "target": "Software",
+    "type": "ExternalKey",
+    "ui": "picker"
+   },
+   "software_name": {
+    "owner": "SoftwareInstance",
+    "type": "ExternalField",
+    "ui": "readonly",
+    "via_att": "name",
+    "via_key": "software_id"
+   },
+   "softwarelicence_id": {
+    "depends_on": [
+     "software_id"
+    ],
+    "filter": "SELECT SoftwareLicence WHERE software_id= :this->software_id",
+    "owner": "SoftwareInstance",
+    "target": "SoftwareLicence",
+    "type": "ExternalKey",
+    "ui": "picker"
+   },
+   "softwarelicence_name": {
+    "owner": "SoftwareInstance",
+    "type": "ExternalField",
+    "ui": "readonly",
+    "via_att": "name",
+    "via_key": "softwarelicence_id"
+   },
+   "softwares_list": {
+    "link_key": "system_id",
+    "linked": "SoftwareInstance",
+    "owner": "FunctionalCI",
+    "type": "LinkedSet",
+    "ui": "related"
+   },
+   "status": {
+    "owner": "SoftwareInstance",
+    "type": "Enum",
+    "ui": "scalar",
+    "values": [
+     "active",
+     "inactive"
+    ]
+   },
+   "system_id": {
+    "filter": "SELECT FunctionalCI WHERE IF(:this->finalclass = 'ContainerApplication', finalclass = 'ContainerVirtualHost', finalclass IN ('Server','VirtualMachine','PC'))",
+    "owner": "SoftwareInstance",
+    "required": true,
+    "target": "FunctionalCI",
+    "type": "ExternalKey",
+    "ui": "picker"
+   },
+   "system_name": {
+    "owner": "SoftwareInstance",
+    "type": "ExternalField",
+    "ui": "readonly",
+    "via_att": "name",
+    "via_key": "system_id"
+   },
+   "tickets_list": {
+    "link_key": "functionalci_id",
+    "linked": "lnkFunctionalCIToTicket",
+    "owner": "FunctionalCI",
+    "type": "LinkedSetIndirect",
+    "ui": "related"
+   }
+  },
+  "inherits": [
+   "cmdbAbstractObject",
+   "FunctionalCI",
+   "SoftwareInstance"
+  ],
+  "is_ci": true,
+  "is_ticket": false,
+  "lifecycle": null,
+  "readonly": [
+   "organization_name",
+   "software_end_of_support",
+   "software_name",
+   "softwarelicence_name",
+   "system_name"
+  ],
+  "writable": [
+   "business_criticity",
+   "containervirtualhost_id",
+   "dataflows",
+   "description",
+   "descriptor",
+   "logo",
+   "move2production",
+   "name",
+   "org_id",
+   "path",
+   "software_id",
+   "softwarelicence_id",
+   "status",
+   "system_id"
+  ]
+ },
+ "ContainerCluster": {
+  "abstract": false,
+  "category": "bizmodel,searchable",
+  "fields": {
+   "applicationsolution_list": {
+    "link_key": "functionalci_id",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "owner": "FunctionalCI",
+    "type": "LinkedSetIndirect",
+    "ui": "related"
+   },
+   "business_criticity": {
+    "owner": "FunctionalCI",
+    "type": "Enum",
+    "ui": "scalar",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "contacts_list": {
+    "link_key": "functionalci_id",
+    "linked": "lnkContactToFunctionalCI",
+    "owner": "FunctionalCI",
+    "type": "LinkedSetIndirect",
+    "ui": "related"
+   },
+   "containerapplications_list": {
+    "link_key": "containervirtualhost_id",
+    "linked": "ContainerApplication",
+    "owner": "ContainerVirtualHost",
+    "type": "LinkedSet",
+    "ui": "related"
+   },
+   "containerhosts_list": {
+    "link_key": "containercluster_id",
+    "linked": "ContainerHost",
+    "owner": "ContainerCluster",
+    "type": "LinkedSet",
+    "ui": "related"
+   },
+   "containertype_id": {
+    "owner": "ContainerVirtualHost",
+    "target": "ContainerType",
+    "type": "ExternalKey",
+    "ui": "picker"
+   },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
+    "ui": "scalar"
+   },
+   "description": {
+    "owner": "FunctionalCI",
+    "type": "Text",
+    "ui": "scalar"
+   },
+   "documents_list": {
+    "link_key": "functionalci_id",
+    "linked": "lnkDocumentToFunctionalCI",
+    "owner": "FunctionalCI",
+    "type": "LinkedSetIndirect",
+    "ui": "related"
+   },
+   "groups_list": {
+    "filter": "SELECT Group WHERE status != 'obsolete'",
+    "link_key": "ci_id",
+    "linked": "lnkGroupToCI",
+    "owner": "FunctionalCI",
+    "type": "LinkedSetIndirect",
+    "ui": "related"
+   },
+   "move2production": {
+    "owner": "FunctionalCI",
+    "type": "Date",
+    "ui": "scalar"
+   },
+   "name": {
+    "owner": "FunctionalCI",
+    "required": true,
+    "type": "String",
+    "ui": "scalar"
+   },
+   "org_id": {
+    "owner": "FunctionalCI",
+    "required": true,
+    "target": "Organization",
+    "type": "ExternalKey",
+    "ui": "picker"
+   },
+   "organization_name": {
+    "owner": "FunctionalCI",
+    "type": "ExternalField",
+    "ui": "readonly",
+    "via_att": "name",
+    "via_key": "org_id"
+   },
+   "providercontracts_list": {
+    "link_key": "functionalci_id",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "owner": "FunctionalCI",
+    "type": "LinkedSetIndirect",
+    "ui": "related"
+   },
+   "redundancy": {
+    "owner": "ContainerCluster",
+    "type": "RedundancySettings",
+    "ui": "scalar"
+   },
+   "services_list": {
+    "link_key": "functionalci_id",
+    "linked": "lnkFunctionalCIToService",
+    "owner": "FunctionalCI",
+    "type": "LinkedSetIndirect",
+    "ui": "related"
+   },
+   "softwares_list": {
+    "link_key": "system_id",
+    "linked": "SoftwareInstance",
+    "owner": "FunctionalCI",
+    "type": "LinkedSet",
+    "ui": "related"
+   },
+   "status": {
+    "owner": "ContainerVirtualHost",
+    "required": true,
+    "type": "Enum",
+    "ui": "scalar",
+    "values": [
+     "implementation",
+     "production",
+     "obsolete"
+    ]
+   },
+   "tickets_list": {
+    "link_key": "functionalci_id",
+    "linked": "lnkFunctionalCIToTicket",
+    "owner": "FunctionalCI",
+    "type": "LinkedSetIndirect",
+    "ui": "related"
+   }
+  },
+  "inherits": [
+   "cmdbAbstractObject",
+   "FunctionalCI",
+   "ContainerVirtualHost"
+  ],
+  "is_ci": true,
+  "is_ticket": false,
+  "lifecycle": null,
+  "readonly": [
+   "organization_name"
+  ],
+  "writable": [
+   "business_criticity",
+   "containertype_id",
+   "dataflows",
+   "description",
+   "move2production",
+   "name",
+   "org_id",
+   "redundancy",
+   "status"
+  ]
+ },
+ "ContainerHost": {
+  "abstract": false,
+  "category": "bizmodel,searchable",
+  "fields": {
+   "applicationsolution_list": {
+    "link_key": "functionalci_id",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "owner": "FunctionalCI",
+    "type": "LinkedSetIndirect",
+    "ui": "related"
+   },
+   "business_criticity": {
+    "owner": "FunctionalCI",
+    "type": "Enum",
+    "ui": "scalar",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "contacts_list": {
+    "link_key": "functionalci_id",
+    "linked": "lnkContactToFunctionalCI",
+    "owner": "FunctionalCI",
+    "type": "LinkedSetIndirect",
+    "ui": "related"
+   },
+   "containerapplications_list": {
+    "link_key": "containervirtualhost_id",
+    "linked": "ContainerApplication",
+    "owner": "ContainerVirtualHost",
+    "type": "LinkedSet",
+    "ui": "related"
+   },
+   "containercluster_id": {
+    "depends_on": [
+     "org_id"
+    ],
+    "filter": "SELECT ContainerCluster WHERE org_id= :this->org_id",
+    "owner": "ContainerHost",
+    "target": "ContainerCluster",
+    "type": "ExternalKey",
+    "ui": "picker"
+   },
+   "containertype_id": {
+    "owner": "ContainerVirtualHost",
+    "target": "ContainerType",
+    "type": "ExternalKey",
+    "ui": "picker"
+   },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
+    "ui": "scalar"
+   },
+   "description": {
+    "owner": "FunctionalCI",
+    "type": "Text",
+    "ui": "scalar"
+   },
+   "documents_list": {
+    "link_key": "functionalci_id",
+    "linked": "lnkDocumentToFunctionalCI",
+    "owner": "FunctionalCI",
+    "type": "LinkedSetIndirect",
+    "ui": "related"
+   },
+   "groups_list": {
+    "filter": "SELECT Group WHERE status != 'obsolete'",
+    "link_key": "ci_id",
+    "linked": "lnkGroupToCI",
+    "owner": "FunctionalCI",
+    "type": "LinkedSetIndirect",
+    "ui": "related"
+   },
+   "move2production": {
+    "owner": "FunctionalCI",
+    "type": "Date",
+    "ui": "scalar"
+   },
+   "name": {
+    "owner": "FunctionalCI",
+    "required": true,
+    "type": "String",
+    "ui": "scalar"
+   },
+   "org_id": {
+    "owner": "FunctionalCI",
+    "required": true,
+    "target": "Organization",
+    "type": "ExternalKey",
+    "ui": "picker"
+   },
+   "organization_name": {
+    "owner": "FunctionalCI",
+    "type": "ExternalField",
+    "ui": "readonly",
+    "via_att": "name",
+    "via_key": "org_id"
+   },
+   "providercontracts_list": {
+    "link_key": "functionalci_id",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "owner": "FunctionalCI",
+    "type": "LinkedSetIndirect",
+    "ui": "related"
+   },
+   "role": {
+    "owner": "ContainerHost",
+    "required": true,
+    "type": "Enum",
+    "ui": "scalar",
+    "values": [
+     "master",
+     "worker",
+     "standalone"
+    ]
+   },
+   "services_list": {
+    "link_key": "functionalci_id",
+    "linked": "lnkFunctionalCIToService",
+    "owner": "FunctionalCI",
+    "type": "LinkedSetIndirect",
+    "ui": "related"
+   },
+   "softwares_list": {
+    "link_key": "system_id",
+    "linked": "SoftwareInstance",
+    "owner": "FunctionalCI",
+    "type": "LinkedSet",
+    "ui": "related"
+   },
+   "status": {
+    "owner": "ContainerVirtualHost",
+    "required": true,
+    "type": "Enum",
+    "ui": "scalar",
+    "values": [
+     "implementation",
+     "production",
+     "obsolete"
+    ]
+   },
+   "system_id": {
+    "filter": "SELECT FunctionalCI WHERE finalclass IN ('Server','VirtualMachine','Cloud')",
+    "owner": "ContainerHost",
+    "required": true,
+    "target": "FunctionalCI",
+    "type": "ExternalKey",
+    "ui": "picker"
+   },
+   "tickets_list": {
+    "link_key": "functionalci_id",
+    "linked": "lnkFunctionalCIToTicket",
+    "owner": "FunctionalCI",
+    "type": "LinkedSetIndirect",
+    "ui": "related"
+   }
+  },
+  "inherits": [
+   "cmdbAbstractObject",
+   "FunctionalCI",
+   "ContainerVirtualHost"
+  ],
+  "is_ci": true,
+  "is_ticket": false,
+  "lifecycle": null,
+  "readonly": [
+   "organization_name"
+  ],
+  "writable": [
+   "business_criticity",
+   "containercluster_id",
+   "containertype_id",
+   "dataflows",
+   "description",
+   "move2production",
+   "name",
+   "org_id",
+   "role",
+   "status",
+   "system_id"
+  ]
+ },
+ "ContainerImage": {
+  "abstract": false,
+  "category": "bizmodel,searchable",
+  "fields": {
+   "containerapplications_list": {
+    "link_key": "containerimage_id",
+    "linked": "lnkContainerApplicationToImage",
+    "owner": "ContainerImage",
+    "type": "LinkedSetIndirect",
+    "ui": "related"
+   },
+   "description": {
+    "owner": "ContainerImage",
+    "type": "Text",
+    "ui": "scalar"
+   },
+   "image": {
+    "owner": "ContainerImage",
+    "required": true,
+    "type": "String",
+    "ui": "scalar"
+   },
+   "name": {
+    "owner": "ContainerImage",
+    "required": true,
+    "type": "String",
+    "ui": "scalar"
+   },
+   "publisher": {
+    "owner": "ContainerImage",
+    "required": true,
+    "type": "String",
+    "ui": "scalar"
+   },
+   "software_id": {
+    "owner": "ContainerImage",
+    "target": "Software",
+    "type": "ExternalKey",
+    "ui": "picker"
+   },
+   "type_id": {
+    "owner": "ContainerImage",
+    "target": "ContainerImageType",
+    "type": "ExternalKey",
+    "ui": "picker"
+   },
+   "version": {
+    "owner": "ContainerImage",
+    "required": true,
+    "type": "String",
+    "ui": "scalar"
+   }
+  },
+  "inherits": [
+   "cmdbAbstractObject"
+  ],
+  "is_ci": false,
+  "is_ticket": false,
+  "lifecycle": null,
+  "readonly": [],
+  "writable": [
+   "description",
+   "image",
+   "name",
+   "publisher",
+   "software_id",
+   "type_id",
+   "version"
+  ]
+ },
+ "ContainerImageType": {
+  "abstract": false,
+  "category": "bizmodel,searchable",
+  "fields": {
+   "name": {
+    "owner": "Typology",
+    "required": true,
+    "type": "String",
+    "ui": "scalar"
+   }
+  },
+  "inherits": [
+   "cmdbAbstractObject",
+   "Typology"
+  ],
+  "is_ci": false,
+  "is_ticket": false,
+  "lifecycle": null,
+  "readonly": [],
+  "writable": [
+   "name"
+  ]
+ },
+ "ContainerType": {
+  "abstract": false,
+  "category": "bizmodel,searchable",
+  "fields": {
+   "name": {
+    "owner": "Typology",
+    "required": true,
+    "type": "String",
+    "ui": "scalar"
+   }
+  },
+  "inherits": [
+   "cmdbAbstractObject",
+   "Typology"
+  ],
+  "is_ci": false,
+  "is_ticket": false,
+  "lifecycle": null,
+  "readonly": [],
+  "writable": [
+   "name"
+  ]
+ },
+ "ContainerVirtualHost": {
+  "abstract": true,
+  "category": "bizmodel,searchable",
+  "fields": {
+   "applicationsolution_list": {
+    "link_key": "functionalci_id",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "owner": "FunctionalCI",
+    "type": "LinkedSetIndirect",
+    "ui": "related"
+   },
+   "business_criticity": {
+    "owner": "FunctionalCI",
+    "type": "Enum",
+    "ui": "scalar",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "contacts_list": {
+    "link_key": "functionalci_id",
+    "linked": "lnkContactToFunctionalCI",
+    "owner": "FunctionalCI",
+    "type": "LinkedSetIndirect",
+    "ui": "related"
+   },
+   "containerapplications_list": {
+    "link_key": "containervirtualhost_id",
+    "linked": "ContainerApplication",
+    "owner": "ContainerVirtualHost",
+    "type": "LinkedSet",
+    "ui": "related"
+   },
+   "containertype_id": {
+    "owner": "ContainerVirtualHost",
+    "target": "ContainerType",
+    "type": "ExternalKey",
+    "ui": "picker"
+   },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
+    "ui": "scalar"
+   },
+   "description": {
+    "owner": "FunctionalCI",
+    "type": "Text",
+    "ui": "scalar"
+   },
+   "documents_list": {
+    "link_key": "functionalci_id",
+    "linked": "lnkDocumentToFunctionalCI",
+    "owner": "FunctionalCI",
+    "type": "LinkedSetIndirect",
+    "ui": "related"
+   },
+   "groups_list": {
+    "filter": "SELECT Group WHERE status != 'obsolete'",
+    "link_key": "ci_id",
+    "linked": "lnkGroupToCI",
+    "owner": "FunctionalCI",
+    "type": "LinkedSetIndirect",
+    "ui": "related"
+   },
+   "move2production": {
+    "owner": "FunctionalCI",
+    "type": "Date",
+    "ui": "scalar"
+   },
+   "name": {
+    "owner": "FunctionalCI",
+    "required": true,
+    "type": "String",
+    "ui": "scalar"
+   },
+   "org_id": {
+    "owner": "FunctionalCI",
+    "required": true,
+    "target": "Organization",
+    "type": "ExternalKey",
+    "ui": "picker"
+   },
+   "organization_name": {
+    "owner": "FunctionalCI",
+    "type": "ExternalField",
+    "ui": "readonly",
+    "via_att": "name",
+    "via_key": "org_id"
+   },
+   "providercontracts_list": {
+    "link_key": "functionalci_id",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "owner": "FunctionalCI",
+    "type": "LinkedSetIndirect",
+    "ui": "related"
+   },
+   "services_list": {
+    "link_key": "functionalci_id",
+    "linked": "lnkFunctionalCIToService",
+    "owner": "FunctionalCI",
+    "type": "LinkedSetIndirect",
+    "ui": "related"
+   },
+   "softwares_list": {
+    "link_key": "system_id",
+    "linked": "SoftwareInstance",
+    "owner": "FunctionalCI",
+    "type": "LinkedSet",
+    "ui": "related"
+   },
+   "status": {
+    "owner": "ContainerVirtualHost",
+    "required": true,
+    "type": "Enum",
+    "ui": "scalar",
+    "values": [
+     "implementation",
+     "production",
+     "obsolete"
+    ]
+   },
+   "tickets_list": {
+    "link_key": "functionalci_id",
+    "linked": "lnkFunctionalCIToTicket",
+    "owner": "FunctionalCI",
+    "type": "LinkedSetIndirect",
+    "ui": "related"
+   }
+  },
+  "inherits": [
+   "cmdbAbstractObject",
+   "FunctionalCI"
+  ],
+  "is_ci": true,
+  "is_ticket": false,
+  "lifecycle": null,
+  "readonly": [
+   "organization_name"
+  ],
+  "writable": [
+   "business_criticity",
+   "containertype_id",
+   "dataflows",
+   "description",
+   "move2production",
+   "name",
+   "org_id",
+   "status"
   ]
  },
  "Contract": {
@@ -2198,6 +3078,11 @@
     "type": "LinkedSetIndirect",
     "ui": "related"
    },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
+    "ui": "scalar"
+   },
    "dbschema_list": {
     "link_key": "dbserver_id",
     "linked": "DatabaseSchema",
@@ -2324,7 +3209,7 @@
     ]
    },
    "system_id": {
-    "filter": "SELECT FunctionalCI WHERE finalclass IN ('Server','VirtualMachine','PC')",
+    "filter": "SELECT FunctionalCI WHERE IF(:this->finalclass = 'ContainerApplication', finalclass = 'ContainerVirtualHost', finalclass IN ('Server','VirtualMachine','PC'))",
     "owner": "SoftwareInstance",
     "required": true,
     "target": "FunctionalCI",
@@ -2363,6 +3248,7 @@
   ],
   "writable": [
    "business_criticity",
+   "dataflows",
    "description",
    "move2production",
    "name",
@@ -2372,6 +3258,271 @@
    "softwarelicence_id",
    "status",
    "system_id"
+  ]
+ },
+ "DataFlow": {
+  "abstract": false,
+  "category": "bizmodel,searchable",
+  "fields": {
+   "applicationsolution_list": {
+    "link_key": "functionalci_id",
+    "linked": "lnkApplicationSolutionToFunctionalCI",
+    "owner": "FunctionalCI",
+    "type": "LinkedSetIndirect",
+    "ui": "related"
+   },
+   "business_criticity": {
+    "owner": "FunctionalCI",
+    "type": "Enum",
+    "ui": "scalar",
+    "values": [
+     "high",
+     "medium",
+     "low"
+    ]
+   },
+   "contacts_list": {
+    "link_key": "functionalci_id",
+    "linked": "lnkContactToFunctionalCI",
+    "owner": "FunctionalCI",
+    "type": "LinkedSetIndirect",
+    "ui": "related"
+   },
+   "dataflowprotocol_id": {
+    "owner": "DataFlow",
+    "target": "DataFlowProtocol",
+    "type": "ExternalKey",
+    "ui": "picker"
+   },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
+    "ui": "scalar"
+   },
+   "dataflowtype_id": {
+    "owner": "DataFlow",
+    "target": "DataFlowType",
+    "type": "ExternalKey",
+    "ui": "picker"
+   },
+   "description": {
+    "owner": "FunctionalCI",
+    "type": "Text",
+    "ui": "scalar"
+   },
+   "destination_id": {
+    "filter": "SELECT FunctionalCI WHERE finalclass != 'DataFlow'",
+    "owner": "DataFlow",
+    "required": true,
+    "target": "FunctionalCI",
+    "type": "ExternalKey",
+    "ui": "picker"
+   },
+   "destination_impact": {
+    "owner": "DataFlow",
+    "required": true,
+    "type": "Enum",
+    "ui": "scalar",
+    "values": [
+     "yes",
+     "no"
+    ]
+   },
+   "documentation_url": {
+    "owner": "DataFlow",
+    "type": "URL",
+    "ui": "scalar"
+   },
+   "documents_list": {
+    "link_key": "functionalci_id",
+    "linked": "lnkDocumentToFunctionalCI",
+    "owner": "FunctionalCI",
+    "type": "LinkedSetIndirect",
+    "ui": "related"
+   },
+   "execution_frequency": {
+    "owner": "DataFlow",
+    "required": true,
+    "type": "Enum",
+    "ui": "scalar",
+    "values": [
+     "realtime",
+     "ondemand",
+     "hourly",
+     "daily",
+     "weekly",
+     "monthly",
+     "yearly"
+    ]
+   },
+   "groups_list": {
+    "filter": "SELECT Group WHERE status != 'obsolete'",
+    "link_key": "ci_id",
+    "linked": "lnkGroupToCI",
+    "owner": "FunctionalCI",
+    "type": "LinkedSetIndirect",
+    "ui": "related"
+   },
+   "last_change_date": {
+    "owner": "DataFlow",
+    "type": "Date",
+    "ui": "scalar"
+   },
+   "move2production": {
+    "owner": "FunctionalCI",
+    "type": "Date",
+    "ui": "scalar"
+   },
+   "name": {
+    "owner": "FunctionalCI",
+    "required": true,
+    "type": "String",
+    "ui": "scalar"
+   },
+   "org_id": {
+    "owner": "FunctionalCI",
+    "required": true,
+    "target": "Organization",
+    "type": "ExternalKey",
+    "ui": "picker"
+   },
+   "organization_name": {
+    "owner": "FunctionalCI",
+    "type": "ExternalField",
+    "ui": "readonly",
+    "via_att": "name",
+    "via_key": "org_id"
+   },
+   "providercontracts_list": {
+    "link_key": "functionalci_id",
+    "linked": "lnkFunctionalCIToProviderContract",
+    "owner": "FunctionalCI",
+    "type": "LinkedSetIndirect",
+    "ui": "related"
+   },
+   "services_list": {
+    "link_key": "functionalci_id",
+    "linked": "lnkFunctionalCIToService",
+    "owner": "FunctionalCI",
+    "type": "LinkedSetIndirect",
+    "ui": "related"
+   },
+   "softwares_list": {
+    "link_key": "system_id",
+    "linked": "SoftwareInstance",
+    "owner": "FunctionalCI",
+    "type": "LinkedSet",
+    "ui": "related"
+   },
+   "source_id": {
+    "filter": "SELECT FunctionalCI WHERE finalclass != 'DataFlow'",
+    "owner": "DataFlow",
+    "required": true,
+    "target": "FunctionalCI",
+    "type": "ExternalKey",
+    "ui": "picker"
+   },
+   "source_impact": {
+    "owner": "DataFlow",
+    "required": true,
+    "type": "Enum",
+    "ui": "scalar",
+    "values": [
+     "yes",
+     "no"
+    ]
+   },
+   "status": {
+    "owner": "DataFlow",
+    "required": true,
+    "type": "Enum",
+    "ui": "scalar",
+    "values": [
+     "active",
+     "inactive"
+    ]
+   },
+   "tickets_list": {
+    "link_key": "functionalci_id",
+    "linked": "lnkFunctionalCIToTicket",
+    "owner": "FunctionalCI",
+    "type": "LinkedSetIndirect",
+    "ui": "related"
+   }
+  },
+  "inherits": [
+   "cmdbAbstractObject",
+   "FunctionalCI"
+  ],
+  "is_ci": true,
+  "is_ticket": false,
+  "lifecycle": null,
+  "readonly": [
+   "organization_name"
+  ],
+  "writable": [
+   "business_criticity",
+   "dataflowprotocol_id",
+   "dataflows",
+   "dataflowtype_id",
+   "description",
+   "destination_id",
+   "destination_impact",
+   "documentation_url",
+   "execution_frequency",
+   "last_change_date",
+   "move2production",
+   "name",
+   "org_id",
+   "source_id",
+   "source_impact",
+   "status"
+  ]
+ },
+ "DataFlowProtocol": {
+  "abstract": false,
+  "category": "bizmodel,searchable",
+  "fields": {
+   "name": {
+    "owner": "Typology",
+    "required": true,
+    "type": "String",
+    "ui": "scalar"
+   }
+  },
+  "inherits": [
+   "cmdbAbstractObject",
+   "Typology"
+  ],
+  "is_ci": false,
+  "is_ticket": false,
+  "lifecycle": null,
+  "readonly": [],
+  "writable": [
+   "name"
+  ]
+ },
+ "DataFlowType": {
+  "abstract": false,
+  "category": "bizmodel,searchable",
+  "fields": {
+   "name": {
+    "owner": "Typology",
+    "required": true,
+    "type": "String",
+    "ui": "scalar"
+   }
+  },
+  "inherits": [
+   "cmdbAbstractObject",
+   "Typology"
+  ],
+  "is_ci": false,
+  "is_ticket": false,
+  "lifecycle": null,
+  "readonly": [],
+  "writable": [
+   "name"
   ]
  },
  "DatabaseSchema": {
@@ -2401,6 +3552,11 @@
     "owner": "FunctionalCI",
     "type": "LinkedSetIndirect",
     "ui": "related"
+   },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
+    "ui": "scalar"
    },
    "dbserver_id": {
     "owner": "DatabaseSchema",
@@ -2503,6 +3659,7 @@
   ],
   "writable": [
    "business_criticity",
+   "dataflows",
    "dbserver_id",
    "description",
    "move2production",
@@ -2555,6 +3712,11 @@
     "owner": "FunctionalCI",
     "type": "LinkedSetIndirect",
     "ui": "related"
+   },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
+    "ui": "scalar"
    },
    "description": {
     "owner": "FunctionalCI",
@@ -2832,6 +3994,7 @@
    "asset_number",
    "brand_id",
    "business_criticity",
+   "dataflows",
    "description",
    "enclosure_id",
    "end_of_warranty",
@@ -3802,6 +4965,11 @@
     "type": "LinkedSetIndirect",
     "ui": "related"
    },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
+    "ui": "scalar"
+   },
    "description": {
     "owner": "FunctionalCI",
     "type": "Text",
@@ -3989,6 +5157,7 @@
    "asset_number",
    "brand_id",
    "business_criticity",
+   "dataflows",
    "description",
    "end_of_warranty",
    "location_id",
@@ -4129,6 +5298,11 @@
     "type": "LinkedSetIndirect",
     "ui": "related"
    },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
+    "ui": "scalar"
+   },
    "description": {
     "owner": "FunctionalCI",
     "type": "Text",
@@ -4254,6 +5428,7 @@
   ],
   "writable": [
    "business_criticity",
+   "dataflows",
    "description",
    "move2production",
    "name",
@@ -4364,6 +5539,11 @@
     "type": "LinkedSetIndirect",
     "ui": "related"
    },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
+    "ui": "scalar"
+   },
    "description": {
     "owner": "FunctionalCI",
     "type": "Text",
@@ -4449,6 +5629,7 @@
   ],
   "writable": [
    "business_criticity",
+   "dataflows",
    "description",
    "move2production",
    "name",
@@ -4569,6 +5750,11 @@
     "owner": "FunctionalCI",
     "type": "LinkedSetIndirect",
     "ui": "related"
+   },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
+    "ui": "scalar"
    },
    "description": {
     "owner": "FunctionalCI",
@@ -4711,6 +5897,7 @@
   ],
   "writable": [
    "business_criticity",
+   "dataflows",
    "description",
    "farm_id",
    "move2production",
@@ -4878,6 +6065,11 @@
     "type": "LinkedSetIndirect",
     "ui": "related"
    },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
+    "ui": "scalar"
+   },
    "description": {
     "owner": "FunctionalCI",
     "type": "Text",
@@ -5044,6 +6236,7 @@
    "asset_number",
    "brand_id",
    "business_criticity",
+   "dataflows",
    "description",
    "end_of_warranty",
    "location_id",
@@ -6143,6 +7336,11 @@
     "type": "LinkedSetIndirect",
     "ui": "related"
    },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
+    "ui": "scalar"
+   },
    "description": {
     "owner": "FunctionalCI",
     "type": "Text",
@@ -6269,7 +7467,7 @@
     ]
    },
    "system_id": {
-    "filter": "SELECT FunctionalCI WHERE finalclass IN ('Server','VirtualMachine','PC')",
+    "filter": "SELECT FunctionalCI WHERE IF(:this->finalclass = 'ContainerApplication', finalclass = 'ContainerVirtualHost', finalclass IN ('Server','VirtualMachine','PC'))",
     "owner": "SoftwareInstance",
     "required": true,
     "target": "FunctionalCI",
@@ -6308,6 +7506,7 @@
   ],
   "writable": [
    "business_criticity",
+   "dataflows",
    "description",
    "move2production",
    "name",
@@ -6346,6 +7545,11 @@
     "owner": "FunctionalCI",
     "type": "LinkedSetIndirect",
     "ui": "related"
+   },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
+    "ui": "scalar"
    },
    "description": {
     "owner": "FunctionalCI",
@@ -6453,6 +7657,7 @@
   ],
   "writable": [
    "business_criticity",
+   "dataflows",
    "description",
    "logo",
    "middleware_id",
@@ -6506,6 +7711,11 @@
     "owner": "FunctionalCI",
     "type": "LinkedSetIndirect",
     "ui": "related"
+   },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
+    "ui": "scalar"
    },
    "description": {
     "owner": "FunctionalCI",
@@ -6683,6 +7893,7 @@
    "asset_number",
    "brand_id",
    "business_criticity",
+   "dataflows",
    "description",
    "end_of_warranty",
    "hw_pin",
@@ -6829,6 +8040,11 @@
     "owner": "FunctionalCI",
     "type": "LinkedSetIndirect",
     "ui": "related"
+   },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
+    "ui": "scalar"
    },
    "description": {
     "owner": "FunctionalCI",
@@ -7114,6 +8330,7 @@
    "asset_number",
    "brand_id",
    "business_criticity",
+   "dataflows",
    "description",
    "enclosure_id",
    "end_of_warranty",
@@ -7266,6 +8483,11 @@
     "owner": "FunctionalCI",
     "type": "LinkedSetIndirect",
     "ui": "related"
+   },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
+    "ui": "scalar"
    },
    "description": {
     "owner": "FunctionalCI",
@@ -7586,6 +8808,7 @@
    "asset_number",
    "brand_id",
    "business_criticity",
+   "dataflows",
    "description",
    "enclosure_id",
    "end_of_warranty",
@@ -8859,6 +10082,11 @@
     "type": "LinkedSetIndirect",
     "ui": "related"
    },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
+    "ui": "scalar"
+   },
    "description": {
     "owner": "FunctionalCI",
     "type": "Text",
@@ -8978,7 +10206,7 @@
     ]
    },
    "system_id": {
-    "filter": "SELECT FunctionalCI WHERE finalclass IN ('Server','VirtualMachine','PC')",
+    "filter": "SELECT FunctionalCI WHERE IF(:this->finalclass = 'ContainerApplication', finalclass = 'ContainerVirtualHost', finalclass IN ('Server','VirtualMachine','PC'))",
     "owner": "SoftwareInstance",
     "required": true,
     "target": "FunctionalCI",
@@ -9017,6 +10245,7 @@
   ],
   "writable": [
    "business_criticity",
+   "dataflows",
    "description",
    "move2production",
    "name",
@@ -9077,6 +10306,11 @@
    "cpu": {
     "owner": "PC",
     "type": "String",
+    "ui": "scalar"
+   },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
     "ui": "scalar"
    },
    "description": {
@@ -9309,6 +10543,7 @@
    "brand_id",
    "business_criticity",
    "cpu",
+   "dataflows",
    "description",
    "end_of_warranty",
    "location_id",
@@ -9352,6 +10587,11 @@
     "owner": "FunctionalCI",
     "type": "LinkedSetIndirect",
     "ui": "related"
+   },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
+    "ui": "scalar"
    },
    "description": {
     "owner": "FunctionalCI",
@@ -9472,7 +10712,7 @@
     ]
    },
    "system_id": {
-    "filter": "SELECT FunctionalCI WHERE finalclass IN ('Server','VirtualMachine','PC')",
+    "filter": "SELECT FunctionalCI WHERE IF(:this->finalclass = 'ContainerApplication', finalclass = 'ContainerVirtualHost', finalclass IN ('Server','VirtualMachine','PC'))",
     "owner": "SoftwareInstance",
     "required": true,
     "target": "FunctionalCI",
@@ -9511,6 +10751,7 @@
   ],
   "writable": [
    "business_criticity",
+   "dataflows",
    "description",
    "move2production",
    "name",
@@ -9567,6 +10808,11 @@
     "owner": "FunctionalCI",
     "type": "LinkedSetIndirect",
     "ui": "related"
+   },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
+    "ui": "scalar"
    },
    "description": {
     "owner": "FunctionalCI",
@@ -9766,6 +11012,7 @@
    "asset_number",
    "brand_id",
    "business_criticity",
+   "dataflows",
    "description",
    "end_of_warranty",
    "location_id",
@@ -9860,6 +11107,11 @@
     "owner": "FunctionalCI",
     "type": "LinkedSetIndirect",
     "ui": "related"
+   },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
+    "ui": "scalar"
    },
    "description": {
     "owner": "FunctionalCI",
@@ -10021,6 +11273,7 @@
    "asset_number",
    "brand_id",
    "business_criticity",
+   "dataflows",
    "description",
    "end_of_warranty",
    "location_id",
@@ -10246,6 +11499,11 @@
     "type": "LinkedSetIndirect",
     "ui": "related"
    },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
+    "ui": "scalar"
+   },
    "description": {
     "owner": "FunctionalCI",
     "type": "Text",
@@ -10412,6 +11670,7 @@
    "asset_number",
    "brand_id",
    "business_criticity",
+   "dataflows",
    "description",
    "end_of_warranty",
    "location_id",
@@ -10470,6 +11729,11 @@
     "owner": "FunctionalCI",
     "type": "LinkedSetIndirect",
     "ui": "related"
+   },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
+    "ui": "scalar"
    },
    "description": {
     "owner": "FunctionalCI",
@@ -10630,6 +11894,7 @@
    "asset_number",
    "brand_id",
    "business_criticity",
+   "dataflows",
    "description",
    "end_of_warranty",
    "location_id",
@@ -10787,6 +12052,11 @@
     "owner": "FunctionalCI",
     "type": "LinkedSetIndirect",
     "ui": "related"
+   },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
+    "ui": "scalar"
    },
    "description": {
     "owner": "FunctionalCI",
@@ -10948,6 +12218,7 @@
    "asset_number",
    "brand_id",
    "business_criticity",
+   "dataflows",
    "description",
    "end_of_warranty",
    "location_id",
@@ -11005,6 +12276,11 @@
     "owner": "FunctionalCI",
     "type": "LinkedSetIndirect",
     "ui": "related"
+   },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
+    "ui": "scalar"
    },
    "description": {
     "owner": "FunctionalCI",
@@ -11174,6 +12450,7 @@
    "asset_number",
    "brand_id",
    "business_criticity",
+   "dataflows",
    "description",
    "end_of_warranty",
    "location_id",
@@ -11231,6 +12508,11 @@
     "owner": "FunctionalCI",
     "type": "LinkedSetIndirect",
     "ui": "related"
+   },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
+    "ui": "scalar"
    },
    "description": {
     "owner": "FunctionalCI",
@@ -11407,6 +12689,7 @@
    "asset_number",
    "brand_id",
    "business_criticity",
+   "dataflows",
    "description",
    "end_of_warranty",
    "location_id",
@@ -11417,6 +12700,350 @@
    "purchase_date",
    "serialnumber",
    "status"
+  ]
+ },
+ "Problem": {
+  "abstract": false,
+  "category": "bizmodel,searchable,problemmgmt",
+  "fields": {
+   "agent_id": {
+    "depends_on": [
+     "team_id"
+    ],
+    "filter": "SELECT Person AS p JOIN lnkPersonToTeam AS l ON l.person_id=p.id JOIN Team AS t ON l.team_id=t.id WHERE t.id = :this->team_id",
+    "owner": "Ticket",
+    "target": "Person",
+    "type": "ExternalKey",
+    "ui": "picker"
+   },
+   "agent_name": {
+    "owner": "Ticket",
+    "type": "ExternalField",
+    "ui": "readonly",
+    "via_att": "name",
+    "via_key": "agent_id"
+   },
+   "assignment_date": {
+    "owner": "Problem",
+    "type": "DateTime",
+    "ui": "scalar"
+   },
+   "caller_id": {
+    "depends_on": [
+     "org_id"
+    ],
+    "filter": "SELECT Person WHERE org_id = :this->org_id",
+    "owner": "Ticket",
+    "target": "Person",
+    "type": "ExternalKey",
+    "ui": "picker"
+   },
+   "caller_name": {
+    "owner": "Ticket",
+    "type": "ExternalField",
+    "ui": "readonly",
+    "via_att": "name",
+    "via_key": "caller_id"
+   },
+   "close_date": {
+    "owner": "Ticket",
+    "type": "DateTime",
+    "ui": "scalar"
+   },
+   "contacts_list": {
+    "link_key": "ticket_id",
+    "linked": "lnkContactToTicket",
+    "owner": "Ticket",
+    "type": "LinkedSetIndirect",
+    "ui": "related"
+   },
+   "description": {
+    "owner": "Ticket",
+    "required": true,
+    "type": "Text",
+    "ui": "scalar"
+   },
+   "end_date": {
+    "owner": "Ticket",
+    "type": "DateTime",
+    "ui": "scalar"
+   },
+   "functionalcis_list": {
+    "link_key": "ticket_id",
+    "linked": "lnkFunctionalCIToTicket",
+    "owner": "Ticket",
+    "type": "LinkedSetIndirect",
+    "ui": "related"
+   },
+   "impact": {
+    "owner": "Problem",
+    "required": true,
+    "type": "Enum",
+    "ui": "scalar",
+    "values": [
+     "1",
+     "2",
+     "3"
+    ]
+   },
+   "knownerrors_list": {
+    "link_key": "problem_id",
+    "linked": "KnownError",
+    "owner": "Problem",
+    "type": "LinkedSet",
+    "ui": "related"
+   },
+   "last_update": {
+    "owner": "Ticket",
+    "type": "DateTime",
+    "ui": "scalar"
+   },
+   "operational_status": {
+    "owner": "Ticket",
+    "type": "MetaEnum",
+    "ui": "scalar",
+    "values": [
+     "ongoing",
+     "resolved",
+     "closed"
+    ]
+   },
+   "org_id": {
+    "owner": "Ticket",
+    "required": true,
+    "target": "Organization",
+    "type": "ExternalKey",
+    "ui": "picker"
+   },
+   "org_name": {
+    "owner": "Ticket",
+    "type": "ExternalField",
+    "ui": "readonly",
+    "via_att": "name",
+    "via_key": "org_id"
+   },
+   "priority": {
+    "depends_on": [
+     "impact",
+     "urgency"
+    ],
+    "owner": "Problem",
+    "required": true,
+    "type": "Enum",
+    "ui": "scalar",
+    "values": [
+     "1",
+     "2",
+     "3",
+     "4"
+    ]
+   },
+   "private_log": {
+    "owner": "Ticket",
+    "type": "CaseLog",
+    "ui": "scalar"
+   },
+   "product": {
+    "owner": "Problem",
+    "type": "String",
+    "ui": "scalar"
+   },
+   "ref": {
+    "owner": "Ticket",
+    "type": "String",
+    "ui": "scalar"
+   },
+   "related_change_id": {
+    "filter": "SELECT Change WHERE status != \"closed\"",
+    "owner": "Problem",
+    "target": "Change",
+    "type": "ExternalKey",
+    "ui": "picker"
+   },
+   "related_change_ref": {
+    "owner": "Problem",
+    "type": "ExternalField",
+    "ui": "readonly",
+    "via_att": "ref",
+    "via_key": "related_change_id"
+   },
+   "related_incident_list": {
+    "link_key": "parent_problem_id",
+    "linked": "Incident",
+    "owner": "Problem",
+    "type": "LinkedSet",
+    "ui": "related"
+   },
+   "related_request_list": {
+    "link_key": "parent_problem_id",
+    "linked": "UserRequest",
+    "owner": "Problem",
+    "type": "LinkedSet",
+    "ui": "related"
+   },
+   "resolution_date": {
+    "owner": "Problem",
+    "type": "DateTime",
+    "ui": "scalar"
+   },
+   "service_id": {
+    "depends_on": [
+     "org_id"
+    ],
+    "filter": "SELECT Service",
+    "owner": "Problem",
+    "target": "Service",
+    "type": "ExternalKey",
+    "ui": "picker"
+   },
+   "service_name": {
+    "owner": "Problem",
+    "type": "ExternalField",
+    "ui": "readonly",
+    "via_att": "name",
+    "via_key": "service_id"
+   },
+   "servicesubcategory_id": {
+    "depends_on": [
+     "service_id"
+    ],
+    "filter": "SELECT ServiceSubcategory WHERE service_id = :this->service_id",
+    "owner": "Problem",
+    "target": "ServiceSubcategory",
+    "type": "ExternalKey",
+    "ui": "picker"
+   },
+   "servicesubcategory_name": {
+    "owner": "Problem",
+    "type": "ExternalField",
+    "ui": "readonly",
+    "via_att": "name",
+    "via_key": "servicesubcategory_id"
+   },
+   "start_date": {
+    "owner": "Ticket",
+    "type": "DateTime",
+    "ui": "scalar"
+   },
+   "status": {
+    "owner": "Problem",
+    "required": true,
+    "type": "Enum",
+    "ui": "scalar",
+    "values": [
+     "new",
+     "assigned",
+     "resolved",
+     "closed"
+    ]
+   },
+   "team_email": {
+    "owner": "Ticket",
+    "type": "ExternalField",
+    "ui": "readonly",
+    "via_att": "email",
+    "via_key": "team_id"
+   },
+   "team_id": {
+    "depends_on": [
+     "org_id"
+    ],
+    "filter": "SELECT Team AS t JOIN lnkDeliveryModelToContact AS l1 ON l1.contact_id=t.id JOIN DeliveryModel AS dm ON l1.deliverymodel_id=dm.id JOIN Organization AS o ON o.deliverymodel_id=dm.id WHERE o.id = :this->org_id",
+    "owner": "Ticket",
+    "target": "Team",
+    "type": "ExternalKey",
+    "ui": "picker"
+   },
+   "team_name": {
+    "owner": "Ticket",
+    "type": "ExternalField",
+    "ui": "readonly",
+    "via_att": "name",
+    "via_key": "team_id"
+   },
+   "title": {
+    "owner": "Ticket",
+    "required": true,
+    "type": "String",
+    "ui": "scalar"
+   },
+   "urgency": {
+    "owner": "Problem",
+    "required": true,
+    "type": "Enum",
+    "ui": "scalar",
+    "values": [
+     "1",
+     "2",
+     "3",
+     "4"
+    ]
+   },
+   "workorders_list": {
+    "link_key": "ticket_id",
+    "linked": "WorkOrder",
+    "owner": "Ticket",
+    "type": "LinkedSet",
+    "ui": "related"
+   }
+  },
+  "inherits": [
+   "cmdbAbstractObject",
+   "Ticket"
+  ],
+  "is_ci": false,
+  "is_ticket": true,
+  "lifecycle": {
+   "attribute": "status",
+   "states": {
+    "assigned": [
+     "ev_reassign",
+     "ev_resolve"
+    ],
+    "closed": [],
+    "new": [
+     "ev_assign"
+    ],
+    "resolved": [
+     "ev_reassign",
+     "ev_close"
+    ]
+   }
+  },
+  "readonly": [
+   "agent_name",
+   "caller_name",
+   "org_name",
+   "related_change_ref",
+   "service_name",
+   "servicesubcategory_name",
+   "team_email",
+   "team_name"
+  ],
+  "writable": [
+   "agent_id",
+   "assignment_date",
+   "caller_id",
+   "close_date",
+   "description",
+   "end_date",
+   "impact",
+   "last_update",
+   "operational_status",
+   "org_id",
+   "priority",
+   "private_log",
+   "product",
+   "ref",
+   "related_change_id",
+   "resolution_date",
+   "service_id",
+   "servicesubcategory_id",
+   "start_date",
+   "status",
+   "team_id",
+   "title",
+   "urgency"
   ]
  },
  "ProviderContract": {
@@ -11633,6 +13260,11 @@
     "type": "LinkedSetIndirect",
     "ui": "related"
    },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
+    "ui": "scalar"
+   },
    "description": {
     "owner": "FunctionalCI",
     "type": "Text",
@@ -11812,6 +13444,7 @@
    "asset_number",
    "brand_id",
    "business_criticity",
+   "dataflows",
    "description",
    "end_of_warranty",
    "location_id",
@@ -12269,6 +13902,11 @@
     "type": "LinkedSetIndirect",
     "ui": "related"
    },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
+    "ui": "scalar"
+   },
    "description": {
     "owner": "FunctionalCI",
     "type": "Text",
@@ -12546,6 +14184,7 @@
    "asset_number",
    "brand_id",
    "business_criticity",
+   "dataflows",
    "description",
    "enclosure_id",
    "end_of_warranty",
@@ -12747,9 +14386,21 @@
     "type": "LinkedSetIndirect",
     "ui": "related"
    },
+   "containerhosts_list": {
+    "link_key": "system_id",
+    "linked": "ContainerHost",
+    "owner": "Server",
+    "type": "LinkedSet",
+    "ui": "related"
+   },
    "cpu": {
     "owner": "Server",
     "type": "String",
+    "ui": "scalar"
+   },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
     "ui": "scalar"
    },
    "description": {
@@ -13100,6 +14751,7 @@
    "brand_id",
    "business_criticity",
    "cpu",
+   "dataflows",
    "description",
    "enclosure_id",
    "end_of_warranty",
@@ -13366,6 +15018,13 @@
   "abstract": false,
   "category": "bizmodel,searchable",
   "fields": {
+   "containerimages_list": {
+    "link_key": "software_id",
+    "linked": "ContainerImage",
+    "owner": "Software",
+    "type": "LinkedSet",
+    "ui": "related"
+   },
    "documents_list": {
     "link_key": "software_id",
     "linked": "lnkDocumentToSoftware",
@@ -13478,6 +15137,11 @@
     "owner": "FunctionalCI",
     "type": "LinkedSetIndirect",
     "ui": "related"
+   },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
+    "ui": "scalar"
    },
    "description": {
     "owner": "FunctionalCI",
@@ -13598,7 +15262,7 @@
     ]
    },
    "system_id": {
-    "filter": "SELECT FunctionalCI WHERE finalclass IN ('Server','VirtualMachine','PC')",
+    "filter": "SELECT FunctionalCI WHERE IF(:this->finalclass = 'ContainerApplication', finalclass = 'ContainerVirtualHost', finalclass IN ('Server','VirtualMachine','PC'))",
     "owner": "SoftwareInstance",
     "required": true,
     "target": "FunctionalCI",
@@ -13636,6 +15300,7 @@
   ],
   "writable": [
    "business_criticity",
+   "dataflows",
    "description",
    "move2production",
    "name",
@@ -13863,6 +15528,11 @@
     "owner": "FunctionalCI",
     "type": "LinkedSetIndirect",
     "ui": "related"
+   },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
+    "ui": "scalar"
    },
    "description": {
     "owner": "FunctionalCI",
@@ -14148,6 +15818,7 @@
    "asset_number",
    "brand_id",
    "business_criticity",
+   "dataflows",
    "description",
    "enclosure_id",
    "end_of_warranty",
@@ -14277,6 +15948,11 @@
     "owner": "FunctionalCI",
     "type": "LinkedSetIndirect",
     "ui": "related"
+   },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
+    "ui": "scalar"
    },
    "description": {
     "owner": "FunctionalCI",
@@ -14438,6 +16114,7 @@
    "asset_number",
    "brand_id",
    "business_criticity",
+   "dataflows",
    "description",
    "end_of_warranty",
    "location_id",
@@ -14591,6 +16268,11 @@
     "owner": "FunctionalCI",
     "type": "LinkedSetIndirect",
     "ui": "related"
+   },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
+    "ui": "scalar"
    },
    "description": {
     "owner": "FunctionalCI",
@@ -14876,6 +16558,7 @@
    "asset_number",
    "brand_id",
    "business_criticity",
+   "dataflows",
    "description",
    "enclosure_id",
    "end_of_warranty",
@@ -15047,6 +16730,11 @@
     "type": "LinkedSetIndirect",
     "ui": "related"
    },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
+    "ui": "scalar"
+   },
    "description": {
     "owner": "FunctionalCI",
     "type": "Text",
@@ -15212,6 +16900,7 @@
    "asset_number",
    "brand_id",
    "business_criticity",
+   "dataflows",
    "description",
    "end_of_warranty",
    "location_id",
@@ -16524,6 +18213,11 @@
     "type": "LinkedSetIndirect",
     "ui": "related"
    },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
+    "ui": "scalar"
+   },
    "description": {
     "owner": "FunctionalCI",
     "type": "Text",
@@ -16628,6 +18322,7 @@
   ],
   "writable": [
    "business_criticity",
+   "dataflows",
    "description",
    "move2production",
    "name",
@@ -16662,6 +18357,11 @@
     "owner": "FunctionalCI",
     "type": "LinkedSetIndirect",
     "ui": "related"
+   },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
+    "ui": "scalar"
    },
    "description": {
     "owner": "FunctionalCI",
@@ -16775,6 +18475,7 @@
   ],
   "writable": [
    "business_criticity",
+   "dataflows",
    "description",
    "move2production",
    "name",
@@ -16810,9 +18511,21 @@
     "type": "LinkedSetIndirect",
     "ui": "related"
    },
+   "containerhosts_list": {
+    "link_key": "system_id",
+    "linked": "ContainerHost",
+    "owner": "VirtualMachine",
+    "type": "LinkedSet",
+    "ui": "related"
+   },
    "cpu": {
     "owner": "VirtualMachine",
     "type": "String",
+    "ui": "scalar"
+   },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
     "ui": "scalar"
    },
    "description": {
@@ -17011,6 +18724,7 @@
   "writable": [
    "business_criticity",
    "cpu",
+   "dataflows",
    "description",
    "managementip",
    "move2production",
@@ -17051,6 +18765,11 @@
     "owner": "FunctionalCI",
     "type": "LinkedSetIndirect",
     "ui": "related"
+   },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
+    "ui": "scalar"
    },
    "description": {
     "owner": "FunctionalCI",
@@ -17163,6 +18882,7 @@
   ],
   "writable": [
    "business_criticity",
+   "dataflows",
    "description",
    "logo",
    "move2production",
@@ -17199,6 +18919,11 @@
     "owner": "FunctionalCI",
     "type": "LinkedSetIndirect",
     "ui": "related"
+   },
+   "dataflows": {
+    "owner": "FunctionalCI",
+    "type": "Dashboard",
+    "ui": "scalar"
    },
    "description": {
     "owner": "FunctionalCI",
@@ -17319,7 +19044,7 @@
     ]
    },
    "system_id": {
-    "filter": "SELECT FunctionalCI WHERE finalclass IN ('Server','VirtualMachine','PC')",
+    "filter": "SELECT FunctionalCI WHERE IF(:this->finalclass = 'ContainerApplication', finalclass = 'ContainerVirtualHost', finalclass IN ('Server','VirtualMachine','PC'))",
     "owner": "SoftwareInstance",
     "required": true,
     "target": "FunctionalCI",
@@ -17365,6 +19090,7 @@
   ],
   "writable": [
    "business_criticity",
+   "dataflows",
    "description",
    "move2production",
    "name",
@@ -17981,6 +19707,37 @@
    "role",
    "role_code",
    "ticket_id"
+  ]
+ },
+ "lnkContainerApplicationToImage": {
+  "abstract": false,
+  "category": "bizmodel",
+  "fields": {
+   "containerapplication_id": {
+    "owner": "lnkContainerApplicationToImage",
+    "required": true,
+    "target": "ContainerApplication",
+    "type": "ExternalKey",
+    "ui": "picker"
+   },
+   "containerimage_id": {
+    "owner": "lnkContainerApplicationToImage",
+    "required": true,
+    "target": "ContainerImage",
+    "type": "ExternalKey",
+    "ui": "picker"
+   }
+  },
+  "inherits": [
+   "cmdbAbstractObject"
+  ],
+  "is_ci": false,
+  "is_ticket": false,
+  "lifecycle": null,
+  "readonly": [],
+  "writable": [
+   "containerapplication_id",
+   "containerimage_id"
   ]
  },
  "lnkContractToDocument": {

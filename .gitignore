@@ -1,1 +1,4 @@
 .idea/
+
+# Local backups and operational dumps (DB dumps, compiled-env archives)
+/backups/
