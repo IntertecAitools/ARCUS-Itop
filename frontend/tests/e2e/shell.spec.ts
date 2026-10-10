@@ -49,22 +49,37 @@ test('the sidebar never renders a zero badge', async ({ page }) => {
   await expect(nav.getByText(/^0$/)).toHaveCount(0);
 });
 
-test('the built-module list contains only built modules', async ({ page }) => {
+test('the sidebar offers Dashboard and nothing else of ours', async ({ page }) => {
   await page.goto('/dashboard');
 
-  // The sidebar now has two parts: modules we built, and iTop's own tree
-  // rendered from what the BFF publishes. This asserts the first part only —
-  // the rule "a module is listed once it is built" applies to ours.
+  // Incidents, Records and Modules are registered but hidden: they are reached
+  // through iTop's tree, the dashboard's cross-links and the palette, so a nav
+  // item of their own would only be a second door to the same screens.
   const built = page.getByRole('group', { name: 'Built modules' });
-  await expect(built.getByRole('link')).toHaveCount(4);
-  for (const name of [/Dashboard/, /Incidents/, /Records/, /Modules/]) {
-    await expect(built.getByRole('link', { name })).toBeVisible();
+  await expect(built.getByRole('link')).toHaveCount(1);
+  await expect(built.getByRole('link', { name: /Dashboard/ })).toBeVisible();
+  for (const name of [/Incidents/, /Records/, /Modules/]) {
+    await expect(built.getByRole('link', { name })).toHaveCount(0);
   }
 
   // A path we never registered is genuinely absent rather than showing an
   // apology screen. Problem data is reachable, but at /records/Problem.
   await page.goto('/problems');
   await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible();
+});
+
+test('hidden modules still route', async ({ page }) => {
+  // The risk in hiding rather than deleting is doing it by deleting. Each of
+  // these is reached from somewhere in the UI, so all three must still load.
+  for (const [path, heading] of [
+    ['/incidents', 'Incidents'],
+    ['/records', 'Records'],
+    ['/modules', 'Modules'],
+    ['/records/Problem', 'Problem'],
+  ] as const) {
+    await page.goto(path);
+    await expect(page.getByRole('heading', { name: heading, level: 1 })).toBeVisible();
+  }
 });
 
 test("iTop's modules arrive through the BFF, not a hardcoded list", async ({ page }) => {
@@ -132,21 +147,22 @@ test('Ctrl-K opens the palette and navigates to a module', async ({ page }) => {
   const dialog = page.getByRole('dialog', { name: 'Search and navigate' });
   await expect(dialog).toBeVisible();
 
-  // The palette lists built modules only — it never surfaces a screen that
-  // doesn't exist.
-  await expect(dialog.getByRole('option')).toHaveCount(4);
+  // The palette lists our modules AND iTop's entries, so it is now the flat
+  // view of everything — which is what makes the sidebar able to stop
+  // listing Incidents and Records.
   await expect(dialog.getByRole('option', { name: /Dashboard/ })).toBeVisible();
+  expect(await dialog.getByRole('option').count()).toBeGreaterThan(20);
 
-  // A built module is reachable from the palette...
-  await dialog.getByPlaceholder(/jump to a module/i).fill('incidents');
-  await expect(dialog.getByRole('option', { name: /Incidents/ })).toBeVisible();
+  // An iTop entry is reachable from the palette, by its iTop label...
+  await dialog.getByPlaceholder(/jump to a module/i).fill('new problem');
+  await expect(dialog.getByRole('option', { name: /New problem/ })).toBeVisible();
   await page.keyboard.press('Enter');
-  await expect(page).toHaveURL(/\/incidents$/);
-  await expect(page.getByRole('heading', { name: 'Incidents', level: 1 })).toBeVisible();
+  await expect(page).toHaveURL(/\/records\/Problem\/new$/);
+  await expect(page.getByRole('heading', { name: 'New Problem', level: 1 })).toBeVisible();
 
-  // ...and one that does not exist is simply not there.
+  // ...and something that exists nowhere is simply not offered.
   await page.keyboard.press('Control+k');
-  await dialog.getByPlaceholder(/jump to a module/i).fill('problems');
+  await dialog.getByPlaceholder(/jump to a module/i).fill('zzzznothing');
   await expect(dialog.getByText(/No module matches/i)).toBeVisible();
 });
 
