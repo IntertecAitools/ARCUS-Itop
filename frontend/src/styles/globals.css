@@ -300,18 +300,6 @@
   }
 }
 
-@layer components {
-  /* The subtle mountain wash anchoring the bottom of the sidebar. */
-  .sidebar-wash {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 120' preserveAspectRatio='none'%3E%3Cpath d='M0 92 L48 54 L86 80 L126 36 L170 74 L210 50 L240 70 L240 120 L0 120 Z' fill='%232563eb' fill-opacity='0.05'/%3E%3Cpath d='M0 108 L40 82 L78 100 L120 68 L164 96 L206 76 L240 94 L240 120 L0 120 Z' fill='%232563eb' fill-opacity='0.07'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: bottom center;
-    /* Explicit height: the inline SVG has no intrinsic size, so `auto` would
-       stretch the wash up the full rail instead of hugging the bottom. */
-    background-size: 100% 180px;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

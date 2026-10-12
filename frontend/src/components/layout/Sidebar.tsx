@@ -76,7 +76,7 @@ export function Sidebar({ counts = {} }: SidebarProps) {
   return (
     <aside
       className={cn(
-        'sidebar-wash fixed inset-y-0 left-0 z-30 flex flex-col border-r border-line bg-surface',
+        'fixed inset-y-0 left-0 z-30 flex flex-col border-r border-line bg-surface',
         'transition-[width] duration-200 ease-out',
         collapsed ? 'w-sidebar-collapsed' : 'w-sidebar',
       )}
