@@ -139,6 +139,93 @@ test('creates a Problem through the generic form and it persists', async ({ page
   expect(errors).toEqual([]);
 });
 
+test("a record is laid out the way iTop lays it out", async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+
+  const title = `e2e layout ${Date.now()}`;
+  await page.goto('/records/Problem/new');
+  await page.locator('#field-title').fill(title);
+  await page.locator('#field-description').fill('Checking iTop’s own form layout.');
+  await page.locator('#field-impact').selectOption({ index: 1 });
+  await page.locator('#field-urgency').selectOption({ index: 1 });
+  await page.locator('#field-priority').selectOption({ index: 1 });
+  await page.locator('#field-org_id').selectOption({ index: 1 });
+  await page.getByRole('button', { name: 'Create' }).click();
+
+  const openRecord = page.getByRole('link', { name: 'Open the record' });
+  if (await openRecord.isVisible().catch(() => false)) await openRecord.click();
+  await expect(page).toHaveURL(/\/records\/Problem\/\d+$/);
+
+  const main = page.getByRole('main');
+
+  // iTop's fieldsets, by iTop's names, in iTop's order. Nothing in the
+  // frontend names these: they come from <presentation><details> via the BFF.
+  // Matched on the data attribute rather than the text, because "Contacts" is
+  // both a fieldset and a tab. The upper-case look is a CSS transform, and
+  // toHaveText reads textContent, so these are iTop's own strings.
+  await expect(main.locator('p[data-fieldset]')).toHaveText([
+    'General Information',
+    'More Information',
+    'Qualification',
+    'Dates',
+    'Contacts',
+    'Relations',
+    // Attributes the class has that iTop's layout does not place.
+    'Other',
+  ]);
+
+  // iTop's field wording, not the attribute code.
+  await expect(main.getByText('Service subcategory', { exact: true })).toBeVisible();
+  await expect(main.getByText('Related Change', { exact: true })).toBeVisible();
+
+  // A picker shows the name behind the id, not the raw integer. Asserted as
+  // "not a bare number" rather than against one organisation's name, because
+  // the form picks whichever the instance happens to have.
+  const organization = main.locator('dd[data-field="org_id"]');
+  await expect(organization).toBeVisible();
+  await expect(organization).not.toHaveText(/^\s*\d+\s*$/);
+
+  // A CaseLog is iTop's comment stream, not a string: rendering it naively
+  // prints "[object Object]".
+  await expect(main.getByText('[object Object]')).toHaveCount(0);
+
+  expect(errors).toEqual([]);
+});
+
+test("related objects appear as tabs, and lifecycle actions as buttons", async ({ page }) => {
+  await page.goto('/records/Problem');
+  await page.getByRole('row').nth(1).getByRole('link').first().click();
+  await expect(page).toHaveURL(/\/records\/Problem\/\d+$/);
+
+  // iTop declares these related lists on the Problem form; the detail screen
+  // used to drop LinkedSets entirely, which is most of what a ticket is about.
+  for (const tab of ['Details', 'CIs', 'Contacts', 'Known Errors']) {
+    await expect(page.getByRole('tab', { name: tab })).toBeVisible();
+  }
+
+  await page.getByRole('tab', { name: 'Contacts' }).click();
+  await expect(page.getByText('Nothing linked yet', { exact: true })).toBeVisible();
+  // iTop's link classes (lnkContactToTicket) must not surface to the reader.
+  await expect(page.getByText(/lnk[A-Z]/)).toHaveCount(0);
+
+  // A new Problem is in state `new`, whose only transition iTop allows is
+  // assignment — so exactly one action, labelled the way iTop labels it.
+  await page.getByRole('tab', { name: 'Details' }).click();
+  await expect(page.getByRole('button', { name: 'Assign' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Close' })).toHaveCount(0);
+});
+
+test('a list uses the columns iTop declares', async ({ page }) => {
+  await page.goto('/records/Problem');
+  await expect(page.getByRole('heading', { name: 'Problem', level: 1 })).toBeVisible();
+
+  // iTop's <presentation><list> for Problem, in order, with iTop's wording.
+  for (const header of ['Title', 'Organization', 'Start date', 'Status', 'Service', 'Priority']) {
+    await expect(page.getByRole('columnheader', { name: header, exact: true })).toBeVisible();
+  }
+});
+
 test('an unknown class does not pretend to exist', async ({ page }) => {
   await page.goto('/records/NoSuchClass');
 

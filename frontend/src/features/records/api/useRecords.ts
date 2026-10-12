@@ -1,10 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  applyStimulus,
   createRecord,
   getClassInfo,
   getClasses,
   getFieldOptions,
   getRecord,
+  getRelated,
   listRecords,
   updateRecord,
 } from './records.api';
@@ -83,4 +85,25 @@ export function useUpdateRecord(className: string, id: string) {
     (fields: Record<string, unknown>) => updateRecord(className, id, fields),
     className,
   );
+}
+
+/** Related objects for one LinkedSet attribute. */
+export function useRelated(className: string, id: string, attcode: string) {
+  return useQuery({
+    queryKey: ['records', className, 'links', id, attcode],
+    queryFn: () => getRelated(className, id, attcode),
+    enabled: Boolean(className && id && attcode),
+  });
+}
+
+/** Lifecycle actions. Invalidates the record so the new state is shown. */
+export function useApplyStimulus(className: string, id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (stimulus: string) => applyStimulus(className, id, stimulus),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['records', className] });
+      queryClient.invalidateQueries({ queryKey: ['shell', 'nav-counts'] });
+    },
+  });
 }

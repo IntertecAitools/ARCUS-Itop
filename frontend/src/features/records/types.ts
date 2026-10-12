@@ -20,8 +20,17 @@ export interface FieldSpec {
   values?: string[];
   /** For a picker: the class it points at. */
   target?: string;
+  /**
+   * For a read-only ExternalField: the picker it is resolved through, and the
+   * attribute it reads on the far side. `org_name` is `org_id` -> `name`.
+   * These are what let a picker display a name instead of an integer id.
+   */
+  viaKey?: string;
+  viaAttribute?: string;
   /** For a related set: the class on the other end. */
   linked?: string;
+  /** False when `linked` is absent from the published schema, so it cannot be listed. */
+  linkedAvailable?: boolean;
   owner?: string;
 }
 
@@ -40,13 +49,51 @@ export interface ClassList {
   groups?: Record<string, string[]>;
 }
 
+/**
+ * iTop's own form layout: columns, each holding titled fieldsets of ordered
+ * fields. Rendering this rather than sorting attribute codes is what makes a
+ * generic screen look like iTop's screen for that class.
+ */
+export interface Fieldset {
+  id: string;
+  label: string;
+  fields: string[];
+}
+
+export interface Presentation {
+  columns: { id: string; fieldsets: Fieldset[] }[];
+  /** The columns iTop shows when listing this class. */
+  list: string[];
+  /** LinkedSet attributes iTop renders as related-object tabs. */
+  related: string[];
+}
+
+/** iTop's wording for a class, its fields, its enum values and its actions. */
+export interface ClassLabels {
+  class: string;
+  fields: Record<string, string>;
+  values: Record<string, Record<string, string>>;
+  stimuli?: Record<string, string>;
+}
+
 export interface ClassInfo {
   name: string;
   isCi: boolean;
   abstract: boolean;
   parent: string | null;
   inherits: string[];
-  lifecycle: { attribute: string; states: Record<string, string[]> } | null;
+  lifecycle: {
+    attribute: string;
+    states: Record<string, string[]>;
+    /**
+     * Action ids available on a record of this class. Opaque to the frontend:
+     * they are displayed using `labels.stimuli` and sent back as received.
+     */
+    stimuli: string[];
+  } | null;
+  /** Null when iTop declares no layout for the class. */
+  presentation: Presentation | null;
+  labels: ClassLabels;
   writable: string[];
   readonly: string[];
   related: string[];

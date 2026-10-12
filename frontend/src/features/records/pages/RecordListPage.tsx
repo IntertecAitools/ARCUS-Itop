@@ -39,13 +39,19 @@ export function RecordListPage() {
   }, [view, navigation]);
 
   /**
-   * Which columns to request.
+   * Which columns to show.
    *
-   * Asking iTop for every attribute on a wide class is slow and unreadable, so
-   * this takes the first few writable scalars — the fields a human recognises.
+   * iTop declares this per class in <presentation><list>, and using it is what
+   * makes a list look like iTop's list: `title, org_id, start_date, status,
+   * service_id, priority` for a Problem, rather than whatever the first few
+   * attributes happen to be. The heuristic below is the fallback for the 17
+   * classes that declare none.
    */
   const columns = useMemo(() => {
     if (!info) return [];
+    const declared = (info.presentation?.list ?? []).filter((a) => info.fields[a]);
+    if (declared.length > 0) return declared.slice(0, MAX_COLUMNS);
+
     const preferred = ['name', 'friendlyname', 'ref', 'title', 'status', 'org_name'];
     const scalars = info.writable.filter((a) => info.fields[a]?.ui === 'scalar');
     const ordered = [
@@ -65,11 +71,14 @@ export function RecordListPage() {
   const tableColumns = useMemo<Column<RecordDto>[]>(() => {
     const cells: Column<RecordDto>[] = columns.map((attcode) => ({
       id: attcode,
-      header: humaniseAttcode(attcode),
+      header: info?.labels?.fields?.[attcode] ?? humaniseAttcode(attcode),
       enableSorting: false,
       cell: ({ row }) => {
         const value = row.original.fields[attcode];
-        const text = value === null || value === undefined || value === '' ? '—' : String(value);
+        const raw = value === null || value === undefined || value === '' ? '' : String(value);
+        // iTop's wording for enum values: `status` reads "Assigned", and
+        // impact/urgency are stored as "1".."4" which humanise to nothing.
+        const text = raw === '' ? '—' : (info?.labels?.values?.[attcode]?.[raw] ?? raw);
         return (
           <span className="block truncate text-ink" title={text}>
             {text}
@@ -96,7 +105,9 @@ export function RecordListPage() {
       },
       ...cells,
     ];
-  }, [columns, className]);
+    // `info` carries the labels the headers and cells read, so it belongs in
+    // the dependencies — without it the first render's wording would stick.
+  }, [columns, className, info]);
 
   const update = (patch: Record<string, string | undefined>) => {
     const next = new URLSearchParams(params);

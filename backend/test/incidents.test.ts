@@ -171,9 +171,14 @@ describe("IncidentsService mapping", () => {
   });
 
   it("decodes impact and urgency out of iTop's numbers", async () => {
+    // The two scales measure different things, and conflating them caused a
+    // real bug: impact is HOW WIDELY the effect is felt ("a department"),
+    // urgency is HOW BAD it is ("high"). Mapping impact onto severity made our
+    // form say "Critical" while iTop displayed that same record as
+    // "A department".
     const { svc } = stub([row({ impact: "1", urgency: "2" })]);
     const detail = await svc.get("7");
-    assert.equal(detail.impact, "critical");
+    assert.equal(detail.impact, "department");
     assert.equal(detail.urgency, "high");
   });
 

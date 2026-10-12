@@ -4,6 +4,7 @@ import type { DefaultOrganization } from "../../shared/default-organization.js";
 import type { ObjectDto, ObjectsService } from "../../platform/objects/objects.service.js";
 import {
   actionsForState,
+  IMPACT_LABELS,
   IMPACT_MAP,
   isTrue,
   ORIGINS,
@@ -398,9 +399,11 @@ export class IncidentsService {
         value,
         label: humanise(label),
       })),
+      // iTop's own wording rather than a humanised code: impact is a scope,
+      // and "Department" on its own reads like a field name.
       impacts: Object.entries(IMPACT_MAP).map(([value, label]) => ({
         value,
-        label: humanise(label),
+        label: IMPACT_LABELS[label] ?? humanise(label),
       })),
       origins: options(ORIGINS),
       resolutionCodes: options(RESOLUTION_CODES),

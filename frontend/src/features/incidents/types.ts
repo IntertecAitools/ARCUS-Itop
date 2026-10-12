@@ -13,7 +13,10 @@ export interface Incident {
   status: TicketStatus;
   priority: TicketPriority;
   assignee?: { id: string; name: string };
+  caller?: { id: string; name: string };
+  organization?: { id: string; name: string };
   createdAt: string;
+  operationalStatus?: string;
 }
 
 export interface IncidentListResult {
@@ -25,7 +28,7 @@ export interface IncidentListResult {
   hasMore: boolean;
 }
 
-export type IncidentSort = 'ref' | 'title' | 'status' | 'priority' | 'start_date';
+export type IncidentSort = 'ref' | 'title' | 'status' | 'priority' | 'start_date' | 'caller_id' | 'org_id';
 
 export interface IncidentFilters {
   page: number;
@@ -42,7 +45,10 @@ export interface CaseLogEntry {
   date: string;
   author: string;
   message: string;
+  isPrivate?: boolean;
 }
+
+export type OperationalStatus = 'operational' | 'degraded' | 'outage';
 
 /** The lifecycle actions the backend exposes. */
 export type TransitionAction = 'assign' | 'reassign' | 'hold' | 'resolve' | 'close' | 'reopen';
@@ -60,21 +66,46 @@ export interface IncidentDetail extends Incident {
   resolvedAt?: string;
   closedAt?: string;
   lastUpdatedAt?: string;
+  assignmentDate?: string;
+  lastPendingDate?: string;
+  ttoDeadline?: string;
+  ttrDeadline?: string;
   sla: {
     ttoBreached: boolean;
     ttrBreached: boolean;
     ttoDeadline?: string;
     ttrDeadline?: string;
+    ttoPassed?: boolean;
+    ttoOver?: boolean;
+    ttrPassed?: boolean;
+    ttrOver?: boolean;
   };
+  escalationFlag?: string;
+  escalationReason?: string;
+  pendingReason?: string;
+  operationalStatus?: OperationalStatus;
   resolution?: string;
   resolutionCode?: string;
+  timeSpent?: string;
+  userSatisfaction?: string;
+  userComment?: string;
   log: CaseLogEntry[];
-  /**
-   * Which actions are legal right now, computed by the backend from iTop's own
-   * lifecycle. Render buttons from this — never guess, or the UI will offer a
-   * transition iTop rejects.
-   */
+  privateLog?: CaseLogEntry[];
+  parentIncident?: { id: string; ref: string; title: string };
+  parentRequest?: { id: string; ref: string; title: string };
+  parentProblem?: { id: string; ref: string; title: string };
+  parentChange?: { id: string; ref: string; title: string };
+  relatedRequests?: Array<{ id: string; ref: string; title: string }>;
+  childIncidents?: Array<{ id: string; ref: string; title: string }>;
+  escalationFlagDisplay?: string;
+  escalationReasonDisplay?: string;
+  pendingReasonDisplay?: string;
   availableActions: TransitionAction[];
+}
+
+export interface OperationalStatusOption {
+  value: OperationalStatus;
+  label: string;
 }
 
 /**
@@ -107,6 +138,10 @@ export interface UpdateIncidentInput {
   teamId?: string | null;
   serviceId?: string | null;
   serviceSubcategoryId?: string | null;
+  operationalStatus?: OperationalStatus | null;
+  escalationFlag?: string | null;
+  escalationReason?: string | null;
+  pendingReason?: string | null;
 }
 
 export interface TransitionInput {
@@ -123,11 +158,21 @@ export interface SelectOption {
   label: string;
 }
 
+export interface OperationalStatusSelectOption extends SelectOption {
+  value: OperationalStatus;
+}
+
 /** A person, as the caller picker needs them. */
 export interface PersonOption {
   id: string;
   fullName: string;
   email?: string;
+}
+
+export interface RelatedObjectOption {
+  id: string;
+  ref: string;
+  title: string;
 }
 
 export interface IncidentOptions {
@@ -140,6 +185,7 @@ export interface IncidentOptions {
   agents: SelectOption[];
   teams: SelectOption[];
   services: SelectOption[];
+  operationalStatuses: OperationalStatusSelectOption[];
   /** Each carries its parent service, so the picker narrows on selection. */
   serviceSubcategories: Array<SelectOption & { serviceId: string }>;
 }

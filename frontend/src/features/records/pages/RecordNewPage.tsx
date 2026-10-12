@@ -6,7 +6,8 @@ import { PageHeader } from '@/components/layout';
 import { Button, buttonClasses, Card, CardBody, CardHeader, Skeleton } from '@/components/ui';
 import { EmptyState } from '@/components/feedback';
 import { useClassInfo, useCreateRecord } from '../api/useRecords';
-import { FieldInput, humaniseAttcode } from '../components/FieldControls';
+import { humaniseAttcode } from '../components/FieldControls';
+import { layoutFor, RecordForm } from '../components/RecordForm';
 import type { RecordDto } from '../types';
 
 /** What the BFF returns from a create: the row, plus anything iTop refused. */
@@ -39,23 +40,22 @@ export function RecordNewPage() {
   const [partial, setPartial] = useState<CreateResult | null>(null);
 
   /**
-   * Fields a create form should offer.
+   * Fields a create form should offer, in iTop's own order.
    *
-   * Required ones first, because they are what blocks the save, then the rest
-   * in a stable order. Lifecycle attributes are excluded: iTop owns the
-   * starting state and rejects an attempt to set it.
+   * Lifecycle attributes are excluded: iTop owns the starting state and
+   * rejects an attempt to set it.
    */
-  const fields = useMemo(() => {
-    if (!info) return [];
-    const writable = info.writable.filter((a) =>
-      ['scalar', 'picker'].includes(info.fields[a]?.ui ?? ''),
+  const offered = useMemo(() => {
+    if (!info) return () => false;
+    const writable = new Set(
+      info.writable.filter((a) => ['scalar', 'picker'].includes(info.fields[a]?.ui ?? '')),
     );
     const lifecycle = info.lifecycle?.attribute;
-    const offered = writable.filter((a) => a !== lifecycle);
-    const required = offered.filter((a) => info.fields[a]?.required);
-    const optional = offered.filter((a) => !info.fields[a]?.required);
-    return [...required, ...optional];
+    return (code: string) => writable.has(code) && code !== lifecycle;
   }, [info]);
+
+  const fieldsets = useMemo(() => (info ? layoutFor(info, offered) : []), [info, offered]);
+  const fields = useMemo(() => fieldsets.flatMap((f) => f.fields), [fieldsets]);
 
   const missing = useMemo(
     () => fields.filter((a) => info?.fields[a]?.required && !(draft[a] ?? '').trim()),
@@ -200,45 +200,34 @@ export function RecordNewPage() {
         </div>
       ) : null}
 
-      <Card>
+      <Card className="mb-4">
         <CardHeader
           title="Fields"
-          subtitle={missing.length > 0 ? `${missing.length} required field(s) still empty` : 'Ready to save'}
+          subtitle={
+            missing.length > 0
+              ? `${missing.length} required field(s) still empty`
+              : 'Ready to save'
+          }
           action={
-            <Button size="sm" onClick={submit} loading={create.isPending} disabled={missing.length > 0}>
+            <Button
+              size="sm"
+              onClick={submit}
+              loading={create.isPending}
+              disabled={missing.length > 0}
+            >
               Create
             </Button>
           }
         />
-        <CardBody>
-          <dl className="divide-y divide-line">
-            {fields.map((attcode) => {
-              const spec = info.fields[attcode];
-              if (!spec) return null;
-              return (
-                <div
-                  key={attcode}
-                  className="grid grid-cols-1 gap-1.5 py-3 sm:grid-cols-[minmax(0,14rem)_1fr] sm:gap-4"
-                >
-                  <dt className="text-[12.5px] text-ink-muted">
-                    <label htmlFor={`field-${attcode}`}>{humaniseAttcode(attcode)}</label>
-                    {spec.required ? <span className="ml-0.5 text-critical">*</span> : null}
-                  </dt>
-                  <dd className="min-w-0 text-[13px]">
-                    <FieldInput
-                      className={className}
-                      attcode={attcode}
-                      spec={spec}
-                      value={draft[attcode] ?? ''}
-                      onChange={(v) => setDraft((d) => ({ ...d, [attcode]: v }))}
-                    />
-                  </dd>
-                </div>
-              );
-            })}
-          </dl>
-        </CardBody>
       </Card>
+
+      <RecordForm
+        info={info}
+        fieldsets={fieldsets}
+        editing
+        draft={draft}
+        onChange={(attcode, value) => setDraft((d) => ({ ...d, [attcode]: value }))}
+      />
     </>
   );
 }

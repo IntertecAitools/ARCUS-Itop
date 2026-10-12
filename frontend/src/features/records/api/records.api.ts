@@ -55,3 +55,27 @@ export const getFieldOptions = (className: string, attcode: string) =>
   apiClient.get<{ options: PickerOption[]; total: number; truncated: boolean }>(
     `/meta/classes/${className}/fields/${attcode}/options`,
   );
+
+/** Objects on the far side of a LinkedSet — iTop's related-object tabs. */
+export const getRelated = (className: string, id: string, attcode: string) =>
+  apiClient.get<RecordList>(`/objects/${className}/${id}/links/${attcode}`);
+
+/**
+ * Apply a lifecycle action to a record.
+ *
+ * The action id is whatever the BFF published for this class — it is never
+ * written down here, which is why the architecture guard that bans iTop's
+ * stimulus vocabulary from the UI still passes. iTop decides what an action
+ * does and which fields it demands, so the BFF forwards it rather than the
+ * frontend trying to compute the next state.
+ */
+export const applyStimulus = (
+  className: string,
+  id: string,
+  stimulus: string,
+  fields: Record<string, unknown> = {},
+) =>
+  apiClient.post<{ object: RecordDto }>(`/objects/${className}/${id}/stimulus`, {
+    stimulus,
+    fields,
+  });

@@ -34,14 +34,52 @@ function toText(value: string) {
  * Deliberately conservative: anything unrecognised falls through to text
  * rather than guessing, because a wrong widget hides data.
  */
-export function FieldValue({ spec, value }: { spec: FieldSpec; value: unknown }) {
+/** One entry of an iTop CaseLog. */
+interface CaseLogEntry {
+  date?: string;
+  user_login?: string;
+  message?: string;
+}
+
+export function FieldValue({
+  spec,
+  value,
+  valueLabels,
+}: {
+  spec: FieldSpec;
+  value: unknown;
+  /** iTop's wording for this field's enum values, e.g. `new` -> "New". */
+  valueLabels?: Record<string, string>;
+}) {
   if (value === null || value === undefined || value === '' || value === '0') {
     return <span className="text-ink-muted">—</span>;
   }
 
+  /**
+   * A CaseLog is iTop's comment stream, not a string. It arrives as
+   * `{ entries: [...] }`, which stringifies to "[object Object]" — so it is
+   * rendered as the log it is.
+   */
+  if (spec.type === 'CaseLog') {
+    const entries = (value as { entries?: CaseLogEntry[] })?.entries ?? [];
+    if (entries.length === 0) return <span className="text-ink-muted">No entries</span>;
+    return (
+      <ul className="space-y-2">
+        {entries.map((entry, i) => (
+          <li key={`${entry.date ?? i}-${i}`} className="border-l-2 border-line pl-2.5">
+            <p className="text-[11.5px] text-ink-muted">
+              {[entry.user_login, entry.date].filter(Boolean).join(' · ')}
+            </p>
+            <p className="whitespace-pre-wrap text-ink">{toText(String(entry.message ?? ''))}</p>
+          </li>
+        ))}
+      </ul>
+    );
+  }
+
   const raw = String(value);
 
-  if (spec.type === 'Text' || spec.type === 'CaseLog' || spec.type === 'HTML') {
+  if (spec.type === 'Text' || spec.type === 'HTML') {
     const text = toText(raw);
     return (
       <span className="block whitespace-pre-wrap text-ink">{text || <span className="text-ink-muted">—</span>}</span>
@@ -53,7 +91,9 @@ export function FieldValue({ spec, value }: { spec: FieldSpec; value: unknown })
   }
 
   if (spec.values?.length) {
-    return <span className="text-ink">{humaniseAttcode(raw)}</span>;
+    // iTop's own label where it has one. Its enum ids are not always
+    // humanisable: impact and urgency are stored as "1".."4".
+    return <span className="text-ink">{valueLabels?.[raw] ?? humaniseAttcode(raw)}</span>;
   }
 
   return <span className="break-words text-ink">{raw}</span>;
@@ -71,12 +111,15 @@ export function FieldInput({
   spec,
   value,
   onChange,
+  valueLabels,
 }: {
   className: string;
   attcode: string;
   spec: FieldSpec;
   value: string;
   onChange: (value: string) => void;
+  /** iTop's wording for this field's enum values. */
+  valueLabels?: Record<string, string>;
 }) {
   const isPicker = spec.ui === 'picker';
   const { data: picker, isFetching } = useFieldOptions(itopClass, attcode, isPicker);
@@ -113,7 +156,7 @@ export function FieldInput({
         <option value="">Not set</option>
         {spec.values.map((v) => (
           <option key={v} value={v}>
-            {humaniseAttcode(v)}
+            {valueLabels?.[v] ?? humaniseAttcode(v)}
           </option>
         ))}
       </select>

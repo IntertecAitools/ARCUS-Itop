@@ -2,13 +2,19 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Pencil, X } from 'lucide-react';
 import { PageHeader } from '@/components/layout';
-import { Button, buttonClasses, Card, CardBody, CardHeader, Skeleton } from '@/components/ui';
+import { Button, buttonClasses, Card, Skeleton } from '@/components/ui';
 import { EmptyState } from '@/components/feedback';
-import { useClassInfo, useRecord, useUpdateRecord } from '../api/useRecords';
-import { FieldInput, FieldValue, humaniseAttcode } from '../components/FieldControls';
+import { cn } from '@/lib/utils';
+import { useApplyStimulus, useClassInfo, useRecord, useUpdateRecord } from '../api/useRecords';
+import { fieldLabel, layoutFor, RecordForm } from '../components/RecordForm';
+import { RelatedTab } from '../components/RelatedTab';
 
 /**
- * One record of any class, rendered from the schema.
+ * One record of any class, laid out the way iTop lays it out.
+ *
+ * Three things come from the schema rather than from this file: the fieldsets
+ * and their order, the labels, and the lifecycle actions. That is what makes
+ * one screen stand in for 136 classes without any of them looking generic.
  *
  * Edits write straight through the BFF to iTop, so a change made here IS the
  * change in the system of record — there is no second step in iTop's console.
@@ -18,23 +24,55 @@ export function RecordDetailPage() {
   const { data: info, isLoading: schemaLoading } = useClassInfo(className);
   const { data: record, isLoading, isError, error } = useRecord(className, id);
   const update = useUpdateRecord(className, id);
+  const stimulus = useApplyStimulus(className, id);
 
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Record<string, string>>({});
+  const [tab, setTab] = useState<string>('details');
 
   /** Only writable scalars and pickers can be edited; the rest are display. */
   const editable = useMemo(
-    () => (info?.writable ?? []).filter((a) => ['scalar', 'picker'].includes(info?.fields[a]?.ui ?? '')),
+    () =>
+      (info?.writable ?? []).filter((a) =>
+        ['scalar', 'picker'].includes(info?.fields[a]?.ui ?? ''),
+      ),
     [info],
   );
 
-  const shown = useMemo(() => {
-    if (!info || !record) return [];
-    // Related sets are tabs in iTop, not values; showing them here would print
-    // an object id and tell the reader nothing.
-    return Object.keys(record.fields)
-      .filter((a) => info.fields[a] && !['related', 'ignored'].includes(info.fields[a].ui))
-      .sort();
+  const editableSet = useMemo(() => new Set(editable), [editable]);
+
+  const fieldsets = useMemo(() => {
+    if (!info) return [];
+    if (editing) return layoutFor(info, (code) => editableSet.has(code));
+    // Related sets are tabs, not values: rendering one inline would print an
+    // object id and tell the reader nothing.
+    return layoutFor(
+      info,
+      (code) =>
+        Boolean(record?.fields && code in record.fields) &&
+        !['related', 'ignored'].includes(info.fields[code]?.ui ?? ''),
+    );
+  }, [info, record, editing, editableSet]);
+
+  /** LinkedSet attributes iTop shows as tabs, keeping iTop's order. */
+  const relatedTabs = useMemo(() => {
+    if (!info) return [];
+    const declared = info.presentation?.related ?? [];
+    const rest = info.related.filter((code) => !declared.includes(code));
+    return [...declared, ...rest].filter((code) => info.fields[code]?.linkedAvailable !== false);
+  }, [info]);
+
+  /**
+   * The actions available right now.
+   *
+   * iTop declares transitions per state, so the record's current state decides
+   * what can be applied. Offering every stimulus would show buttons that
+   * always fail.
+   */
+  const actions = useMemo(() => {
+    if (!info?.lifecycle || !record) return [];
+    const state = String(record.fields[info.lifecycle.attribute] ?? '');
+    return info.lifecycle.states[state] ?? [];
   }, [info, record]);
 
   // Reset the draft whenever the record reloads, so a stale edit cannot be
@@ -69,7 +107,7 @@ export function RecordDetailPage() {
   const crumbs = [
     { label: 'Home', to: '/' },
     { label: 'Records', to: '/records' },
-    { label: className, to: `/records/${className}` },
+    { label: info?.labels?.class ?? className, to: `/records/${className}` },
     { label: `#${id}` },
   ];
 
@@ -82,7 +120,10 @@ export function RecordDetailPage() {
             title={`No ${className} with id ${id}`}
             description={error instanceof Error ? error.message : undefined}
             action={
-              <Link to={`/records/${className}`} className={buttonClasses({ variant: 'secondary', size: 'sm' })}>
+              <Link
+                to={`/records/${className}`}
+                className={buttonClasses({ variant: 'secondary', size: 'sm' })}
+              >
                 Back to {className}
               </Link>
             }
@@ -101,14 +142,33 @@ export function RecordDetailPage() {
     );
   }
 
+  const tabs = [{ id: 'details', label: 'Details' }, ...relatedTabs.map((code) => ({
+    id: code,
+    label: fieldLabel(info, code),
+  }))];
+
   return (
     <>
       <PageHeader
         breadcrumbs={crumbs}
-        title={record.label || `${className} #${record.id}`}
-        description={`${className} · id ${record.id}`}
+        title={record.label || `${info.labels.class} #${record.id}`}
+        description={`${info.labels.class} · id ${record.id}`}
         actions={
-          <>
+          <div className="flex flex-wrap items-center gap-2">
+            {/* iTop's own actions for the record's current state. */}
+            {!editing
+              ? actions.map((action) => (
+                  <Button
+                    key={action}
+                    variant="secondary"
+                    size="sm"
+                    loading={stimulus.isPending && stimulus.variables === action}
+                    onClick={() => stimulus.mutate(action)}
+                  >
+                    {info.labels.stimuli?.[action] ?? action}
+                  </Button>
+                ))
+              : null}
             {editable.length > 0 ? (
               <Button
                 variant="secondary"
@@ -119,65 +179,67 @@ export function RecordDetailPage() {
                 {editing ? 'Cancel' : 'Edit'}
               </Button>
             ) : null}
-            <Link to={`/records/${className}`} className={buttonClasses({ variant: 'secondary', size: 'sm' })}>
-              <ArrowLeft className="mr-1.5 size-4" />
-              All {className}
-            </Link>
-          </>
-        }
-      />
-
-      {update.isError ? (
-        <div role="alert" className="mb-4 rounded-card border border-critical/30 bg-critical-soft px-4 py-3 text-[13px] text-critical-ink">
-          {update.error instanceof Error ? update.error.message : 'Could not save those changes.'}
-        </div>
-      ) : null}
-
-      <Card>
-        <CardHeader
-          title={editing ? 'Edit fields' : 'Fields'}
-          subtitle={editing ? `${editable.length} writable` : `${shown.length} shown`}
-          action={
-            editing ? (
+            {editing ? (
               <Button size="sm" onClick={save} loading={update.isPending}>
                 Save changes
               </Button>
-            ) : undefined
-          }
+            ) : null}
+            <Link
+              to={`/records/${className}`}
+              className={buttonClasses({ variant: 'secondary', size: 'sm' })}
+            >
+              <ArrowLeft className="mr-1.5 size-4" />
+              All {info.labels.class}
+            </Link>
+          </div>
+        }
+      />
+
+      {update.isError || stimulus.isError ? (
+        <div
+          role="alert"
+          className="mb-4 rounded-card border border-critical/30 bg-critical-soft px-4 py-3 text-[13px] text-critical-ink"
+        >
+          {(update.error ?? stimulus.error) instanceof Error
+            ? (update.error ?? stimulus.error)!.message
+            : 'That change could not be saved.'}
+        </div>
+      ) : null}
+
+      {tabs.length > 1 ? (
+        <div className="mb-4 flex flex-wrap gap-1 border-b border-line" role="tablist">
+          {tabs.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              aria-selected={tab === t.id}
+              onClick={() => setTab(t.id)}
+              className={cn(
+                '-mb-px border-b-2 px-3 py-2 text-[13px] transition-colors',
+                tab === t.id
+                  ? 'border-brand font-medium text-brand-ink'
+                  : 'border-transparent text-ink-secondary hover:text-ink',
+              )}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      {tab === 'details' ? (
+        <RecordForm
+          info={info}
+          fieldsets={fieldsets}
+          editing={editing}
+          values={record.fields}
+          draft={draft}
+          onChange={(attcode, value) => setDraft((d) => ({ ...d, [attcode]: value }))}
         />
-        <CardBody>
-          <dl className="divide-y divide-line">
-            {(editing ? editable : shown).map((attcode) => {
-              const spec = info.fields[attcode];
-              if (!spec) return null;
-              return (
-                <div
-                  key={attcode}
-                  className="grid grid-cols-1 gap-1.5 py-3 sm:grid-cols-[minmax(0,14rem)_1fr] sm:gap-4"
-                >
-                  <dt className="text-[12.5px] text-ink-muted">
-                    <label htmlFor={`field-${attcode}`}>{humaniseAttcode(attcode)}</label>
-                    {spec.required ? <span className="ml-0.5 text-critical">*</span> : null}
-                  </dt>
-                  <dd className="min-w-0 text-[13px]">
-                    {editing ? (
-                      <FieldInput
-                        className={className}
-                        attcode={attcode}
-                        spec={spec}
-                        value={draft[attcode] ?? ''}
-                        onChange={(v) => setDraft((d) => ({ ...d, [attcode]: v }))}
-                      />
-                    ) : (
-                      <FieldValue spec={spec} value={record.fields[attcode]} />
-                    )}
-                  </dd>
-                </div>
-              );
-            })}
-          </dl>
-        </CardBody>
-      </Card>
+      ) : (
+        <RelatedTab info={info} id={id} attcode={tab} />
+      )}
     </>
   );
 }

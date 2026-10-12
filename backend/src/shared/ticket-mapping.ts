@@ -167,18 +167,27 @@ export function actionsForState(
  * ------------------------------------------------------------------------ */
 
 /**
- * Impact, on the SAME severity scale as urgency.
+ * Impact: HOW WIDELY the incident is felt, which is iTop's own meaning.
  *
- * iTop stores only three impact levels, so the four-point urgency scale cannot
- * be mirrored exactly -- these are its top three. Offering a fourth label that
- * saved as one of these would be a control that quietly loses the user's
- * choice. iTop's own meaning is breadth (1 = a department, 2 = a service,
- * 3 = a person), which maps onto severity in this order.
+ * This was briefly mapped onto urgency's severity scale (critical/high/medium)
+ * so the two controls would read alike. That was wrong in a way that only
+ * shows up in iTop: picking "critical" stores impact=1, and iTop then displays
+ * that record as "A department". The label on our form and the label in the
+ * system of record disagreed about what the user had chosen.
+ *
+ * Severity is urgency's job, and urgency has the full four-point scale.
  */
 export const IMPACT_MAP: Record<string, string> = {
-  "1": "critical",
-  "2": "high",
-  "3": "medium",
+  "1": "department",
+  "2": "service",
+  "3": "person",
+};
+
+/** iTop's own wording for the impact scale, for anything user-facing. */
+export const IMPACT_LABELS: Record<string, string> = {
+  department: "A department",
+  service: "A service",
+  person: "A person",
 };
 
 export const URGENCY_MAP: Record<string, string> = {

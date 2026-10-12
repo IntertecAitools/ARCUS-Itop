@@ -61,10 +61,46 @@ export function IncidentListPage() {
         cell: ({ row }) => <PriorityBadge priority={row.original.priority} size="sm" />,
       },
       {
+        accessorKey: 'operationalStatus',
+        header: 'Operational Status',
+        size: 160,
+        cell: ({ row }) => {
+          const status = row.original.operationalStatus;
+          if (!status) return <span className="text-ink-muted">—</span>;
+          return (
+            <span className="text-ink-secondary capitalize">{status}</span>
+          );
+        },
+      },
+      {
         accessorKey: 'status',
         header: 'Status',
         size: 124,
         cell: ({ row }) => <StatusPill status={row.original.status} size="sm" />,
+      },
+      {
+        accessorKey: 'caller',
+        header: 'Caller',
+        size: 160,
+        cell: ({ row }) => {
+          const caller = row.original.caller;
+          if (!caller) return <span className="text-ink-muted">—</span>;
+          return (
+            <span className="truncate text-ink-secondary">{caller.name}</span>
+          );
+        },
+      },
+      {
+        accessorKey: 'organization',
+        header: 'Organisation',
+        size: 160,
+        cell: ({ row }) => {
+          const org = row.original.organization;
+          if (!org) return <span className="text-ink-muted">—</span>;
+          return (
+            <span className="truncate text-ink-secondary">{org.name}</span>
+          );
+        },
       },
       {
         accessorKey: 'assignee',
