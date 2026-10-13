@@ -7,7 +7,7 @@ import { Button, buttonClasses, Card, CardBody, CardHeader, Skeleton } from '@/c
 import { EmptyState } from '@/components/feedback';
 import { useClassInfo, useCreateRecord } from '../api/useRecords';
 import { humaniseAttcode } from '../components/FieldControls';
-import { layoutFor, RecordForm } from '../components/RecordForm';
+import { layoutFor, mustSupply, RecordForm } from '../components/RecordForm';
 import type { RecordDto } from '../types';
 
 /** What the BFF returns from a create: the row, plus anything iTop refused. */
@@ -58,7 +58,11 @@ export function RecordNewPage() {
   const fields = useMemo(() => fieldsets.flatMap((f) => f.fields), [fieldsets]);
 
   const missing = useMemo(
-    () => fields.filter((a) => info?.fields[a]?.required && !(draft[a] ?? '').trim()),
+    () =>
+      fields.filter((a) => {
+        const spec = info?.fields[a];
+        return spec && mustSupply(spec) && !(draft[a] ?? '').trim();
+      }),
     [fields, info, draft],
   );
 
@@ -148,7 +152,7 @@ export function RecordNewPage() {
       <PageHeader
         breadcrumbs={crumbs}
         title={`New ${className}`}
-        description={`${fields.filter((a) => info.fields[a]?.required).length} required of ${fields.length} fields`}
+        description={`${fields.filter((a) => mustSupply(info.fields[a] ?? {})).length} required of ${fields.length} fields`}
         actions={
           <Link
             to={`/records/${className}`}

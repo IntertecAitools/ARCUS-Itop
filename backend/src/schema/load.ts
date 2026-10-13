@@ -191,6 +191,7 @@ function buildClass(
       widget: widgetFor(type, ui),
       owner: rawField.owner ?? name,
       required: rawField.required === true,
+      hasDefault: rawField.has_default === true,
     };
 
     if (rawField.values) field.values = rawField.values;

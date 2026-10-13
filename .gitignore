@@ -6,3 +6,6 @@
 # Python bytecode from the schema extractors
 __pycache__/
 *.pyc
+
+# Playwright artefacts
+frontend/test-results/

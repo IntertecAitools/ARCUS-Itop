@@ -1,6 +1,7 @@
 import type { Config } from "./config/env.js";
 import { ItopClient, type Logger } from "./itop/client.js";
 import { CmdbSchema } from "./schema/load.js";
+import { AttachmentsService } from "./modules/attachments/attachments.service.js";
 import { DashboardService } from "./modules/dashboard/index.js";
 import { DirectoryService } from "./modules/directory/index.js";
 import { IncidentsService } from "./modules/incidents/index.js";
@@ -16,6 +17,7 @@ export interface Services {
   navigation: Navigation;
   client: ItopClient;
   objects: ObjectsService;
+  attachments: AttachmentsService;
   lookups: LookupsService;
   relations: RelationsService;
   dashboard: DashboardService;
@@ -50,6 +52,7 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     navigation,
     client,
     objects,
+    attachments: new AttachmentsService(objects, schema),
     lookups: new LookupsService(client, schema, config.lookupCacheTtlMs),
     relations: new RelationsService(client, schema),
     dashboard: new DashboardService(objects),

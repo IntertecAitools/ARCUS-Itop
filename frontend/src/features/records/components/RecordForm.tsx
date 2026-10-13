@@ -16,6 +16,17 @@ import type { ClassInfo, Fieldset } from '../types';
  * of 11 of the 158 classes.
  */
 
+/**
+ * Must the user supply this?
+ *
+ * NOT the same as the datamodel's NOT NULL flag: iTop defaults several of
+ * those itself. Marking them mandatory makes a form demand values iTop was
+ * going to choose, and disables the submit button until they are guessed.
+ */
+export function mustSupply(spec: { required?: boolean; hasDefault?: boolean }) {
+  return Boolean(spec.required) && !spec.hasDefault;
+}
+
 export function fieldLabel(info: ClassInfo, attcode: string) {
   // iTop's wording wins; the humaniser is for the handful of attributes the
   // dictionary has no entry for.
@@ -116,7 +127,7 @@ function FieldRow({
     <div className="grid grid-cols-1 gap-1 py-2 sm:grid-cols-[minmax(0,11rem)_1fr] sm:gap-3">
       <dt className="text-[12.5px] text-ink-muted">
         <label htmlFor={`field-${attcode}`}>{fieldLabel(info, attcode)}</label>
-        {spec?.required ? <span className="ml-0.5 text-critical">*</span> : null}
+        {spec && mustSupply(spec) ? <span className="ml-0.5 text-critical">*</span> : null}
       </dt>
       {/* `data-field` so a test can address one field's value without relying
           on label text, which repeats across fieldsets and tabs. */}

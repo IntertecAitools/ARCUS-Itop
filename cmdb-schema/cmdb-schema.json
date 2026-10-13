@@ -11,6 +11,7 @@
     "ui": "related"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -123,6 +124,7 @@
     "ui": "related"
    },
    "status": {
+    "has_default": true,
     "owner": "ApplicationSolution",
     "type": "Enum",
     "ui": "scalar",
@@ -388,6 +390,7 @@
     "ui": "picker"
    },
    "operational_status": {
+    "has_default": true,
     "owner": "Ticket",
     "type": "MetaEnum",
     "ui": "scalar",
@@ -412,6 +415,7 @@
     "via_key": "org_id"
    },
    "outage": {
+    "has_default": true,
     "owner": "Change",
     "required": true,
     "type": "Enum",
@@ -494,6 +498,7 @@
     "ui": "scalar"
    },
    "status": {
+    "has_default": true,
     "owner": "Change",
     "type": "Enum",
     "ui": "scalar",
@@ -853,6 +858,7 @@
     "ui": "scalar"
    },
    "expire": {
+    "has_default": true,
     "owner": "Attachment",
     "required": true,
     "type": "DateTime",
@@ -870,6 +876,7 @@
     "ui": "scalar"
    },
    "item_org_id": {
+    "has_default": true,
     "owner": "Attachment",
     "type": "Integer",
     "ui": "scalar"
@@ -1217,6 +1224,7 @@
     "ui": "related"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -1310,6 +1318,7 @@
     "ui": "related"
    },
    "status": {
+    "has_default": true,
     "owner": "BusinessProcess",
     "type": "Enum",
     "ui": "scalar",
@@ -1558,6 +1567,7 @@
     "ui": "picker"
    },
    "operational_status": {
+    "has_default": true,
     "owner": "Ticket",
     "type": "MetaEnum",
     "ui": "scalar",
@@ -1582,6 +1592,7 @@
     "via_key": "org_id"
    },
    "outage": {
+    "has_default": true,
     "owner": "Change",
     "required": true,
     "type": "Enum",
@@ -1664,6 +1675,7 @@
     "ui": "scalar"
    },
    "status": {
+    "has_default": true,
     "owner": "Change",
     "type": "Enum",
     "ui": "scalar",
@@ -2007,6 +2019,7 @@
     "ui": "related"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -2130,6 +2143,7 @@
     "ui": "related"
    },
    "status": {
+    "has_default": true,
     "owner": "VirtualDevice",
     "type": "Enum",
     "ui": "scalar",
@@ -2311,6 +2325,7 @@
     "via_key": "brand_id"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -2469,6 +2484,7 @@
     "ui": "related"
    },
    "status": {
+    "has_default": true,
     "owner": "PhysicalDevice",
     "type": "Enum",
     "ui": "scalar",
@@ -2624,6 +2640,7 @@
     "ui": "scalar"
    },
    "notify": {
+    "has_default": true,
     "owner": "Contact",
     "type": "Enum",
     "ui": "scalar",
@@ -2652,6 +2669,7 @@
     "ui": "scalar"
    },
    "status": {
+    "has_default": true,
     "owner": "Contact",
     "required": true,
     "type": "Enum",
@@ -2775,6 +2793,7 @@
     "ui": "related"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -3112,6 +3131,7 @@
     "ui": "related"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -3225,6 +3245,7 @@
     "ui": "related"
    },
    "status": {
+    "has_default": true,
     "owner": "ContainerVirtualHost",
     "required": true,
     "type": "Enum",
@@ -3367,6 +3388,7 @@
     "ui": "related"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -3464,6 +3486,7 @@
     "ui": "related"
    },
    "role": {
+    "has_default": true,
     "owner": "ContainerHost",
     "required": true,
     "type": "Enum",
@@ -3489,6 +3512,7 @@
     "ui": "related"
    },
    "status": {
+    "has_default": true,
     "owner": "ContainerVirtualHost",
     "required": true,
     "type": "Enum",
@@ -3858,6 +3882,7 @@
     "ui": "related"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -3959,6 +3984,7 @@
     "ui": "related"
    },
    "status": {
+    "has_default": true,
     "owner": "ContainerVirtualHost",
     "required": true,
     "type": "Enum",
@@ -4572,6 +4598,7 @@
     "ui": "related"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -4888,6 +4915,7 @@
     "ui": "related"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -4935,6 +4963,7 @@
     "ui": "picker"
    },
    "destination_impact": {
+    "has_default": true,
     "owner": "DataFlow",
     "required": true,
     "type": "Enum",
@@ -4957,6 +4986,7 @@
     "ui": "related"
    },
    "execution_frequency": {
+    "has_default": true,
     "owner": "DataFlow",
     "required": true,
     "type": "Enum",
@@ -5039,6 +5069,7 @@
     "ui": "picker"
    },
    "source_impact": {
+    "has_default": true,
     "owner": "DataFlow",
     "required": true,
     "type": "Enum",
@@ -5049,6 +5080,7 @@
     ]
    },
    "status": {
+    "has_default": true,
     "owner": "DataFlow",
     "required": true,
     "type": "Enum",
@@ -5304,6 +5336,7 @@
     "ui": "related"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -5551,6 +5584,7 @@
     "via_key": "brand_id"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -5806,6 +5840,7 @@
     "ui": "related"
    },
    "status": {
+    "has_default": true,
     "owner": "PhysicalDevice",
     "type": "Enum",
     "ui": "scalar",
@@ -6816,6 +6851,7 @@
     "ui": "picker"
    },
    "operational_status": {
+    "has_default": true,
     "owner": "Ticket",
     "type": "MetaEnum",
     "ui": "scalar",
@@ -6840,6 +6876,7 @@
     "via_key": "org_id"
    },
    "outage": {
+    "has_default": true,
     "owner": "Change",
     "required": true,
     "type": "Enum",
@@ -6922,6 +6959,7 @@
     "ui": "scalar"
    },
    "status": {
+    "has_default": true,
     "owner": "Change",
     "type": "Enum",
     "ui": "scalar",
@@ -7303,6 +7341,7 @@
     "via_key": "brand_id"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -7473,6 +7512,7 @@
     "ui": "related"
    },
    "status": {
+    "has_default": true,
     "owner": "PhysicalDevice",
     "type": "Enum",
     "ui": "scalar",
@@ -7803,6 +7843,7 @@
     "ui": "related"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -7910,6 +7951,7 @@
     "ui": "related"
    },
    "status": {
+    "has_default": true,
     "owner": "VirtualDevice",
     "type": "Enum",
     "ui": "scalar",
@@ -8186,6 +8228,7 @@
     "ui": "related"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -8398,6 +8441,7 @@
     "via_key": "parent_id"
    },
    "status": {
+    "has_default": true,
     "owner": "Group",
     "required": true,
     "type": "Enum",
@@ -8513,6 +8557,7 @@
     "ui": "related"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -8634,6 +8679,7 @@
     "ui": "related"
    },
    "status": {
+    "has_default": true,
     "owner": "VirtualDevice",
     "type": "Enum",
     "ui": "scalar",
@@ -8988,6 +9034,7 @@
     "via_key": "brand_id"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -9137,6 +9184,7 @@
     "ui": "related"
    },
    "status": {
+    "has_default": true,
     "owner": "PhysicalDevice",
     "type": "Enum",
     "ui": "scalar",
@@ -9382,6 +9430,7 @@
     "ui": "scalar"
    },
    "escalation_flag": {
+    "has_default": true,
     "owner": "Incident",
     "type": "Enum",
     "ui": "scalar",
@@ -9403,6 +9452,7 @@
     "ui": "related"
    },
    "impact": {
+    "has_default": true,
     "owner": "Incident",
     "required": true,
     "type": "Enum",
@@ -9424,6 +9474,7 @@
     "ui": "scalar"
    },
    "operational_status": {
+    "has_default": true,
     "owner": "Ticket",
     "type": "MetaEnum",
     "ui": "scalar",
@@ -9448,6 +9499,7 @@
     "via_key": "org_id"
    },
    "origin": {
+    "has_default": true,
     "owner": "Incident",
     "type": "Enum",
     "ui": "scalar",
@@ -9525,6 +9577,7 @@
      "impact",
      "urgency"
     ],
+    "has_default": true,
     "owner": "Incident",
     "required": true,
     "type": "Enum",
@@ -9559,6 +9612,7 @@
     "ui": "related"
    },
    "resolution_code": {
+    "has_default": true,
     "owner": "Incident",
     "type": "Enum",
     "ui": "scalar",
@@ -9646,6 +9700,7 @@
     "ui": "scalar"
    },
    "status": {
+    "has_default": true,
     "owner": "Incident",
     "required": true,
     "type": "Enum",
@@ -9730,6 +9785,7 @@
     "via_att": "ttr"
    },
    "urgency": {
+    "has_default": true,
     "owner": "Incident",
     "required": true,
     "type": "Enum",
@@ -9747,6 +9803,7 @@
     "ui": "scalar"
    },
    "user_satisfaction": {
+    "has_default": true,
     "owner": "Incident",
     "type": "Enum",
     "ui": "scalar",
@@ -10167,6 +10224,7 @@
     "ui": "related"
    },
    "domain": {
+    "has_default": true,
     "owner": "KnownError",
     "required": true,
     "type": "Enum",
@@ -10372,6 +10430,7 @@
     "via_key": "org_id"
    },
    "perpetual": {
+    "has_default": true,
     "owner": "Licence",
     "required": true,
     "type": "Enum",
@@ -10543,6 +10602,7 @@
     "ui": "scalar"
    },
    "status": {
+    "has_default": true,
     "owner": "Location",
     "type": "Enum",
     "ui": "scalar",
@@ -10947,6 +11007,7 @@
     "ui": "related"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -11263,6 +11324,7 @@
     "ui": "related"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -11518,6 +11580,7 @@
     "via_key": "brand_id"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -11677,6 +11740,7 @@
     "ui": "related"
    },
    "status": {
+    "has_default": true,
     "owner": "PhysicalDevice",
     "type": "Enum",
     "ui": "scalar",
@@ -12015,6 +12079,7 @@
     "via_key": "brand_id"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -12277,6 +12342,7 @@
     "ui": "related"
    },
    "status": {
+    "has_default": true,
     "owner": "PhysicalDevice",
     "type": "Enum",
     "ui": "scalar",
@@ -12658,6 +12724,7 @@
     "via_key": "brand_id"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -12959,6 +13026,7 @@
     "ui": "related"
    },
    "status": {
+    "has_default": true,
     "owner": "PhysicalDevice",
     "type": "Enum",
     "ui": "scalar",
@@ -13424,6 +13492,7 @@
     "ui": "picker"
    },
    "operational_status": {
+    "has_default": true,
     "owner": "Ticket",
     "type": "MetaEnum",
     "ui": "scalar",
@@ -13448,6 +13517,7 @@
     "via_key": "org_id"
    },
    "outage": {
+    "has_default": true,
     "owner": "Change",
     "required": true,
     "type": "Enum",
@@ -13530,6 +13600,7 @@
     "ui": "scalar"
    },
    "status": {
+    "has_default": true,
     "owner": "Change",
     "type": "Enum",
     "ui": "scalar",
@@ -13952,6 +14023,7 @@
     "ui": "scalar"
    },
    "status": {
+    "has_default": true,
     "owner": "OAuthClient",
     "required": true,
     "type": "Enum",
@@ -14093,6 +14165,7 @@
     "ui": "scalar"
    },
    "scope": {
+    "has_default": true,
     "owner": "OAuthClientAzure",
     "type": "EnumSet",
     "ui": "scalar",
@@ -14102,6 +14175,7 @@
     ]
    },
    "status": {
+    "has_default": true,
     "owner": "OAuthClient",
     "required": true,
     "type": "Enum",
@@ -14112,6 +14186,7 @@
     ]
    },
    "tenant": {
+    "has_default": true,
     "owner": "OAuthClientAzure",
     "required": true,
     "type": "String",
@@ -14128,6 +14203,7 @@
     "ui": "scalar"
    },
    "used_for_smtp": {
+    "has_default": true,
     "owner": "OAuthClientAzure",
     "type": "Enum",
     "ui": "scalar",
@@ -14141,6 +14217,7 @@
      "scope",
      "advanced_scope"
     ],
+    "has_default": true,
     "owner": "OAuthClientAzure",
     "required": true,
     "type": "Enum",
@@ -14323,6 +14400,7 @@
     "ui": "scalar"
    },
    "scope": {
+    "has_default": true,
     "owner": "OAuthClientGoogle",
     "type": "EnumSet",
     "ui": "scalar",
@@ -14332,6 +14410,7 @@
     ]
    },
    "status": {
+    "has_default": true,
     "owner": "OAuthClient",
     "required": true,
     "type": "Enum",
@@ -14352,6 +14431,7 @@
     "ui": "scalar"
    },
    "used_for_smtp": {
+    "has_default": true,
     "owner": "OAuthClientGoogle",
     "type": "Enum",
     "ui": "scalar",
@@ -14365,6 +14445,7 @@
      "scope",
      "advanced_scope"
     ],
+    "has_default": true,
     "owner": "OAuthClientGoogle",
     "required": true,
     "type": "Enum",
@@ -14606,6 +14687,7 @@
     "via_key": "osversion_id"
    },
    "perpetual": {
+    "has_default": true,
     "owner": "Licence",
     "required": true,
     "type": "Enum",
@@ -15000,6 +15082,7 @@
     "via_key": "parent_id"
    },
    "status": {
+    "has_default": true,
     "owner": "Organization",
     "type": "Enum",
     "ui": "scalar",
@@ -15075,6 +15158,7 @@
     "ui": "related"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -15400,6 +15484,7 @@
     "via_key": "brand_id"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -15605,6 +15690,7 @@
     "ui": "related"
    },
    "status": {
+    "has_default": true,
     "owner": "PhysicalDevice",
     "type": "Enum",
     "ui": "scalar",
@@ -15821,6 +15907,7 @@
     "ui": "related"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -16145,6 +16232,7 @@
     "via_key": "brand_id"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -16324,6 +16412,7 @@
     "ui": "related"
    },
    "status": {
+    "has_default": true,
     "owner": "PhysicalDevice",
     "type": "Enum",
     "ui": "scalar",
@@ -16606,6 +16695,7 @@
     "via_key": "brand_id"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -16750,6 +16840,7 @@
     "ui": "related"
    },
    "status": {
+    "has_default": true,
     "owner": "PhysicalDevice",
     "type": "Enum",
     "ui": "scalar",
@@ -16988,6 +17079,7 @@
     "ui": "scalar"
    },
    "notify": {
+    "has_default": true,
     "owner": "Contact",
     "type": "Enum",
     "ui": "scalar",
@@ -17021,6 +17113,7 @@
     "ui": "scalar"
    },
    "status": {
+    "has_default": true,
     "owner": "Contact",
     "required": true,
     "type": "Enum",
@@ -17204,6 +17297,7 @@
     "via_key": "brand_id"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -17353,6 +17447,7 @@
     "ui": "related"
    },
    "status": {
+    "has_default": true,
     "owner": "PhysicalDevice",
     "type": "Enum",
     "ui": "scalar",
@@ -17549,6 +17644,7 @@
     "via_key": "brand_id"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -17693,6 +17789,7 @@
     "ui": "related"
    },
    "status": {
+    "has_default": true,
     "owner": "PhysicalDevice",
     "type": "Enum",
     "ui": "scalar",
@@ -18017,6 +18114,7 @@
     "via_key": "brand_id"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -18161,6 +18259,7 @@
     "ui": "related"
    },
    "status": {
+    "has_default": true,
     "owner": "PhysicalDevice",
     "type": "Enum",
     "ui": "scalar",
@@ -18353,6 +18452,7 @@
     "via_key": "brand_id"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -18504,6 +18604,7 @@
     "ui": "related"
    },
    "status": {
+    "has_default": true,
     "owner": "PhysicalDevice",
     "type": "Enum",
     "ui": "scalar",
@@ -18700,6 +18801,7 @@
     "via_key": "brand_id"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -18858,6 +18960,7 @@
     "ui": "related"
    },
    "status": {
+    "has_default": true,
     "owner": "PhysicalDevice",
     "type": "Enum",
     "ui": "scalar",
@@ -19098,6 +19201,7 @@
     "ui": "related"
    },
    "impact": {
+    "has_default": true,
     "owner": "Problem",
     "required": true,
     "type": "Enum",
@@ -19121,6 +19225,7 @@
     "ui": "scalar"
    },
    "operational_status": {
+    "has_default": true,
     "owner": "Ticket",
     "type": "MetaEnum",
     "ui": "scalar",
@@ -19149,6 +19254,7 @@
      "impact",
      "urgency"
     ],
+    "has_default": true,
     "owner": "Problem",
     "required": true,
     "type": "Enum",
@@ -19248,6 +19354,7 @@
     "ui": "scalar"
    },
    "status": {
+    "has_default": true,
     "owner": "Problem",
     "required": true,
     "type": "Enum",
@@ -19290,6 +19397,7 @@
     "ui": "scalar"
    },
    "urgency": {
+    "has_default": true,
     "owner": "Problem",
     "required": true,
     "type": "Enum",
@@ -19840,6 +19948,7 @@
     "via_key": "brand_id"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -20003,6 +20112,7 @@
     "ui": "related"
    },
    "status": {
+    "has_default": true,
     "owner": "PhysicalDevice",
     "type": "Enum",
     "ui": "scalar",
@@ -20300,6 +20410,7 @@
     "ui": "picker"
    },
    "operational_status": {
+    "has_default": true,
     "owner": "Ticket",
     "type": "MetaEnum",
     "ui": "scalar",
@@ -20324,6 +20435,7 @@
     "via_key": "org_id"
    },
    "outage": {
+    "has_default": true,
     "owner": "Change",
     "required": true,
     "type": "Enum",
@@ -20406,6 +20518,7 @@
     "ui": "scalar"
    },
    "status": {
+    "has_default": true,
     "owner": "Change",
     "type": "Enum",
     "ui": "scalar",
@@ -20775,6 +20888,7 @@
     "via_key": "brand_id"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -21037,6 +21151,7 @@
     "ui": "related"
    },
    "status": {
+    "has_default": true,
     "owner": "PhysicalDevice",
     "type": "Enum",
     "ui": "scalar",
@@ -21490,6 +21605,7 @@
     "via_key": "brand_id"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -21823,6 +21939,7 @@
     "ui": "related"
    },
    "status": {
+    "has_default": true,
     "owner": "PhysicalDevice",
     "type": "Enum",
     "ui": "scalar",
@@ -22152,6 +22269,7 @@
     "ui": "related"
    },
    "status": {
+    "has_default": true,
     "owner": "Service",
     "required": true,
     "type": "Enum",
@@ -22301,6 +22419,7 @@
     "ui": "scalar"
    },
    "request_type": {
+    "has_default": true,
     "owner": "ServiceSubcategory",
     "required": true,
     "type": "Enum",
@@ -22339,6 +22458,7 @@
     "via_key": "service_id"
    },
    "status": {
+    "has_default": true,
     "owner": "ServiceSubcategory",
     "required": true,
     "type": "Enum",
@@ -22597,6 +22717,7 @@
     "ui": "related"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -22898,6 +23019,7 @@
     "via_key": "org_id"
    },
    "perpetual": {
+    "has_default": true,
     "owner": "Licence",
     "required": true,
     "type": "Enum",
@@ -23191,6 +23313,7 @@
     "via_key": "brand_id"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -23453,6 +23576,7 @@
     "ui": "related"
    },
    "status": {
+    "has_default": true,
     "owner": "PhysicalDevice",
     "type": "Enum",
     "ui": "scalar",
@@ -23819,6 +23943,7 @@
     "via_key": "brand_id"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -23963,6 +24088,7 @@
     "ui": "related"
    },
    "status": {
+    "has_default": true,
     "owner": "PhysicalDevice",
     "type": "Enum",
     "ui": "scalar",
@@ -24316,6 +24442,7 @@
     "via_key": "brand_id"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -24571,6 +24698,7 @@
     "ui": "related"
    },
    "status": {
+    "has_default": true,
     "owner": "PhysicalDevice",
     "type": "Enum",
     "ui": "scalar",
@@ -24816,6 +24944,7 @@
     "ui": "scalar"
    },
    "notify": {
+    "has_default": true,
     "owner": "Contact",
     "type": "Enum",
     "ui": "scalar",
@@ -24856,6 +24985,7 @@
     "ui": "scalar"
    },
    "status": {
+    "has_default": true,
     "owner": "Contact",
     "required": true,
     "type": "Enum",
@@ -24972,6 +25102,7 @@
     "via_key": "brand_id"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -25121,6 +25252,7 @@
     "ui": "related"
    },
    "status": {
+    "has_default": true,
     "owner": "PhysicalDevice",
     "type": "Enum",
     "ui": "scalar",
@@ -25322,6 +25454,7 @@
     "ui": "scalar"
    },
    "operational_status": {
+    "has_default": true,
     "owner": "Ticket",
     "type": "MetaEnum",
     "ui": "scalar",
@@ -26099,6 +26232,7 @@
     "ui": "scalar"
    },
    "escalation_flag": {
+    "has_default": true,
     "owner": "UserRequest",
     "type": "Enum",
     "ui": "scalar",
@@ -26120,6 +26254,7 @@
     "ui": "related"
    },
    "impact": {
+    "has_default": true,
     "owner": "UserRequest",
     "required": true,
     "type": "Enum",
@@ -26141,6 +26276,7 @@
     "ui": "scalar"
    },
    "operational_status": {
+    "has_default": true,
     "owner": "Ticket",
     "type": "MetaEnum",
     "ui": "scalar",
@@ -26165,6 +26301,7 @@
     "via_key": "org_id"
    },
    "origin": {
+    "has_default": true,
     "owner": "UserRequest",
     "type": "Enum",
     "ui": "scalar",
@@ -26241,6 +26378,7 @@
      "impact",
      "urgency"
     ],
+    "has_default": true,
     "owner": "UserRequest",
     "required": true,
     "type": "Enum",
@@ -26282,6 +26420,7 @@
     "ui": "related"
    },
    "request_type": {
+    "has_default": true,
     "owner": "UserRequest",
     "type": "Enum",
     "ui": "scalar",
@@ -26290,6 +26429,7 @@
     ]
    },
    "resolution_code": {
+    "has_default": true,
     "owner": "UserRequest",
     "type": "Enum",
     "ui": "scalar",
@@ -26378,6 +26518,7 @@
     "ui": "scalar"
    },
    "status": {
+    "has_default": true,
     "owner": "UserRequest",
     "required": true,
     "type": "Enum",
@@ -26465,6 +26606,7 @@
     "via_att": "ttr"
    },
    "urgency": {
+    "has_default": true,
     "owner": "UserRequest",
     "required": true,
     "type": "Enum",
@@ -26482,6 +26624,7 @@
     "ui": "scalar"
    },
    "user_satisfaction": {
+    "has_default": true,
     "owner": "UserRequest",
     "type": "Enum",
     "ui": "scalar",
@@ -27027,6 +27170,7 @@
     "ui": "related"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -27122,6 +27266,7 @@
     "ui": "related"
    },
    "status": {
+    "has_default": true,
     "owner": "VirtualDevice",
     "type": "Enum",
     "ui": "scalar",
@@ -27257,6 +27402,7 @@
     "ui": "related"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -27352,6 +27498,7 @@
     "ui": "related"
    },
    "status": {
+    "has_default": true,
     "owner": "VirtualDevice",
     "type": "Enum",
     "ui": "scalar",
@@ -27468,6 +27615,7 @@
     "ui": "related"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -27646,6 +27794,7 @@
     "ui": "related"
    },
    "status": {
+    "has_default": true,
     "owner": "VirtualDevice",
     "type": "Enum",
     "ui": "scalar",
@@ -27842,6 +27991,7 @@
     "ui": "related"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -28088,6 +28238,7 @@
     "ui": "related"
    },
    "business_criticity": {
+    "has_default": true,
     "owner": "FunctionalCI",
     "type": "Enum",
     "ui": "scalar",
@@ -28485,6 +28636,7 @@
     "ui": "scalar"
    },
    "status": {
+    "has_default": true,
     "owner": "WorkOrder",
     "required": true,
     "type": "Enum",
@@ -28623,6 +28775,7 @@
     "ui": "picker"
    },
    "subscribed": {
+    "has_default": true,
     "owner": "lnkActionNotificationToContact",
     "required": true,
     "type": "Boolean",
@@ -28827,6 +28980,7 @@
     "via_key": "connectableci_id"
    },
    "connection_type": {
+    "has_default": true,
     "owner": "lnkConnectableCIToNetworkDevice",
     "required": true,
     "type": "Enum",
@@ -29176,6 +29330,7 @@
     "ui": "scalar"
    },
    "role_code": {
+    "has_default": true,
     "owner": "lnkContactToTicket",
     "required": true,
     "type": "Enum",
@@ -30313,6 +30468,7 @@
     "ui": "scalar"
    },
    "impact_code": {
+    "has_default": true,
     "owner": "lnkFunctionalCIToTicket",
     "required": true,
     "type": "Enum",

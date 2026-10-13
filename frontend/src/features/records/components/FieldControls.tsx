@@ -77,6 +77,30 @@ export function FieldValue({
     );
   }
 
+  /**
+   * A Blob is iTop's file payload: `{data, mimetype, filename}` where `data`
+   * is base64. Stringifying it prints "[object Object]", and printing `data`
+   * would dump an entire file into the DOM as text. The file's identity is
+   * what a reader wants; the bytes belong to the attachments panel, which can
+   * actually download them.
+   */
+  if (spec.type === 'Blob' || spec.type === 'Image') {
+    const file = value as { data?: string; mimetype?: string; filename?: string };
+    if (!file?.filename && !file?.data) return <span className="text-ink-muted">—</span>;
+    // base64 encodes 3 bytes as 4 characters, minus any padding.
+    const base64 = file.data ?? '';
+    const padding = base64.endsWith('==') ? 2 : base64.endsWith('=') ? 1 : 0;
+    const bytes = Math.max(0, Math.floor((base64.length * 3) / 4) - padding);
+    return (
+      <span className="text-ink">
+        {file.filename || 'file'}
+        <span className="ml-1.5 text-ink-muted">
+          {[file.mimetype, bytes > 0 ? `${bytes} B` : null].filter(Boolean).join(' · ')}
+        </span>
+      </span>
+    );
+  }
+
   const raw = String(value);
 
   if (spec.type === 'Text' || spec.type === 'HTML') {

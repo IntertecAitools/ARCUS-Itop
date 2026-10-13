@@ -132,6 +132,14 @@ def load(path):
                 if fld.findtext('is_null_allowed') == 'false':
                     spec['required'] = True
 
+                # A NOT NULL column with a default is not something a caller
+                # has to supply: iTop fills it. Attachment.expire is the case
+                # that exposed this -- it defaults to NOW()+1 day, so demanding
+                # it made creating an attachment through the API impossible.
+                default = fld.find('default_value')
+                if default is not None and (default.text or '').strip():
+                    spec['has_default'] = True
+
                 values = fld.find('values')
                 if values is not None:
                     enum = [v.get('id') for v in values.findall('value') if v.get('id')]

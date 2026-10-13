@@ -67,6 +67,33 @@ describe('the frontend talks only to the BFF', () => {
     expect(offenders, 'these files call fetch directly').toEqual([]);
   });
 
+  it('never uses XMLHttpRequest or axios to slip past the client', () => {
+    // `fetch` is not the only way out. A file upload is the likeliest place to
+    // reach for XHR, because it is the classic way to get progress events.
+    const offenders = files
+      .filter(({ path }) => !path.startsWith('lib/api-client/'))
+      .filter(({ text }) => /\bnew\s+XMLHttpRequest\b|\bfrom\s+['"]axios['"]|\baxios\./.test(text))
+      .map(({ path }) => path);
+
+    expect(offenders, 'these files bypass the api client').toEqual([]);
+  });
+
+  it('never points an element at a backend URL', () => {
+    // Binary is the tempting exception: an <a href> or <img src> aimed at the
+    // BFF or iTop would make the browser fetch it directly, outside the client
+    // and without its credentials or error handling. Files go through the api
+    // client like everything else.
+    const offenders = files
+      .filter(({ path }) => !path.startsWith('lib/api-client/'))
+      // env.ts is the single place allowed to name the BFF — that is its job,
+      // and the api client reads the value from it.
+      .filter(({ path }) => path !== 'config/env.ts')
+      .filter(({ text }) => /(href|src|action)\s*=\s*[{"'`]\s*(https?:)?\/\/|:4000|:8080/.test(text))
+      .map(({ path }) => path);
+
+    expect(offenders, 'these files address a backend directly from markup').toEqual([]);
+  });
+
   it('keeps iTop vocabulary out of the UI', () => {
     // Our DTOs say `in_progress`, never iTop's `ev_resolve` or `escalated_ttr`.
     // The mock handlers mirror the BFF's responses, so they are exempt.

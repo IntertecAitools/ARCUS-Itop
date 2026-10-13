@@ -122,6 +122,17 @@ export class ObjectsService {
       assertIdentifier(code, "attribute code");
       const field = info.fields[code];
       if (!field) {
+        // iTop resolves `<key>_friendlyname` for any ExternalKey, but the
+        // datamodel does not declare those as attributes, so they are absent
+        // from the schema. Allowing them is what lets a caller read a display
+        // name instead of a foreign-key id.
+        const base = code.endsWith("_friendlyname")
+          ? code.slice(0, -"_friendlyname".length)
+          : undefined;
+        if (base && info.fields[base]?.ui === "picker") {
+          out.add(code);
+          continue;
+        }
         throw badRequest(`Unknown attribute "${code}" on ${info.name}.`, {
           available: Object.keys(info.fields).sort(),
         });

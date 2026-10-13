@@ -16,6 +16,13 @@ export interface FieldSpec {
   type: string;
   ui: FieldUi;
   required?: boolean;
+  /**
+   * iTop supplies a value when none is sent, so the caller need not.
+   * `required && !hasDefault` is what "the user must fill this" means --
+   * Incident marks impact, urgency, priority and status required, and
+   * defaults all four.
+   */
+  hasDefault?: boolean;
   /** Enum choices, when the field has them. */
   values?: string[];
   /** For a picker: the class it points at. */

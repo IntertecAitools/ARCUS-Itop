@@ -38,6 +38,8 @@ export interface RawField {
   link_key?: string;
   filter?: string;
   required?: boolean;
+  /** The datamodel gives this NOT NULL attribute a default; iTop fills it. */
+  has_default?: boolean;
   values?: string[];
   depends_on?: string[];
 }
@@ -86,6 +88,12 @@ export interface Field {
   /** Class in the inheritance chain that declares this attribute. */
   owner: string;
   required: boolean;
+  /**
+   * iTop supplies a value when none is sent. Such an attribute is NOT NULL but
+   * is not something a caller must provide, so write-validation skips it and
+   * a form need not mark it mandatory.
+   */
+  hasDefault: boolean;
   /** Enum choices, for widget === "select". */
   values?: string[];
   /** Target class, for ui === "picker". */

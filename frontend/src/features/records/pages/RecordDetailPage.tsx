@@ -5,6 +5,7 @@ import { PageHeader } from '@/components/layout';
 import { Button, buttonClasses, Card, Skeleton } from '@/components/ui';
 import { EmptyState } from '@/components/feedback';
 import { cn } from '@/lib/utils';
+import { AttachmentsPanel } from '@/features/attachments';
 import { useApplyStimulus, useClassInfo, useRecord, useUpdateRecord } from '../api/useRecords';
 import { fieldLabel, layoutFor, RecordForm } from '../components/RecordForm';
 import { RelatedTab } from '../components/RelatedTab';
@@ -142,10 +143,19 @@ export function RecordDetailPage() {
     );
   }
 
-  const tabs = [{ id: 'details', label: 'Details' }, ...relatedTabs.map((code) => ({
-    id: code,
-    label: fieldLabel(info, code),
-  }))];
+  /**
+   * iTop accepts attachments on Ticket and its subclasses (its
+   * itop-attachments `allowed_classes`). Attachments are a standalone class
+   * joined through item_class/item_id, so they are absent from the
+   * presentation metadata and get a tab of their own rather than a fieldset.
+   */
+  const supportsAttachments = info.name === 'Ticket' || info.inherits.includes('Ticket');
+
+  const tabs = [
+    { id: 'details', label: 'Details' },
+    ...(supportsAttachments ? [{ id: 'attachments', label: 'Attachments' }] : []),
+    ...relatedTabs.map((code) => ({ id: code, label: fieldLabel(info, code) })),
+  ];
 
   return (
     <>
@@ -228,7 +238,9 @@ export function RecordDetailPage() {
         </div>
       ) : null}
 
-      {tab === 'details' ? (
+      {tab === 'attachments' ? (
+        <AttachmentsPanel className={className} id={id} />
+      ) : tab === 'details' ? (
         <RecordForm
           info={info}
           fieldsets={fieldsets}
