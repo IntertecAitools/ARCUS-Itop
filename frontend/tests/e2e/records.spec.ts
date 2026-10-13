@@ -216,6 +216,51 @@ test("related objects appear as tabs, and lifecycle actions as buttons", async (
   await expect(page.getByRole('button', { name: 'Close' })).toHaveCount(0);
 });
 
+test('every tab iTop declares opens without an error', async ({ page }) => {
+  const problems: string[] = [];
+  page.on('pageerror', (e) => problems.push(String(e)));
+  page.on('response', (r) => {
+    if (r.status() >= 400) problems.push(`HTTP ${r.status()} ${r.url()}`);
+  });
+
+  // iTop promotes two different kinds of attribute to tabs: LinkedSets, which
+  // list other objects, and CaseLogs, which are comment streams. Treating them
+  // alike sent a CaseLog to the links endpoint and returned 400 on click --
+  // a failure no test caught because none of them opened every tab.
+  await page.goto('/records/Incident/new');
+  await page.locator('#field-title').fill(`e2e tabs ${Date.now()}`);
+  await page.locator('#field-description').fill('Opens every tab.');
+  await page.locator('#field-org_id').selectOption({ index: 1 });
+  await page.getByRole('button', { name: 'Create' }).click();
+  const openRecord = page.getByRole('link', { name: 'Open the record' });
+  if (await openRecord.isVisible().catch(() => false)) await openRecord.click();
+  await expect(page).toHaveURL(/\/records\/Incident\/\d+$/);
+  const id = page.url().match(/\/(\d+)$/)?.[1];
+
+  try {
+    await expect(page.getByRole('tab', { name: 'Details' })).toBeVisible({ timeout: 60_000 });
+    const names = await page.getByRole('tab').allInnerTexts();
+    expect(names.length).toBeGreaterThan(4);
+    // Both kinds must be present, or this would pass without covering the case
+    // that broke.
+    expect(names).toContain('Public log');
+    expect(names).toContain('Contacts');
+
+    for (const name of names) {
+      await page.getByRole('tab', { name, exact: true }).click();
+      await expect(page.getByRole('alert')).toHaveCount(0);
+    }
+
+    expect(problems).toEqual([]);
+  } finally {
+    if (id) {
+      await page.request.delete(
+        `http://localhost:4000/api/objects/Incident/${id}?comment=e2e cleanup`,
+      );
+    }
+  }
+});
+
 test('a list uses the columns iTop declares', async ({ page }) => {
   await page.goto('/records/Problem');
   await expect(page.getByRole('heading', { name: 'Problem', level: 1 })).toBeVisible();

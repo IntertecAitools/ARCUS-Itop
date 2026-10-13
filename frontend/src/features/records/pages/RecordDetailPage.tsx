@@ -2,11 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Pencil, X } from 'lucide-react';
 import { PageHeader } from '@/components/layout';
-import { Button, buttonClasses, Card, Skeleton } from '@/components/ui';
+import { Button, buttonClasses, Card, CardBody, Skeleton } from '@/components/ui';
 import { EmptyState } from '@/components/feedback';
 import { cn } from '@/lib/utils';
 import { AttachmentsPanel } from '@/features/attachments';
 import { useApplyStimulus, useClassInfo, useRecord, useUpdateRecord } from '../api/useRecords';
+import { FieldValue } from '../components/FieldControls';
 import { fieldLabel, layoutFor, RecordForm } from '../components/RecordForm';
 import { RelatedTab } from '../components/RelatedTab';
 
@@ -42,6 +43,28 @@ export function RecordDetailPage() {
 
   const editableSet = useMemo(() => new Set(editable), [editable]);
 
+  /**
+   * The attributes iTop promotes to tabs, in iTop's order.
+   *
+   * Two different things end up here, and they need different renderers: a
+   * LinkedSet is a list of other objects, while a CaseLog (`public_log`) is a
+   * comment stream. Treating them alike sent a CaseLog to the links endpoint,
+   * which answers 400 because it is not a relation.
+   */
+  const extraTabs = useMemo(() => {
+    if (!info) return [] as { code: string; kind: 'related' | 'log' }[];
+    const declared = info.presentation?.related ?? [];
+    const rest = info.related.filter((code) => !declared.includes(code));
+    return [...declared, ...rest]
+      .filter((code) => info.fields[code]?.linkedAvailable !== false)
+      .map((code) => ({
+        code,
+        kind: info.fields[code]?.ui === 'related' ? ('related' as const) : ('log' as const),
+      }));
+  }, [info]);
+
+  const tabFields = useMemo(() => new Set(extraTabs.map((t) => t.code)), [extraTabs]);
+
   const fieldsets = useMemo(() => {
     if (!info) return [];
     if (editing) return layoutFor(info, (code) => editableSet.has(code));
@@ -51,17 +74,13 @@ export function RecordDetailPage() {
       info,
       (code) =>
         Boolean(record?.fields && code in record.fields) &&
+        // Anything iTop gives a tab is shown there, not repeated inline: the
+        // case logs are scalars, so they would otherwise appear twice.
+        !tabFields.has(code) &&
         !['related', 'ignored'].includes(info.fields[code]?.ui ?? ''),
     );
-  }, [info, record, editing, editableSet]);
+  }, [info, record, editing, editableSet, tabFields]);
 
-  /** LinkedSet attributes iTop shows as tabs, keeping iTop's order. */
-  const relatedTabs = useMemo(() => {
-    if (!info) return [];
-    const declared = info.presentation?.related ?? [];
-    const rest = info.related.filter((code) => !declared.includes(code));
-    return [...declared, ...rest].filter((code) => info.fields[code]?.linkedAvailable !== false);
-  }, [info]);
 
   /**
    * The actions available right now.
@@ -154,7 +173,7 @@ export function RecordDetailPage() {
   const tabs = [
     { id: 'details', label: 'Details' },
     ...(supportsAttachments ? [{ id: 'attachments', label: 'Attachments' }] : []),
-    ...relatedTabs.map((code) => ({ id: code, label: fieldLabel(info, code) })),
+    ...extraTabs.map(({ code }) => ({ id: code, label: fieldLabel(info, code) })),
   ];
 
   return (
@@ -249,6 +268,12 @@ export function RecordDetailPage() {
           draft={draft}
           onChange={(attcode, value) => setDraft((d) => ({ ...d, [attcode]: value }))}
         />
+      ) : extraTabs.find((t) => t.code === tab)?.kind === 'log' ? (
+        <Card>
+          <CardBody>
+            <FieldValue spec={info.fields[tab]!} value={record.fields[tab]} />
+          </CardBody>
+        </Card>
       ) : (
         <RelatedTab info={info} id={id} attcode={tab} />
       )}
