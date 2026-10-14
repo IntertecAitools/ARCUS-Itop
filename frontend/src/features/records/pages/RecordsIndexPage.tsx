@@ -52,7 +52,7 @@ export function RecordsIndexPage() {
       <PageHeader
         breadcrumbs={[{ label: 'Home', to: '/' }, { label: 'Records' }]}
         title="Records"
-        description="Every class in the iTop datamodel, browsable and editable through the BFF."
+        description="Every record type, browsable and editable."
       />
 
       {isError ? (

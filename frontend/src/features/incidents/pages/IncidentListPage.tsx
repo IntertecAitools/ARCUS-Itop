@@ -188,7 +188,7 @@ export function IncidentListPage() {
             description={
               activeCount > 0
                 ? 'Try widening the filters, or clear them to see the whole queue.'
-                : 'Incidents raised in iTop will appear here.'
+                : 'Incidents you raise will appear here.'
             }
             action={
               activeCount === 0 ? (

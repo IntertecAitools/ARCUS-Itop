@@ -129,7 +129,7 @@ export function RecordListPage() {
         <Card>
           <EmptyState
             icon={<Database className="size-5" />}
-            title={`iTop has no class called "${className}"`}
+            title={`No record type called "${className}"`}
             description={error instanceof Error ? error.message : undefined}
             action={
               <Link to="/records" className={buttonClasses({ variant: 'secondary', size: 'sm' })}>
@@ -153,14 +153,14 @@ export function RecordListPage() {
                 `${data.total} ${data.total === 1 ? 'record' : 'records'}`,
                 // Say that a filter is applied and whose it is. Without this a
                 // narrowed list is indistinguishable from an empty class.
-                viewLabel ? `filtered by iTop’s “${viewLabel}” view` : null,
+                viewLabel ? `filtered: ${viewLabel}` : null,
                 data.sortedInBff ? 'sorted by the BFF' : null,
               ]
                 .filter(Boolean)
                 .join(' · ')
             : info?.isCi
               ? 'A configuration item.'
-              : 'An iTop class.'
+              : 'A record type.'
         }
         actions={
           <div className="flex items-center gap-2">
@@ -213,7 +213,7 @@ export function RecordListPage() {
           <EmptyState
             icon={<Database className="size-5" />}
             title={q ? 'No records match that search' : `No ${className} records yet`}
-            description={q ? 'Try a shorter term.' : 'Records created in iTop appear here.'}
+            description={q ? 'Try a shorter term.' : 'Records you create appear here.'}
           />
         ) : (
           <>

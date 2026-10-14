@@ -142,7 +142,7 @@ export const modules: ModuleDefinition[] = [
     path: 'records',
     icon: Database,
     group: 'resources',
-    description: 'Every class in the iTop datamodel, browsable and editable.',
+    description: 'Every record type, browsable and editable.',
     // The target of every iTop navigation entry; not a menu item itself.
     hidden: true,
     component: lazy(() =>
@@ -177,7 +177,7 @@ export const modules: ModuleDefinition[] = [
     path: 'modules',
     icon: LayoutGrid,
     group: 'resources',
-    description: 'Every module iTop has, and what we render of it.',
+    description: 'All modules and what each provides.',
     // Reached from the 'All' link in the sidebar's iTop modules header.
     hidden: true,
     component: lazy(() =>

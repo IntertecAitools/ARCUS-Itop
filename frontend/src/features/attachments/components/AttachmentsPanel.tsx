@@ -203,7 +203,7 @@ export function AttachmentsPanel({ className: itopClass, id }: { className: stri
         ) : items.length === 0 ? (
           <EmptyState
             title="No attachments yet"
-            description="Upload a file to keep it with this record in iTop."
+            description="Upload a file to keep it with this record."
           />
         ) : (
           <ul className={cn('divide-y divide-line')}>

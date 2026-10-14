@@ -152,12 +152,12 @@ export function ItopNavigation({ collapsed }: { collapsed: boolean }) {
   return (
     <div
       role="group"
-      aria-label="iTop modules"
+      aria-label="Modules"
       className="mt-3 space-y-1.5 border-t border-line pt-3"
     >
       <div className="flex items-baseline justify-between px-3 pb-1">
         <span className="text-[11px] font-semibold tracking-wider text-ink-muted uppercase">
-          iTop modules
+          Modules
         </span>
         <Link to="/modules" className="text-[11px] text-brand-ink hover:underline">
           All

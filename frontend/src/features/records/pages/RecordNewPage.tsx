@@ -102,7 +102,7 @@ export function RecordNewPage() {
         <Card>
           <EmptyState
             icon={<Database className="size-5" />}
-            title={`iTop has no class called "${className}"`}
+            title={`No record type called "${className}"`}
             description={error instanceof Error ? error.message : undefined}
             action={
               <Link to="/records" className={buttonClasses({ variant: 'secondary', size: 'sm' })}>
@@ -172,7 +172,7 @@ export function RecordNewPage() {
               exceptions
             </p>
             <p className="mt-1 text-[12.5px] text-ink-secondary">
-              iTop accepted the record but did not take these fields:
+              The record was created, but these fields were not accepted:
             </p>
             <ul className="mt-2 space-y-1">
               {partial.rejected.map((item) => (

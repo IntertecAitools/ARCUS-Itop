@@ -59,7 +59,7 @@ export function Logo({ collapsed = false, className }: { collapsed?: boolean; cl
           <span className="block truncate text-[17px] font-semibold tracking-tight text-ink">
             {env.appName}
           </span>
-          {/* The system of record, named quietly underneath. */}
+          {/* Product tagline under the wordmark. */}
           <span className="mt-0.5 block text-[10px] font-medium tracking-[0.14em] text-ink-muted uppercase">
             {env.platformName}
           </span>
@@ -67,7 +67,7 @@ export function Logo({ collapsed = false, className }: { collapsed?: boolean; cl
       ) : null}
 
       <span className="sr-only">
-        {env.appName} on {env.platformName}
+        {env.appName} {env.platformName}
       </span>
     </div>
   );

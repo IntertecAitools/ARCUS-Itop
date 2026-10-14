@@ -22,15 +22,15 @@ import type { NavDiagnostic } from '../types';
 const REASON_GROUPS: { match: string; label: string; detail: string }[] = [
   {
     match: 'itop-dashboard',
-    label: 'iTop dashboards',
+    label: 'Dashboards',
     detail:
-      'Panels composed in iTop’s XML. The underlying data is reachable through the lists above; the composed dashboard is not replicated.',
+      'Overview dashboards. The underlying data is reachable through the lists above.',
   },
   {
     match: 'itop-admin-page',
-    label: 'iTop’s own admin tools',
+    label: 'Administration tools',
     detail:
-      'CSV import, the config editor, DB tools, backup and update. These administer iTop itself rather than showing data, so they stay in iTop.',
+      'CSV import, configuration, database tools, backup and update — administration features.',
   },
   {
     match: 'needs-auth',
@@ -40,9 +40,9 @@ const REASON_GROUPS: { match: string; label: string; detail: string }[] = [
   },
   {
     match: 'absent-from-schema',
-    label: 'iTop internals',
+    label: 'System internals',
     detail:
-      'Classes iTop uses for its own bookkeeping, deliberately left out of the published schema.',
+      'Internal bookkeeping record types, left out of the catalogue.',
   },
   {
     match: 'empty',
@@ -95,8 +95,8 @@ export function ModulesIndexPage() {
         title="Modules"
         description={
           data
-            ? `${data.counts.entries} screens across ${data.counts.groups} of iTop’s menu groups, published by the BFF.`
-            : 'iTop’s modules, published by the BFF.'
+            ? `${data.counts.entries} screens across ${data.counts.groups} module groups.`
+            : 'All modules and features.'
         }
       />
 
@@ -186,11 +186,11 @@ export function ModulesIndexPage() {
           <CardBody>
             <p className="mb-1 flex items-center gap-2 text-[13px] font-semibold text-ink">
               <Info className="size-4 text-ink-muted" aria-hidden />
-              What iTop has that this does not
+              Not yet available
             </p>
             <p className="mb-3 text-[12.5px] text-ink-secondary">
-              {data?.counts.excluded} of iTop’s menu entries are not rendered here. Each is listed
-              with its reason rather than quietly omitted.
+              {data?.counts.excluded} features are not available yet. Each is listed with its
+              reason.
             </p>
 
             <dl className="space-y-3">
