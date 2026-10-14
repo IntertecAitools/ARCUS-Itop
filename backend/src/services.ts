@@ -7,6 +7,7 @@ import { DirectoryService } from "./modules/directory/index.js";
 import { IncidentsService } from "./modules/incidents/index.js";
 import { LookupsService } from "./platform/lookups/lookups.service.js";
 import { Navigation } from "./platform/navigation/navigation.service.js";
+import { Dashboards } from "./platform/dashboards/dashboards.service.js";
 import { ObjectsService } from "./platform/objects/objects.service.js";
 import { RelationsService } from "./shared/relations.service.js";
 import { DefaultOrganization } from "./shared/default-organization.js";
@@ -16,6 +17,7 @@ export interface Services {
   config: Config;
   schema: CmdbSchema;
   navigation: Navigation;
+  dashboards: Dashboards;
   client: ItopClient;
   objects: ObjectsService;
   attachments: AttachmentsService;
@@ -33,6 +35,7 @@ export interface BuildServicesOptions {
   client?: ItopClient;
   schema?: CmdbSchema;
   navigation?: Navigation;
+  dashboards?: Dashboards;
   logger?: Logger;
 }
 
@@ -48,11 +51,14 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     config.defaultOrgId,
   );
   const currentContact = new CurrentContact(client, config.itop.user);
+  const dashboards =
+    options.dashboards ?? Dashboards.fromFile(config.dashboardsPath, objects, schema);
 
   return {
     config,
     schema,
     navigation,
+    dashboards,
     client,
     objects,
     attachments: new AttachmentsService(objects, schema),

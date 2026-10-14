@@ -63,7 +63,6 @@ KIND_BY_TYPE = {
 
 # Node types we cannot render, and why. Recorded rather than dropped silently.
 EXCLUDED_TYPES = {
-    'DashboardMenuNode': 'itop-dashboard: panels are defined in iTop XML, not replicated yet',
     'WebPageMenuNode': "itop-admin-page: iTop's own tooling, not a data screen",
     'ShortcutContainerMenuNode': 'needs-auth: per-user shortcuts require a session',
 }
@@ -166,6 +165,20 @@ def main():
                 # Nested groups are not expected; record if iTop ever adds one.
                 excluded.append({'id': node['id'], 'type': ntype,
                                  'reason': 'nested-group: not supported'})
+                continue
+
+            if ntype == 'DashboardMenuNode':
+                into.append({
+                    'needsContact': False,
+                    'id': node['id'],
+                    'kind': 'dashboard',
+                    'class': '',
+                    'label': menu_label(node['id'], node['id']),
+                    'rank': node['rank'],
+                })
+                # A dashboard node can also own child list nodes (Service:Overview
+                # owns the contract lists), so keep walking.
+                collect(node['id'], into)
                 continue
 
             if ntype in EXCLUDED_TYPES:

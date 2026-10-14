@@ -2,6 +2,8 @@ import type { Config } from "../src/config/env.js";
 import type { ItopClient } from "../src/itop/client.js";
 import type { ItopResult, ItopVerb } from "../src/itop/types.js";
 import { Navigation } from "../src/platform/navigation/navigation.service.js";
+import { Dashboards } from "../src/platform/dashboards/dashboards.service.js";
+import { ObjectsService } from "../src/platform/objects/objects.service.js";
 import { CmdbSchema } from "../src/schema/load.js";
 import type { RawSchema } from "../src/schema/types.js";
 
@@ -22,6 +24,7 @@ export function testConfig(overrides: Partial<Config> = {}): Config {
     corsOrigins: overrides.corsOrigins ?? "*",
     schemaPath: overrides.schemaPath ?? "unused-in-tests",
     navigationPath: overrides.navigationPath ?? "unused-in-tests",
+    dashboardsPath: overrides.dashboardsPath ?? "unused-in-tests",
     lookupCacheTtlMs: overrides.lookupCacheTtlMs ?? 0,
   };
 }
@@ -317,6 +320,39 @@ export function sampleNavigation(schema: CmdbSchema = sampleSchema()): Navigatio
         { id: "WelcomeMenuPage", type: "DashboardMenuNode", reason: "itop-dashboard: not replicated" },
       ],
     },
+    schema,
+  );
+}
+
+
+/**
+ * A dashboard over the sample schema, built from data so the tests do not
+ * depend on the developer's extracted file. One of each dashlet kind that
+ * carries data, plus a static one.
+ */
+export function sampleDashboards(
+  client: ItopClient,
+  schema: CmdbSchema = sampleSchema(),
+): Dashboards {
+  const objects = new ObjectsService(client, schema, "test");
+  return Dashboards.fromData(
+    {
+      dashboards: {
+        "Server:Overview": {
+          id: "Server:Overview",
+          title: "Server overview",
+          columns: 2,
+          dashlets: [
+            { id: "1", kind: "badge", title: "Servers", class: "Server", oql: "SELECT Server" },
+            { id: "2", kind: "pie", title: "By status", class: "Server", oql: "SELECT Server", groupBy: "status" },
+            { id: "3", kind: "list", title: "Recent", class: "Server", oql: "SELECT Server" },
+            { id: "4", kind: "text", title: "Note", text: "Static text" },
+          ],
+        },
+      },
+      skipped: [],
+    },
+    objects,
     schema,
   );
 }

@@ -9,6 +9,7 @@ import {
   FakeItopClient,
   getResponse,
   SAMPLE_RAW_SCHEMA,
+  sampleDashboards,
   sampleNavigation,
   sampleSchema,
   testConfig,
@@ -20,6 +21,7 @@ function app(fake: FakeItopClient) {
     client: fake.asClient(),
     schema,
     navigation: sampleNavigation(schema),
+    dashboards: sampleDashboards(fake.asClient(), schema),
   });
   after(async () => {
     await built.app.close();

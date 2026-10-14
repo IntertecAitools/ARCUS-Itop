@@ -9,6 +9,7 @@ import {
   FakeItopClient,
   getResponse,
   SAMPLE_RAW_SCHEMA,
+  sampleDashboards,
   sampleNavigation,
   sampleSchema,
   testConfig,
@@ -294,6 +295,7 @@ describe("attachment routes", () => {
       client: fake.asClient(),
       schema,
       navigation: sampleNavigation(sampleSchema()),
+      dashboards: sampleDashboards(fake.asClient(), sampleSchema()),
     });
     after(async () => {
       await built.app.close();

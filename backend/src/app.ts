@@ -10,6 +10,7 @@ import { registerLookupRoutes } from "./platform/lookups/lookups.routes.js";
 import { registerMetaRoutes } from "./platform/meta/meta.routes.js";
 import { registerAttachmentRoutes } from "./modules/attachments/attachments.routes.js";
 import { registerNavigationRoutes } from "./platform/navigation/navigation.routes.js";
+import { registerDashboardRoutes } from "./platform/dashboards/dashboards.routes.js";
 import { registerObjectRoutes } from "./platform/objects/objects.routes.js";
 import { buildServices, type BuildServicesOptions, type Services } from "./services.js";
 
@@ -53,6 +54,7 @@ export function buildApp(config: Config, options: BuildServicesOptions = {}): Bu
   registerHealthRoutes(app, services);
   registerMetaRoutes(app, services);
   registerNavigationRoutes(app, services);
+  registerDashboardRoutes(app, services);
   registerObjectRoutes(app, services);
   registerLookupRoutes(app, services);
   registerAttachmentRoutes(app, services);

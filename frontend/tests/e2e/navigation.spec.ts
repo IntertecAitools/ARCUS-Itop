@@ -40,10 +40,10 @@ test('it states what iTop has that is not replicated', async ({ page }) => {
   await page.goto('/modules');
   const content = page.getByRole('main');
 
-  // The claim "we replicated iTop" is only honest with the gaps written down.
-  await expect(content.getByText('What iTop has that this does not')).toBeVisible();
-  await expect(content.getByText('iTop dashboards')).toBeVisible();
-  await expect(content.getByText('Waiting on sign-in')).toBeVisible();
+  // Dashboards and personal views are now rendered; the honest remaining gap
+  // is the admin tools, listed under "Not yet available".
+  await expect(content.getByText('Not yet available')).toBeVisible();
+  await expect(content.getByText('Administration tools')).toBeVisible();
 });
 
 test('the filter narrows the module list', async ({ page }) => {
@@ -67,11 +67,11 @@ test('a filtered view says it is filtered, and can be cleared', async ({ page })
   await page.goto('/records/Incident?view=Incident:OpenIncidents');
 
   await expect(page.getByRole('heading', { name: 'Incident', level: 1 })).toBeVisible();
-  await expect(page.getByText(/filtered by iTop’s “Open” view/)).toBeVisible();
+  await expect(page.getByText(/filtered: Open/)).toBeVisible();
 
   await page.getByRole('link', { name: 'Clear filter' }).click();
   await expect(page).toHaveURL(/\/records\/Incident$/);
-  await expect(page.getByText(/filtered by/)).toHaveCount(0);
+  await expect(page.getByText(/filtered:/)).toHaveCount(0);
 });
 
 test('an unknown view fails loudly rather than showing everything', async ({ page }) => {
@@ -85,7 +85,7 @@ test('an unknown view fails loudly rather than showing everything', async ({ pag
 test('navigating from the sidebar reaches a generic screen', async ({ page }) => {
   await page.goto('/dashboard');
 
-  const itop = page.getByRole('group', { name: 'iTop modules' });
+  const itop = page.getByRole('group', { name: 'Modules' });
   await itop.getByRole('button', { name: 'Problem management' }).click();
 
   // Entry labels come from iTop's dictionary, not from our source.

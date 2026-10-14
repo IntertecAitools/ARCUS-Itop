@@ -1,0 +1,910 @@
+{
+ "dashboards": {
+  "AuditCategories": {
+   "columns": 3,
+   "dashlets": [
+    {
+     "id": "AuditConfiguration_row0_col0_1",
+     "kind": "text",
+     "text": "Audit domains allow to group the audit categories.\nDomain usually correspond to who is responsible for checking and fixing errors",
+     "title": ""
+    },
+    {
+     "class": "AuditDomain",
+     "id": "AuditConfiguration_row0_col0_2",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "id": "AuditConfiguration_row0_col1_1",
+     "kind": "text",
+     "text": "Audit category defines a scope of objects which needs to be audited.\nIt groups all audit rules applying to that object scope",
+     "title": ""
+    },
+    {
+     "class": "AuditCategory",
+     "id": "AuditConfiguration_row0_col1_2",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "id": "AuditConfiguration_row0_col2_1",
+     "kind": "text",
+     "text": "An audit rule corresponds a single check within an audit category.\nIt is applied on the scope of objects defined by the audit category",
+     "title": ""
+    },
+    {
+     "class": "AuditRule",
+     "id": "AuditConfiguration_row0_col2_2",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "AuditDomain",
+     "id": "AuditConfiguration_row1_col0_1",
+     "kind": "list",
+     "oql": "SELECT AuditDomain",
+     "title": "Audit Domain"
+    },
+    {
+     "class": "AuditCategory",
+     "id": "AuditConfiguration_row1_col1_1",
+     "kind": "list",
+     "oql": "SELECT AuditCategory",
+     "title": "Audit Category"
+    },
+    {
+     "class": "AuditRule",
+     "id": "AuditConfiguration_row1_col2_1",
+     "kind": "list",
+     "oql": "SELECT AuditRule",
+     "title": "Audit Rule"
+    }
+   ],
+   "id": "AuditCategories",
+   "title": "Audit configuration"
+  },
+  "Change:Overview": {
+   "columns": 2,
+   "dashlets": [
+    {
+     "class": "Change",
+     "groupBy": "finalclass",
+     "id": "1",
+     "kind": "table",
+     "oql": "SELECT Change WHERE creation_date > DATE_SUB(NOW(), INTERVAL 7 DAY)",
+     "title": "Changes by category for the last 7 days"
+    },
+    {
+     "class": "Change",
+     "groupBy": "start_date",
+     "groupFn": "day_of_month",
+     "id": "2",
+     "kind": "bars",
+     "oql": "SELECT Change WHERE creation_date > DATE_SUB(NOW(), INTERVAL 7 DAY)",
+     "title": "Number of changes for the last 7 days"
+    },
+    {
+     "class": "Change",
+     "groupBy": "finalclass",
+     "id": "3",
+     "kind": "table",
+     "oql": "SELECT Change WHERE creation_date > DATE_SUB(NOW(), INTERVAL 7 DAY)",
+     "title": "Changes by domain for the last 7 days"
+    },
+    {
+     "class": "Change",
+     "groupBy": "status",
+     "id": "4",
+     "kind": "table",
+     "oql": "SELECT Change WHERE creation_date > DATE_SUB(NOW(), INTERVAL 7 DAY)",
+     "title": "Changes by status for the last 7 days"
+    }
+   ],
+   "id": "Change:Overview",
+   "title": "Dashboard for Change Management"
+  },
+  "ConfigManagementOverview": {
+   "columns": 1,
+   "dashlets": [
+    {
+     "id": "1",
+     "kind": "header",
+     "subtitle": "Menu_ConfigManagement_AllDevices",
+     "title": "Infrastructure"
+    },
+    {
+     "class": "Server",
+     "id": "2",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "NetworkDevice",
+     "id": "3",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "Rack",
+     "id": "21",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "Enclosure",
+     "id": "22",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "PowerConnection",
+     "id": "23",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "StorageSystem",
+     "id": "33",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "SANSwitch",
+     "id": "34",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "NAS",
+     "id": "35",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "TapeLibrary",
+     "id": "36",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "id": "4",
+     "kind": "header",
+     "title": "Software and applications"
+    },
+    {
+     "class": "Software",
+     "id": "Software",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "OSFamily",
+     "id": "OSFamily",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "OSVersion",
+     "id": "OSVersion",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "IOSVersion",
+     "id": "IOSVersion",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "Middleware",
+     "id": "5",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "DBServer",
+     "id": "6",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "WebServer",
+     "id": "7",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "PCSoftware",
+     "id": "8",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "OtherSoftware",
+     "id": "9",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "MiddlewareInstance",
+     "id": "10",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "DatabaseSchema",
+     "id": "11",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "WebApplication",
+     "id": "12",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "Patch",
+     "id": "13",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "Licence",
+     "id": "14",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "DataFlow",
+     "id": "DataFlow",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "id": "15",
+     "kind": "header",
+     "title": "Miscellaneous"
+    },
+    {
+     "class": "NetworkInterface",
+     "id": "16",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "Subnet",
+     "id": "17",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "VLAN",
+     "id": "vlan",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "BusinessProcess",
+     "id": "18",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "ApplicationSolution",
+     "id": "19",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "Group",
+     "id": "20",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "LogicalVolume",
+     "id": "37",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "FiberChannelInterface",
+     "id": "FiberChannelInterface",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "NASFileSystem",
+     "id": "NASFileSystem",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "Tape",
+     "id": "Tape",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "id": "25",
+     "kind": "header",
+     "title": "End user devices"
+    },
+    {
+     "class": "PC",
+     "id": "26",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "Phone",
+     "id": "27",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "IPPhone",
+     "id": "28",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "MobilePhone",
+     "id": "29",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "Tablet",
+     "id": "30",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "Printer",
+     "id": "31",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "Peripheral",
+     "id": "32",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "id": "38",
+     "kind": "header",
+     "title": "Virtualization"
+    },
+    {
+     "class": "Farm",
+     "id": "39",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "Hypervisor",
+     "id": "40",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "VirtualMachine",
+     "id": "41",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "Cloud",
+     "id": "42",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "ContainerApplication",
+     "id": "ContainerApplication",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "ContainerHost",
+     "id": "ContainerHost",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "ContainerCluster",
+     "id": "ContainerCluster",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "ContainerImage",
+     "id": "ContainerImage",
+     "kind": "badge",
+     "title": ""
+    }
+   ],
+   "id": "ConfigManagementOverview",
+   "title": "Overview"
+  },
+  "Contact": {
+   "columns": 1,
+   "dashlets": [
+    {
+     "class": "Contact",
+     "groupBy": "status",
+     "id": "1",
+     "kind": "header-dynamic",
+     "oql": "SELECT Contact",
+     "subtitle": "%1$d contacts",
+     "title": "Contacts",
+     "values": [
+      "active",
+      "inactive"
+     ]
+    },
+    {
+     "class": "Team",
+     "id": "2",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "Person",
+     "id": "3",
+     "kind": "badge",
+     "title": ""
+    }
+   ],
+   "id": "Contact",
+   "title": "Contact"
+  },
+  "Incident:Overview": {
+   "columns": 2,
+   "dashlets": [
+    {
+     "class": "Incident",
+     "groupBy": "priority",
+     "id": "1",
+     "kind": "pie",
+     "oql": "SELECT Incident WHERE DATE_SUB(NOW(), INTERVAL 14 DAY) < start_date",
+     "title": "Last 14 days incident per priority"
+    },
+    {
+     "class": "Incident",
+     "groupBy": "start_date",
+     "groupFn": "day_of_month",
+     "id": "2",
+     "kind": "bars",
+     "oql": "SELECT Incident WHERE DATE_SUB(NOW(), INTERVAL 14 DAY) < start_date",
+     "title": "Last 14 days number of incidents"
+    },
+    {
+     "class": "Incident",
+     "groupBy": "status",
+     "id": "3",
+     "kind": "table",
+     "oql": "SELECT Incident WHERE status NOT IN ('closed','rejected')",
+     "title": "Open incidents by status"
+    },
+    {
+     "class": "Incident",
+     "groupBy": "agent_id",
+     "id": "4",
+     "kind": "table",
+     "oql": "SELECT Incident WHERE status NOT IN ('closed','rejected')",
+     "title": "Open incidents by agent"
+    },
+    {
+     "class": "Incident",
+     "groupBy": "org_id",
+     "id": "5",
+     "kind": "table",
+     "oql": "SELECT Incident WHERE status NOT IN ('closed','rejected')",
+     "title": "Open incidents by customer"
+    }
+   ],
+   "id": "Incident:Overview",
+   "title": "Dashboard for Incident Management"
+  },
+  "Problem:Overview": {
+   "columns": 2,
+   "dashlets": [
+    {
+     "class": "Problem",
+     "groupBy": "service_id",
+     "id": "1",
+     "kind": "bars",
+     "oql": "SELECT Problem",
+     "title": "Problems by service"
+    },
+    {
+     "class": "Problem",
+     "groupBy": "priority",
+     "id": "2",
+     "kind": "pie",
+     "oql": "SELECT Problem",
+     "title": "Problems by priority"
+    },
+    {
+     "class": "Problem",
+     "id": "3",
+     "kind": "list",
+     "oql": "SELECT Problem WHERE status IN (\"new\")",
+     "title": "Unassigned problems"
+    }
+   ],
+   "id": "Problem:Overview",
+   "title": "Dashboard for Problem Management"
+  },
+  "Service:Overview": {
+   "columns": 2,
+   "dashlets": [
+    {
+     "class": "c",
+     "id": "1",
+     "kind": "list",
+     "oql": "SELECT CustomerContract AS c WHERE c.end_date < DATE_ADD(NOW(), INTERVAL 30 DAY)",
+     "title": "Customer contracts to be renewed in 30 days"
+    },
+    {
+     "class": "c",
+     "id": "2",
+     "kind": "list",
+     "oql": "SELECT ProviderContract AS c WHERE c.end_date < DATE_ADD(NOW(), INTERVAL 30 DAY)",
+     "title": "Provider contracts to be renewed in 30 days"
+    }
+   ],
+   "id": "Service:Overview",
+   "title": "Dashboard for Service Management"
+  },
+  "ServiceCatalog": {
+   "columns": 2,
+   "dashlets": [
+    {
+     "id": "CatalogBadgesHeader",
+     "kind": "header",
+     "title": "Service catalog"
+    },
+    {
+     "class": "ServiceFamily",
+     "id": "ServiceFamily",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "Service",
+     "id": "Service",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "ServiceSubcategory",
+     "id": "ServiceSubcategory",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "SLA",
+     "id": "SLA",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "SLT",
+     "id": "SLT",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "DeliveryModel",
+     "id": "DeliveryModel",
+     "kind": "list",
+     "oql": "SELECT DeliveryModel",
+     "title": "Delivery Model"
+    },
+    {
+     "id": "NotInPortalHeader",
+     "kind": "header",
+     "title": "Not displayed in User Portal"
+    },
+    {
+     "class": "Service",
+     "groupBy": "status",
+     "id": "ServiceByStatus",
+     "kind": "header-dynamic",
+     "oql": "SELECT Service",
+     "subtitle": "Only Service and Subcategory on production are visible in User Portal",
+     "title": "Service",
+     "values": [
+      "implementation",
+      "obsolete",
+      "production"
+     ]
+    },
+    {
+     "class": "ServiceSubcategory",
+     "groupBy": "status",
+     "id": "ServiceSubcategoryByStatus",
+     "kind": "header-dynamic",
+     "oql": "SELECT ServiceSubcategory",
+     "subtitle": "Only Service and Subcategory on production are visible in User Portal",
+     "title": "Service Subcategory",
+     "values": [
+      "implementation",
+      "obsolete",
+      "production"
+     ]
+    },
+    {
+     "class": "Service",
+     "id": "ServiceWithoutFamily",
+     "kind": "list",
+     "oql": "SELECT Service WHERE servicefamily_id=0",
+     "title": "Services without Service Family are not visible in User Portal"
+    },
+    {
+     "class": "lnkSLAToSLT",
+     "groupBy": "sla_id",
+     "id": "SLTBySLA",
+     "kind": "table",
+     "oql": "SELECT lnkSLAToSLT",
+     "title": "Count SLTs on each SLA"
+    },
+    {
+     "class": "lnk",
+     "groupBy": "service_id",
+     "id": "ContractByService",
+     "kind": "table",
+     "oql": "SELECT lnkCustomerContractToService AS lnk JOIN CustomerContract AS cc ON lnk.customercontract_id=cc.id WHERE cc.status != 'obsolete'",
+     "title": "Count Contracts using a Service"
+    },
+    {
+     "class": "lnk",
+     "groupBy": "sla_id",
+     "id": "ContractBySLA",
+     "kind": "table",
+     "oql": "SELECT lnkCustomerContractToService AS lnk JOIN CustomerContract AS cc ON lnk.customercontract_id=cc.id WHERE cc.status != 'obsolete'",
+     "title": "Count Contracts using an SLA"
+    },
+    {
+     "class": "Service",
+     "id": "UnusedService",
+     "kind": "list",
+     "oql": "SELECT Service WHERE status='production' AND id NOT IN (SELECT Service AS s JOIN lnkCustomerContractToService AS lnk ON lnk.service_id= s.id JOIN CustomerContract AS cc ON lnk.customercontract_id = cc.id WHERE cc.status != 'obsolete')",
+     "title": "Services not used by any Customers"
+    }
+   ],
+   "id": "ServiceCatalog",
+   "title": "Service catalog"
+  },
+  "Typology": {
+   "columns": 1,
+   "dashlets": [
+    {
+     "id": "1",
+     "kind": "header",
+     "title": "Typology configuration"
+    },
+    {
+     "class": "ContactType",
+     "id": "9",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "DocumentType",
+     "id": "10",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "Brand",
+     "id": "2",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "Model",
+     "id": "3",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "OSFamily",
+     "id": "4",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "OSVersion",
+     "id": "5",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "IOSVersion",
+     "id": "6",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "NetworkDeviceType",
+     "id": "7",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "ContractType",
+     "id": "8",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "ContainerType",
+     "id": "ContainerType",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "ContainerImageType",
+     "id": "ContainerImageType",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "DataFlowType",
+     "id": "DataFlowType",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "DataFlowProtocol",
+     "id": "DataFlowProtocol",
+     "kind": "badge",
+     "title": ""
+    }
+   ],
+   "id": "Typology",
+   "title": "Typology configuration"
+  },
+  "UserRequest:Overview": {
+   "columns": 2,
+   "dashlets": [
+    {
+     "class": "UserRequest",
+     "groupBy": "request_type",
+     "id": "1",
+     "kind": "pie",
+     "oql": "SELECT UserRequest WHERE DATE_SUB(NOW(), INTERVAL 14 DAY) < start_date",
+     "title": "Last 14 days request per type"
+    },
+    {
+     "class": "UserRequest",
+     "groupBy": "start_date",
+     "groupFn": "day_of_month",
+     "id": "2",
+     "kind": "bars",
+     "oql": "SELECT UserRequest WHERE DATE_SUB(NOW(), INTERVAL 14 DAY) < start_date",
+     "title": "Last 14 days number of requests"
+    },
+    {
+     "class": "UserRequest",
+     "groupBy": "status",
+     "id": "3",
+     "kind": "table",
+     "oql": "SELECT UserRequest WHERE status NOT IN ('closed','rejected')",
+     "title": "Open requests by status"
+    },
+    {
+     "class": "UserRequest",
+     "groupBy": "agent_id",
+     "id": "4",
+     "kind": "table",
+     "oql": "SELECT UserRequest WHERE status NOT IN ('closed','rejected')",
+     "title": "Open requests by agent"
+    },
+    {
+     "class": "UserRequest",
+     "groupBy": "finalclass",
+     "id": "5",
+     "kind": "table",
+     "oql": "SELECT UserRequest WHERE status NOT IN ('closed','rejected')",
+     "title": "Open requests by type"
+    },
+    {
+     "class": "UserRequest",
+     "groupBy": "org_id",
+     "id": "6",
+     "kind": "table",
+     "oql": "SELECT UserRequest WHERE status NOT IN ('closed','rejected')",
+     "title": "Open requests by customer"
+    }
+   ],
+   "id": "UserRequest:Overview",
+   "title": "Dashboard for Request Management"
+  },
+  "WelcomeMenuPage": {
+   "columns": 1,
+   "dashlets": [
+    {
+     "id": "1",
+     "kind": "header",
+     "title": "Configuration items"
+    },
+    {
+     "class": "Contact",
+     "id": "4",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "Location",
+     "id": "5",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "BusinessProcess",
+     "id": "2",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "ApplicationSolution",
+     "id": "3",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "Server",
+     "id": "7",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "NetworkDevice",
+     "id": "8",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "Contract",
+     "id": "6",
+     "kind": "badge",
+     "title": ""
+    },
+    {
+     "class": "UserRequest",
+     "groupBy": "status",
+     "id": "11",
+     "kind": "header-dynamic",
+     "oql": "SELECT UserRequest WHERE status != \"closed\"",
+     "subtitle": "Open",
+     "title": "Helpdesk",
+     "values": [
+      "new",
+      "assigned",
+      "escalated_tto",
+      "escalated_ttr",
+      "resolved"
+     ]
+    },
+    {
+     "class": "i",
+     "id": "12",
+     "kind": "list",
+     "oql": "SELECT UserRequest AS i WHERE i.agent_id = :current_contact_id AND status NOT IN (\"closed\", \"resolved\")",
+     "title": "My requests"
+    }
+   ],
+   "id": "WelcomeMenuPage",
+   "title": "Welcome"
+  }
+ },
+ "skipped": []
+}

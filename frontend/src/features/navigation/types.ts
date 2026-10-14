@@ -7,7 +7,7 @@
  * resolves a view by id, so no screen ever holds an iTop query.
  */
 
-export type EntryKind = 'list' | 'create' | 'search';
+export type EntryKind = 'list' | 'create' | 'search' | 'dashboard';
 
 export interface NavEntry {
   /** iTop's menu id, e.g. `Incident:OpenIncidents`. Also the view id. */

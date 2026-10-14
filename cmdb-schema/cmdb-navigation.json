@@ -1,5 +1,6 @@
 {
  "classLabels": {
+  "": "",
   "ApprovedChange": "Change To Approve",
   "Change": "Change",
   "Contact": "Contact",
@@ -41,11 +42,6 @@
   },
   {
    "id": "SystemTools",
-   "reason": "empty: no renderable entries",
-   "type": "MenuGroup"
-  },
-  {
-   "id": "WelcomeMenu",
    "reason": "empty: no renderable entries",
    "type": "MenuGroup"
   },
@@ -115,61 +111,6 @@
    "type": "WebPageMenuNode"
   },
   {
-   "id": "AuditCategories",
-   "reason": "itop-dashboard: panels are defined in iTop XML, not replicated yet",
-   "type": "DashboardMenuNode"
-  },
-  {
-   "id": "Change:Overview",
-   "reason": "itop-dashboard: panels are defined in iTop XML, not replicated yet",
-   "type": "DashboardMenuNode"
-  },
-  {
-   "id": "ConfigManagementOverview",
-   "reason": "itop-dashboard: panels are defined in iTop XML, not replicated yet",
-   "type": "DashboardMenuNode"
-  },
-  {
-   "id": "Contact",
-   "reason": "itop-dashboard: panels are defined in iTop XML, not replicated yet",
-   "type": "DashboardMenuNode"
-  },
-  {
-   "id": "Incident:Overview",
-   "reason": "itop-dashboard: panels are defined in iTop XML, not replicated yet",
-   "type": "DashboardMenuNode"
-  },
-  {
-   "id": "Problem:Overview",
-   "reason": "itop-dashboard: panels are defined in iTop XML, not replicated yet",
-   "type": "DashboardMenuNode"
-  },
-  {
-   "id": "Service:Overview",
-   "reason": "itop-dashboard: panels are defined in iTop XML, not replicated yet",
-   "type": "DashboardMenuNode"
-  },
-  {
-   "id": "ServiceCatalog",
-   "reason": "itop-dashboard: panels are defined in iTop XML, not replicated yet",
-   "type": "DashboardMenuNode"
-  },
-  {
-   "id": "Typology",
-   "reason": "itop-dashboard: panels are defined in iTop XML, not replicated yet",
-   "type": "DashboardMenuNode"
-  },
-  {
-   "id": "UserRequest:Overview",
-   "reason": "itop-dashboard: panels are defined in iTop XML, not replicated yet",
-   "type": "DashboardMenuNode"
-  },
-  {
-   "id": "WelcomeMenuPage",
-   "reason": "itop-dashboard: panels are defined in iTop XML, not replicated yet",
-   "type": "DashboardMenuNode"
-  },
-  {
    "id": "MyShortcuts",
    "reason": "needs-auth: per-user shortcuts require a session",
    "type": "ShortcutContainerMenuNode"
@@ -178,6 +119,38 @@
  "groups": [
   {
    "entries": [
+    {
+     "class": "",
+     "id": "WelcomeMenuPage",
+     "kind": "dashboard",
+     "label": "Welcome",
+     "needsContact": false,
+     "rank": 10.0
+    }
+   ],
+   "id": "WelcomeMenu",
+   "isAdmin": false,
+   "label": "Welcome",
+   "rank": 10.0
+  },
+  {
+   "entries": [
+    {
+     "class": "",
+     "id": "ConfigManagementOverview",
+     "kind": "dashboard",
+     "label": "Overview",
+     "needsContact": false,
+     "rank": 1.0
+    },
+    {
+     "class": "",
+     "id": "Contact",
+     "kind": "dashboard",
+     "label": "Contacts",
+     "needsContact": false,
+     "rank": 2.0
+    },
     {
      "class": "Contact",
      "id": "NewContact",
@@ -255,6 +228,14 @@
   {
    "entries": [
     {
+     "class": "",
+     "id": "UserRequest:Overview",
+     "kind": "dashboard",
+     "label": "Overview",
+     "needsContact": false,
+     "rank": 0.0
+    },
+    {
      "class": "UserRequest",
      "id": "NewUserRequest",
      "kind": "create",
@@ -315,6 +296,14 @@
   {
    "entries": [
     {
+     "class": "",
+     "id": "Incident:Overview",
+     "kind": "dashboard",
+     "label": "Overview",
+     "needsContact": false,
+     "rank": 0.0
+    },
+    {
      "class": "Incident",
      "id": "NewIncident",
      "kind": "create",
@@ -374,6 +363,14 @@
   },
   {
    "entries": [
+    {
+     "class": "",
+     "id": "Problem:Overview",
+     "kind": "dashboard",
+     "label": "Overview",
+     "needsContact": false,
+     "rank": 0.0
+    },
     {
      "class": "Problem",
      "id": "NewProblem",
@@ -460,6 +457,14 @@
   {
    "entries": [
     {
+     "class": "",
+     "id": "Change:Overview",
+     "kind": "dashboard",
+     "label": "Overview",
+     "needsContact": false,
+     "rank": 0.0
+    },
+    {
      "class": "Change",
      "id": "NewChange",
      "kind": "create",
@@ -520,6 +525,14 @@
   {
    "entries": [
     {
+     "class": "",
+     "id": "Service:Overview",
+     "kind": "dashboard",
+     "label": "Overview",
+     "needsContact": false,
+     "rank": 0.0
+    },
+    {
      "class": "CustomerContract",
      "id": "CustomerContract",
      "kind": "list",
@@ -536,6 +549,14 @@
      "needsContact": false,
      "oql": "SELECT ProviderContract",
      "rank": 2.0
+    },
+    {
+     "class": "",
+     "id": "ServiceCatalog",
+     "kind": "dashboard",
+     "label": "Service catalog",
+     "needsContact": false,
+     "rank": 5.0
     },
     {
      "class": "ServiceFamily",
@@ -607,6 +628,14 @@
      "needsContact": false,
      "oql": "SELECT Organization",
      "rank": 10.0
+    },
+    {
+     "class": "",
+     "id": "Typology",
+     "kind": "dashboard",
+     "label": "Typology configuration",
+     "needsContact": false,
+     "rank": 80.0
     }
    ],
    "id": "DataAdministration",
@@ -633,6 +662,14 @@
      "needsContact": false,
      "oql": "SELECT URP_Profiles",
      "rank": 12.0
+    },
+    {
+     "class": "",
+     "id": "AuditCategories",
+     "kind": "dashboard",
+     "label": "Audit configuration",
+     "needsContact": false,
+     "rank": 20.0
     }
    ],
    "id": "AdminTools",

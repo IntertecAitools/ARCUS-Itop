@@ -17,7 +17,7 @@ import type { CmdbSchema } from "../../schema/load.js";
  * datamodel and the boundary would exist in name only.
  */
 
-export type EntryKind = "list" | "create" | "search";
+export type EntryKind = "list" | "create" | "search" | "dashboard";
 
 interface RawEntry {
   id: string;
@@ -101,6 +101,19 @@ export class Navigation {
       const entries: PublicEntry[] = [];
 
       for (const entry of group.entries ?? []) {
+        // A dashboard entry carries no class -- it points at a dashboard id.
+        if (entry.kind === "dashboard") {
+          entries.push({
+            id: entry.id,
+            kind: "dashboard",
+            class: "",
+            label: entry.label,
+            filtered: false,
+            creatable: false,
+          });
+          continue;
+        }
+
         // The navigation file is produced from the compiled datamodel, and the
         // schema file from the same source -- but they are two files, and a
         // stale one would advertise a screen the BFF cannot serve. Checking

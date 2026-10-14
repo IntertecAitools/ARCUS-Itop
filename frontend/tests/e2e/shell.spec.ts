@@ -88,7 +88,7 @@ test("iTop's modules arrive through the BFF, not a hardcoded list", async ({ pag
   // These groups exist because iTop declares them and the BFF publishes them.
   // Nothing in the frontend names them, so this failing means the navigation
   // stopped flowing rather than that a list needs editing.
-  const itop = page.getByRole('group', { name: 'iTop modules' });
+  const itop = page.getByRole('group', { name: 'Modules' });
   for (const group of [
     'Incident Management',
     'Problem management',

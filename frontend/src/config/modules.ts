@@ -172,6 +172,27 @@ export const modules: ModuleDefinition[] = [
     ],
   },
   {
+    id: 'dashboards',
+    label: 'Dashboards',
+    path: 'dashboards',
+    icon: LayoutGrid,
+    group: 'resources',
+    description: 'iTop overview dashboards.',
+    // Reached from the "Overview" entries in each module group.
+    hidden: true,
+    component: lazy(() =>
+      import('@/features/itop-dashboards').then((m) => ({ default: m.DashboardViewPage })),
+    ),
+    children: [
+      {
+        path: ':id',
+        component: lazy(() =>
+          import('@/features/itop-dashboards').then((m) => ({ default: m.DashboardViewPage })),
+        ),
+      },
+    ],
+  },
+  {
     id: 'modules',
     label: 'Modules',
     path: 'modules',

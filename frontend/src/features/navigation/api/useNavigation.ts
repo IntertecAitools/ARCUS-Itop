@@ -31,6 +31,7 @@ export function useNavigation() {
  * in; `create` opens the new-record form.
  */
 export function entryPath(entry: NavEntry): string {
+  if (entry.kind === 'dashboard') return `/dashboards/${encodeURIComponent(entry.id)}`;
   if (entry.kind === 'create') return `/records/${entry.class}/new`;
   if (entry.kind === 'list' && entry.filtered) {
     return `/records/${entry.class}?view=${encodeURIComponent(entry.id)}`;

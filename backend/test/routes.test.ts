@@ -5,6 +5,7 @@ import { buildApp } from "../src/app.js";
 import {
   FakeItopClient,
   getResponse,
+  sampleDashboards,
   sampleNavigation,
   sampleSchema,
   testConfig,
@@ -16,6 +17,7 @@ function app(fake: FakeItopClient) {
     client: fake.asClient(),
     schema,
     navigation: sampleNavigation(schema),
+    dashboards: sampleDashboards(fake.asClient(), schema),
   });
   after(async () => {
     await built.app.close();
