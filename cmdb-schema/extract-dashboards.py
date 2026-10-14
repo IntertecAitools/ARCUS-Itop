@@ -65,7 +65,10 @@ def read_dictionary(path):
 
 
 def oql_class(oql):
-    m = re.search(r'\bSELECT\s+(?:\w+\s+AS\s+)?(\w+)', oql or '')
+    # The class is the first token after SELECT. `SELECT X AS alias JOIN …`
+    # means X is the class and `alias` is just a local name -- capturing the
+    # alias (the old bug) produced an unqueryable class like "lnk".
+    m = re.search(r'\bSELECT\s+(\w+)', oql or '')
     return m.group(1) if m else ''
 
 

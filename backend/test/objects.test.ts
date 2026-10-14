@@ -114,11 +114,14 @@ describe("ObjectsService.list", () => {
     assert.equal(fake.lastCall().params["output_fields"], "*");
   });
 
-  it("always includes id and friendlyname in an explicit field list", async () => {
+  it("always includes id, friendlyname and finalclass in an explicit field list", async () => {
+    // finalclass joins id/friendlyname as an always-available implicit field:
+    // it is the real subclass of a row, and dashboards group abstract classes
+    // by it.
     const fake = new FakeItopClient().on("core/get", getResponse([]));
     await service(fake).list("Server", { page: 1, limit: 10, fields: "status" });
     const outputFields = String(fake.lastCall().params["output_fields"]).split(",");
-    assert.deepEqual(outputFields.sort(), ["friendlyname", "id", "status"]);
+    assert.deepEqual(outputFields.sort(), ["finalclass", "friendlyname", "id", "status"]);
   });
 
   it("rejects an unknown attribute in fields", async () => {

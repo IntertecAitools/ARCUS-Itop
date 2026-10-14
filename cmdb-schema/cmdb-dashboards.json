@@ -545,14 +545,14 @@
    "columns": 2,
    "dashlets": [
     {
-     "class": "c",
+     "class": "CustomerContract",
      "id": "1",
      "kind": "list",
      "oql": "SELECT CustomerContract AS c WHERE c.end_date < DATE_ADD(NOW(), INTERVAL 30 DAY)",
      "title": "Customer contracts to be renewed in 30 days"
     },
     {
-     "class": "c",
+     "class": "ProviderContract",
      "id": "2",
      "kind": "list",
      "oql": "SELECT ProviderContract AS c WHERE c.end_date < DATE_ADD(NOW(), INTERVAL 30 DAY)",
@@ -656,7 +656,7 @@
      "title": "Count SLTs on each SLA"
     },
     {
-     "class": "lnk",
+     "class": "lnkCustomerContractToService",
      "groupBy": "service_id",
      "id": "ContractByService",
      "kind": "table",
@@ -664,7 +664,7 @@
      "title": "Count Contracts using a Service"
     },
     {
-     "class": "lnk",
+     "class": "lnkCustomerContractToService",
      "groupBy": "sla_id",
      "id": "ContractBySLA",
      "kind": "table",
@@ -895,7 +895,7 @@
      ]
     },
     {
-     "class": "i",
+     "class": "UserRequest",
      "id": "12",
      "kind": "list",
      "oql": "SELECT UserRequest AS i WHERE i.agent_id = :current_contact_id AND status NOT IN (\"closed\", \"resolved\")",

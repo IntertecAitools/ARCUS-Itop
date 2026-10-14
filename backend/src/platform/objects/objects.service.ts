@@ -116,9 +116,12 @@ export class ObjectsService {
       throw badRequest("`fields` must name at least one attribute.");
     }
 
-    const out = new Set<string>(["id", "friendlyname"]);
+    // `finalclass` is implicit on every iTop object (the real subclass of a
+    // row) and is what dashboards group an abstract class by; like id and
+    // friendlyname it is always available but absent from the field map.
+    const out = new Set<string>(["id", "friendlyname", "finalclass"]);
     for (const code of requestedCodes) {
-      if (code === "id" || code === "friendlyname") continue;
+      if (code === "id" || code === "friendlyname" || code === "finalclass") continue;
       assertIdentifier(code, "attribute code");
       const field = info.fields[code];
       if (!field) {
