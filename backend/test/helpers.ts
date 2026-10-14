@@ -281,6 +281,15 @@ export function sampleNavigation(schema: CmdbSchema = sampleSchema()): Navigatio
             },
             { id: "NewServer", kind: "create", class: "Server", label: "New server", rank: 20 },
             { id: "SearchServers", kind: "search", class: "Server", label: "Search", rank: 30 },
+            {
+              id: "MyServers",
+              kind: "list",
+              class: "Server",
+              label: "Assigned to me",
+              rank: 40,
+              oql: "SELECT Server WHERE agent_id = :current_contact_id",
+              needsContact: true,
+            },
           ],
         },
         {

@@ -10,6 +10,7 @@ import { Navigation } from "./platform/navigation/navigation.service.js";
 import { ObjectsService } from "./platform/objects/objects.service.js";
 import { RelationsService } from "./shared/relations.service.js";
 import { DefaultOrganization } from "./shared/default-organization.js";
+import { CurrentContact } from "./shared/current-contact.js";
 
 export interface Services {
   config: Config;
@@ -24,6 +25,7 @@ export interface Services {
   incidents: IncidentsService;
   directory: DirectoryService;
   defaultOrganization: DefaultOrganization;
+  currentContact: CurrentContact;
 }
 
 export interface BuildServicesOptions {
@@ -45,6 +47,7 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     config.itop.user,
     config.defaultOrgId,
   );
+  const currentContact = new CurrentContact(client, config.itop.user);
 
   return {
     config,
@@ -57,6 +60,7 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     relations: new RelationsService(client, schema),
     dashboard: new DashboardService(objects),
     defaultOrganization,
+    currentContact,
     incidents: new IncidentsService(objects, schema, defaultOrganization),
     directory: new DirectoryService(objects),
   };

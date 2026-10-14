@@ -188,10 +188,10 @@ def main():
                                  'reason': 'no-class: nothing to query'})
                 continue
 
-            if ':current_contact_id' in node['oql']:
-                excluded.append({'id': node['id'], 'type': ntype,
-                                 'reason': 'needs-auth: OQL filters on the logged-in contact'})
-                continue
+            # `:current_contact_id` views ("my incidents") are kept: the BFF
+            # binds that parameter to its own account's contact id at request
+            # time. They carry a flag so the service knows to substitute it.
+            needs_contact = ':current_contact_id' in node['oql']
 
             if cls not in schema_classes:
                 excluded.append({
@@ -202,6 +202,7 @@ def main():
                 continue
 
             entry = {
+                'needsContact': needs_contact,
                 'id': node['id'],
                 'kind': kind,
                 'class': cls,

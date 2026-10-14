@@ -74,8 +74,9 @@ describe("Navigation", () => {
   it("only registers views for entries that actually filter", () => {
     const navigation = sampleNavigation();
 
-    // Organization is a plain list, so there is nothing to resolve.
-    assert.deepEqual(navigation.viewIds, ["Servers"]);
+    // Organization is a plain list, so there is nothing to resolve. Servers
+    // and the personal MyServers both filter, so both register.
+    assert.deepEqual(navigation.viewIds, ["MyServers", "Servers"]);
   });
 
   it("drops an entry whose class is absent from the schema, with a reason", () => {
@@ -180,7 +181,7 @@ describe("GET /api/meta/navigation", () => {
 
     assert.equal(response.statusCode, 200);
     assert.equal(body.counts.groups, body.groups.length);
-    assert.equal(body.counts.views, 1);
+    assert.equal(body.counts.views, 2);
     assert.ok(body.counts.excluded >= 2);
     assert.equal(body.classLabels["Server"], "Server");
     assert.ok(!response.body.includes("SELECT"), "the response must not contain OQL");
@@ -244,5 +245,31 @@ describe("listing through a view", () => {
     await app(fake).inject({ method: "GET", url: "/api/objects/Server?view=Servers" });
 
     assert.ok(!String(fake.lastCall().params["key"]).includes("view ="));
+  });
+});
+
+describe("personal views (:current_contact_id)", () => {
+  it("keeps my-views in the tree with a needsContact flag", () => {
+    // These used to be excluded entirely ("needs-auth"). They are now served:
+    // the BFF binds the contact at request time, so the entry stays.
+    const view = sampleNavigation().resolveView("MyServers");
+
+    assert.equal(view.needsContact, true);
+    assert.match(view.oql, /:current_contact_id/);
+  });
+
+  it("marks an ordinary view as not needing a contact", () => {
+    assert.equal(sampleNavigation().resolveView("Servers").needsContact, false);
+  });
+
+  it("substitutes :current_contact_id with the resolved contact", async () => {
+    // The route does the substitution; this mirrors it so the binding is pinned
+    // without a live iTop. The point is that the token never survives into the
+    // query sent to iTop, and the frontend never saw it in the first place.
+    const view = sampleNavigation().resolveView("MyServers");
+    const bound = view.oql.split(":current_contact_id").join("42");
+
+    assert.equal(bound, "SELECT Server WHERE agent_id = 42");
+    assert.ok(!bound.includes(":current_contact_id"));
   });
 });

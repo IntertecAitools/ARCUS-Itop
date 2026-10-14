@@ -99,6 +99,15 @@ export function registerObjectRoutes(app: FastifyInstance, services: Services): 
         throw badRequest("Pass either `view` or `oql`, not both.");
       }
       oql = view.oql;
+
+      // "My incidents"-style views filter on :current_contact_id. Binding it
+      // here keeps the parameter server-side: the frontend only ever sends the
+      // view id, never a contact. Until the frontend has its own sign-in, the
+      // current contact is the account the BFF authenticates as.
+      if (view.needsContact) {
+        const contactId = await services.currentContact.resolve();
+        oql = oql.split(":current_contact_id").join(contactId);
+      }
     }
 
     return objects.list(className, {

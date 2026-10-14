@@ -26,6 +26,7 @@ interface RawEntry {
   label: string;
   rank: number;
   oql?: string;
+  needsContact?: boolean;
 }
 
 interface RawGroup {
@@ -68,13 +69,13 @@ export interface NavigationDiagnostic {
 }
 
 export class Navigation {
-  private readonly views = new Map<string, { class: string; oql: string }>();
+  private readonly views = new Map<string, { class: string; oql: string; needsContact: boolean }>();
 
   private constructor(
     readonly groups: PublicGroup[],
     readonly classLabels: Record<string, string>,
     readonly excluded: NavigationDiagnostic[],
-    views: Map<string, { class: string; oql: string }>,
+    views: Map<string, { class: string; oql: string; needsContact: boolean }>,
   ) {
     this.views = views;
   }
@@ -92,7 +93,7 @@ export class Navigation {
   }
 
   static fromData(raw: RawNavigation, schema: CmdbSchema): Navigation {
-    const views = new Map<string, { class: string; oql: string }>();
+    const views = new Map<string, { class: string; oql: string; needsContact: boolean }>();
     const excluded: NavigationDiagnostic[] = [...(raw.excluded ?? [])];
     const groups: PublicGroup[] = [];
 
@@ -115,7 +116,7 @@ export class Navigation {
         }
 
         if (entry.kind === "list" && entry.oql) {
-          views.set(entry.id, { class: entry.class, oql: entry.oql });
+          views.set(entry.id, { class: entry.class, oql: entry.oql, needsContact: Boolean(entry.needsContact) });
         }
 
         entries.push({
@@ -144,7 +145,7 @@ export class Navigation {
   }
 
   /** The OQL behind a view id. Throws rather than silently listing everything. */
-  resolveView(id: string): { class: string; oql: string } {
+  resolveView(id: string): { class: string; oql: string; needsContact: boolean } {
     const view = this.views.get(id);
     if (!view) {
       throw notFound(
