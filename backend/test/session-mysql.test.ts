@@ -150,3 +150,29 @@ describe("MySqlSessionStore", () => {
     assert.ok(await s.get(other));
   });
 });
+
+describe("MySqlSessionStore row binding", () => {
+  it("does not let a copied sealed session open under another cookie", async () => {
+    const pool = new FakePool();
+    const clock = { t: 0 };
+    const s = store(pool, clock);
+    const admin = await s.create({ ...jane, userId: 1, login: "admin", isAdmin: true });
+    const mine = await s.create({ ...jane, userId: 9, login: "low" });
+    const rows = [...pool.rows.values()];
+    const adminRow = rows.find((r) => r.user_id === 1)!;
+    const myRow = rows.find((r) => r.user_id === 9)!;
+
+    // Someone with write access to the table moves the admin's blob onto
+    // their own row, with or without also changing the user id.
+    myRow.data = Buffer.from(adminRow.data);
+    assert.equal(await s.get(mine), undefined);
+
+    const mine2 = await s.create({ ...jane, userId: 9, login: "low" });
+    const row2 = [...pool.rows.values()].find((r) => r.user_id === 9)!;
+    row2.data = Buffer.from(adminRow.data);
+    row2.user_id = 1;
+    assert.equal(await s.get(mine2), undefined);
+
+    assert.equal((await s.get(admin))?.login, "admin");
+  });
+});

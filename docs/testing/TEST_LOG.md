@@ -4,6 +4,23 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-10-19 — Review of the 6 commits not yet in main
+
+PR #2 was merged with its first two commits only; the six pushed after it were reviewed before a new PR.
+
+| What ran | Result | Notes |
+| --- | --- | --- |
+| Independent review of `origin/main..HEAD` | 3 findings, all fixed | Auth hook change, OQL injection, crypto basics, expiry, bulk delete checked and found correct |
+| New unit tests: copied session blob, refused queue | ✅ 2/2 | |
+| Backend unit tests + typecheck | ✅ 358/358, clean | |
+| Hook pipe-test: background, moved-to-background, foreground | ✅ | Background runs now say so instead of "no summary line" |
+| Live: sign in, `/api/auth/me`, dashboard queues | ✅ 200, 200, 1/1/1 | |
+
+Findings fixed:
+1. Medium: a sealed session was not bound to its row, so someone able to write `bff_sessions` could copy an admin's blob onto their own row. The seal now authenticates the id hash and user id. Sessions sealed before this no longer open (one-time sign-in).
+2. Low: one queue iTop refused (e.g. no right to read Problem) failed the whole dashboard; now that queue is empty.
+3. Low: the test-log hook logged background runs as "no summary line".
+
 ### 2026-10-19 — Sign-ins survive BFF restarts (MySQL session store)
 
 | What ran | Result | Notes |
@@ -124,3 +141,13 @@ Not covered yet: approvals (extension not installed); load and concurrency beyon
   - command: `python - <<'PY' p='backend/README.md' s=open(p,encoding='utf-8').read() def sub(a,b): global s assert a in s; s=s.replace(a,b,1) sub("""- **Staff call iTop as themselves.** The ses`
 - **2026-10-19 10:55 UTC** · `feature/itop-parity@609c382` + uncommitted changes · Live API check (BFF → iTop) · ✅ 70 passed, 0 failed
   - command: `npm run smoke 2>&1 | tail -3; API_CHECK_LOGIN=admin API_CHECK_PASSWORD='Weftbase#2026' node scripts/api-check.mjs 2>&1 | tail -3`
+- **2026-10-19 11:35 UTC** · `feature/itop-parity@d16caee` · Unit tests (backend) · ran — no summary line in the output
+  - command: `cd /c/Users/Venkatesh.V/Arcus_ITOP/backend && npm test 2>&1 | tail -15`
+- **2026-10-19 11:37 UTC** · `feature/itop-parity@d16caee` + uncommitted changes · Frontend unit tests (vitest) (frontend) · ran — no summary line in the output
+  - command: `cd /c/Users/Venkatesh.V/Arcus_ITOP/frontend && npx vitest run 2>&1 | tail -8`
+- **2026-10-19 11:43 UTC** · `feature/itop-parity@d16caee` + uncommitted changes · Unit tests (backend) · ✅ 13 passed, 0 failed
+  - command: `cd /c/Users/Venkatesh.V/Arcus_ITOP/backend && python - <<'PY' def edit(p, pairs): s=open(p,encoding='utf-8').read() for a,b in pairs: assert a in s, (p,a[:70]); s=s.replace(a,b,1) `
+- **2026-10-19 11:43 UTC** · `feature/itop-parity@d16caee` + uncommitted changes · Unit tests (backend) · ✅ 3 passed, 0 failed
+  - command: `cd /c/Users/Venkatesh.V/Arcus_ITOP && T="$TEMP/claude/hooktest2" && rm -rf "$T" && mkdir -p "$T" && run(){ node -e 'process.stdout.write(JSON.stringify({tool_input:{command:process`
+- **2026-10-19 11:44 UTC** · `feature/itop-parity@d16caee` + uncommitted changes · Unit tests (backend) · ✅ 358 passed, 0 failed
+  - command: `cd /c/Users/Venkatesh.V/Arcus_ITOP/backend && npm test 2>&1 | grep -E "^ℹ (tests|pass|fail)"; npm run typecheck 2>&1 | grep -c " error "`

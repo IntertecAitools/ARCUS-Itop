@@ -110,3 +110,18 @@ describe("incident list ?assignee", () => {
     assert.throws(() => incidentListQuerySchema.parse({ assignee: "someone" }));
   });
 });
+
+describe("DashboardService.myAssignments when iTop refuses a queue", () => {
+  it("empties that queue and keeps the others", async () => {
+    const objects = {
+      async list(className: string) {
+        if (className === "Problem") throw new Error("not allowed");
+        return { items: [ticket(className, 1, "2")], total: 1 };
+      },
+    } as unknown as ObjectsService;
+    const result = await new DashboardService(objects, navigation(), contact("1")).myAssignments();
+    assert.deepEqual(result.problems, { items: [], total: 0 });
+    assert.equal(result.incidents.total, 1);
+    assert.equal(result.requests.total, 1);
+  });
+});

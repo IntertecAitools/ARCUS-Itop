@@ -127,12 +127,19 @@ export class DashboardService {
       } catch {
         return EMPTY_QUEUE;
       }
-      const result = await this.objects.list(className, {
-        page: 1,
-        limit: ASSIGNMENT_ROWS,
-        oql,
-        fields: TICKET_FIELDS,
-      });
+      let result;
+      try {
+        result = await this.objects.list(className, {
+          page: 1,
+          limit: ASSIGNMENT_ROWS,
+          oql,
+          fields: TICKET_FIELDS,
+        });
+      } catch {
+        // E.g. an agent whose profile cannot read Problem: that queue is
+        // empty for them, and the rest of the dashboard still loads.
+        return EMPTY_QUEUE;
+      }
       // Most urgent first, then newest -- the order an agent works a queue in.
       const items = result.items
         .map((item) => toTicket(item))

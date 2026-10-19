@@ -43,7 +43,10 @@ const TABLE = `
  * - the caller (which holds the user's iTop password) is sealed with
  *   AES-256-GCM under a key derived from SESSION_SECRET, which lives in the
  *   BFF's environment and never in the database. A row that does not decrypt
- *   (tampered, or the secret changed) is no session at all.
+ *   (tampered, or the secret changed) is no session at all;
+ * - the seal is bound to its row (the id hash and user id are authenticated
+ *   data), so copying another user's sealed blob into one's own row does not
+ *   make one's cookie open it.
  */
 export class MySqlSessionStore implements SessionStore {
   private readonly key: Buffer;
@@ -72,10 +75,11 @@ export class MySqlSessionStore implements SessionStore {
   async create(caller: Caller): Promise<string> {
     await this.ready();
     const id = newSessionId();
+    const hash = hashId(id);
     const at = this.now();
     await this.pool.query(
       "INSERT INTO bff_sessions (id_hash, user_id, data, created_at, last_seen) VALUES (?, ?, ?, ?, ?)",
-      [hashId(id), caller.userId, this.seal(caller), at, at],
+      [hash, caller.userId, this.seal(caller, hash), at, at],
     );
     return id;
   }
@@ -93,7 +97,12 @@ export class MySqlSessionStore implements SessionStore {
 
     const at = this.now();
     const times = { createdAt: Number(row.created_at), lastSeen: Number(row.last_seen) };
-    const caller = isExpired(times, at, this.idleMs, this.maxMs) ? undefined : this.open(row.data);
+    const opened = isExpired(times, at, this.idleMs, this.maxMs)
+      ? undefined
+      : this.open(row.data, hash, Number(row.user_id));
+    // The user id is authenticated data already; checking it again keeps a
+    // mismatch from ever reaching a request.
+    const caller = opened && opened.userId === Number(row.user_id) ? opened : undefined;
     if (!caller) {
       await this.pool.query("DELETE FROM bff_sessions WHERE id_hash = ?", [hash]);
       return undefined;
@@ -106,9 +115,11 @@ export class MySqlSessionStore implements SessionStore {
 
   async update(id: string, caller: Caller): Promise<void> {
     await this.ready();
-    await this.pool.query("UPDATE bff_sessions SET data = ? WHERE id_hash = ?", [
-      this.seal(caller),
-      hashId(id),
+    const hash = hashId(id);
+    await this.pool.query("UPDATE bff_sessions SET data = ? WHERE id_hash = ? AND user_id = ?", [
+      this.seal(caller, hash),
+      hash,
+      caller.userId,
     ]);
   }
 
@@ -137,17 +148,19 @@ export class MySqlSessionStore implements SessionStore {
     await this.pool.end();
   }
 
-  /** iv (12) | auth tag (16) | ciphertext. */
-  private seal(caller: Caller): Buffer {
+  /** iv (12) | auth tag (16) | ciphertext, bound to its row. */
+  private seal(caller: Caller, hash: string): Buffer {
     const iv = randomBytes(12);
     const cipher = createCipheriv("aes-256-gcm", this.key, iv);
+    cipher.setAAD(rowBinding(hash, caller.userId));
     const body = Buffer.concat([cipher.update(JSON.stringify(caller), "utf8"), cipher.final()]);
     return Buffer.concat([iv, cipher.getAuthTag(), body]);
   }
 
-  private open(data: Buffer): Caller | undefined {
+  private open(data: Buffer, hash: string, userId: number): Caller | undefined {
     try {
       const decipher = createDecipheriv("aes-256-gcm", this.key, data.subarray(0, 12));
+      decipher.setAAD(rowBinding(hash, userId));
       decipher.setAuthTag(data.subarray(12, 28));
       const json = Buffer.concat([decipher.update(data.subarray(28)), decipher.final()]).toString("utf8");
       return JSON.parse(json) as Caller;
@@ -155,6 +168,10 @@ export class MySqlSessionStore implements SessionStore {
       return undefined;
     }
   }
+}
+
+function rowBinding(hash: string, userId: number): Buffer {
+  return Buffer.from(`${hash}:${userId}`, "utf8");
 }
 
 function hashId(id: string): string {

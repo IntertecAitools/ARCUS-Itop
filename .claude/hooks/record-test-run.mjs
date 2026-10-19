@@ -92,8 +92,16 @@ try {
   const summary = summarise(out);
   const failures = failingNames(out);
 
+  // A run started in (or moved to) the background has no output yet, so its
+  // result is not known here; say so rather than "no summary line", and leave
+  // the result to the session's narrative entry.
+  const background =
+    input.tool_input?.run_in_background === true || /moved to the background|Command running in background/.test(out);
+
   let result;
-  if (summary) {
+  if (background && !summary) {
+    result = '⏳ started in the background — result not captured here; see the session entry';
+  } else if (summary) {
     result = `${summary.failed === 0 ? '✅' : '❌'} ${summary.passed} passed, ${summary.failed} failed`;
   } else if (/Typecheck|build/i.test(kind.label)) {
     const broke = /error TS\d+|Build failed|ERROR/.test(out);
