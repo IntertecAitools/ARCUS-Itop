@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { Bell, ChevronDown, CircleHelp, LogOut, Moon, Search, Settings, Sun } from 'lucide-react';
+import { Bell, ChevronDown, CircleHelp, KeyRound, LogOut, Moon, Search, Sun } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Avatar, IconButton } from '@/components/ui';
 import { useUiStore } from '@/stores/ui.store';
 import { useSessionStore } from '@/stores/session.store';
+import { ChangePasswordDialog, useSignOut } from '@/features/auth';
 
 function ThemeToggle() {
   const theme = useUiStore((s) => s.theme);
@@ -21,7 +23,21 @@ function ThemeToggle() {
 
 function UserMenu() {
   const user = useSessionStore((s) => s.user);
+  const clearSession = useSessionStore((s) => s.clear);
   const [open, setOpen] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
+  const signOut = useSignOut();
+  const navigate = useNavigate();
+
+  const onSignOut = () => {
+    setOpen(false);
+    signOut.mutate(undefined, {
+      onSettled: () => {
+        clearSession();
+        navigate('/login', { replace: true });
+      },
+    });
+  };
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -70,13 +86,19 @@ function UserMenu() {
           </div>
           <button
             role="menuitem"
+            onClick={() => {
+              setOpen(false);
+              setChangingPassword(true);
+            }}
             className="flex w-full items-center gap-2.5 px-3 py-2 text-[13px] text-ink-secondary transition-colors hover:bg-surface-hover"
           >
-            <Settings className="size-4" aria-hidden />
-            Preferences
+            <KeyRound className="size-4" aria-hidden />
+            Change password
           </button>
           <button
             role="menuitem"
+            onClick={onSignOut}
+            disabled={signOut.isPending}
             className="flex w-full items-center gap-2.5 px-3 py-2 text-[13px] text-critical-ink transition-colors hover:bg-surface-hover"
           >
             <LogOut className="size-4" aria-hidden />
@@ -84,6 +106,7 @@ function UserMenu() {
           </button>
         </div>
       ) : null}
+      {changingPassword ? <ChangePasswordDialog onClose={() => setChangingPassword(false)} /> : null}
     </div>
   );
 }

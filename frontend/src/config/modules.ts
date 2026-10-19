@@ -1,5 +1,5 @@
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
-import { Database, LayoutDashboard, LayoutGrid, LifeBuoy, type LucideIcon } from 'lucide-react';
+import { Database, LayoutDashboard, LayoutGrid, LifeBuoy, UsersRound, type LucideIcon } from 'lucide-react';
 
 /**
  * ════════════════════════════════════════════════════════════════════════════
@@ -78,6 +78,11 @@ export interface ModuleDefinition {
    * once it is built. This says where it is offered, not whether it exists.
    */
   hidden?: boolean;
+  /**
+   * Offered only to administrators. The route still exists for everyone and
+   * the BFF refuses the API to anyone else; this only keeps it out of their menus.
+   */
+  adminOnly?: boolean;
   /** Route element. Required: a registered module is a built module. */
   component: LazyExoticComponent<ComponentType>;
   /** Nested routes (detail screens, tabs) owned by the module. */
@@ -155,7 +160,14 @@ export const modules: ModuleDefinition[] = [
           import('@/features/records').then((m) => ({ default: m.RecordListPage })),
         ),
       },
-      // `new` before `:id`, or it is matched as a record id.
+      // `new` and `import` before `:id`, or they are matched as a record id.
+      {
+        path: ':className/import',
+        label: 'Import',
+        component: lazy(() =>
+          import('@/features/records').then((m) => ({ default: m.RecordImportPage })),
+        ),
+      },
       {
         path: ':className/new',
         label: 'New record',
@@ -205,6 +217,23 @@ export const modules: ModuleDefinition[] = [
       import('@/features/navigation').then((m) => ({ default: m.ModulesIndexPage })),
     ),
   },
+  {
+    id: 'users',
+    label: 'Users',
+    path: 'users',
+    icon: UsersRound,
+    group: 'administration',
+    description: 'Accounts, profiles and who may sign in.',
+    adminOnly: true,
+    component: lazy(() => import('@/features/users').then((m) => ({ default: m.UserListPage }))),
+    children: [
+      {
+        path: ':id',
+        label: 'User',
+        component: lazy(() => import('@/features/users').then((m) => ({ default: m.UserEditorPage }))),
+      },
+    ],
+  },
 ];
 
 export const navGroups: NavGroup[] = ['operations', 'resources', 'administration'];
@@ -216,12 +245,12 @@ export const navGroups: NavGroup[] = ['operations', 'resources', 'administration
  * these two separate — conflating them is how a reachable screen becomes
  * unreachable, or a hidden one reappears in a menu.
  */
-export function navigableModules() {
-  return modules.filter((m) => !m.hidden);
+export function navigableModules(isAdmin = false) {
+  return modules.filter((m) => !m.hidden && (!m.adminOnly || isAdmin));
 }
 
-export function modulesInGroup(group: NavGroup) {
-  return navigableModules().filter((m) => m.group === group);
+export function modulesInGroup(group: NavGroup, isAdmin = false) {
+  return navigableModules(isAdmin).filter((m) => m.group === group);
 }
 
 export function findModuleByPath(path: string) {

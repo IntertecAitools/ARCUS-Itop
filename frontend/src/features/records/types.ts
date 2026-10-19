@@ -38,6 +38,12 @@ export interface FieldSpec {
   linked?: string;
   /** False when `linked` is absent from the published schema, so it cannot be listed. */
   linkedAvailable?: boolean;
+  /** For a related set: the key on `linked` that points back at this record. */
+  linkKey?: string;
+  /** For an n-n set: the key on the link class that points at the far side. */
+  remoteKey?: string;
+  /** How iTop lets the set be edited; absent means add and remove. */
+  editMode?: 'none' | 'add_only' | 'add_remove' | 'actions' | 'in_place';
   owner?: string;
 }
 
@@ -83,6 +89,9 @@ export interface ClassLabels {
   stimuli?: Record<string, string>;
 }
 
+/** iTop's per-state attribute flags. */
+export type StateFlag = 'mandatory' | 'read_only' | 'must_prompt' | 'must_change' | 'hidden';
+
 export interface ClassInfo {
   name: string;
   isCi: boolean;
@@ -97,6 +106,10 @@ export interface ClassInfo {
      * they are displayed using `labels.stimuli` and sent back as received.
      */
     stimuli: string[];
+    /** state -> action -> the state it leads to. */
+    transitions: Record<string, Record<string, string>>;
+    /** state -> attcode -> iTop's flags for it in that state. */
+    flags: Record<string, Record<string, StateFlag[]>>;
   } | null;
   /** Null when iTop declares no layout for the class. */
   presentation: Presentation | null;
@@ -106,6 +119,8 @@ export interface ClassInfo {
   related: string[];
   pickers: string[];
   searchable: string[];
+  /** Advanced search: per searchable attribute, its kind and operators. */
+  criteria?: Record<string, { kind: CriterionKind; ops: CriterionOp[] }>;
   fields: Record<string, FieldSpec>;
 }
 
@@ -140,9 +155,119 @@ export interface RecordFilters {
    * frontend while still letting us render "Open incidents".
    */
   view?: string;
+  /** Advanced-search conditions, ANDed with the view and search. */
+  criteria?: Criterion[];
 }
 
 export interface PickerOption {
   id: number;
   label: string;
+}
+
+/** What a delete would do, as the BFF reports iTop's deletion plan. */
+export interface DeletePlan {
+  simulated: boolean;
+  ok: boolean;
+  message: string;
+  plan: Array<{ class: string; id: number; outcome: string; detail: string }>;
+}
+
+/** One field-level change in a record's history, already worded by the BFF. */
+export interface HistoryChange {
+  kind: string;
+  attcode?: string;
+  label?: string;
+  text: string;
+  oldValue?: string;
+  newValue?: string;
+}
+
+/** One save: who, when, and what it changed. */
+export interface HistoryEntry {
+  id: string;
+  date: string;
+  user: string;
+  changes: HistoryChange[];
+}
+
+export interface HistoryResult {
+  items: HistoryEntry[];
+  total: number;
+  truncated: boolean;
+}
+
+/** One action applied to many records, as the bulk endpoint takes it. */
+export type BulkRequest =
+  | { action: 'update'; ids: number[]; fields: Record<string, unknown> }
+  | { action: 'stimulus'; ids: number[]; stimulus: string; fields?: Record<string, unknown> }
+  | { action: 'delete'; ids: number[] };
+
+/** Per-record outcome: a bulk action can partly succeed. */
+export interface BulkResult {
+  results: Array<{ id: number; ok: boolean; error?: string }>;
+  succeeded: number;
+  failed: number;
+}
+
+export type ExportFormat = 'csv' | 'xlsx' | 'pdf';
+
+/** What iTop's CSV import did (or, simulated, would do) line by line. */
+export interface ImportReport {
+  simulated: boolean;
+  summary: { issues: number; warnings: number; created: number; updated: number; unchanged: number };
+  messages: string[];
+  columns: string[];
+  rows: Array<{
+    line: number;
+    kind: 'created' | 'updated' | 'unchanged' | 'error' | 'other';
+    status: string;
+    class: string;
+    id: string;
+    cells: string[];
+  }>;
+}
+
+export interface ImportRequest {
+  csv: string;
+  simulate: boolean;
+  reconciliationKeys?: string[];
+  separator?: string;
+}
+
+export type CriterionKind = 'string' | 'enum' | 'key' | 'number' | 'date';
+export type CriterionOp =
+  | 'contains'
+  | 'not_contains'
+  | 'starts_with'
+  | 'ends_with'
+  | 'equals'
+  | 'not_equals'
+  | 'in'
+  | 'not_in'
+  | 'gt'
+  | 'gte'
+  | 'lt'
+  | 'lte'
+  | 'between'
+  | 'empty'
+  | 'not_empty';
+
+/** One advanced-search condition, in the BFF's vocabulary (never OQL). */
+export interface Criterion {
+  field: string;
+  op: CriterionOp;
+  value?: string;
+  value2?: string;
+  values?: string[];
+}
+
+/** The impact-analysis graph around one record. */
+export interface RelationGraph {
+  root: { class: string; id: number };
+  relation: string;
+  direction: 'up' | 'down';
+  depth: number;
+  nodes: Array<{ key: string; class: string; id: number; label: string }>;
+  edges: Array<{ from: string; to: string }>;
+  message: string;
 }

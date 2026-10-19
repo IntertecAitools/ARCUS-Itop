@@ -112,3 +112,11 @@ describe('isModuleRegistered', () => {
     expect(isModuleRegistered('/knowledge')).toBe(false);
   });
 });
+
+describe('admin-only modules', () => {
+  it('are offered to administrators only', async () => {
+    const { navigableModules } = await import('./modules');
+    expect(navigableModules(false).some((m) => m.id === 'users')).toBe(false);
+    expect(navigableModules(true).some((m) => m.id === 'users')).toBe(true);
+  });
+});

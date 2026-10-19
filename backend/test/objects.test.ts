@@ -449,3 +449,157 @@ describe("ObjectsService.links", () => {
     );
   });
 });
+
+describe("ObjectsService.remove — missing objects and errors", () => {
+  it("404s instead of reporting success when the id matches nothing", async () => {
+    // iTop: an empty set plans nothing and still answers code 0.
+    const fake = new FakeItopClient().on("core/delete", {
+      code: 0,
+      message: "Deleted: 0",
+      objects: null,
+    });
+    await assert.rejects(
+      () => service(fake).remove("Server", 999),
+      (error: unknown) => error instanceof AppError && error.status === 404,
+    );
+  });
+
+  it("404s a simulation of a missing object too", async () => {
+    const fake = new FakeItopClient().on("core/delete", { code: 0, message: "", objects: null });
+    await assert.rejects(
+      () => service(fake).remove("Server", 999, { simulate: true }),
+      (error: unknown) => error instanceof AppError && error.status === 404,
+    );
+  });
+
+  it("maps a rights failure to 403 even during a simulation", async () => {
+    const fake = new FakeItopClient().on("core/delete", {
+      code: 1,
+      message: "The current user does not have enough permissions for deleting data of class Server",
+      objects: null,
+    });
+    await assert.rejects(
+      () => service(fake).remove("Server", 5, { simulate: true }),
+      (error: unknown) =>
+        error instanceof AppError && error.status === 403 && !/REST Services User/.test(error.message),
+    );
+  });
+});
+
+describe("ObjectsService.list — views narrowed by q and filters", () => {
+  const view = "SELECT Server WHERE status = 'production'";
+
+  it("passes a view's OQL through untouched when nothing narrows it", async () => {
+    const fake = new FakeItopClient().on("core/get", getResponse([]));
+    await service(fake).list("Server", { page: 1, limit: 10, oql: view });
+    assert.equal(fake.lastCall().params["key"], view);
+  });
+
+  it("keeps the search when a view is also given", async () => {
+    const fake = new FakeItopClient().on("core/get", getResponse([]));
+    await service(fake).list("Server", { page: 1, limit: 10, oql: view, q: "web" });
+    const key = String(fake.lastCall().params["key"]);
+    assert.match(key, /LIKE '%web%'/);
+    assert.ok(key.endsWith(`AND (id IN (${view}))`), key);
+  });
+
+  it("keeps exact-match filters when a view is also given", async () => {
+    const fake = new FakeItopClient().on("core/get", getResponse([]));
+    await service(fake).list("Server", { page: 1, limit: 10, oql: view, filters: { org_id: "3" } });
+    assert.equal(
+      fake.lastCall().params["key"],
+      `SELECT Server WHERE org_id = 3 AND (id IN (${view}))`,
+    );
+  });
+});
+
+describe("ObjectsService.listAll", () => {
+  it("pages past the 500-row page size until the set is exhausted", async () => {
+    const rows = (from: number, n: number) =>
+      Array.from({ length: n }, (_, i) => ({ class: "Server", id: from + i, fields: {} }));
+    const fake = new FakeItopClient().on("core/get", [
+      getResponse(rows(1, 500), 700),
+      getResponse(rows(501, 200), 700),
+    ]);
+
+    const result = await service(fake).listAll("Server", { oql: "SELECT Server" }, 5000);
+
+    assert.equal(result.items.length, 700);
+    assert.equal(result.total, 700);
+    assert.equal(result.truncated, false);
+    assert.deepEqual(
+      fake.calls.map((c) => c.params["page"]),
+      [1, 2],
+    );
+  });
+
+  it("stops at the cap and says it truncated", async () => {
+    const rows = Array.from({ length: 500 }, (_, i) => ({ class: "Server", id: i + 1, fields: {} }));
+    const fake = new FakeItopClient().on("core/get", getResponse(rows, 9000));
+    const result = await service(fake).listAll("Server", {}, 600);
+    assert.equal(result.items.length, 600);
+    assert.equal(result.total, 9000);
+    assert.equal(result.truncated, true);
+  });
+});
+
+describe("ObjectsService.bulk", () => {
+  const ok = (id: number) => getResponse([{ class: "Server", id, fields: {} }]);
+
+  it("updates every record and reports each outcome", async () => {
+    const fake = new FakeItopClient().on("core/update", [ok(1), ok(2), ok(3)]);
+    const result = await service(fake).bulk("Server", [1, 2, 3, 2], {
+      action: "update",
+      fields: { status: "production" },
+    });
+    assert.equal(result.succeeded, 3);
+    assert.equal(result.failed, 0);
+    // Duplicates collapse; each record is its own call.
+    assert.equal(fake.calls.length, 3);
+    assert.deepEqual(fake.calls[0]?.params["fields"], { status: "production" });
+  });
+
+  it("keeps going past a failure and says which record failed", async () => {
+    const fake = new FakeItopClient().on("core/delete", [
+      { code: 0, message: "Deleted: 1", objects: { "Server::1": { code: 0, message: "", class: "Server", key: "1", fields: {} } } },
+      { code: 0, message: "Deleted: 0", objects: null },
+    ]);
+    const result = await service(fake).bulk("Server", [1, 2], { action: "delete" });
+    assert.equal(result.succeeded, 1);
+    assert.equal(result.failed, 1);
+    const failed = result.results.find((r) => !r.ok);
+    assert.ok(failed && /not found/i.test(failed.error ?? ""));
+  });
+
+  it("rejects a bad payload once, before touching any record", async () => {
+    const fake = new FakeItopClient();
+    await assert.rejects(
+      () => service(fake).bulk("Server", [1, 2], { action: "update", fields: { status: "bogus" } }),
+      (error: unknown) => error instanceof AppError && error.status === 400,
+    );
+    assert.equal(fake.calls.length, 0);
+  });
+
+  it("caps how many records one request may touch", async () => {
+    const ids = Array.from({ length: 501 }, (_, i) => i + 1);
+    await assert.rejects(
+      () => service(new FakeItopClient()).bulk("Server", ids, { action: "delete" }),
+      (error: unknown) => error instanceof AppError && error.status === 400,
+    );
+  });
+
+  it("previews a bulk delete as one dry run over all the ids", async () => {
+    const fake = new FakeItopClient().on("core/delete", {
+      code: 0,
+      message: "SIMULATING: Deleted: 2",
+      objects: {
+        "Server::1": { code: 0, message: "", class: "Server", key: "1", fields: {} },
+        "Server::2": { code: 0, message: "", class: "Server", key: "2", fields: {} },
+      },
+    });
+    const plan = await service(fake).bulkDeletePlan("Server", [1, 2]);
+    assert.equal(fake.lastCall().params["key"], "SELECT Server WHERE id IN (1,2)");
+    assert.equal(fake.lastCall().params["simulate"], true);
+    assert.equal(plan.plan.length, 2);
+  });
+});

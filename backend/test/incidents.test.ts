@@ -406,3 +406,13 @@ describe("transitions that carry no fields", () => {
     assert.deepEqual(call?.args[3], {});
   });
 });
+
+describe("IncidentsService.list search escaping", () => {
+  it("treats % and _ in a search as literal characters", async () => {
+    const { svc, calls } = stub();
+    await svc.list({ ...baseQuery, q: "50%_off" });
+    const oql = String((calls[0]?.args[1] as Record<string, unknown>).oql);
+    // LIKE escapes (\% \_) whose backslashes are then escaped for the literal.
+    assert.ok(oql.includes(String.raw`LIKE '%50\\%\\_off%'`), oql);
+  });
+});

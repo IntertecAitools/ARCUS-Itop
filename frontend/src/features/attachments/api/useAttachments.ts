@@ -27,36 +27,41 @@ interface AttachmentList {
   item: { class: string; id: string };
 }
 
-const base = (className: string, id: string) => `/objects/${className}/${id}/attachments`;
+/**
+ * Where a record's attachments live. Staff screens use the generic object
+ * routes; the self-service portal passes its own, scoped `basePath`.
+ */
+const base = (className: string, id: string, basePath?: string) =>
+  basePath ?? `/objects/${className}/${id}/attachments`;
 
 const keyFor = (className: string, id: string) => ['attachments', className, id] as const;
 
-export function useAttachments(className: string, id: string, enabled = true) {
+export function useAttachments(className: string, id: string, enabled = true, basePath?: string) {
   return useQuery({
     queryKey: keyFor(className, id),
-    queryFn: () => apiClient.get<AttachmentList>(base(className, id)),
+    queryFn: () => apiClient.get<AttachmentList>(base(className, id, basePath)),
     enabled: enabled && Boolean(className && id),
   });
 }
 
-export function useUploadAttachment(className: string, id: string) {
+export function useUploadAttachment(className: string, id: string, basePath?: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (file: File) => {
       const form = new FormData();
       // `file` is the part name the BFF reads.
       form.append('file', file, file.name);
-      return apiClient.postForm<Attachment>(base(className, id), form);
+      return apiClient.postForm<Attachment>(base(className, id, basePath), form);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: keyFor(className, id) }),
   });
 }
 
-export function useDeleteAttachment(className: string, id: string) {
+export function useDeleteAttachment(className: string, id: string, basePath?: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (attachmentId: string) =>
-      apiClient.delete<void>(`${base(className, id)}/${attachmentId}`),
+      apiClient.delete<void>(`${base(className, id, basePath)}/${attachmentId}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: keyFor(className, id) }),
   });
 }
@@ -68,10 +73,10 @@ export function useDeleteAttachment(className: string, id: string) {
  * keeps credentials and error handling identical to every other call, so a
  * 403 or a 404 surfaces as a message instead of a downloaded error page.
  */
-export function useDownloadAttachment(className: string, id: string) {
+export function useDownloadAttachment(className: string, id: string, basePath?: string) {
   return useMutation({
     mutationFn: async (attachment: Attachment) => {
-      const blob = await apiClient.getBlob(`${base(className, id)}/${attachment.id}`);
+      const blob = await apiClient.getBlob(`${base(className, id, basePath)}/${attachment.id}`);
 
       const url = URL.createObjectURL(blob);
       try {

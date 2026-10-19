@@ -5,7 +5,7 @@ import { ArrowLeft, Database } from 'lucide-react';
 import { PageHeader } from '@/components/layout';
 import { Button, buttonClasses, Card, CardBody, CardHeader, Skeleton } from '@/components/ui';
 import { EmptyState } from '@/components/feedback';
-import { useClassInfo, useCreateRecord } from '../api/useRecords';
+import { useClasses, useClassInfo, useCreateRecord } from '../api/useRecords';
 import { humaniseAttcode } from '../components/FieldControls';
 import { layoutFor, mustSupply, RecordForm } from '../components/RecordForm';
 import type { RecordDto } from '../types';
@@ -29,6 +29,20 @@ export function RecordNewPage() {
   const navigate = useNavigate();
   const { data: info, isLoading, isError, error } = useClassInfo(className);
   const create = useCreateRecord(className);
+  const { data: classList } = useClasses();
+
+  /**
+   * For an abstract class, the concrete classes below it, which is what
+   * iTop's console asks you to choose between on "New CI" or "New contact".
+   */
+  const concreteSubclasses = useMemo(
+    () =>
+      (classList?.classes ?? [])
+        .filter((c) => !c.abstract && c.inherits.includes(className))
+        .map((c) => c.name)
+        .sort((a, b) => a.localeCompare(b)),
+    [classList, className],
+  );
 
   const [draft, setDraft] = useState<Record<string, string>>({});
   /**
@@ -124,25 +138,47 @@ export function RecordNewPage() {
     );
   }
 
-  // An abstract class has no table of its own, so there is nothing to create.
-  // iTop's "New CI" menu points at abstract FunctionalCI and asks for the
-  // subclass in its own UI; say that rather than offering a form that fails.
+  // An abstract class has no table of its own: iTop's "New CI" and "New
+  // contact" menus point at FunctionalCI and Contact and then ask which kind
+  // of record to create. Offer the same choice.
   if (info.abstract) {
     return (
       <>
-        <PageHeader breadcrumbs={crumbs} title={`New ${className}`} />
-        <Card>
-          <EmptyState
-            icon={<Database className="size-5" />}
-            title={`${className} is an abstract class`}
-            description="It has no records of its own — pick one of the concrete classes that extend it."
-            action={
-              <Link to="/records" className={buttonClasses({ variant: 'secondary', size: 'sm' })}>
-                Browse classes
-              </Link>
-            }
-          />
-        </Card>
+        <PageHeader
+          breadcrumbs={crumbs}
+          title={`New ${info.labels.class ?? className}`}
+          description="Choose the kind of record to create."
+        />
+        {concreteSubclasses.length === 0 ? (
+          <Card>
+            <EmptyState
+              icon={<Database className="size-5" />}
+              title={classList ? 'Nothing can be created here' : 'Loading…'}
+              description={
+                classList
+                  ? `No concrete class extends ${className} in this instance.`
+                  : undefined
+              }
+            />
+          </Card>
+        ) : (
+          <Card>
+            <CardBody>
+              <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {concreteSubclasses.map((name) => (
+                  <li key={name}>
+                    <Link
+                      to={`/records/${name}/new`}
+                      className="block rounded-card border border-line px-3 py-2.5 text-[13px] text-ink transition-colors hover:border-brand hover:bg-surface-hover"
+                    >
+                      {humaniseClass(name)}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </CardBody>
+          </Card>
+        )}
       </>
     );
   }
@@ -234,4 +270,10 @@ export function RecordNewPage() {
       />
     </>
   );
+}
+
+/** `NetworkDevice` -> `Network device`, for a class with no label to hand. */
+function humaniseClass(name: string) {
+  const spaced = name.replace(/([a-z0-9])([A-Z])/g, '$1 $2');
+  return spaced.charAt(0) + spaced.slice(1).toLowerCase();
 }

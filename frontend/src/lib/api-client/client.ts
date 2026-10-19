@@ -8,6 +8,20 @@ interface RequestOptions extends Omit<RequestInit, 'body' | 'method'> {
   body?: unknown;
 }
 
+/** Fired when the BFF says the session is gone, so the app can show sign-in. */
+export const SESSION_EXPIRED_EVENT = 'intertec:session-expired';
+
+/**
+ * A 401 on anything but the auth endpoints means the session ended (idle
+ * timeout, sign-out elsewhere, an admin disabling the account). The auth
+ * endpoints answer 401 as part of their normal job, so they are exempt.
+ */
+function noteUnauthorized(path: string, status: number) {
+  if (status === 401 && !path.startsWith('/auth/') && typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+  }
+}
+
 function buildUrl(path: string, query?: Query) {
   const url = new URL(
     path.startsWith('/') ? `${env.bffUrl}${path}` : path,
@@ -57,6 +71,7 @@ async function request<T>(method: string, path: string, options: RequestOptions 
   const payload = isJson ? await response.json().catch(() => null) : await response.text();
 
   if (!response.ok) {
+    noteUnauthorized(path, response.status);
     // The BFF nests its problem under `error`: { error: { code, message } }.
     // Reading the top level only would discard every server message and leave
     // the UI showing "Request failed (400)" for a precise, actionable reason.
@@ -102,6 +117,7 @@ async function requestBinary(
   }
 
   if (!response.ok) {
+    noteUnauthorized(path, response.status);
     // Errors stay JSON even when success is binary, so the BFF's message
     // survives instead of the user seeing "Request failed (413)".
     type Problem = { message?: string; code?: string; details?: unknown };

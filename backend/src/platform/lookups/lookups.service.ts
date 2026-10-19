@@ -2,6 +2,7 @@ import { badRequest } from "../../core/errors.js";
 import type { ItopClient } from "../../itop/client.js";
 import { normalizeObjects, parseFoundCount } from "../../itop/normalize.js";
 import { buildOql } from "../../itop/oql.js";
+import { currentCaller } from "../../core/request-context.js";
 import type { CmdbSchema } from "../../schema/load.js";
 import type { ClassInfo, Field } from "../../schema/types.js";
 
@@ -130,7 +131,9 @@ export class LookupsService {
     }
     const oql = buildOql(built);
 
-    const cacheKey = `${oql}|${limit}|${(options.contextFields ?? []).join(",")}`;
+    // Per user: iTop limits what each account may see (allowed organisations),
+    // so one user's option list must never be served to another.
+    const cacheKey = `${currentCaller()?.login ?? ""}|${oql}|${limit}|${(options.contextFields ?? []).join(",")}`;
     const cached = this.cache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
       return { ...cached.value, options: [...cached.value.options] };

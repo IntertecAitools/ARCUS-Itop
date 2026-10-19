@@ -229,6 +229,8 @@ function buildClass(
         field.linkedAvailable = knownClasses.has(rawField.linked);
       }
       if (rawField.link_key) field.linkKey = rawField.link_key;
+      if (rawField.remote_key) field.remoteKey = rawField.remote_key;
+      if (rawField.edit_mode) field.editMode = rawField.edit_mode;
     }
 
     if (reason) {
@@ -268,7 +270,13 @@ function buildClass(
     inherits,
     parent: inherits.length > 0 ? inherits[inherits.length - 1]! : null,
     lifecycle: rawClass.lifecycle
-      ? { ...rawClass.lifecycle, stimuli: rawClass.lifecycle.stimuli ?? [] }
+      ? {
+          ...rawClass.lifecycle,
+          stimuli: rawClass.lifecycle.stimuli ?? [],
+          // Absent from schemas extracted before these were exported.
+          transitions: rawClass.lifecycle.transitions ?? {},
+          flags: rawClass.lifecycle.flags ?? {},
+        }
       : null,
     presentation: rawClass.presentation ?? null,
     // Defaulted rather than left optional, so a consumer can read

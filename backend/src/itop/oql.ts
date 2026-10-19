@@ -69,8 +69,13 @@ function renderLiteral(value: string | number | boolean | null): string {
  * match everything. The backslash escapes here are consumed by MySQL's LIKE,
  * and quoteString then protects the backslashes themselves.
  */
-function escapeLikeTerm(term: string): string {
+export function escapeLikeTerm(term: string): string {
   return term.replace(/[\\%_]/g, (ch) => `\\${ch}`);
+}
+
+/** A quoted `'%term%'` literal for a "contains" LIKE, wildcards escaped. */
+export function likeContains(term: string): string {
+  return quoteString(`%${escapeLikeTerm(term.trim())}%`);
 }
 
 export function buildOql(query: OqlQuery): string {
@@ -91,7 +96,7 @@ export function buildOql(query: OqlQuery): string {
     if (attributes.length === 0) {
       throw badRequest("A text search needs at least one searchable attribute.");
     }
-    const pattern = quoteString(`%${escapeLikeTerm(query.search.term.trim())}%`);
+    const pattern = likeContains(query.search.term);
     const ors = attributes.map(
       (attCode) => `${assertIdentifier(attCode, "attribute code")} LIKE ${pattern}`,
     );

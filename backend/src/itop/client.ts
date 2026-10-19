@@ -2,6 +2,7 @@ import { AppError } from "../core/errors.js";
 import type { Config } from "../config/env.js";
 import { ItopCode, itopCodeToErrorCode, looksLikeAmbiguous, looksLikeNotFound } from "./codes.js";
 import { cleanMessage } from "./normalize.js";
+import { currentCaller } from "../core/request-context.js";
 import type { ItopResult, ItopVerb } from "./types.js";
 
 /**
@@ -26,6 +27,13 @@ export interface CallOptions {
   /** Overrides the retry budget for this call. */
   retries?: number;
   signal?: AbortSignal;
+  /**
+   * Use the BFF's own service account even when a signed-in staff user is
+   * bound to the request. Only for lookups the user is not expected to be
+   * allowed to make themselves: resolving a sign-in, changing one's own
+   * password, the self-service portal.
+   */
+  asService?: boolean;
 }
 
 export interface Logger {
@@ -77,7 +85,7 @@ export class ItopClient {
   ): Promise<T> {
     const result = await this.callRaw<T>(verb, params, options);
     if (result.code !== ItopCode.OK) {
-      throw this.toAppError(verb, result);
+      throw resultToAppError(verb, result);
     }
     return result;
   }
@@ -89,10 +97,11 @@ export class ItopClient {
     options: CallOptions = {},
   ): Promise<T> {
     const payload = { operation: verb, ...params };
+    const credentials = this.credentialsFor(options);
     const body = new URLSearchParams({
       version: this.cfg.version,
-      auth_user: this.cfg.user,
-      auth_pwd: this.cfg.password,
+      auth_user: credentials.user,
+      auth_pwd: credentials.password,
       json_data: JSON.stringify(payload),
     });
 
@@ -209,46 +218,85 @@ export class ItopClient {
     return parsed as T;
   }
 
-  /** Maps an iTop result code plus message onto a meaningful HTTP error. */
-  private toAppError(verb: ItopVerb, result: ItopResult): AppError {
-    const message = cleanMessage(result.message) || `iTop call ${verb} failed.`;
+  /**
+   * POSTs to one of iTop's form-based scripts (webservices/export-v2.php,
+   * webservices/import.php) and returns the raw response.
+   *
+   * These are not REST: they answer HTML or CSV, report failures as HTTP 200
+   * text, and render a login form when credentials fail. Callers interpret the
+   * body. Credentials go both as form fields (the `form` login mode) and as
+   * Basic auth (the `basic` mode), whichever this instance allows. Never
+   * retried: an import is a write.
+   */
+  async postScript(
+    script: string,
+    params: Record<string, string>,
+    options: { timeoutMs?: number; signal?: AbortSignal; asService?: boolean } = {},
+  ): Promise<Response> {
+    const url = `${this.cfg.baseUrl}/${script}`;
+    const credentials = this.credentialsFor(options);
+    const body = new URLSearchParams({ auth_user: credentials.user, auth_pwd: credentials.password, ...params });
+    const timeout = AbortSignal.timeout(options.timeoutMs ?? Math.max(this.cfg.timeoutMs, 120_000));
+    const signal = options.signal ? AbortSignal.any([timeout, options.signal]) : timeout;
+    const basic = Buffer.from(`${credentials.user}:${credentials.password}`).toString("base64");
 
-    if (result.code === ItopCode.INTERNAL_ERROR) {
-      // iTop collapses "not found" and "ambiguous key" into INTERNAL_ERROR, so
-      // the message is the only signal available.
-      if (looksLikeNotFound(message)) {
-        return new AppError("not_found", message, { itopCode: result.code });
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+          Authorization: `Basic ${basic}`,
+        },
+        body,
+        signal,
+        redirect: "follow",
+      });
+    } catch (error) {
+      const name = (error as { name?: string } | null)?.name;
+      if (name === "TimeoutError" || name === "AbortError") {
+        throw new AppError("upstream_timeout", `iTop did not finish ${script} in time.`, { cause: error });
       }
-      if (looksLikeAmbiguous(message)) {
-        return new AppError("conflict", message, { itopCode: result.code });
-      }
+      throw new AppError("upstream_unavailable", `Cannot reach iTop at ${url}: ${(error as Error).message}`, {
+        cause: error,
+      });
     }
-
-    if (result.code === ItopCode.UNAUTHORIZED) {
-      // iTop returns code 1 for two very different faults, and only its message
-      // tells them apart (webservices/rest.php:110-130). Conflating them sends
-      // you hunting for a missing profile when the password is simply wrong, so
-      // echo iTop's own wording and only add the hint that actually applies.
-      const wrongPassword = /invalid login/i.test(message);
-      const hint = wrongPassword
-        ? `(iTop reports this exact wording when ITOP_USER/ITOP_PASSWORD do not ` +
-          `match an account -- it is NOT the "REST Services User" profile check, ` +
-          `which returns a different message.)`
-        : `(iTop's secure_rest_services defaults to true, so the REST account ` +
-          `needs the "REST Services User" profile.)`;
-
-      return new AppError("forbidden", `${message} ${hint}`, { itopCode: result.code });
+    if (!response.ok) {
+      throw new AppError("upstream_error", `iTop returned HTTP ${response.status} for ${script}.`, {
+        details: truncate(await response.text()),
+      });
     }
+    this.log.debug({ script, status: response.status }, "iTop script call complete");
+    return response;
+  }
 
-    return new AppError(itopCodeToErrorCode(result.code), message, { itopCode: result.code });
+  /**
+   * Whose account a call runs under: the signed-in staff user's when one is
+   * bound to the request, so iTop applies their rights and records them in
+   * history; otherwise the BFF's service account.
+   */
+  private credentialsFor(options: { asService?: boolean }): { user: string; password: string } {
+    const caller = options.asService ? undefined : currentCaller();
+    return caller?.credentials ?? { user: this.cfg.user, password: this.cfg.password };
   }
 
   /** Cheap connectivity + credentials probe for the health endpoint. */
   async checkCredentials(): Promise<boolean> {
-    const result = await this.call("core/check_credentials", {
-      user: this.cfg.user,
-      password: this.cfg.password,
-    });
+    return this.verifyCredentials(this.cfg.user, this.cfg.password);
+  }
+
+  /**
+   * Does this login/password open an iTop account? Asked as the service
+   * account, because the person signing in may be an end user, whom iTop's
+   * REST API refuses to log in directly. Works for local, LDAP and external
+   * accounts alike (UserRights::CheckCredentials).
+   */
+  async verifyCredentials(user: string, password: string): Promise<boolean> {
+    const result = await this.call(
+      "core/check_credentials",
+      { user, password },
+      { asService: true },
+    );
     return result.authorized === true;
   }
 
@@ -256,6 +304,51 @@ export class ItopClient {
     const result = await this.call("list_operations", {});
     return (result.operations ?? []).map(({ verb, description }) => ({ verb, description }));
   }
+}
+
+/**
+ * Maps an iTop result code plus message onto a meaningful HTTP error.
+ *
+ * Exported for callers of callRaw() that inspect some codes themselves (the
+ * core/delete simulation) and still need every other code mapped the same way
+ * call() maps it.
+ */
+export function resultToAppError(verb: ItopVerb, result: ItopResult): AppError {
+  const message = cleanMessage(result.message) || `iTop call ${verb} failed.`;
+
+  if (result.code === ItopCode.INTERNAL_ERROR) {
+    // iTop collapses "not found" and "ambiguous key" into INTERNAL_ERROR, so
+    // the message is the only signal available.
+    if (looksLikeNotFound(message)) {
+      return new AppError("not_found", message, { itopCode: result.code });
+    }
+    if (looksLikeAmbiguous(message)) {
+      return new AppError("conflict", message, { itopCode: result.code });
+    }
+  }
+
+  if (result.code === ItopCode.UNAUTHORIZED) {
+    // iTop returns code 1 for two very different faults, and only its message
+    // tells them apart (webservices/rest.php:110-130). Conflating them sends
+    // you hunting for a missing profile when the password is simply wrong, so
+    // echo iTop's own wording and only add the hint that actually applies.
+    //
+    // Code 1 is also what an operation returns when the account lacks the
+    // right for one action ("…not have enough permissions for deleting…",
+    // restservices.class.inc.php:644). Neither hint applies to that.
+    const hint = /invalid login/i.test(message)
+      ? ` (iTop reports this exact wording when ITOP_USER/ITOP_PASSWORD do not ` +
+        `match an account -- it is NOT the "REST Services User" profile check, ` +
+        `which returns a different message.)`
+      : /web services/i.test(message)
+        ? ` (iTop's secure_rest_services defaults to true, so the REST account ` +
+          `needs the "REST Services User" profile.)`
+        : "";
+
+    return new AppError("forbidden", `${message}${hint}`, { itopCode: result.code });
+  }
+
+  return new AppError(itopCodeToErrorCode(result.code), message, { itopCode: result.code });
 }
 
 function truncate(text: string, max = 600): string {

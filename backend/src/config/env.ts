@@ -88,6 +88,20 @@ export interface Config {
   lookupCacheTtlMs: number;
   /** Pins the organisation new records belong to. Optional. */
   defaultOrgId?: string;
+  auth: {
+    /**
+     * When true (the default) every /api route except sign-in needs a session,
+     * and iTop calls for staff are made with the signed-in user's own account.
+     * Off only for tests and local experiments.
+     */
+    required: boolean;
+    /** Idle time after which a session ends. */
+    sessionIdleMs: number;
+    /** Longest a session may live, active or not. */
+    sessionMaxMs: number;
+    /** Send the session cookie with `Secure`; must be on behind HTTPS. */
+    cookieSecure: boolean;
+  };
 }
 
 export function loadConfig(envFile = resolve(PACKAGE_ROOT, ".env")): Config {
@@ -150,5 +164,11 @@ export function loadConfig(envFile = resolve(PACKAGE_ROOT, ".env")): Config {
     ),
     lookupCacheTtlMs: integer("LOOKUP_CACHE_TTL", 60, 0, 86_400) * 1000,
     ...(optional("ITOP_DEFAULT_ORG_ID", "") ? { defaultOrgId: optional("ITOP_DEFAULT_ORG_ID", "") } : {}),
+    auth: {
+      required: optional("AUTH_REQUIRED", "true").toLowerCase() !== "false",
+      sessionIdleMs: integer("SESSION_IDLE_MINUTES", 60, 5, 24 * 60) * 60_000,
+      sessionMaxMs: integer("SESSION_MAX_HOURS", 12, 1, 24 * 30) * 3_600_000,
+      cookieSecure: optional("COOKIE_SECURE", "false").toLowerCase() === "true",
+    },
   };
 }

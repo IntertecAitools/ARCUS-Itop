@@ -78,19 +78,53 @@ export class DashboardService {
     return result.total;
   }
 
+  /** Up to `limit` matching rows, paging past list()'s 500-row page size. */
   private async fetch(
     className: string,
     where: string,
     fields: string,
     limit = 200,
   ): Promise<ObjectDto[]> {
-    const result = await this.objects.list(className, {
-      page: 1,
+    const result = await this.objects.listAll(
+      className,
+      { oql: `SELECT ${className} WHERE ${where}`, fields },
       limit,
-      oql: `SELECT ${className} WHERE ${where}`,
-      fields,
-    });
+    );
     return result.items;
+  }
+
+  /**
+   * The `count` newest rows.
+   *
+   * iTop cannot be told how to order, but it does order: by the class default,
+   * which for tickets is `ref` ascending (dbobjectset.class.php:691). So the
+   * first page holds the OLDEST rows. The newest are on the last page, which
+   * the "Found: N" total locates; the page before it tops up a short last
+   * page. Rows are then ordered by id, newest first.
+   */
+  private async latest(
+    className: string,
+    where: string,
+    fields: string,
+    count: number,
+  ): Promise<ObjectDto[]> {
+    const page = (n: number) =>
+      this.objects.list(className, {
+        page: n,
+        limit: count,
+        oql: `SELECT ${className} WHERE ${where}`,
+        fields,
+      });
+
+    const first = await page(1);
+    const lastPage = Math.max(1, Math.ceil(first.total / count));
+    let rows = first.items;
+    if (lastPage > 1) {
+      const last = await page(lastPage);
+      rows = last.items;
+      if (rows.length < count) rows = [...(await page(lastPage - 1)).items, ...rows];
+    }
+    return [...rows].sort((a, b) => b.id - a.id).slice(0, count);
   }
 
   async navCounts(): Promise<NavCounts> {
@@ -136,7 +170,7 @@ export class DashboardService {
         "id,ref,title,status,priority,start_date,resolution_date,service_name,servicesubcategory_name,sla_ttr_passed,sla_tto_passed",
         2000,
       ),
-      this.fetch(
+      this.latest(
         "Incident",
         "id > 0",
         "id,ref,title,status,priority,start_date,agent_id,agent_name",

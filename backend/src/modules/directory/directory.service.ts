@@ -1,6 +1,7 @@
 import { badRequest, notFound } from "../../core/errors.js";
 import type { ObjectDto, ObjectsService } from "../../platform/objects/objects.service.js";
-import { oqlString, str } from "../../shared/ticket-mapping.js";
+import { likeContains } from "../../itop/oql.js";
+import { str } from "../../shared/ticket-mapping.js";
 import type {
   CreateOrganizationInput,
   CreatePersonInput,
@@ -65,8 +66,8 @@ export class DirectoryService {
     }
 
     if (query.q) {
-      const term = oqlString(query.q);
-      clauses.push(`(${searchFields.map((f) => `${f} LIKE '%${term}%'`).join(" OR ")})`);
+      const pattern = likeContains(query.q);
+      clauses.push(`(${searchFields.map((f) => `${f} LIKE ${pattern}`).join(" OR ")})`);
     }
 
     return clauses.length ? clauses.join(" AND ") : "1=1";

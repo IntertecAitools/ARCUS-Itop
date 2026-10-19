@@ -1,15 +1,20 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Pencil, X } from 'lucide-react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, Pencil, Trash2, X } from 'lucide-react';
 import { PageHeader } from '@/components/layout';
-import { Button, buttonClasses, Card, CardBody, Skeleton } from '@/components/ui';
+import { Button, buttonClasses, Card, Skeleton } from '@/components/ui';
 import { EmptyState } from '@/components/feedback';
 import { cn } from '@/lib/utils';
 import { AttachmentsPanel } from '@/features/attachments';
 import { useApplyStimulus, useClassInfo, useRecord, useUpdateRecord } from '../api/useRecords';
-import { FieldValue } from '../components/FieldControls';
 import { fieldLabel, layoutFor, RecordForm } from '../components/RecordForm';
 import { RelatedTab } from '../components/RelatedTab';
+import { CaseLogTab } from '../components/CaseLogTab';
+import { HistoryTab } from '../components/HistoryTab';
+import { ImpactTab } from '../components/ImpactTab';
+import { DeleteDialog } from '../components/DeleteDialog';
+import { TransitionDialog } from '../components/TransitionDialog';
+import { requiredForTransition, transitionPrompts } from '../lib/transitions';
 
 /**
  * One record of any class, laid out the way iTop lays it out.
@@ -31,6 +36,24 @@ export function RecordDetailPage() {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [tab, setTab] = useState<string>('details');
+  /** The action whose form is open, when it needs input first. */
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const navigate = useNavigate();
+
+  /**
+   * Applies an action, asking first for whatever its target state demands.
+   * An action that needs nothing (close, reopen) is applied straight away.
+   */
+  const runAction = (action: string) => {
+    if (!info || !record) return;
+    if (transitionPrompts(info, record, action).length > 0) {
+      stimulus.reset();
+      setPendingAction(action);
+      return;
+    }
+    stimulus.mutate({ stimulus: action });
+  };
 
   /** Only writable scalars and pickers can be edited; the rest are display. */
   const editable = useMemo(
@@ -174,6 +197,9 @@ export function RecordDetailPage() {
     { id: 'details', label: 'Details' },
     ...(supportsAttachments ? [{ id: 'attachments', label: 'Attachments' }] : []),
     ...extraTabs.map(({ code }) => ({ id: code, label: fieldLabel(info, code) })),
+    // iTop's impact analysis applies to configuration items.
+    ...(info.isCi ? [{ id: 'impact', label: 'Impact analysis' }] : []),
+    { id: 'history', label: 'History' },
   ];
 
   return (
@@ -191,8 +217,8 @@ export function RecordDetailPage() {
                     key={action}
                     variant="secondary"
                     size="sm"
-                    loading={stimulus.isPending && stimulus.variables === action}
-                    onClick={() => stimulus.mutate(action)}
+                    loading={stimulus.isPending && stimulus.variables?.stimulus === action}
+                    onClick={() => runAction(action)}
                   >
                     {info.labels.stimuli?.[action] ?? action}
                   </Button>
@@ -212,7 +238,16 @@ export function RecordDetailPage() {
               <Button size="sm" onClick={save} loading={update.isPending}>
                 Save changes
               </Button>
-            ) : null}
+            ) : (
+              <Button
+                variant="secondary"
+                size="sm"
+                leadingIcon={<Trash2 className="size-4" />}
+                onClick={() => setDeleting(true)}
+              >
+                Delete
+              </Button>
+            )}
             <Link
               to={`/records/${className}`}
               className={buttonClasses({ variant: 'secondary', size: 'sm' })}
@@ -224,7 +259,35 @@ export function RecordDetailPage() {
         }
       />
 
-      {update.isError || stimulus.isError ? (
+      {pendingAction ? (
+        <TransitionDialog
+          info={info}
+          record={record}
+          action={pendingAction}
+          prompts={transitionPrompts(info, record, pendingAction)}
+          required={requiredForTransition(info, record, pendingAction)}
+          pending={stimulus.isPending}
+          error={stimulus.error instanceof Error ? stimulus.error.message : undefined}
+          onApply={(fields) =>
+            stimulus.mutate(
+              { stimulus: pendingAction, fields },
+              { onSuccess: () => setPendingAction(null) },
+            )
+          }
+          onClose={() => setPendingAction(null)}
+        />
+      ) : null}
+
+      {deleting ? (
+        <DeleteDialog
+          className={className}
+          record={record}
+          onClose={() => setDeleting(false)}
+          onDeleted={() => navigate(`/records/${className}`, { replace: true })}
+        />
+      ) : null}
+
+      {update.isError || (stimulus.isError && !pendingAction) ? (
         <div
           role="alert"
           className="mb-4 rounded-card border border-critical/30 bg-critical-soft px-4 py-3 text-[13px] text-critical-ink"
@@ -268,12 +331,12 @@ export function RecordDetailPage() {
           draft={draft}
           onChange={(attcode, value) => setDraft((d) => ({ ...d, [attcode]: value }))}
         />
+      ) : tab === 'impact' ? (
+        <ImpactTab className={className} id={id} />
+      ) : tab === 'history' ? (
+        <HistoryTab className={className} id={id} />
       ) : extraTabs.find((t) => t.code === tab)?.kind === 'log' ? (
-        <Card>
-          <CardBody>
-            <FieldValue spec={info.fields[tab]!} value={record.fields[tab]} />
-          </CardBody>
-        </Card>
+        <CaseLogTab info={info} record={record} attcode={tab} />
       ) : (
         <RelatedTab info={info} id={id} attcode={tab} />
       )}
