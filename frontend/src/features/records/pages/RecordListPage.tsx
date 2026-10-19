@@ -117,7 +117,8 @@ export function RecordListPage() {
     let common: string[] | null = null;
     for (const row of selected.values()) {
       const state = String(row.fields[info.lifecycle.attribute] ?? '');
-      const available = info.lifecycle.states[state] ?? [];
+      const userActions = new Set(info.lifecycle.userActions ?? info.lifecycle.stimuli);
+      const available = (info.lifecycle.states[state] ?? []).filter((a) => userActions.has(a));
       common = common === null ? available : common.filter((a) => available.includes(a));
     }
     return common ?? [];

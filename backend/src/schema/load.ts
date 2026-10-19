@@ -273,6 +273,8 @@ function buildClass(
       ? {
           ...rawClass.lifecycle,
           stimuli: rawClass.lifecycle.stimuli ?? [],
+          // Older exports lack the split; then every stimulus counts.
+          userActions: rawClass.lifecycle.user_stimuli ?? rawClass.lifecycle.stimuli ?? [],
           // Absent from schemas extracted before these were exported.
           transitions: rawClass.lifecycle.transitions ?? {},
           flags: rawClass.lifecycle.flags ?? {},

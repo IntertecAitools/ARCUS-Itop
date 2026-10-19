@@ -106,6 +106,8 @@ export interface ClassInfo {
      * they are displayed using `labels.stimuli` and sent back as received.
      */
     stimuli: string[];
+    /** The actions people may take; the others are fired by iTop itself. */
+    userActions: string[];
     /** state -> action -> the state it leads to. */
     transitions: Record<string, Record<string, string>>;
     /** state -> attcode -> iTop's flags for it in that state. */
@@ -186,7 +188,10 @@ export interface HistoryChange {
 export interface HistoryEntry {
   id: string;
   date: string;
+  /** Who made the change. */
   user: string;
+  /** The comment the change carried, when there is one. */
+  comment?: string;
   changes: HistoryChange[];
 }
 

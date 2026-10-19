@@ -79,6 +79,7 @@ export interface RawClass {
     stimuli?: string[];
     transitions?: Record<string, Record<string, string>>;
     flags?: Record<string, Record<string, StateFlag[]>>;
+    user_stimuli?: string[];
   } | null;
   writable: string[];
   readonly: string[];
@@ -147,6 +148,11 @@ export interface ClassInfo {
     states: Record<string, string[]>;
     /** The actions iTop offers on a record of this class. */
     stimuli: string[];
+    /**
+     * The stimuli a person may apply (StimulusUserAction). The rest are fired
+     * by iTop itself -- SLA timeouts, auto-resolve -- and are never offered.
+     */
+    userActions: string[];
     /** state -> stimulus -> the state it leads to. */
     transitions: Record<string, Record<string, string>>;
     /**

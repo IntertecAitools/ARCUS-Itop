@@ -2,7 +2,7 @@
 """
 Fill data extract-schema.py now exports into an existing cmdb-schema.json:
 
-  - lifecycle `transitions` and `flags`
+  - lifecycle `transitions`, `flags` and `user_stimuli`
   - link-set `remote_key` (ext_key_to_remote) and `edit_mode`
 
 extract-schema.py reads iTop's COMPILED datamodel and exports them itself.
@@ -95,6 +95,7 @@ def main():
         src, lc = matches[-1]
         lifecycle['transitions'] = lc['transitions']
         lifecycle['flags'] = lc['flags']
+        lifecycle['user_stimuli'] = lc['user_stimuli']
         updated.append('%s <- %s' % (cid, src))
 
     links = link_details(nodes)

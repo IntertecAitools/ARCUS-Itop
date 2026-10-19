@@ -603,3 +603,51 @@ describe("ObjectsService.bulk", () => {
     assert.equal(plan.plan.length, 2);
   });
 });
+
+describe("ObjectsService.bulk against MySQL locking", () => {
+  const deleted = (id: number) => ({
+    code: 0,
+    message: "Deleted: 1",
+    objects: { [`Server::${id}`]: { code: 0, message: "", class: "Server", key: String(id), fields: {} } },
+  });
+
+  it("retries a record whose transaction deadlocked", async () => {
+    const fake = new FakeItopClient().on("core/delete", [
+      { code: 100, message: "Error: Failed to issue SQL query: \nstack = #0 x, mysql_errno = 1213, mysql_error = Deadlock found when trying to get lock", objects: null },
+      deleted(7),
+    ]);
+    const result = await service(fake).bulk("Server", [7], { action: "delete" });
+    assert.equal(result.succeeded, 1);
+    assert.equal(fake.calls.length, 2);
+  });
+
+  it("deletes one record at a time", async () => {
+    let inFlight = 0;
+    let peak = 0;
+    const fake = new FakeItopClient().on("core/delete", deleted(1));
+    const original = fake.callRaw.bind(fake);
+    fake.callRaw = (async (...args: Parameters<typeof original>) => {
+      inFlight += 1;
+      peak = Math.max(peak, inFlight);
+      await new Promise((r) => setTimeout(r, 5));
+      try {
+        return await original(...args);
+      } finally {
+        inFlight -= 1;
+      }
+    }) as typeof fake.callRaw;
+    await service(fake).bulk("Server", [1, 2, 3, 4], { action: "delete" });
+    assert.equal(peak, 1);
+  });
+});
+
+describe("iTop's missing-field refusal", () => {
+  it("is the caller's 400, not an upstream 502", async () => {
+    const { resultToAppError } = await import("../src/itop/client.js");
+    const error = resultToAppError("core/apply_stimulus", {
+      code: 100,
+      message: "Error: Missing mandatory attribute(s) for applying the stimulus: solution.",
+    });
+    assert.equal(error.status, 400);
+  });
+});

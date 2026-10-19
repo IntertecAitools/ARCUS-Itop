@@ -94,6 +94,26 @@ Administrator and REST Services User profiles, and the first administrator
 (the installer's `admin` will do) signs in to create everyone else from
 **Users** in the frontend (`/api/admin/users`, `/api/admin/profiles`).
 
+## Local iTop
+
+Without a shared iTop, run one from this repository's own `iTop/` copy:
+
+1. Build the image and fill the code volume, then start it — the commands are
+   at the top of `docker/docker-compose.local.yml` (port 8080; data in the
+   Windows MySQL, database `itop_prod`).
+2. Run iTop's setup once, inside the container, with a response file made
+   from `docker/itop-add-incident.xml` with `<mode>install</mode>` and
+   `<url>http://localhost:8080/</url>` (46 modules: CMDB, ITIL requests and
+   incidents, changes, problems, known errors, FAQ):
+   `docker exec -u www-data -w /var/www/html/setup/unattended-install itop-local php unattended-install.php --param-file=/tmp/install.xml`,
+   then `docker restart itop-local`.
+3. Give the setup's `admin` account the **REST Services User** profile. The
+   REST API cannot do this before the account has it; a one-off PHP script
+   in the container (`UserRights::Login('admin')`, then a new
+   `URP_UserProfile` linking `admin` to that profile) does.
+4. `cp .env.example .env`, set `ITOP_USER`/`ITOP_PASSWORD` to that account,
+   `npm run dev`, then `npm run smoke` and `npm run api:check`.
+
 ## What this layer is actually for
 
 Five upstream behaviours make a direct browser-to-iTop integration painful.

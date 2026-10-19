@@ -107,5 +107,20 @@ export function parseFoundCount(message: string | null | undefined): number | nu
 /** Strips the "Error: " prefix that rest.php prepends to every failure. */
 export function cleanMessage(message: string | null | undefined): string {
   if (!message) return "";
-  return message.replace(/^Error:\s*/i, "").trim();
+  let text = message.replace(/^Error:\s*/i, "").trim();
+  // A failed SQL query comes back with iTop's PHP stack trace and the query
+  // itself appended ("Failed to issue SQL query: stack = #0 ..., query = ...,
+  // mysql_error = ..."). That is server internals, not something to send a
+  // browser: keep the headline and MySQL's own reason.
+  const stack = text.search(/\s*stack\s*=\s*#0/);
+  if (stack >= 0) {
+    const reason = /mysql_error\s*=\s*(.+?)\s*$/s.exec(text)?.[1];
+    text = `${text.slice(0, stack).replace(/[\s:,]+$/, "")}${reason ? ` (${reason.trim()})` : ""}`;
+  }
+  return text;
+}
+
+/** MySQL rolled the transaction back because of a lock conflict; trying again is safe. */
+export function isDeadlock(message: string | null | undefined): boolean {
+  return /Deadlock found|mysql_errno\s*=\s*1213|Lock wait timeout/i.test(message ?? "");
 }

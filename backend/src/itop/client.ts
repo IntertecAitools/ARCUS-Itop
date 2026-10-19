@@ -325,6 +325,12 @@ export function resultToAppError(verb: ItopVerb, result: ItopResult): AppError {
     if (looksLikeAmbiguous(message)) {
       return new AppError("conflict", message, { itopCode: result.code });
     }
+    // The request lacked data iTop requires -- the caller's to fix, so a 400,
+    // not the 502 a genuine upstream fault gets
+    // (restservices.class.inc.php:509-536).
+    if (/^(Missing mandatory attribute|Invalid stimulus)/i.test(message)) {
+      return new AppError("bad_request", message, { itopCode: result.code });
+    }
   }
 
   if (result.code === ItopCode.UNAUTHORIZED) {
