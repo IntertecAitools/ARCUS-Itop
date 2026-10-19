@@ -96,6 +96,20 @@ user list.
     so the table alone yields neither a password nor a usable cookie.
     Changing `SESSION_SECRET` signs everyone out. The BFF refuses to start if
     the database cannot be reached.
+- **Forgot password by email** (on once `SMTP_HOST` is set; see `.env.example`):
+  `GET /api/auth/options`, `POST /api/auth/forgot-password` (login or email),
+  `POST /api/auth/reset-password` (token, new password).
+  - The answer never says whether an account exists; the email is sent after
+    it. Only enabled local accounts with an email address get one.
+  - A link carries 256 random bits in the URL fragment (never sent to a
+    server), is stored only as a SHA-256, works once, expires
+    (`PASSWORD_RESET_MINUTES`, default 30), and a newer request replaces it.
+    It stays usable if iTop refuses the new password.
+  - A reset signs the account out everywhere.
+  - Requests are limited per client address (10 per 15 minutes, a 429) and
+    per account (3, silently). Limits are per BFF instance; set
+    `TRUST_PROXY=true` behind a reverse proxy so addresses are real.
+  - Mail goes over TLS (`SMTP_REQUIRE_TLS`, off only for a local test mailbox).
   - Other settings: `AUTH_REQUIRED`, `SESSION_IDLE_MINUTES`,
     `SESSION_MAX_HOURS`, `COOKIE_SECURE` (on behind HTTPS).
 

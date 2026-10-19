@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from 'react';
-import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button, Input } from '@/components/ui';
-import { env } from '@/config/env';
+import { AuthCard } from '../components/AuthCard';
+import { useAuthOptions } from '../hooks/usePasswordReset';
 import { useSession, useSignIn } from '../hooks/useSession';
 import { signInSchema } from '../schemas';
 
@@ -19,6 +20,7 @@ export function LoginPage() {
   const navigate = useNavigate();
   const { data: user } = useSession();
   const signIn = useSignIn();
+  const { data: options } = useAuthOptions();
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
@@ -40,52 +42,41 @@ export function LoginPage() {
   const error = formError ?? (signIn.error instanceof Error ? signIn.error.message : null);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-surface px-4">
-      <form
-        onSubmit={submit}
-        className="w-full max-w-sm rounded-panel border border-line bg-surface-raised p-6 shadow-overlay"
-        aria-label="Sign in"
-      >
-        <h1 className="text-[18px] font-semibold text-ink">
-          {env.appName} {env.platformName}
-        </h1>
-        <p className="mt-1 mb-5 text-[13px] text-ink-muted">Sign in with your account.</p>
+    <AuthCard label="Sign in" intro="Sign in with your account." error={error} onSubmit={submit}>
+      <label htmlFor="login" className="mb-1.5 block text-[13px] font-medium text-ink">
+        Login
+      </label>
+      <Input
+        id="login"
+        autoComplete="username"
+        autoFocus
+        value={login}
+        onChange={(e) => setLogin(e.target.value)}
+      />
 
-        {error ? (
-          <div
-            role="alert"
-            className="mb-4 rounded-card border border-critical/30 bg-critical-soft px-3 py-2 text-[13px] text-critical-ink"
-          >
-            {error}
-          </div>
-        ) : null}
+      <label htmlFor="password" className="mt-4 mb-1.5 block text-[13px] font-medium text-ink">
+        Password
+      </label>
+      <Input
+        id="password"
+        type="password"
+        autoComplete="current-password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+      />
 
-        <label htmlFor="login" className="mb-1.5 block text-[13px] font-medium text-ink">
-          Login
-        </label>
-        <Input
-          id="login"
-          autoComplete="username"
-          autoFocus
-          value={login}
-          onChange={(e) => setLogin(e.target.value)}
-        />
+      <Button type="submit" className="mt-6 w-full" loading={signIn.isPending}>
+        Sign in
+      </Button>
 
-        <label htmlFor="password" className="mt-4 mb-1.5 block text-[13px] font-medium text-ink">
-          Password
-        </label>
-        <Input
-          id="password"
-          type="password"
-          autoComplete="current-password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-
-        <Button type="submit" className="mt-6 w-full" loading={signIn.isPending}>
-          Sign in
-        </Button>
-      </form>
-    </div>
+      {/* Offered only when the BFF can send email. */}
+      {options?.passwordReset ? (
+        <p className="mt-5 text-center text-[13px]">
+          <Link to="/forgot-password" className="font-medium text-brand-ink hover:underline">
+            Forgot password?
+          </Link>
+        </p>
+      ) : null}
+    </AuthCard>
   );
 }

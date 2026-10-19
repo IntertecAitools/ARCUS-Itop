@@ -21,7 +21,7 @@ export function testConfig(overrides: Partial<Config> = {}): Config {
       defaultComment: "test",
       ...overrides.itop,
     },
-    server: { host: "127.0.0.1", port: 0, logLevel: "silent", ...overrides.server },
+    server: { host: "127.0.0.1", port: 0, logLevel: "silent", trustProxy: false, ...overrides.server },
     corsOrigins: overrides.corsOrigins ?? "*",
     schemaPath: overrides.schemaPath ?? "unused-in-tests",
     navigationPath: overrides.navigationPath ?? "unused-in-tests",

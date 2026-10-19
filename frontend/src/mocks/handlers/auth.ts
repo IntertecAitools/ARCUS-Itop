@@ -32,6 +32,27 @@ export const authHandlers = [
     signedIn = true;
     return HttpResponse.json({ user: mockUser });
   }),
+  // Password reset: on in mock mode so its screens can be worked on.
+  http.get(url('/auth/options'), () => HttpResponse.json({ passwordReset: true })),
+  http.post(url('/auth/forgot-password'), () =>
+    HttpResponse.json(
+      {
+        ok: true,
+        message: "If an account matches, we've sent a link to its email address. It works once and expires soon.",
+      },
+      { status: 202 },
+    ),
+  ),
+  http.post(url('/auth/reset-password'), async ({ request }) => {
+    const { token } = (await request.json()) as { token: string };
+    // Any token works except "expired", which shows the error path.
+    return token.startsWith('expired')
+      ? HttpResponse.json(
+          { error: { code: 'bad_request', message: 'This link has expired or was already used. Ask for a new one.' } },
+          { status: 400 },
+        )
+      : HttpResponse.json({ ok: true });
+  }),
   http.post(url('/auth/logout'), () => {
     signedIn = false;
     return new HttpResponse(null, { status: 204 });

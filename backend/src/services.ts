@@ -16,6 +16,13 @@ import { AuthService } from "./platform/auth/auth.service.js";
 import { createPool } from "mysql2/promise";
 import { MySqlSessionStore } from "./platform/auth/session.mysql.js";
 import { MemorySessionStore, type SessionStore } from "./platform/auth/session.store.js";
+import { type Mailer, SmtpMailer } from "./platform/auth/mailer.js";
+import { PasswordResetService } from "./platform/auth/password-reset.service.js";
+import {
+  MemoryResetTokenStore,
+  MySqlResetTokenStore,
+  type ResetTokenStore,
+} from "./platform/auth/reset-token.store.js";
 import { UsersService } from "./platform/admin/users.service.js";
 import { PortalService } from "./platform/portal/portal.service.js";
 import { DefaultOrganization } from "./shared/default-organization.js";
@@ -35,6 +42,7 @@ export interface Services {
   transfer: TransferService;
   auth: AuthService;
   sessions: SessionStore;
+  passwordReset: PasswordResetService;
   users: UsersService;
   portal: PortalService;
   dashboard: DashboardService;
@@ -51,13 +59,24 @@ export interface BuildServicesOptions {
   navigation?: Navigation;
   dashboards?: Dashboards;
   sessions?: SessionStore;
+  resetTokens?: ResetTokenStore;
+  /** Stands in for SMTP in tests; otherwise built from PASSWORD_RESET settings. */
+  mailer?: Mailer;
   logger?: Logger;
 }
 
-/** Sessions in memory, or encrypted in MySQL when SESSION_STORE=mysql. */
-function buildSessionStore(config: Config): SessionStore {
+/**
+ * Sessions and reset links: in memory, or in MySQL when SESSION_STORE=mysql
+ * (one pool for both; the session store closes it).
+ */
+function buildStores(config: Config): { sessions: SessionStore; resetTokens: ResetTokenStore } {
   const { sessionStore: store, sessionIdleMs, sessionMaxMs } = config.auth;
-  if (store.kind === "memory") return new MemorySessionStore(sessionIdleMs, sessionMaxMs);
+  if (store.kind === "memory") {
+    return {
+      sessions: new MemorySessionStore(sessionIdleMs, sessionMaxMs),
+      resetTokens: new MemoryResetTokenStore(),
+    };
+  }
   const pool = createPool({
     host: store.host,
     port: store.port,
@@ -66,7 +85,10 @@ function buildSessionStore(config: Config): SessionStore {
     database: store.database,
     connectionLimit: 10,
   });
-  return new MySqlSessionStore(pool, store.secret, sessionIdleMs, sessionMaxMs);
+  return {
+    sessions: new MySqlSessionStore(pool, store.secret, sessionIdleMs, sessionMaxMs),
+    resetTokens: new MySqlResetTokenStore(pool),
+  };
 }
 
 export function buildServices(config: Config, options: BuildServicesOptions = {}): Services {
@@ -82,7 +104,11 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     config.defaultOrgId,
   );
   const auth = new AuthService(client);
-  const sessions = options.sessions ?? buildSessionStore(config);
+  const stores = options.sessions && options.resetTokens ? undefined : buildStores(config);
+  const sessions = options.sessions ?? stores!.sessions;
+  const resetTokens = options.resetTokens ?? stores!.resetTokens;
+  const reset = config.auth.passwordReset;
+  const mailer = options.mailer ?? (reset ? new SmtpMailer(reset) : undefined);
   const dashboards =
     options.dashboards ?? Dashboards.fromFile(config.dashboardsPath, objects, schema);
 
@@ -100,6 +126,7 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     transfer: new TransferService(client, schema),
     auth,
     sessions,
+    passwordReset: new PasswordResetService(client, auth, resetTokens, sessions, mailer, reset),
     users: new UsersService(client, objects, auth, sessions),
     portal: new PortalService(client, schema, objects),
     dashboard: new DashboardService(objects, navigation, currentContact),
