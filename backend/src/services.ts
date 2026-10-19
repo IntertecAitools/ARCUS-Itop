@@ -84,7 +84,7 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     sessions,
     users: new UsersService(client, objects, auth, sessions),
     portal: new PortalService(client, schema, objects),
-    dashboard: new DashboardService(objects),
+    dashboard: new DashboardService(objects, navigation, currentContact),
     defaultOrganization,
     currentContact,
     incidents: new IncidentsService(objects, schema, defaultOrganization),

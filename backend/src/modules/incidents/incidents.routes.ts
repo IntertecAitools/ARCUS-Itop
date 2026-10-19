@@ -29,6 +29,11 @@ export function registerIncidentRoutes(app: FastifyInstance, services: Services)
 
   app.get("/api/incidents", async (request) => {
     const query = parse(incidentListQuerySchema, request.query, "query parameters");
+    if (query.assignee === "me") {
+      // 400s when the account has no linked Person: "assigned to me" has no
+      // answer then, and 0 would mean "unassigned".
+      query.assignee = await services.currentContact.resolve();
+    }
     return incidents.list(query);
   });
 

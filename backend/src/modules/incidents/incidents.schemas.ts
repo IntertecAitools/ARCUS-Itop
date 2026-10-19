@@ -53,11 +53,12 @@ export const incidentListQuerySchema = z.object({
   q: z.string().trim().max(200).optional(),
   status: csvEnum(TICKET_STATUSES),
   priority: csvEnum(TICKET_PRIORITIES),
-  // `unassigned`, or a numeric agent id. Rejected early so a typo cannot be
-  // smuggled into the OQL the service builds.
+  // `me`, `unassigned`, or a numeric agent id. Rejected early so a typo
+  // cannot be smuggled into the OQL the service builds. The route turns `me`
+  // into the caller's contact id before the service sees it.
   assignee: z
     .string()
-    .regex(/^(unassigned|\d+)$/, "assignee must be 'unassigned' or a numeric id")
+    .regex(/^(me|unassigned|\d+)$/, "assignee must be 'me', 'unassigned' or a numeric id")
     .optional(),
   sort: z.enum(["ref", "title", "status", "priority", "start_date"]).optional(),
   order: z.enum(["asc", "desc"]).optional(),

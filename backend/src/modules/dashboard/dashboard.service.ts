@@ -1,4 +1,6 @@
+import type { Navigation } from "../../platform/navigation/navigation.service.js";
 import type { ObjectsService, ObjectDto } from "../../platform/objects/objects.service.js";
+import type { CurrentContact } from "../../shared/current-contact.js";
 import {
   OPEN_STATES,
   oqlDate,
@@ -53,11 +55,47 @@ export interface DashboardOverview {
   categories: Array<{ key: string; label: string; value: number }>;
   sla: { compliance: number | null; onTime: number; atRisk: number; breached: number };
   recentIncidents: TicketDto[];
-  myAssignments: { incidents: TicketDto[]; approvals: TicketDto[]; requests: TicketDto[] };
+  myAssignments: MyAssignments;
   catalogShortcuts: Array<{ id: string; label: string; description: string; icon: string }>;
   changeCalendar: Array<{ id: string; ref: string; title: string; scheduledAt: string; risk: string }>;
   knowledgeArticles: Array<{ id: string; title: string; views: number }>;
 }
+
+/** One queue of the caller's own work: the rows shown, and how many there are. */
+export interface AssignmentQueue {
+  items: TicketDto[];
+  total: number;
+}
+
+/**
+ * Open work assigned to the signed-in agent, per ticket type. Each queue is
+ * iTop's own "assigned to me" menu (Incident:MyIncidents and friends), so it
+ * matches what iTop's back office would list.
+ */
+export interface MyAssignments {
+  incidents: AssignmentQueue;
+  requests: AssignmentQueue;
+  problems: AssignmentQueue;
+}
+
+/** The navigation views behind each queue. */
+const ASSIGNMENT_VIEWS = {
+  incidents: { class: "Incident", view: "Incident:MyIncidents" },
+  requests: { class: "UserRequest", view: "UserRequest:MyRequests" },
+  problems: { class: "Problem", view: "Problem:MyProblems" },
+} as const;
+
+/** Rows per queue. The tab count uses the real total, so nothing is hidden. */
+const ASSIGNMENT_ROWS = 50;
+
+const PRIORITY_RANK: Record<TicketDto["priority"], number> = {
+  critical: 0,
+  high: 1,
+  medium: 2,
+  low: 3,
+};
+
+const EMPTY_QUEUE: AssignmentQueue = { items: [], total: 0 };
 
 export interface NavCounts {
   openIncidents: number;
@@ -65,7 +103,53 @@ export interface NavCounts {
 }
 
 export class DashboardService {
-  constructor(private readonly objects: ObjectsService) {}
+  constructor(
+    private readonly objects: ObjectsService,
+    private readonly navigation?: Navigation,
+    private readonly currentContact?: CurrentContact,
+  ) {}
+
+  /**
+   * The caller's open queues. Empty, not an error, when the account has no
+   * linked Person (nothing can be assigned to it) or a view is missing from
+   * this iTop's navigation (the module is not installed).
+   */
+  async myAssignments(): Promise<MyAssignments> {
+    const contactId = await this.currentContact?.tryResolve();
+    const queue = async (key: keyof typeof ASSIGNMENT_VIEWS): Promise<AssignmentQueue> => {
+      const { class: className, view } = ASSIGNMENT_VIEWS[key];
+      if (!contactId || !this.navigation) return EMPTY_QUEUE;
+      let oql: string;
+      try {
+        const resolved = this.navigation.resolveView(view);
+        if (resolved.class !== className) return EMPTY_QUEUE;
+        oql = resolved.oql.split(":current_contact_id").join(contactId);
+      } catch {
+        return EMPTY_QUEUE;
+      }
+      const result = await this.objects.list(className, {
+        page: 1,
+        limit: ASSIGNMENT_ROWS,
+        oql,
+        fields: TICKET_FIELDS,
+      });
+      // Most urgent first, then newest -- the order an agent works a queue in.
+      const items = result.items
+        .map((item) => toTicket(item))
+        .sort(
+          (a, b) =>
+            PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority] || Number(b.id) - Number(a.id),
+        );
+      return { items, total: result.total };
+    };
+
+    const [incidents, requests, problems] = await Promise.all([
+      queue("incidents"),
+      queue("requests"),
+      queue("problems"),
+    ]);
+    return { incidents, requests, problems };
+  }
 
   /** Cheap count: ask for one row and read the "Found: N" total. */
   private async count(className: string, where: string): Promise<number> {
@@ -158,6 +242,7 @@ export class DashboardService {
       subcategories,
       changes,
       faqs,
+      myAssignments,
     ] = await Promise.all([
       this.count("Incident", sinceOql),
       this.count("Incident", `status IN (${OPEN_STATES})`),
@@ -184,6 +269,7 @@ export class DashboardService {
         50,
       ),
       this.fetch("FAQ", "id > 0", "id,title,summary", 4),
+      this.myAssignments(),
     ]);
 
     // ── Trend ──────────────────────────────────────────────────────────────
@@ -246,10 +332,7 @@ export class DashboardService {
       categories,
       sla: { compliance, onTime, atRisk, breached },
       recentIncidents: recent.map((item) => toTicket(item)),
-      // The BFF authenticates as one service account, so there is no "me" to
-      // resolve yet. These stay empty until the auth module lands and the
-      // caller's identity reaches this layer.
-      myAssignments: { incidents: [], approvals: [], requests: [] },
+      myAssignments,
       catalogShortcuts: subcategories.map((item) => ({
         id: String(item.id),
         label: str(item.fields["name"]),

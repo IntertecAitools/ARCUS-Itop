@@ -99,17 +99,26 @@ export interface KnowledgeArticle {
   views: number;
 }
 
+/** One queue of the viewer's open work: the rows shown, and the full count. */
+export interface AssignmentQueue {
+  items: DashboardTicket[];
+  total: number;
+}
+
+/** Open work assigned to the signed-in agent, per ticket type. */
+export interface MyAssignments {
+  incidents: AssignmentQueue;
+  requests: AssignmentQueue;
+  problems: AssignmentQueue;
+}
+
 export interface DashboardOverview {
   kpis: KpiSummary;
   trend: TrendPoint[];
   categories: CategoryBreakdown[];
   sla: SlaBreakdown;
   recentIncidents: DashboardTicket[];
-  myAssignments: {
-    incidents: DashboardTicket[];
-    approvals: DashboardTicket[];
-    requests: DashboardTicket[];
-  };
+  myAssignments: MyAssignments;
   catalogShortcuts: CatalogShortcut[];
   changeCalendar: ChangeEvent[];
   knowledgeArticles: KnowledgeArticle[];

@@ -91,6 +91,7 @@ export function IncidentFilterBar({ filters, onChange, onClear, activeCount }: P
         onChange={(e) => onChange({ assignee: e.target.value || undefined })}
         options={[
           { value: '', label: 'Anyone' },
+          { value: 'me', label: 'Assigned to me' },
           { value: 'unassigned', label: 'Unassigned' },
         ]}
       />

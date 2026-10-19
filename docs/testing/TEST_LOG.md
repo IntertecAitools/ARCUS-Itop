@@ -4,6 +4,21 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-10-19 — My assignments on the dashboard
+
+| What ran | Result | Notes |
+| --- | --- | --- |
+| New unit tests (`backend/test/my-assignments.test.ts`) | ✅ 4/4 | Views bound to the caller's contact, priority order, real totals, no Person, missing view, `assignee=me` |
+| Backend unit tests + typecheck | ✅ 349/349, clean | |
+| Frontend unit tests + typecheck + build | ✅ 71/71, clean, built | |
+| Live: `GET /api/dashboard/overview` as admin | ✅ | Seeded I-000009, R-000010, P-000011 assigned to admin (team Team432887); each queue returned its one ticket |
+| Live: `GET /api/incidents?assignee=me` | ✅ | Before this change the BFF rejected `me` with a 400, which the card's "View all" link sent |
+| Browser, live BFF | ✅ | Tab counts 1/1/1, row click opens the record, every "View all" opens a matching filtered list |
+
+Bug found and fixed in the same change: the incidents "View all" link listed closed incidents too (2 against the card's 1); it now filters to open statuses.
+
+Not covered: approvals (extension not installed, so the tab was replaced by Problems); changes assigned to me (their statuses do not fit the ticket columns); queues over 50 rows show the first 50 and point to View all.
+
 ### 2026-10-19 — Fast iTop setup made the default; test-log recorder fix
 
 | What ran | Result | Notes |
@@ -47,3 +62,17 @@ Not covered yet: approvals (extension not installed); load and concurrency beyon
   - command: `git status --short && git add .claude/settings.json .claude/hooks/record-test-run.mjs CLAUDE.md docs/testing/TEST_LOG.md && git commit -q -F - <<'EOF' Document every test run autom`
 - **2026-10-19 09:53 UTC** · `feature/itop-parity@73c2f26` + uncommitted changes · Live API check (BFF → iTop) (frontend) · ✅ 3 passed, 0 failed
   - command: `T="$TEMP/claude/hooktest" && rm -rf "$T" && mkdir -p "$T" && H=.claude/hooks/record-test-run.mjs && run(){ node -e 'process.stdout.write(JSON.stringify({tool_input:{command:process`
+- **2026-10-19 10:04 UTC** · `feature/itop-parity@2b3912e` + uncommitted changes · Typecheck · ✅ clean
+  - command: `python - <<'PY' p='src/modules/dashboard/dashboard.service.ts' s=open(p,encoding='utf-8').read() def sub(old,new): global s assert old in s, old[:70] s=s.replace(old,new,1) sub('''`
+- **2026-10-19 10:05 UTC** · `feature/itop-parity@2b3912e` + uncommitted changes · Live API check (BFF → iTop) (backend) · ran — no summary line in the output
+  - command: `cd /c/Users/Venkatesh.V/Arcus_ITOP/backend && grep -n "ev_assign\|team_id\|Team" scripts/api-check.mjs | head -15; grep -n "app.post\|app.patch" src/platform/objects/objects.routes`
+- **2026-10-19 10:09 UTC** · `feature/itop-parity@2b3912e` + uncommitted changes · Typecheck (frontend) · ✅ clean
+  - command: `cd /c/Users/Venkatesh.V/Arcus_ITOP/frontend && npx prettier --write src/mocks/fixtures/dashboard.ts src/features/dashboard/components/MyAssignmentsCard.tsx src/features/dashboard/t`
+- **2026-10-19 10:11 UTC** · `feature/itop-parity@2b3912e` + uncommitted changes · Typecheck · ✅ clean
+  - command: `cat > features/dashboard/components/MyAssignmentsCard.tsx <<'EOF' import { useMemo, useState } from 'react'; import { useNavigate } from 'react-router-dom'; import { Card, CardBody`
+- **2026-10-19 10:13 UTC** · `feature/itop-parity@2b3912e` + uncommitted changes · Unit tests · ✅ 4 passed, 0 failed
+  - command: `cat > test/my-assignments.test.ts <<'EOF' import assert from "node:assert/strict"; import { describe, it } from "node:test"; import { DashboardService } from "../src/modules/dashbo`
+- **2026-10-19 10:18 UTC** · `feature/itop-parity@2b3912e` + uncommitted changes · Frontend unit tests (vitest) (frontend) · ran — no summary line in the output
+  - command: `npm test 2>&1 | grep -E "^ℹ (tests|pass|fail)"; npm run typecheck 2>&1 | tail -2; cd ../frontend && npx vitest run 2>&1 | grep -E "Tests|Test Files"; npm run build 2>&1 | tail -3`
+- **2026-10-19 10:20 UTC** · `feature/itop-parity@2b3912e` + uncommitted changes · Typecheck (frontend) · ✅ clean
+  - command: `cd /c/Users/Venkatesh.V/Arcus_ITOP/frontend && python - <<'PY' p='src/features/dashboard/components/MyAssignmentsCard.tsx' s=open(p,encoding='utf-8').read() old=""" ? '/incidents?a`
