@@ -12,6 +12,10 @@ import { registerAttachmentRoutes } from "./modules/attachments/attachments.rout
 import { registerNavigationRoutes } from "./platform/navigation/navigation.routes.js";
 import { registerDashboardRoutes } from "./platform/dashboards/dashboards.routes.js";
 import { registerObjectRoutes } from "./platform/objects/objects.routes.js";
+import { registerHistoryRoutes } from "./platform/history/history.routes.js";
+import { registerTransferRoutes } from "./platform/transfer/transfer.routes.js";
+import { registerAuth } from "./platform/auth/auth.routes.js";
+import { registerUserAdminRoutes } from "./platform/admin/users.routes.js";
 import { buildServices, type BuildServicesOptions, type Services } from "./services.js";
 
 export interface BuildAppResult {
@@ -51,11 +55,18 @@ export function buildApp(config: Config, options: BuildServicesOptions = {}): Bu
   // Platform routes are infrastructure, not business modules: health checks,
   // schema introspection and generic access to any iTop class. They are always
   // on, because every module is built on top of them.
+  // First: the guard binds the signed-in user to every request after it.
+  registerAuth(app, services);
+  app.addHook("onClose", async () => services.sessions.close());
+
   registerHealthRoutes(app, services);
   registerMetaRoutes(app, services);
   registerNavigationRoutes(app, services);
   registerDashboardRoutes(app, services);
   registerObjectRoutes(app, services);
+  registerHistoryRoutes(app, services);
+  registerTransferRoutes(app, services);
+  registerUserAdminRoutes(app, services);
   registerLookupRoutes(app, services);
   registerAttachmentRoutes(app, services);
 
@@ -98,9 +109,18 @@ export function buildApp(config: Config, options: BuildServicesOptions = {}): Bu
       request.log.error({ err: error }, "Unhandled error");
     }
 
+    // Keep the code in step with the status, so a 413 from the body limit or a
+    // 415 from the content-type parser does not read as a generic 400.
+    const code =
+      status >= 500
+        ? "internal_error"
+        : ({ 404: "not_found", 413: "payload_too_large", 415: "unsupported_media_type" } as const)[
+            status as 404 | 413 | 415
+          ] ?? "bad_request";
+
     reply.code(status).send({
       error: {
-        code: status >= 500 ? "internal_error" : "bad_request",
+        code,
         // Never leak an internal stack or message to the client on a 500.
         message:
           status >= 500

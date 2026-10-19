@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useSessionStore } from '@/stores/session.store';
 import { modulesInGroup, navGroups, type ModuleDefinition } from '@/config/modules';
 import { useUiStore } from '@/stores/ui.store';
 import { ItopNavigation } from './ItopNavigation';
@@ -70,6 +71,7 @@ function NavItem({
 }
 
 export function Sidebar({ counts = {} }: SidebarProps) {
+  const isAdmin = useSessionStore((s) => s.user?.isAdmin ?? false);
   const collapsed = useUiStore((s) => s.sidebarCollapsed);
   const toggleSidebar = useUiStore((s) => s.toggleSidebar);
 
@@ -103,7 +105,7 @@ export function Sidebar({ counts = {} }: SidebarProps) {
             iTop's whole tree is rendered below it. */}
         <div aria-label="Built modules" role="group">
           {navGroups
-            .map((group) => ({ group, items: modulesInGroup(group) }))
+            .map((group) => ({ group, items: modulesInGroup(group, isAdmin) }))
             .filter(({ items }) => items.length > 0)
             .map(({ group, items }, groupIndex) => (
               <div

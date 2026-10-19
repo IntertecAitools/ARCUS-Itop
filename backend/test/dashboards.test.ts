@@ -157,3 +157,26 @@ describe("dashboard routes", () => {
     assert.equal(response.statusCode, 404);
   });
 });
+
+describe("Dashboards.compute over more than one page", () => {
+  it("counts every matching row, not just the first 500", async () => {
+    const page = (from: number, n: number, status: string) =>
+      Array.from({ length: n }, (_, i) => ({
+        class: "Server",
+        id: from + i,
+        fields: { id: String(from + i), status },
+      }));
+    const fake = new FakeItopClient().on("core/get", [
+      getResponse(page(1, 500, "production"), 650),
+      getResponse(page(501, 150, "stock"), 650),
+    ]);
+
+    const data = await sampleDashboards(fake.asClient()).compute("Server:Overview", "2");
+
+    assert.equal(data.kind, "pie");
+    if (data.kind === "pie") {
+      assert.equal(data.total, 650);
+      assert.equal(data.groups.find((g) => g.key === "stock")?.count, 150);
+    }
+  });
+});

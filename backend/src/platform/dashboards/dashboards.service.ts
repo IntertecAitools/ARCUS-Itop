@@ -177,12 +177,13 @@ export class Dashboards {
 
     // pie / bars / table / header-dynamic: group rows by an attribute and count.
     const groupBy = d.groupBy ?? "finalclass";
-    const result = await this.objects.list(className, {
-      page: 1,
-      limit: GROUP_SCAN_LIMIT,
-      oql,
-      fields: ["id", groupBy].join(","),
-    });
+    // Paged: a single list() call is clamped to 500 rows, which made every
+    // dashlet over 500 matches report partial counts as if they were whole.
+    const result = await this.objects.listAll(
+      className,
+      { oql, fields: ["id", groupBy].join(",") },
+      GROUP_SCAN_LIMIT,
+    );
 
     const counts = new Map<string, number>();
     for (const row of result.items) {

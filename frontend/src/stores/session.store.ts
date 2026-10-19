@@ -2,10 +2,12 @@ import { create } from 'zustand';
 
 export interface CurrentUser {
   id: string;
+  login: string;
   name: string;
   email: string;
   /** Shown under the name in the topbar. */
   role: string;
+  isAdmin: boolean;
   avatarUrl?: string;
 }
 
@@ -16,20 +18,13 @@ interface SessionState {
 }
 
 /**
- * Placeholder session until `features/auth` lands. The auth module will own
- * hydration from the BFF; the shell only ever reads `user`.
+ * The signed-in user, for the shell to read.
  *
- * `admin` is not arbitrary: it is the iTop account the BFF actually writes
- * through, so the name in the topbar matches who owns the change log entries
- * every edit produces. When auth lands this is replaced by the real session.
+ * `features/auth` owns it: RequireAuth fills it from the BFF's /auth/me and
+ * sign-out clears it. Screens read `user`; they never set it.
  */
 export const useSessionStore = create<SessionState>((set) => ({
-  user: {
-    id: 'u-1',
-    name: 'admin',
-    email: 'admin@intertec.local',
-    role: 'Administrator',
-  },
+  user: null,
   setUser: (user) => set({ user }),
   clear: () => set({ user: null }),
 }));

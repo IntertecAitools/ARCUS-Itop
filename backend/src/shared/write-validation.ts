@@ -207,10 +207,15 @@ function coerceValue(field: Field, value: unknown): Coerced {
       if (typeof value !== "string") return { error: "expected a YYYY-MM-DD HH:MM:SS string." };
       const trimmed = value.trim();
       if (trimmed === "") return { value: "" };
-      if (!/^\d{4}-\d{2}-\d{2}([ T]\d{2}:\d{2}(:\d{2})?)?$/.test(trimmed)) {
+      const match = /^(\d{4}-\d{2}-\d{2})(?:[ T](\d{2}:\d{2})(:\d{2})?)?$/.exec(trimmed);
+      if (!match) {
         return { error: `expected YYYY-MM-DD HH:MM:SS, got "${value}".` };
       }
-      return { value: trimmed.replace("T", " ") };
+      // iTop parses a datetime strictly as Y-m-d H:i:s (AttributeDateTime::
+      // MakeRealValue), so the shorter forms a date-time input produces are
+      // completed here rather than accepted and then rejected upstream.
+      const [, date, time = "00:00", seconds = ":00"] = match;
+      return { value: `${date} ${time}${seconds}` };
     }
     default: {
       if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {

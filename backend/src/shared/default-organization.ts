@@ -1,6 +1,8 @@
 import { badRequest } from "../core/errors.js";
 import type { ObjectsService } from "../platform/objects/objects.service.js";
-import { oqlString, str } from "./ticket-mapping.js";
+import type { CurrentContact } from "./current-contact.js";
+import { str } from "./ticket-mapping.js";
+import { currentCaller } from "../core/request-context.js";
 
 /**
  * Resolves the organisation a record belongs to when the UI does not ask.
@@ -28,11 +30,15 @@ export class DefaultOrganization {
 
   constructor(
     private readonly objects: ObjectsService,
-    private readonly itopUser: string,
+    private readonly currentContact: CurrentContact,
     private readonly pinnedId?: string,
   ) {}
 
   async resolve(): Promise<string> {
+    if (this.pinnedId) return this.pinnedId;
+    // A signed-in user's records belong to their own organisation.
+    const caller = currentCaller();
+    if (caller && caller.orgId > 0) return String(caller.orgId);
     if (this.cached) return this.cached;
     // Collapse concurrent callers onto one lookup; the create path is hot and
     // iTop answers in seconds.
@@ -83,31 +89,32 @@ export class DefaultOrganization {
     );
   }
 
-  /** UserLocal -> contactid -> Person.org_id, when the account has a contact. */
+  /**
+   * The service account's contact -> Person.org_id, when it has a contact.
+   *
+   * The account is resolved through CurrentContact, which queries iTop
+   * directly: `UserLocal` and its siblings are not part of the published
+   * schema, so asking ObjectsService for them always failed and this rule
+   * never applied.
+   */
   private async organizationOfServiceAccount(): Promise<string | null> {
     try {
-      const users = await this.objects.list("UserLocal", {
-        page: 1,
-        limit: 1,
-        oql: `SELECT UserLocal WHERE login = '${oqlString(this.itopUser)}'`,
-        fields: "id,contactid",
-      });
-
-      const contactId = str(users.items[0]?.fields["contactid"]);
-      if (!contactId || contactId === "0") return null;
+      const contactId = await this.currentContact.tryResolve();
+      if (!contactId) return null;
 
       const people = await this.objects.list("Person", {
         page: 1,
         limit: 1,
-        oql: `SELECT Person WHERE id = ${contactId}`,
+        oql: `SELECT Person WHERE id = ${Number(contactId)}`,
         fields: "id,org_id",
       });
 
       const orgId = str(people.items[0]?.fields["org_id"]);
       return orgId && orgId !== "0" ? orgId : null;
     } catch {
-      // UserLocal may not be queryable on every instance; fall through to the
-      // single-organisation rule rather than failing the create outright.
+      // The contact may be a Team, or the account unreadable on this
+      // instance; fall through to the single-organisation rule rather than
+      // failing the create outright.
       return null;
     }
   }

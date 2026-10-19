@@ -36,6 +36,8 @@ export interface RawField {
   via_att?: string;
   linked?: string;
   link_key?: string;
+  remote_key?: string;
+  edit_mode?: LinkEditMode;
   filter?: string;
   required?: boolean;
   /** The datamodel gives this NOT NULL attribute a default; iTop fills it. */
@@ -61,6 +63,12 @@ export interface ClassLabels {
   stimuli?: Record<string, string>;
 }
 
+/** A link set's `edit_mode` in the datamodel. */
+export type LinkEditMode = "none" | "add_only" | "add_remove" | "actions" | "in_place";
+
+/** iTop's per-state attribute flags (setup/compiler.class.inc.php FlagsToPHP). */
+export type StateFlag = "mandatory" | "read_only" | "must_prompt" | "must_change" | "hidden";
+
 export interface RawClass {
   is_ci: boolean;
   abstract: boolean;
@@ -69,6 +77,8 @@ export interface RawClass {
     attribute: string;
     states: Record<string, string[]>;
     stimuli?: string[];
+    transitions?: Record<string, Record<string, string>>;
+    flags?: Record<string, Record<string, StateFlag[]>>;
   } | null;
   writable: string[];
   readonly: string[];
@@ -107,6 +117,16 @@ export interface Field {
   linked?: string;
   linkedAvailable?: boolean;
   linkKey?: string;
+  /**
+   * For a LinkedSetIndirect: the key on the link class that points at the far
+   * side (`lnkPersonToTeam.person_id` for Team.persons_list).
+   */
+  remoteKey?: string;
+  /**
+   * How iTop lets the set be edited. Absent means iTop's default, `actions`
+   * (add and remove). `none` is read-only, `add_only` cannot remove.
+   */
+  editMode?: LinkEditMode;
   /** Raw OQL constraining a picker's options, as authored in the datamodel. */
   filter?: string;
   /** Attributes this field's options depend on (dependent pickers). */
@@ -127,6 +147,14 @@ export interface ClassInfo {
     states: Record<string, string[]>;
     /** The actions iTop offers on a record of this class. */
     stimuli: string[];
+    /** state -> stimulus -> the state it leads to. */
+    transitions: Record<string, Record<string, string>>;
+    /**
+     * state -> attcode -> iTop's flags for it in that state, inheritance
+     * applied. A transition must prompt for what its TARGET state flags
+     * must_change / must_prompt, or mandatory while still empty.
+     */
+    flags: Record<string, Record<string, StateFlag[]>>;
   } | null;
   /**
    * iTop's own form layout. Null when the class declares none, in which case a

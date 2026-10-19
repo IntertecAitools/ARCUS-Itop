@@ -11,6 +11,9 @@
  *
  * Writes: creates ONE incident and walks it to closed, so it leaves a single
  * closed ticket behind. Pass --read-only to skip every write.
+ *
+ * Signs in first, as API_CHECK_LOGIN / API_CHECK_PASSWORD (a staff account
+ * with the REST Services User profile); every /api route needs a session.
  */
 
 const BASE = (process.argv.find((a) => a.startsWith('http')) ?? 'http://127.0.0.1:4000').replace(
@@ -18,6 +21,7 @@ const BASE = (process.argv.find((a) => a.startsWith('http')) ?? 'http://127.0.0.
   '',
 );
 const READ_ONLY = process.argv.includes('--read-only');
+let cookie = '';
 
 let passed = 0;
 let failed = 0;
@@ -29,7 +33,7 @@ async function call(method, path, body) {
   const start = performance.now();
   const response = await fetch(`${BASE}${path}`, {
     method,
-    headers: body ? { 'content-type': 'application/json' } : {},
+    headers: { ...(body ? { 'content-type': 'application/json' } : {}), ...(cookie ? { cookie } : {}) },
     ...(body ? { body: JSON.stringify(body) } : {}),
   });
   const text = await response.text();
@@ -97,6 +101,25 @@ await check('health', 'GET', '/health', { expect: (b) => b.status === 'ok' || 's
 await check('upstream', 'GET', '/health/upstream', {
   expect: (b) => b.status === 'ok' || `iTop unreachable: ${b.error ?? '?'}`,
 });
+{
+  const login = process.env.API_CHECK_LOGIN;
+  const password = process.env.API_CHECK_PASSWORD;
+  if (!login || !password) {
+    console.error('Set API_CHECK_LOGIN and API_CHECK_PASSWORD: every /api route needs a session.');
+    process.exit(2);
+  }
+  const response = await fetch(`${BASE}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ login, password }),
+  });
+  if (!response.ok) {
+    console.error(`Sign-in failed (${response.status}): ${await response.text()}`);
+    process.exit(2);
+  }
+  cookie = (response.headers.get('set-cookie') ?? '').split(';')[0];
+}
+
 await check('meta/modules', 'GET', '/api/meta/modules', {
   expect: (b) =>
     Array.isArray(b.modules) && b.modules.some((m) => m.id === 'incidents')

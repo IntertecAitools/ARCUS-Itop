@@ -58,6 +58,35 @@ to `false` and no token-auth module is installed in this instance.
 
 ---
 
+## Sign-in
+
+Everyone signs in to **our** frontend; nobody needs iTop's console. Accounts
+are still iTop's own (`UserLocal`, `UserLDAP`, `UserExternal`), so there is one
+user list.
+
+- `POST /api/auth/login` checks the password with `core/check_credentials`
+  (local, LDAP and external accounts alike), reads the account's profiles and
+  allowed organisations, and sets an `HttpOnly`, `SameSite=Lax` session cookie.
+  `GET /api/auth/me`, `POST /api/auth/logout`, `POST /api/auth/password`.
+- **Staff call iTop as themselves.** The session holds their credentials in
+  server memory only (iTop's REST API needs them on every call and no token
+  module is installed), so iTop enforces their profiles and organisations and
+  history shows their name. This is why staff accounts need iTop's
+  `REST Services User` profile; the user-admin API adds it automatically.
+- **End users** ("Portal user" profile) are refused by iTop's REST API, so they
+  will use a self-service API of their own. Until it exists their sign-in is
+  refused with a clear message.
+- Every `/api` route except sign-in needs a session; `/api/admin/*` needs the
+  Administrator profile; writes from an origin outside `CORS_ORIGINS` are refused.
+- Sessions live in memory: a BFF restart signs everyone out, and the BFF runs as
+  one instance. Settings: `AUTH_REQUIRED`, `SESSION_IDLE_MINUTES`,
+  `SESSION_MAX_HOURS`, `COOKIE_SECURE` (on behind HTTPS).
+
+**One-time setup in iTop:** the service account in `ITOP_USER` needs the
+Administrator and REST Services User profiles, and the first administrator
+(the installer's `admin` will do) signs in to create everyone else from
+**Users** in the frontend (`/api/admin/users`, `/api/admin/profiles`).
+
 ## What this layer is actually for
 
 Five upstream behaviours make a direct browser-to-iTop integration painful.
@@ -104,6 +133,12 @@ query or an empty result set crashes the caller.
 OQL has no `ORDER BY` production (`core/oql/oql-parser.y`), and `core/get`
 hardcodes `DBObjectSet`'s `$aOrderBy` to `[]`
 (`restservices.class.inc.php:556`). There is no sort parameter to pass.
+
+It does *order*, though: with no order given, `DBObjectSet` falls back to the
+class default (`dbobjectset.class.php:691`), which is `friendlyname` unless the
+datamodel declares one — `ref` ascending for tickets. So "the first page" is the
+oldest rows, not the newest; the dashboard's recent-incidents list reads the
+last page for that reason.
 
 So `?sort=` is implemented **in the BFF**: it fetches the whole matching set
 (capped at `SORT_ROW_CAP`, 2000 rows), orders it, and slices the page.
@@ -217,6 +252,13 @@ identity down.
 | `DELETE` | `/api/objects/:class/:id` | `?simulate=true` to preview the cascade |
 | `POST` | `/api/objects/:class/:id/stimulus` | lifecycle transition |
 | `GET` | `/api/objects/:class/:id/links/:attcode` | objects across a `LinkedSet` |
+| `POST` | `/api/objects/:class/:id/links/:attcode` | `{ targetId }`: n-n creates the link row, 1-n points the object here; honours `edit_mode` |
+| `DELETE` | `/api/objects/:class/:id/links/:attcode/:itemId` | n-n deletes the link row, 1-n clears the key (refused when mandatory) |
+| `POST` | `/api/objects/:class/bulk` | `{ action: update\|stimulus\|delete, ids, fields?, stimulus? }`, at most 500 ids; one call per record, per-record outcome |
+| `GET` | `/api/objects/:class/export?format=csv\|xlsx\|pdf` | the list's rows (same `view`, `q`, filters), rendered by iTop's `webservices/export-v2.php`; optional `fields` |
+| `POST` | `/api/objects/:class/import` | `{ csv, simulate, reconciliationKeys?, separator? }` → iTop's `webservices/import.php`, parsed into counts + per-line status; 10 MB max |
+| `POST` | `/api/objects/:class/bulk/delete-plan` | `{ ids }`: the combined deletion plan, nothing deleted |
+| `GET` | `/api/objects/:class/:id/history` | change history from `CMDBChangeOp`, grouped per save, newest first |
 | `GET` | `/api/objects/:class/:id/related` | impact graph (`relation`, `direction`, `depth`, `redundancy`) |
 
 **List query parameters**
@@ -227,8 +269,23 @@ identity down.
 - `fields` — `summary` (list default) · `full` (detail default, excludes link
   sets) · `all` (iTop `*`, includes link sets) · or `name,status,org_id`
 - `oql` — raw OQL escape hatch
+- `view` — a navigation view id (`GET /api/meta/navigation`); the BFF supplies
+  its OQL
 - **any other parameter is an exact-match filter**, e.g.
   `/api/objects/Server?status=production&org_id=3`
+
+- `criteria` — advanced search, a JSON array of `{ field, op, value?, value2?, values? }`
+  (`contains`, `starts_with`, `equals`, `in`, `gt`, `between`, `empty`, …). Each is
+  checked against the field's kind and turned into escaped OQL in
+  `src/platform/objects/criteria.ts`; `GET /api/meta/classes/:class` publishes
+  the operators each field takes under `criteria`. Exports accept it too.
+
+`q` and filters **narrow** a `view` or `oql` rather than being ignored: the
+base query is nested as `… AND id IN (<view OQL>)`, the same form iTop's own
+tests use, so views written with aliases or JOINs need no rewriting.
+
+`DELETE` on an id that matches nothing returns `404`. iTop itself answers
+`code 0` with an empty plan in that case, which used to read as a success.
 
 `id` and `friendlyname` are always included.
 
@@ -412,6 +469,5 @@ finding out via a 404.
   field list for them.
 - **Writes are not transactional.** iTop exposes no batch verb; each call is
   independent.
-- The BFF is **unauthenticated**. It holds iTop credentials and must not be
-  exposed to untrusted networks — put your own auth in front before it leaves
-  localhost.
+- iTop itself should not be reachable by users: publish only the BFF and the
+  frontend, so the console cannot be opened even by someone who knows its address.

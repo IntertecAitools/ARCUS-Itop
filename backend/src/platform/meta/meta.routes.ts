@@ -4,6 +4,7 @@ import { z } from "zod";
 import type { Services } from "../../services.js";
 import { modules } from "../../config/modules.js";
 import { identifierParam, parse } from "../../core/validate.js";
+import { criterionKind, OPS_BY_KIND } from "../objects/criteria.js";
 
 /**
  * Schema endpoints. A schema-driven frontend calls these once at boot and then
@@ -72,6 +73,14 @@ export function registerMetaRoutes(app: FastifyInstance, services: Services): vo
       related: info.relatedFields,
       pickers: info.pickerFields,
       searchable: info.searchable,
+      // Advanced search: per searchable attribute, its kind and the
+      // operators it takes, so the UI offers only criteria the BFF accepts.
+      criteria: Object.fromEntries(
+        Object.entries(info.fields).flatMap(([code, field]) => {
+          const kind = criterionKind(field);
+          return kind ? [[code, { kind, ops: OPS_BY_KIND[kind] }]] : [];
+        }),
+      ),
       fields: info.fields,
     };
   });

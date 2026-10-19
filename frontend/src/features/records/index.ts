@@ -3,4 +3,5 @@ export { RecordsIndexPage } from './pages/RecordsIndexPage';
 export { RecordListPage } from './pages/RecordListPage';
 export { RecordNewPage } from './pages/RecordNewPage';
 export { RecordDetailPage } from './pages/RecordDetailPage';
+export { RecordImportPage } from './pages/RecordImportPage';
 export type { ClassInfo, ClassSummary, FieldSpec, RecordDto } from './types';

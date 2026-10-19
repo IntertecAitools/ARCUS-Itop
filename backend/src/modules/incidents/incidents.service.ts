@@ -1,4 +1,5 @@
 import { badRequest, notFound } from "../../core/errors.js";
+import { likeContains } from "../../itop/oql.js";
 import type { CmdbSchema } from "../../schema/load.js";
 import type { DefaultOrganization } from "../../shared/default-organization.js";
 import type { ObjectDto, ObjectsService } from "../../platform/objects/objects.service.js";
@@ -8,7 +9,6 @@ import {
   IMPACT_MAP,
   isTrue,
   ORIGINS,
-  oqlString,
   PRIORITY_TO_ITOP,
   RESOLUTION_CODES,
   STATUS_TO_ITOP,
@@ -111,8 +111,8 @@ export class IncidentsService {
     }
 
     if (query.q) {
-      const term = oqlString(query.q);
-      clauses.push(`(ref LIKE '%${term}%' OR title LIKE '%${term}%')`);
+      const pattern = likeContains(query.q);
+      clauses.push(`(ref LIKE ${pattern} OR title LIKE ${pattern})`);
     }
 
     return clauses.length ? clauses.join(" AND ") : "1=1";

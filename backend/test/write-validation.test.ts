@@ -213,3 +213,28 @@ describe("validateWrite — lifecycle classes", () => {
     assert.equal(result.fields.status, "new");
   });
 });
+
+describe("validateWrite — datetime completion", () => {
+  const withDateTime: ClassInfo = {
+    ...server,
+    fields: {
+      ...server.fields,
+      start_date: { ...server.fields["purchase_date"]!, type: "DateTime", widget: "datetime" },
+    },
+  };
+  const write = (value: string) =>
+    validateWrite(withDateTime, { start_date: value }, { mode: "update" }).fields["start_date"];
+
+  it("adds the seconds iTop's strict Y-m-d H:i:s parser requires", () => {
+    assert.equal(write("2026-10-19T09:30"), "2026-10-19 09:30:00");
+    assert.equal(write("2026-10-19 09:30"), "2026-10-19 09:30:00");
+  });
+
+  it("completes a bare date to midnight", () => {
+    assert.equal(write("2026-10-19"), "2026-10-19 00:00:00");
+  });
+
+  it("leaves a complete value alone", () => {
+    assert.equal(write("2026-10-19 09:30:15"), "2026-10-19 09:30:15");
+  });
+});

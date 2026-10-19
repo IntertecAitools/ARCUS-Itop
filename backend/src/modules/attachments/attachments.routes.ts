@@ -31,6 +31,18 @@ function safeFilename(name: string): string {
   return cleaned.length > 0 ? cleaned.slice(0, 200) : "attachment";
 }
 
+/**
+ * RFC 5987 ext-value. encodeURIComponent leaves ' ( ) * as they are, and an
+ * apostrophe is the ext-value delimiter, so a name like "O'Brien.pdf" would
+ * otherwise end the value early.
+ */
+function rfc5987(name: string): string {
+  return encodeURIComponent(name).replace(
+    /['()*]/g,
+    (ch) => `%${ch.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
+}
+
 export function registerAttachmentRoutes(app: FastifyInstance, services: Services): void {
   const { attachments } = services;
 
@@ -130,7 +142,7 @@ export function registerAttachmentRoutes(app: FastifyInstance, services: Service
       // .html or .svg rendered inline would execute in our origin.
       .header(
         "Content-Disposition",
-        `attachment; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(file.filename)}`,
+        `attachment; filename="${filename}"; filename*=UTF-8''${rfc5987(filename)}`,
       )
       .header("X-Content-Type-Options", "nosniff");
 

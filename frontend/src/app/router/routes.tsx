@@ -1,6 +1,7 @@
 import { createElement } from 'react';
 import { createBrowserRouter, Navigate, type RouteObject } from 'react-router-dom';
 import { AgentLayout } from '@/app/layouts/AgentLayout';
+import { LoginPage, RequireAuth } from '@/features/auth';
 import { HOME_PATH, modules } from '@/config/modules';
 import { NotFoundPage } from './NotFoundPage';
 
@@ -23,9 +24,15 @@ const moduleRoutes: RouteObject[] = modules.map((module) => ({
 }));
 
 export const router = createBrowserRouter([
+  // Outside the shell: the only screen someone who is not signed in can see.
+  { path: '/login', element: <LoginPage /> },
   {
     path: '/',
-    element: <AgentLayout />,
+    element: (
+      <RequireAuth>
+        <AgentLayout />
+      </RequireAuth>
+    ),
     children: [
       { index: true, element: <Navigate to={HOME_PATH} replace /> },
       ...moduleRoutes,

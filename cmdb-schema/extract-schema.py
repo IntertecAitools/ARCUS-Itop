@@ -82,6 +82,76 @@ def ui_category(field_type):
     return 'scalar'
 
 
+# <flags><attribute id="x"><mandatory/>...</attribute></flags>, as the compiler
+# reads them (setup/compiler.class.inc.php:768 FlagsToPHP).
+STATE_FLAGS = ('mandatory', 'read_only', 'must_prompt', 'must_change', 'hidden')
+
+
+def parse_lifecycle(lifecycle):
+    """A <lifecycle> element as the frontend needs it to drive transitions.
+
+    Besides which actions each state offers, a generic screen needs to know
+    where each action leads and what the TARGET state demands: iTop's own
+    stimulus form prompts for an attribute that the target state flags
+    must_change or must_prompt, or mandatory while it is still empty
+    (application/cmdbabstract.class.inc.php:3048). Without that, "Resolve"
+    is sent with no solution and iTop refuses it.
+
+    Flags are resolved the way MetaModel::Init_DefineState does
+    (core/metamodel.class.php:3431): a state inherits its
+    `inherit_flags_from` parent's flags MINUS must_prompt/must_change, then
+    its own entries override per attribute -- an entry with no flag resets
+    the attribute to normal.
+    """
+    states = lifecycle.findall('states/state')
+    own = {}
+    parent = {}
+    for st in states:
+        sid = st.get('id')
+        parent[sid] = st.findtext('inherit_flags_from') or ''
+        own[sid] = {
+            a.get('id'): [f for f in STATE_FLAGS if a.find(f) is not None]
+            for a in st.findall('flags/attribute') if a.get('id')
+        }
+
+    resolved = {}
+
+    def flags_of(sid, seen=()):
+        if sid in resolved:
+            return resolved[sid]
+        base = {}
+        up = parent.get(sid)
+        if up and up in own and up not in seen:
+            base = {
+                att: [f for f in fl if f not in ('must_prompt', 'must_change')]
+                for att, fl in flags_of(up, seen + (sid,)).items()
+            }
+        merged = {**base, **own.get(sid, {})}
+        resolved[sid] = {att: fl for att, fl in merged.items() if fl}
+        return resolved[sid]
+
+    return {
+        'attribute': lifecycle.findtext('attribute'),
+        'states': {
+            st.get('id'): [t.get('id') for t in st.findall('transitions/transition')]
+            for st in states
+        },
+        # The actions iTop offers on a record. Without these a generic
+        # detail screen can show a state but never change it.
+        'stimuli': [st.get('id') for st in lifecycle.findall('stimuli/*') if st.get('id')],
+        # state -> stimulus -> target state.
+        'transitions': {
+            st.get('id'): {
+                t.get('id'): t.findtext('target')
+                for t in st.findall('transitions/transition') if t.get('id')
+            }
+            for st in states
+        },
+        # state -> attcode -> flags, inheritance applied.
+        'flags': {st.get('id'): flags_of(st.get('id')) for st in states},
+    }
+
+
 def load(path):
     """Parse the model. A class id can appear in several <class> nodes, so
     parents/properties/fields are merged per id rather than overwritten."""
@@ -123,6 +193,12 @@ def load(path):
                     ('target_attcode', 'via_att'),
                     ('linked_class', 'linked'),
                     ('ext_key_to_me', 'link_key'),
+                    # n-n link sets: the key on the link class that points at
+                    # the far side. Not derivable -- lnkPersonToTeam has three.
+                    ('ext_key_to_remote', 'remote_key'),
+                    # How iTop's console lets the set be edited: none,
+                    # add_only, add_remove, actions (default), in_place.
+                    ('edit_mode', 'edit_mode'),
                     ('filter', 'filter'),  # dependent-picker OQL, e.g. model_id on brand_id
                 ):
                     val = fld.findtext(xml_tag)
@@ -156,16 +232,7 @@ def load(path):
 
         lifecycle = node.find('lifecycle')
         if lifecycle is not None and lifecycle.find('states') is not None:
-            lifecycles[cid] = {
-                'attribute': lifecycle.findtext('attribute'),
-                'states': {
-                    s.get('id'): [t.get('id') for t in s.findall('transitions/transition')]
-                    for s in lifecycle.findall('states/state')
-                },
-                # The actions iTop offers on a record. Without these a generic
-                # detail screen can show a state but never change it.
-                'stimuli': [st.get('id') for st in lifecycle.findall('stimuli/*') if st.get('id')],
-            }
+            lifecycles[cid] = parse_lifecycle(lifecycle)
 
         # Kept for the presentation pass: <presentation> is merged per id the
         # same way fields are, and the last definition wins.

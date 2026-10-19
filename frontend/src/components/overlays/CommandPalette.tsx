@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { CornerDownLeft, List, Plus, Search, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { navigableModules } from '@/config/modules';
+import { useSessionStore } from '@/stores/session.store';
 import { entryPath, useNavigation } from '@/features/navigation';
 import { useUiStore } from '@/stores/ui.store';
 
@@ -39,12 +40,13 @@ export function CommandPalette() {
   const inputRef = useRef<HTMLInputElement>(null);
   // Already cached by the sidebar, so this costs nothing extra.
   const { data: navigation } = useNavigation();
+  const isAdmin = useSessionStore((s) => s.user?.isAdmin ?? false);
 
   const [query, setQuery] = useState('');
   const [highlighted, setHighlighted] = useState(0);
 
   const items = useMemo<PaletteItem[]>(() => {
-    const built: PaletteItem[] = navigableModules().map((m) => ({
+    const built: PaletteItem[] = navigableModules(isAdmin).map((m) => ({
       key: `module:${m.id}`,
       label: m.label,
       description: m.description,
@@ -65,7 +67,7 @@ export function CommandPalette() {
     );
 
     return [...built, ...itop];
-  }, [navigation]);
+  }, [navigation, isAdmin]);
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();

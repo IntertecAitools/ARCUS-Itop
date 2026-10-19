@@ -1,5 +1,6 @@
 import type { Config } from "../src/config/env.js";
-import type { ItopClient } from "../src/itop/client.js";
+import { currentCaller } from "../src/core/request-context.js";
+import { resultToAppError, type ItopClient } from "../src/itop/client.js";
 import type { ItopResult, ItopVerb } from "../src/itop/types.js";
 import { Navigation } from "../src/platform/navigation/navigation.service.js";
 import { Dashboards } from "../src/platform/dashboards/dashboards.service.js";
@@ -26,12 +27,22 @@ export function testConfig(overrides: Partial<Config> = {}): Config {
     navigationPath: overrides.navigationPath ?? "unused-in-tests",
     dashboardsPath: overrides.dashboardsPath ?? "unused-in-tests",
     lookupCacheTtlMs: overrides.lookupCacheTtlMs ?? 0,
+    // Route tests exercise the API itself; auth has its own tests.
+    auth: {
+      required: false,
+      sessionIdleMs: 3_600_000,
+      sessionMaxMs: 12 * 3_600_000,
+      cookieSecure: false,
+      ...overrides.auth,
+    },
   };
 }
 
 export interface RecordedCall {
   verb: ItopVerb;
   params: Record<string, unknown>;
+  /** Whose account the call ran under: the signed-in login, or "service". */
+  as: string;
 }
 
 /**
@@ -61,27 +72,36 @@ export class FakeItopClient {
     return result;
   }
 
+  /** Logins whose password check succeeds, for verifyCredentials. */
+  readonly passwords = new Map<string, string>();
+
   async callRaw<T extends ItopResult = ItopResult>(
     verb: ItopVerb,
     params: Record<string, unknown>,
+    options: { asService?: boolean } = {},
   ): Promise<T> {
-    this.calls.push({ verb, params });
+    const caller = options.asService ? undefined : currentCaller();
+    this.calls.push({ verb, params, as: caller?.credentials?.user ?? "service" });
     return this.next(verb) as T;
   }
 
   async call<T extends ItopResult = ItopResult>(
     verb: ItopVerb,
     params: Record<string, unknown>,
+    options: { asService?: boolean } = {},
   ): Promise<T> {
-    const result = await this.callRaw<T>(verb, params);
-    if (result.code !== 0) {
-      throw new Error(`FakeItopClient: verb ${verb} returned code ${result.code}`);
-    }
+    const result = await this.callRaw<T>(verb, params, options);
+    // Mapped exactly as the real client maps it.
+    if (result.code !== 0) throw resultToAppError(verb, result);
     return result;
   }
 
   async checkCredentials(): Promise<boolean> {
     return true;
+  }
+
+  async verifyCredentials(user: string, password: string): Promise<boolean> {
+    return this.passwords.get(user) === password;
   }
 
   async listOperations(): Promise<{ verb: string; description: string }[]> {
