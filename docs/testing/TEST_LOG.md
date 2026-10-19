@@ -4,6 +4,18 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-10-19 — Record lists show names, not ids
+
+| What ran | Result | Notes |
+| --- | --- | --- |
+| New unit tests (`frontend/src/features/records/lib/list-cells.test.ts`) | ✅ 5/5 | Name beside each picker, link target, iTop's 0 as empty, id fallback, enum wording |
+| Frontend unit tests + typecheck | ✅ 76/76, clean | |
+| Browser, live BFF: Problem and UserRequest lists | ✅ | Organization, Caller and Agent show names; unassigned shows "—"; a caller name opens that Person |
+
+Bug fixed: generic record lists showed external keys as raw ids ("Organization 1", "Service 0"). The list now also requests `<attcode>_friendlyname`, which iTop returns for every external key.
+
+Not covered: the list heading still shows the class code ("UserRequest"), not its label.
+
 ### 2026-10-19 — My assignments on the dashboard
 
 | What ran | Result | Notes |
@@ -76,3 +88,7 @@ Not covered yet: approvals (extension not installed); load and concurrency beyon
   - command: `npm test 2>&1 | grep -E "^ℹ (tests|pass|fail)"; npm run typecheck 2>&1 | tail -2; cd ../frontend && npx vitest run 2>&1 | grep -E "Tests|Test Files"; npm run build 2>&1 | tail -3`
 - **2026-10-19 10:20 UTC** · `feature/itop-parity@2b3912e` + uncommitted changes · Typecheck (frontend) · ✅ clean
   - command: `cd /c/Users/Venkatesh.V/Arcus_ITOP/frontend && python - <<'PY' p='src/features/dashboard/components/MyAssignmentsCard.tsx' s=open(p,encoding='utf-8').read() old=""" ? '/incidents?a`
+- **2026-10-19 10:35 UTC** · `feature/itop-parity@4153270` + uncommitted changes · Frontend unit tests (vitest) (frontend) · ✅ 5 passed, 0 failed
+  - command: `cat > lib/list-cells.ts <<'EOF' import type { ClassInfo } from '../types'; /** * What a list cell shows for one attribute. * * A picker (an external key such as 'org_id') holds an `
+- **2026-10-19 10:38 UTC** · `feature/itop-parity@4153270` + uncommitted changes · Frontend unit tests (vitest) · ✅ 76 passed, 0 failed
+  - command: `npx vitest run 2>&1 | grep -E "Tests |Test Files"; npx tsc --noEmit -p tsconfig.app.json && echo typecheck-clean; npx eslint src/features/records 2>&1 | tail -3`
