@@ -26,6 +26,18 @@ const KINDS = [
 
 const stripAnsi = (s) => s.replace(/\x1b\[[0-9;]*[A-Za-z]/g, '');
 
+/**
+ * The part of a command that actually runs: heredoc bodies and quoted -m
+ * messages are text (a commit message, a script being written), so a test
+ * name inside them must not count as a test run.
+ */
+function runnablePart(command) {
+  return command
+    .replace(/<<-?\s*(['"]?)(\w+)\1[^\n]*\n[\s\S]*?\n\s*\2\s*(?=\n|$)/g, '')
+    .replace(/<<-?\s*(['"]?)(\w+)\1[\s\S]*$/, '')
+    .replace(/(^|\s)-m\s+("(?:[^"\\]|\\.)*"|'[^']*')/g, '$1');
+}
+
 function textOf(value) {
   if (value == null) return '';
   if (typeof value === 'string') return value;
@@ -72,7 +84,7 @@ function failingNames(out) {
 try {
   const input = JSON.parse(readFileSync(0, 'utf8') || '{}');
   const command = String(input.tool_input?.command ?? '');
-  const kind = KINDS.find((k) => k.re.test(command));
+  const kind = KINDS.find((k) => k.re.test(runnablePart(command)));
   if (!kind) process.exit(0);
 
   const root = process.env.CLAUDE_PROJECT_DIR || input.cwd || process.cwd();

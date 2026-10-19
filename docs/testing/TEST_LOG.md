@@ -4,6 +4,13 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-10-19 — Fast iTop setup made the default; test-log recorder fix
+
+| What ran | Result | Notes |
+| --- | --- | --- |
+| File read benchmark: Windows folder mount vs Docker volume | 9.7 s vs 0.1 s for 120 iTop files | Cause of the lag on bind-mounted setups; README now defaults to `docker/docker-compose.local.yml` |
+| Recorder pipe-test: 3 real runs, 3 commands that only mention tests | ✅ 3 logged, 3 ignored | It had logged a commit whose message named `api-check` |
+
 ### 2026-10-19 — BFF review, iTop parity (steps 1–6), portal, first live run
 
 Branch `feature/itop-parity`, PR IntertecAitools/ARCUS-Itop#2.
@@ -36,3 +43,7 @@ Not covered yet: approvals (extension not installed); load and concurrency beyon
   - command: `cd /c/Users/Venkatesh.V/Arcus_ITOP/backend && node --import tsx --test test/oql.test.ts 2>&1 | tail -8`
 - **2026-10-19 09:18 UTC** · `feature/itop-parity@905d4cf` + uncommitted changes · Live API check (BFF → iTop) (frontend) · ran — no summary line in the output
   - command: `cd /c/Users/Venkatesh.V/Arcus_ITOP && python - <<'PY' p='docs/testing/TEST_LOG.md' s=open(p,encoding='utf-8').read() i=s.index('## Automatic entries') narrative = '''## Sessions ##`
+- **2026-10-19 09:20 UTC** · `feature/itop-parity@73c2f26` · Live API check (BFF → iTop) · ran — no summary line in the output
+  - command: `git status --short && git add .claude/settings.json .claude/hooks/record-test-run.mjs CLAUDE.md docs/testing/TEST_LOG.md && git commit -q -F - <<'EOF' Document every test run autom`
+- **2026-10-19 09:53 UTC** · `feature/itop-parity@73c2f26` + uncommitted changes · Live API check (BFF → iTop) (frontend) · ✅ 3 passed, 0 failed
+  - command: `T="$TEMP/claude/hooktest" && rm -rf "$T" && mkdir -p "$T" && H=.claude/hooks/record-test-run.mjs && run(){ node -e 'process.stdout.write(JSON.stringify({tool_input:{command:process`

@@ -1,3 +1,11 @@
+# SLOW -- not for day-to-day use. Use docker-compose.local.yml instead.
+#
+# This file serves iTop straight from the Windows folder C:\iTop\iTop. Docker
+# reads each file across the Windows<->Linux boundary about 100x slower than
+# from a volume (120 iTop files: 9.7 s here vs 0.1 s), so every page takes tens
+# of seconds to a minute and the BFF times out. Keep it only for editing iTop's
+# own source live, which this project never does (see README.md).
+
 services:
   itop:
     build: .
