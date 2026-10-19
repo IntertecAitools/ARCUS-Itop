@@ -13,7 +13,9 @@ import { RelationsService } from "./shared/relations.service.js";
 import { HistoryService } from "./platform/history/history.service.js";
 import { TransferService } from "./platform/transfer/transfer.service.js";
 import { AuthService } from "./platform/auth/auth.service.js";
-import { SessionStore } from "./platform/auth/session.store.js";
+import { createPool } from "mysql2/promise";
+import { MySqlSessionStore } from "./platform/auth/session.mysql.js";
+import { MemorySessionStore, type SessionStore } from "./platform/auth/session.store.js";
 import { UsersService } from "./platform/admin/users.service.js";
 import { PortalService } from "./platform/portal/portal.service.js";
 import { DefaultOrganization } from "./shared/default-organization.js";
@@ -48,7 +50,23 @@ export interface BuildServicesOptions {
   schema?: CmdbSchema;
   navigation?: Navigation;
   dashboards?: Dashboards;
+  sessions?: SessionStore;
   logger?: Logger;
+}
+
+/** Sessions in memory, or encrypted in MySQL when SESSION_STORE=mysql. */
+function buildSessionStore(config: Config): SessionStore {
+  const { sessionStore: store, sessionIdleMs, sessionMaxMs } = config.auth;
+  if (store.kind === "memory") return new MemorySessionStore(sessionIdleMs, sessionMaxMs);
+  const pool = createPool({
+    host: store.host,
+    port: store.port,
+    user: store.user,
+    password: store.password,
+    database: store.database,
+    connectionLimit: 10,
+  });
+  return new MySqlSessionStore(pool, store.secret, sessionIdleMs, sessionMaxMs);
 }
 
 export function buildServices(config: Config, options: BuildServicesOptions = {}): Services {
@@ -64,7 +82,7 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     config.defaultOrgId,
   );
   const auth = new AuthService(client);
-  const sessions = new SessionStore(config.auth.sessionIdleMs, config.auth.sessionMaxMs);
+  const sessions = options.sessions ?? buildSessionStore(config);
   const dashboards =
     options.dashboards ?? Dashboards.fromFile(config.dashboardsPath, objects, schema);
 
@@ -84,7 +102,7 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     sessions,
     users: new UsersService(client, objects, auth, sessions),
     portal: new PortalService(client, schema, objects),
-    dashboard: new DashboardService(objects),
+    dashboard: new DashboardService(objects, navigation, currentContact),
     defaultOrganization,
     currentContact,
     incidents: new IncidentsService(objects, schema, defaultOrganization),

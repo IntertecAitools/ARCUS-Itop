@@ -1,0 +1,35 @@
+# Local iTop for this repository, on http://localhost:8080.
+#
+# Serves the repo's own iTop/ copy (no C:\iTop\iTop needed) from a Docker
+# named volume, which runs at native speed -- a Windows bind mount makes every
+# page take about a minute, long enough to time out the BFF. Data lives in
+# MySQL on the Windows host, database `itop_prod`, like the other stacks.
+#
+#   1. Build the image (once):
+#        docker build -t itop-dev:php8.3 docker
+#   2. Copy the code into the volume (again after changing iTop/):
+#        docker compose -f docker/docker-compose.local.yml run --rm --no-deps \
+#          -v "$PWD/iTop:/src:ro" itop-local \
+#          bash -c "cd /src && tar --exclude=./.git -cf - . | tar -C /var/www/html -xf - && chown -R www-data:www-data /var/www/html"
+#   3. Start it:
+#        docker compose -f docker/docker-compose.local.yml up -d
+#   4. First time only, run iTop's setup (see backend/README.md, "Local iTop").
+#
+# Stop with `docker compose -f docker/docker-compose.local.yml down`; the
+# volume (installed config + compiled datamodel) is kept until `down -v`.
+
+services:
+  itop-local:
+    image: itop-dev:php8.3
+    container_name: itop-local
+    ports:
+      - "8080:80"
+    volumes:
+      - itop-local-code:/var/www/html
+    extra_hosts:
+      # Reaches MySQL 8.0 running as a Windows service.
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+volumes:
+  itop-local-code:

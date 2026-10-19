@@ -11,6 +11,7 @@ import { humaniseAttcode } from '../components/FieldControls';
 import { BulkDeleteDialog, BulkEditDialog, BulkResultBanner } from '../components/BulkDialogs';
 import { TransitionDialog } from '../components/TransitionDialog';
 import { AdvancedSearch } from '../components/AdvancedSearch';
+import { listCell, listFields } from '../lib/list-cells';
 import { requiredForTransition, transitionPrompts } from '../lib/transitions';
 import type { BulkRequest, BulkResult, Criterion, RecordDto } from '../types';
 
@@ -83,9 +84,16 @@ export function RecordListPage() {
   // The lifecycle state is fetched even when it is not a column: bulk actions
   // are offered per state.
   const lifecycleAttribute = info?.lifecycle?.attribute;
-  const fields = columns.length
-    ? [...new Set(['id', ...columns, ...(lifecycleAttribute ? [lifecycleAttribute] : [])])].join(',')
-    : undefined;
+  const fields =
+    info && columns.length
+      ? [
+          ...new Set([
+            'id',
+            ...listFields(info, columns),
+            ...(lifecycleAttribute ? [lifecycleAttribute] : []),
+          ]),
+        ].join(',')
+      : undefined;
   const { data, isLoading, isError: listError } = useRecords(
     className,
     { page, q: q || undefined, view, ...(criteria.length ? { criteria } : {}) },
@@ -117,7 +125,8 @@ export function RecordListPage() {
     let common: string[] | null = null;
     for (const row of selected.values()) {
       const state = String(row.fields[info.lifecycle.attribute] ?? '');
-      const available = info.lifecycle.states[state] ?? [];
+      const userActions = new Set(info.lifecycle.userActions ?? info.lifecycle.stimuli);
+      const available = (info.lifecycle.states[state] ?? []).filter((a) => userActions.has(a));
       common = common === null ? available : common.filter((a) => available.includes(a));
     }
     return common ?? [];
@@ -208,12 +217,18 @@ export function RecordListPage() {
       header: info?.labels?.fields?.[attcode] ?? humaniseAttcode(attcode),
       enableSorting: false,
       cell: ({ row }) => {
-        const value = row.original.fields[attcode];
-        const raw = value === null || value === undefined || value === '' ? '' : String(value);
-        // iTop's wording for enum values: `status` reads "Assigned", and
-        // impact/urgency are stored as "1".."4" which humanise to nothing.
-        const text = raw === '' ? '—' : (info?.labels?.values?.[attcode]?.[raw] ?? raw);
-        return (
+        if (!info) return null;
+        const { text, to } = listCell(info, attcode, row.original.fields);
+        return to ? (
+          <Link
+            to={to}
+            onClick={(e) => e.stopPropagation()}
+            className="block truncate text-ink transition-colors hover:text-brand-ink hover:underline"
+            title={text}
+          >
+            {text}
+          </Link>
+        ) : (
           <span className="block truncate text-ink" title={text}>
             {text}
           </span>

@@ -101,6 +101,46 @@ export interface Config {
     sessionMaxMs: number;
     /** Send the session cookie with `Secure`; must be on behind HTTPS. */
     cookieSecure: boolean;
+    /**
+     * Where sessions live. `memory` (the default) loses them on restart and
+     * allows one BFF instance; `mysql` keeps them, encrypted, in a table every
+     * instance shares.
+     */
+    sessionStore: SessionStoreConfig;
+  };
+}
+
+export type SessionStoreConfig =
+  | { kind: "memory" }
+  | {
+      kind: "mysql";
+      host: string;
+      port: number;
+      user: string;
+      password: string;
+      database: string;
+      /** Encrypts what a session holds (it carries the user's iTop password). */
+      secret: string;
+    };
+
+function sessionStoreConfig(): SessionStoreConfig {
+  const kind = optional("SESSION_STORE", "memory").toLowerCase();
+  if (kind === "memory") return { kind: "memory" };
+  if (kind !== "mysql") {
+    throw new Error(`SESSION_STORE must be "memory" or "mysql", not "${kind}".`);
+  }
+  const secret = required("SESSION_SECRET");
+  if (secret.length < 32) {
+    throw new Error("SESSION_SECRET must be at least 32 characters; generate one with `openssl rand -base64 48`.");
+  }
+  return {
+    kind: "mysql",
+    host: optional("SESSION_DB_HOST", "127.0.0.1"),
+    port: integer("SESSION_DB_PORT", 3306, 1, 65_535),
+    user: required("SESSION_DB_USER"),
+    password: optional("SESSION_DB_PASSWORD", ""),
+    database: optional("SESSION_DB_NAME", "arcus_bff"),
+    secret,
   };
 }
 
@@ -169,6 +209,7 @@ export function loadConfig(envFile = resolve(PACKAGE_ROOT, ".env")): Config {
       sessionIdleMs: integer("SESSION_IDLE_MINUTES", 60, 5, 24 * 60) * 60_000,
       sessionMaxMs: integer("SESSION_MAX_HOURS", 12, 1, 24 * 30) * 3_600_000,
       cookieSecure: optional("COOKIE_SECURE", "false").toLowerCase() === "true",
+      sessionStore: sessionStoreConfig(),
     },
   };
 }

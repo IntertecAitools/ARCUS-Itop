@@ -160,3 +160,30 @@ describe("PortalService actions", () => {
     );
   });
 });
+
+describe("ObjectsService.applyStimulus and internal stimuli", () => {
+  it("refuses a stimulus iTop fires itself (ev_timeout), even for an admin", async () => {
+    const withInternal = CmdbSchema.fromRaw({
+      ...SAMPLE_RAW_SCHEMA,
+      Ticketish: {
+        is_ci: false,
+        abstract: false,
+        inherits: ["cmdbAbstractObject"],
+        lifecycle: {
+          attribute: "status",
+          states: { new: ["ev_assign", "ev_timeout"] },
+          stimuli: ["ev_assign", "ev_timeout"],
+          user_stimuli: ["ev_assign"],
+        },
+        writable: ["status"],
+        readonly: [],
+        fields: { status: { type: "Enum", ui: "scalar", owner: "Ticketish", values: ["new"] } },
+      },
+    });
+    const objects = new ObjectsService(new FakeItopClient().asClient(), withInternal, "test");
+    await assert.rejects(
+      () => objects.applyStimulus("Ticketish", 1, "ev_timeout", {}),
+      (error: unknown) => error instanceof AppError && /not an action people can take/.test(error.message),
+    );
+  });
+});

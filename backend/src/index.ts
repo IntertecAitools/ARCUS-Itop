@@ -36,6 +36,11 @@ async function main(): Promise<void> {
     process.once(signal, () => void shutdown(signal));
   }
 
+  // With SESSION_STORE=mysql, a database that cannot be reached is a reason
+  // not to start: every request would fail later instead.
+  await services.sessions.ready();
+  app.log.info({ store: config.auth.sessionStore.kind }, "Session store ready");
+
   await app.listen({ host: config.server.host, port: config.server.port });
 }
 

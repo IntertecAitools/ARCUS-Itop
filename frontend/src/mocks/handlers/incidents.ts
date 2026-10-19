@@ -163,8 +163,13 @@ export const incidentHandlers = [
     const status = params.get('status')?.split(',').filter(Boolean);
     const priority = params.get('priority')?.split(',').filter(Boolean);
     const q = params.get('q')?.toLowerCase();
+    // `me` is the mock's signed-in agent, the "admin" seeded above.
+    const rawAssignee = params.get('assignee');
+    const assignee = rawAssignee === 'me' ? '1' : rawAssignee;
 
     let items = [...store];
+    if (assignee === 'unassigned') items = items.filter((i) => !i.assignee);
+    else if (assignee) items = items.filter((i) => i.assignee?.id === assignee);
     if (status?.length) items = items.filter((i) => status.includes(i.status));
     if (priority?.length) items = items.filter((i) => priority.includes(i.priority));
     if (q) {

@@ -1403,7 +1403,20 @@
     "plannedscheduled": {},
     "rejected": {},
     "validated": {}
-   }
+   },
+   "user_stimuli": [
+    "ev_validate",
+    "ev_reject",
+    "ev_assign",
+    "ev_reopen",
+    "ev_plan",
+    "ev_approve",
+    "ev_replan",
+    "ev_notapprove",
+    "ev_implement",
+    "ev_monitor",
+    "ev_finish"
+   ]
   },
   "presentation": {
    "columns": [
@@ -3224,7 +3237,20 @@
     "plannedscheduled": {},
     "rejected": {},
     "validated": {}
-   }
+   },
+   "user_stimuli": [
+    "ev_validate",
+    "ev_reject",
+    "ev_assign",
+    "ev_reopen",
+    "ev_plan",
+    "ev_approve",
+    "ev_replan",
+    "ev_notapprove",
+    "ev_implement",
+    "ev_monitor",
+    "ev_finish"
+   ]
   },
   "presentation": {
    "columns": [
@@ -9374,7 +9400,18 @@
     },
     "rejected": {},
     "validated": {}
-   }
+   },
+   "user_stimuli": [
+    "ev_assign",
+    "ev_reopen",
+    "ev_plan",
+    "ev_approve",
+    "ev_replan",
+    "ev_notapprove",
+    "ev_implement",
+    "ev_monitor",
+    "ev_finish"
+   ]
   },
   "presentation": {
    "columns": [
@@ -12920,7 +12957,15 @@
      "ev_close": "closed",
      "ev_reopen": "assigned"
     }
-   }
+   },
+   "user_stimuli": [
+    "ev_assign",
+    "ev_reassign",
+    "ev_pending",
+    "ev_resolve",
+    "ev_close",
+    "ev_reopen"
+   ]
   },
   "presentation": {
    "columns": [
@@ -17581,7 +17626,20 @@
     "validated": {
      "ev_assign": "assigned"
     }
-   }
+   },
+   "user_stimuli": [
+    "ev_validate",
+    "ev_reject",
+    "ev_assign",
+    "ev_reopen",
+    "ev_plan",
+    "ev_approve",
+    "ev_replan",
+    "ev_notapprove",
+    "ev_implement",
+    "ev_monitor",
+    "ev_finish"
+   ]
   },
   "presentation": {
    "columns": [
@@ -23584,7 +23642,13 @@
      "ev_close": "closed",
      "ev_reassign": "assigned"
     }
-   }
+   },
+   "user_stimuli": [
+    "ev_assign",
+    "ev_reassign",
+    "ev_resolve",
+    "ev_close"
+   ]
   },
   "presentation": {
    "columns": [
@@ -25471,7 +25535,18 @@
     },
     "rejected": {},
     "validated": {}
-   }
+   },
+   "user_stimuli": [
+    "ev_assign",
+    "ev_reopen",
+    "ev_plan",
+    "ev_approve",
+    "ev_replan",
+    "ev_notapprove",
+    "ev_implement",
+    "ev_monitor",
+    "ev_finish"
+   ]
   },
   "presentation": {
    "columns": [
@@ -32648,7 +32723,18 @@
      "ev_autoresolve": "resolved",
      "ev_reject": "rejected"
     }
-   }
+   },
+   "user_stimuli": [
+    "ev_assign",
+    "ev_reassign",
+    "ev_approve",
+    "ev_reject",
+    "ev_pending",
+    "ev_resolve",
+    "ev_close",
+    "ev_reopen",
+    "ev_wait_for_approval"
+   ]
   },
   "presentation": {
    "columns": [
@@ -34561,7 +34647,10 @@
     "open": {
      "ev_close": "closed"
     }
-   }
+   },
+   "user_stimuli": [
+    "ev_close"
+   ]
   },
   "presentation": {
    "columns": [],

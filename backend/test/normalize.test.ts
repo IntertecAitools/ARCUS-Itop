@@ -135,3 +135,15 @@ describe("cleanMessage", () => {
     assert.equal(cleanMessage(null), "");
   });
 });
+
+describe("cleanMessage on SQL failures", () => {
+  it("drops iTop's stack trace and query, keeping MySQL's reason", async () => {
+    const { cleanMessage } = await import("../src/itop/normalize.js");
+    const raw =
+      "Error: Failed to issue SQL query: \nstack = #0 /var/www/html/core/cmdbsource.class.inc.php(556): x\n#1 y, \n" +
+      "query = UPDATE `organization` SET a=1, mysql_errno = 1213, mysql_error = Deadlock found when trying to get lock";
+    const clean = cleanMessage(raw);
+    assert.equal(clean, "Failed to issue SQL query (Deadlock found when trying to get lock)");
+    assert.ok(!clean.includes("/var/www"));
+  });
+});

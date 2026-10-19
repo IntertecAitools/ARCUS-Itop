@@ -37,6 +37,7 @@ export function HistoryTab({ className, id }: { className: string; id: string })
             <li key={entry.id} className="border-l-2 border-line pl-3">
               <div className="text-[12px] text-ink-muted">
                 {entry.date} · {entry.user || 'Unknown user'}
+                {entry.comment && entry.comment !== entry.user ? <span> — {entry.comment}</span> : null}
               </div>
               <ul className="mt-1 space-y-0.5 text-[13px] text-ink">
                 {entry.changes.map((change, i) => (

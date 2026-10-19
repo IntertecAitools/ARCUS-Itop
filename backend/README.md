@@ -68,9 +68,9 @@ user list.
   (local, LDAP and external accounts alike), reads the account's profiles and
   allowed organisations, and sets an `HttpOnly`, `SameSite=Lax` session cookie.
   `GET /api/auth/me`, `POST /api/auth/logout`, `POST /api/auth/password`.
-- **Staff call iTop as themselves.** The session holds their credentials in
-  server memory only (iTop's REST API needs them on every call and no token
-  module is installed), so iTop enforces their profiles and organisations and
+- **Staff call iTop as themselves.** The session holds their credentials
+  (iTop's REST API needs them on every call and no token module is
+  installed), never in readable form outside the BFF's memory, so iTop enforces their profiles and organisations and
   history shows their name. This is why staff accounts need iTop's
   `REST Services User` profile; the user-admin API adds it automatically.
 - **End users** ("Portal user" profile) are refused by iTop's REST API, so they
@@ -85,14 +85,44 @@ user list.
   reopen, attachments), catalogue, FAQs, own profile (phone numbers).
 - Every `/api` route except sign-in needs a session; `/api/admin/*` needs the
   Administrator profile; writes from an origin outside `CORS_ORIGINS` are refused.
-- Sessions live in memory: a BFF restart signs everyone out, and the BFF runs as
-  one instance. Settings: `AUTH_REQUIRED`, `SESSION_IDLE_MINUTES`,
-  `SESSION_MAX_HOURS`, `COOKIE_SECURE` (on behind HTTPS).
+- **Where sessions live** (`SESSION_STORE`):
+  - `memory` (default): a BFF restart signs everyone out, and only one BFF
+    instance can run. Fine for development.
+  - `mysql`: sessions survive restarts and are shared by every instance. They
+    are kept in table `bff_sessions` (created on start) of a database of their
+    own (`SESSION_DB_NAME`, default `arcus_bff`; create it first), not
+    iTop's. Each row is sealed with AES-256-GCM under `SESSION_SECRET`, which
+    stays in the BFF's environment, and is keyed by a SHA-256 of the cookie,
+    so the table alone yields neither a password nor a usable cookie.
+    Changing `SESSION_SECRET` signs everyone out. The BFF refuses to start if
+    the database cannot be reached.
+  - Other settings: `AUTH_REQUIRED`, `SESSION_IDLE_MINUTES`,
+    `SESSION_MAX_HOURS`, `COOKIE_SECURE` (on behind HTTPS).
 
 **One-time setup in iTop:** the service account in `ITOP_USER` needs the
 Administrator and REST Services User profiles, and the first administrator
 (the installer's `admin` will do) signs in to create everyone else from
 **Users** in the frontend (`/api/admin/users`, `/api/admin/profiles`).
+
+## Local iTop
+
+Without a shared iTop, run one from this repository's own `iTop/` copy:
+
+1. Build the image and fill the code volume, then start it — the commands are
+   at the top of `docker/docker-compose.local.yml` (port 8080; data in the
+   Windows MySQL, database `itop_prod`).
+2. Run iTop's setup once, inside the container, with a response file made
+   from `docker/itop-add-incident.xml` with `<mode>install</mode>` and
+   `<url>http://localhost:8080/</url>` (46 modules: CMDB, ITIL requests and
+   incidents, changes, problems, known errors, FAQ):
+   `docker exec -u www-data -w /var/www/html/setup/unattended-install itop-local php unattended-install.php --param-file=/tmp/install.xml`,
+   then `docker restart itop-local`.
+3. Give the setup's `admin` account the **REST Services User** profile. The
+   REST API cannot do this before the account has it; a one-off PHP script
+   in the container (`UserRights::Login('admin')`, then a new
+   `URP_UserProfile` linking `admin` to that profile) does.
+4. `cp .env.example .env`, set `ITOP_USER`/`ITOP_PASSWORD` to that account,
+   `npm run dev`, then `npm run smoke` and `npm run api:check`.
 
 ## What this layer is actually for
 

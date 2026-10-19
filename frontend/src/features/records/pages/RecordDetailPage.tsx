@@ -115,7 +115,10 @@ export function RecordDetailPage() {
   const actions = useMemo(() => {
     if (!info?.lifecycle || !record) return [];
     const state = String(record.fields[info.lifecycle.attribute] ?? '');
-    return info.lifecycle.states[state] ?? [];
+    // Only people's actions: iTop also lists ev_timeout, ev_autoresolve and the
+    // like here, which it fires itself and its own console never offers.
+    const userActions = new Set(info.lifecycle.userActions ?? info.lifecycle.stimuli);
+    return (info.lifecycle.states[state] ?? []).filter((a) => userActions.has(a));
   }, [info, record]);
 
   // Reset the draft whenever the record reloads, so a stale edit cannot be

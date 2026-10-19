@@ -1,7 +1,7 @@
 import { AppError, badRequest, notFound } from "../../core/errors.js";
 import { resultToAppError, type ItopClient } from "../../itop/client.js";
 import { DELETE_CODE_LABELS, ItopCode } from "../../itop/codes.js";
-import { normalizeObjects, parseFoundCount, type FlatObject } from "../../itop/normalize.js";
+import { isDeadlock, normalizeObjects, parseFoundCount, type FlatObject } from "../../itop/normalize.js";
 import { assertIdentifier, buildOql } from "../../itop/oql.js";
 import type { CmdbSchema } from "../../schema/load.js";
 import type { ClassInfo } from "../../schema/types.js";
@@ -514,6 +514,11 @@ export class ObjectsService {
       );
     }
     assertIdentifier(stimulus, "stimulus");
+    if (!info.lifecycle.userActions.includes(stimulus)) {
+      // iTop's REST API would apply an internal stimulus (ev_timeout,
+      // ev_autoresolve) for an administrator; people never should.
+      throw badRequest(`"${stimulus}" is not an action people can take on ${info.name}.`);
+    }
 
     // Fields are optional for a transition, but iTop still requires the key.
     // An EMPTY object counts as "none": plenty of stimuli (ev_close, ev_reopen)
@@ -750,6 +755,23 @@ export class ObjectsService {
       } else await this.remove(className, id, options);
     };
 
+    // A deadlock means MySQL rolled that record's transaction back, so trying
+    // it again is safe; anything else is the record's real outcome.
+    const attempt = async (id: number) => {
+      for (let tries = 1; ; tries += 1) {
+        try {
+          return await run(id);
+        } catch (error) {
+          if (tries >= 3 || !isDeadlock(error instanceof Error ? error.message : "")) throw error;
+          await new Promise((r) => setTimeout(r, 200 * tries));
+        }
+      }
+    };
+
+    // Deletes run one at a time: deleting from a hierarchy (Organization,
+    // Location, Group) rewrites the whole tree's bounds, and parallel deletes
+    // deadlock on it in MySQL -- seen against a live instance.
+    const concurrency = request.action === "delete" ? 1 : BULK_CONCURRENCY;
     const results: BulkResult["results"] = new Array(unique.length);
     let next = 0;
     const worker = async () => {
@@ -757,14 +779,14 @@ export class ObjectsService {
         const index = next++;
         const id = unique[index]!;
         try {
-          await run(id);
+          await attempt(id);
           results[index] = { id, ok: true };
         } catch (error) {
           results[index] = { id, ok: false, error: error instanceof Error ? error.message : String(error) };
         }
       }
     };
-    await Promise.all(Array.from({ length: Math.min(BULK_CONCURRENCY, unique.length) }, worker));
+    await Promise.all(Array.from({ length: Math.min(concurrency, unique.length) }, worker));
 
     const succeeded = results.filter((r) => r.ok).length;
     return { results, succeeded, failed: results.length - succeeded };

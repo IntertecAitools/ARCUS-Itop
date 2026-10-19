@@ -38,8 +38,21 @@ Three terminals.
 **1. iTop** (the system of record)
 
 ```bash
-cd docker && docker compose up -d      # http://localhost:8080
+docker build -t itop-dev:php8.3 docker                       # once
+docker compose -f docker/docker-compose.local.yml up -d      # http://localhost:8080
 ```
+
+Use `docker/docker-compose.local.yml`. It serves the repo's `iTop/` copy from a
+Docker volume, so pages load in about a second. The first time, also copy the
+code into the volume and run iTop's setup: see the comments at the top of that
+file and `backend/README.md`, "Local iTop".
+
+> **Don't use `docker/docker-compose.yml` for day-to-day work.** It serves iTop
+> straight from a Windows folder (`C:\iTop\iTop`), and Docker reads each file
+> across the Windows↔Linux boundary about 100× slower (measured: 120 iTop files
+> in 9.7 s vs 0.1 s). Every page then takes tens of seconds to a minute, and the
+> BFF times out. Keep it only for editing iTop's source live, which this project
+> never does.
 
 **2. Backend**
 

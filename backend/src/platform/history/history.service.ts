@@ -22,7 +22,10 @@ export interface HistoryChange {
 export interface HistoryEntry {
   id: string;
   date: string;
+  /** Who made the change: the account's person, else its login. */
   user: string;
+  /** The change-tracking comment the write carried, e.g. "Closed by jane in the self-service portal". */
+  comment: string;
   changes: HistoryChange[];
 }
 
@@ -83,7 +86,7 @@ export class HistoryService {
     const ops = normalizeObjects(result.objects);
     const total = parseFoundCount(result.message) ?? ops.length;
 
-    const names = await this.resolveKeyNames(info, ops);
+    const [names, authors] = await Promise.all([this.resolveKeyNames(info, ops), this.resolveAuthors(ops)]);
 
     const byChange = new Map<string, HistoryEntry>();
     for (const op of ops) {
@@ -91,7 +94,17 @@ export class HistoryService {
       const changeId = str(f["change"]);
       let entry = byChange.get(changeId);
       if (!entry) {
-        entry = { id: changeId, date: str(f["date"]), user: str(f["userinfo"]), changes: [] };
+        // iTop records the change comment in `userinfo` and the account in
+        // `user_id` (core/cmdbobject.class.inc.php:274); over REST the comment
+        // is whatever the caller sent, so the author must come from user_id.
+        const userId = str(f["user_id"]);
+        entry = {
+          id: changeId,
+          date: str(f["date"]),
+          user: authors.get(userId) ?? str(f["userinfo"]),
+          comment: str(f["userinfo"]),
+          changes: [],
+        };
         byChange.set(changeId, entry);
       }
       entry.changes.push(describe(info, op, names));
@@ -102,6 +115,31 @@ export class HistoryService {
       (a, b) => b.date.localeCompare(a.date) || Number(b.id) - Number(a.id),
     );
     return { items, total, truncated: total > ops.length };
+  }
+
+  /**
+   * The people behind the accounts that made the changes. Read with the
+   * service account: an agent's profile usually may not read accounts, and
+   * a name is all that is shown.
+   */
+  private async resolveAuthors(ops: FlatObject[]): Promise<Map<string, string>> {
+    const ids = [...new Set(ops.map((op) => Number(op.fields["user_id"])).filter((n) => Number.isInteger(n) && n > 0))];
+    const out = new Map<string, string>();
+    if (ids.length === 0) return out;
+    try {
+      const res = await this.client.call(
+        "core/get",
+        { class: "User", key: `SELECT User WHERE id IN (${ids.join(",")})`, output_fields: "id,login,first_name,last_name" },
+        { asService: true },
+      );
+      for (const row of normalizeObjects(res.objects)) {
+        const name = [str(row.fields["first_name"]), str(row.fields["last_name"])].filter(Boolean).join(" ");
+        out.set(String(row.id), name || str(row.fields["login"]));
+      }
+    } catch {
+      // Unknown authors fall back to the change comment.
+    }
+    return out;
   }
 
   /**

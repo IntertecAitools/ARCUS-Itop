@@ -139,6 +139,13 @@ def parse_lifecycle(lifecycle):
         # The actions iTop offers on a record. Without these a generic
         # detail screen can show a state but never change it.
         'stimuli': [st.get('id') for st in lifecycle.findall('stimuli/*') if st.get('id')],
+        # Only these are offered to people. StimulusInternal ones (ev_timeout,
+        # ev_autoresolve, ev_autoclose) are fired by iTop itself -- SLA
+        # deadlines, child-ticket resolution -- and the console never shows them.
+        'user_stimuli': [
+            st.get('id') for st in lifecycle.findall('stimuli/*')
+            if st.get('id') and (st.get(XSI_TYPE) or '').endswith('StimulusUserAction')
+        ],
         # state -> stimulus -> target state.
         'transitions': {
             st.get('id'): {
