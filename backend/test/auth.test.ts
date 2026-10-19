@@ -96,11 +96,15 @@ describe("sign-in", () => {
     assert.match(res.json().error.message, /REST Services User/);
   });
 
-  it("does not let an end-user account into the staff API", async () => {
-    const { app } = setup(account("jane", ["Portal user"]));
-    const { res } = await signIn(app);
-    assert.equal(res.statusCode, 403);
-    assert.match(res.json().error.message, /self-service portal/);
+  it("signs an end user in, but keeps them to the self-service API", async () => {
+    const { app, fake } = setup(account("jane", ["Portal user"]));
+    const { res, cookie } = await signIn(app);
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.json().user.kind, "portal");
+    // No REST-access check for them: iTop's REST API refuses end users anyway.
+    assert.ok(!fake.calls.some((c) => c.verb === "list_operations"));
+    const staff = await app.inject({ method: "GET", url: "/api/objects/Server", headers: { cookie } });
+    assert.equal(staff.statusCode, 403);
   });
 
   it("refuses a disabled account", async () => {

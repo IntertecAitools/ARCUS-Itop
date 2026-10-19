@@ -35,13 +35,17 @@ function AttachmentRow({
   attachment,
   className: itopClass,
   id,
+  basePath,
+  canDelete,
 }: {
   attachment: Attachment;
   className: string;
   id: string;
+  basePath?: string;
+  canDelete: boolean;
 }) {
-  const download = useDownloadAttachment(itopClass, id);
-  const remove = useDeleteAttachment(itopClass, id);
+  const download = useDownloadAttachment(itopClass, id, basePath);
+  const remove = useDeleteAttachment(itopClass, id, basePath);
   const [confirming, setConfirming] = useState(false);
 
   return (
@@ -90,14 +94,16 @@ function AttachmentRow({
           >
             Download
           </Button>
-          <Button
-            size="sm"
-            variant="secondary"
-            aria-label={`Delete ${attachment.filename}`}
-            onClick={() => setConfirming(true)}
-          >
-            <Trash2 className="size-3.5" />
-          </Button>
+          {canDelete ? (
+            <Button
+              size="sm"
+              variant="secondary"
+              aria-label={`Delete ${attachment.filename}`}
+              onClick={() => setConfirming(true)}
+            >
+              <Trash2 className="size-3.5" />
+            </Button>
+          ) : null}
         </span>
       )}
 
@@ -110,9 +116,21 @@ function AttachmentRow({
   );
 }
 
-export function AttachmentsPanel({ className: itopClass, id }: { className: string; id: string }) {
-  const { data, isLoading, isError, error } = useAttachments(itopClass, id);
-  const upload = useUploadAttachment(itopClass, id);
+export function AttachmentsPanel({
+  className: itopClass,
+  id,
+  basePath,
+  canDelete = true,
+}: {
+  className: string;
+  id: string;
+  /** Overrides the endpoint, for the self-service portal's scoped routes. */
+  basePath?: string;
+  /** End users may add files but, as in iTop's portal, not remove them. */
+  canDelete?: boolean;
+}) {
+  const { data, isLoading, isError, error } = useAttachments(itopClass, id, true, basePath);
+  const upload = useUploadAttachment(itopClass, id, basePath);
   const inputRef = useRef<HTMLInputElement>(null);
   const [rejected, setRejected] = useState<string | null>(null);
 
@@ -213,6 +231,8 @@ export function AttachmentsPanel({ className: itopClass, id }: { className: stri
                 attachment={attachment}
                 className={itopClass}
                 id={id}
+                canDelete={canDelete}
+                {...(basePath ? { basePath } : {})}
               />
             ))}
           </ul>

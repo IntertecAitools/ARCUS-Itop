@@ -74,8 +74,15 @@ user list.
   history shows their name. This is why staff accounts need iTop's
   `REST Services User` profile; the user-admin API adds it automatically.
 - **End users** ("Portal user" profile) are refused by iTop's REST API, so they
-  will use a self-service API of their own. Until it exists their sign-in is
-  refused with a clear message.
+  use the self-service API, `/api/portal/*`, and the guard keeps them to it.
+  It runs as the service account, so `PortalService` is the access control:
+  it applies iTop's own portal scopes (their tickets as caller, or their
+  organisation's for "Portal power user"; services from their organisation's
+  customer contracts) and re-reads every ticket inside that scope before a
+  write. Comments are written on the user's behalf (case-log `add_item` with
+  their user id), so they carry the user's name.
+  Endpoints: requests (list, raise, read, comment, close with satisfaction,
+  reopen, attachments), catalogue, FAQs, own profile (phone numbers).
 - Every `/api` route except sign-in needs a session; `/api/admin/*` needs the
   Administrator profile; writes from an origin outside `CORS_ORIGINS` are refused.
 - Sessions live in memory: a BFF restart signs everyone out, and the BFF runs as

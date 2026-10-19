@@ -80,16 +80,9 @@ export function registerAuth(app: FastifyInstance, services: Services): void {
       request.body,
       "request body",
     );
+    // End users are served by the self-service API (/api/portal), which the
+    // guard keeps them to; staff get the whole API, as themselves.
     const caller = await auth.signIn(body.login, body.password);
-    if (caller.kind === "portal") {
-      // iTop's REST API refuses end-user accounts, so they are served by a
-      // self-service API of their own -- which is not built yet. Saying so is
-      // better than a session that can reach nothing.
-      throw new AppError(
-        "forbidden",
-        "End-user accounts will sign in to the self-service portal, which is not available yet.",
-      );
-    }
     const id = sessions.create(caller);
     reply.header("Set-Cookie", sessionCookie(services, id, Math.floor(config.auth.sessionMaxMs / 1000)));
     return { user: publicUser(caller) };

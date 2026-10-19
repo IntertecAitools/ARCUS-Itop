@@ -15,6 +15,7 @@ import { TransferService } from "./platform/transfer/transfer.service.js";
 import { AuthService } from "./platform/auth/auth.service.js";
 import { SessionStore } from "./platform/auth/session.store.js";
 import { UsersService } from "./platform/admin/users.service.js";
+import { PortalService } from "./platform/portal/portal.service.js";
 import { DefaultOrganization } from "./shared/default-organization.js";
 import { CurrentContact } from "./shared/current-contact.js";
 
@@ -33,6 +34,7 @@ export interface Services {
   auth: AuthService;
   sessions: SessionStore;
   users: UsersService;
+  portal: PortalService;
   dashboard: DashboardService;
   incidents: IncidentsService;
   directory: DirectoryService;
@@ -81,6 +83,7 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     auth,
     sessions,
     users: new UsersService(client, objects, auth, sessions),
+    portal: new PortalService(client, schema, objects),
     dashboard: new DashboardService(objects),
     defaultOrganization,
     currentContact,

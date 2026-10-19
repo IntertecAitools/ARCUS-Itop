@@ -19,7 +19,17 @@ function roleOf(user: SessionUser) {
  * It also listens for the API client's "session expired" signal, so an idle
  * timeout mid-task lands on sign-in instead of a screen full of errors.
  */
-export function RequireAuth({ children }: { children: ReactNode }) {
+export function RequireAuth({
+  children,
+  audience = 'any',
+}: {
+  children: ReactNode;
+  /**
+   * `staff` screens send an end user to the self-service portal: the BFF
+   * would refuse them every staff call anyway.
+   */
+  audience?: 'staff' | 'any';
+}) {
   const { data: user, isLoading, isError } = useSession();
   const setUser = useSessionStore((s) => s.setUser);
   const queryClient = useQueryClient();
@@ -53,5 +63,6 @@ export function RequireAuth({ children }: { children: ReactNode }) {
     const next = `${location.pathname}${location.search}`;
     return <Navigate to={`/login${next && next !== '/' ? `?next=${encodeURIComponent(next)}` : ''}`} replace />;
   }
+  if (audience === 'staff' && user.kind === 'portal') return <Navigate to="/portal" replace />;
   return <>{children}</>;
 }

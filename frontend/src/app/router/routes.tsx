@@ -2,6 +2,16 @@ import { createElement } from 'react';
 import { createBrowserRouter, Navigate, type RouteObject } from 'react-router-dom';
 import { AgentLayout } from '@/app/layouts/AgentLayout';
 import { LoginPage, RequireAuth } from '@/features/auth';
+import {
+  PortalFaqPage,
+  PortalFaqsPage,
+  PortalHomePage,
+  PortalLayout,
+  PortalNewRequestPage,
+  PortalProfilePage,
+  PortalRequestPage,
+  PortalRequestsPage,
+} from '@/features/portal';
 import { HOME_PATH, modules } from '@/config/modules';
 import { NotFoundPage } from './NotFoundPage';
 
@@ -26,10 +36,28 @@ const moduleRoutes: RouteObject[] = modules.map((module) => ({
 export const router = createBrowserRouter([
   // Outside the shell: the only screen someone who is not signed in can see.
   { path: '/login', element: <LoginPage /> },
+  // The self-service portal, for end users (staff may open it too).
+  {
+    path: '/portal',
+    element: (
+      <RequireAuth>
+        <PortalLayout />
+      </RequireAuth>
+    ),
+    children: [
+      { index: true, element: <PortalHomePage /> },
+      { path: 'requests', element: <PortalRequestsPage /> },
+      { path: 'requests/:id', element: <PortalRequestPage /> },
+      { path: 'new', element: <PortalNewRequestPage /> },
+      { path: 'help', element: <PortalFaqsPage /> },
+      { path: 'help/:id', element: <PortalFaqPage /> },
+      { path: 'profile', element: <PortalProfilePage /> },
+    ],
+  },
   {
     path: '/',
     element: (
-      <RequireAuth>
+      <RequireAuth audience="staff">
         <AgentLayout />
       </RequireAuth>
     ),
