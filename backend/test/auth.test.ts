@@ -32,7 +32,13 @@ function setup(responses: ItopResult[], options: { corsOrigins?: string[] } = {}
   const schema = sampleSchema();
   const { app } = buildApp(
     testConfig({
-      auth: { required: true, sessionIdleMs: 3_600_000, sessionMaxMs: 3_600_000, cookieSecure: false },
+      auth: {
+        required: true,
+        sessionIdleMs: 3_600_000,
+        sessionMaxMs: 3_600_000,
+        cookieSecure: false,
+        sessionStore: { kind: "memory" },
+      },
       ...(options.corsOrigins ? { corsOrigins: options.corsOrigins } : {}),
     }),
     {

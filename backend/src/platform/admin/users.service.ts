@@ -224,7 +224,7 @@ export class UsersService {
     });
 
     // Rights and status are read at sign-in, so a changed account signs in again.
-    if (!self && (input.status || input.profileIds || input.allowedOrgIds)) this.sessions.deleteForUser(id);
+    if (!self && (input.status || input.profileIds || input.allowedOrgIds)) await this.sessions.deleteForUser(id);
     return this.get(id);
   }
 
@@ -232,7 +232,7 @@ export class UsersService {
   async setPassword(id: number, password: string): Promise<void> {
     if (password.length < 8) throw badRequest("Choose a password of at least 8 characters.");
     await this.auth.setLocalPassword(id, password, `Password reset by ${currentCaller()?.login ?? "an administrator"}`);
-    if (currentCaller()?.userId !== id) this.sessions.deleteForUser(id);
+    if (currentCaller()?.userId !== id) await this.sessions.deleteForUser(id);
   }
 
   private summary(user: { id: number; class: string; fields: Record<string, unknown> }, profiles: string[]): UserSummary {

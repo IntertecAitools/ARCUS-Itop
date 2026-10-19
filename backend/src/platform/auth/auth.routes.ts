@@ -2,7 +2,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 
 import { AppError } from "../../core/errors.js";
-import { currentCaller, enterRequestContext } from "../../core/request-context.js";
+import { currentCaller, enterRequestContext, type Caller } from "../../core/request-context.js";
 import { parse } from "../../core/validate.js";
 import type { Services } from "../../services.js";
 import { publicUser } from "./auth.service.js";
@@ -50,8 +50,26 @@ function sessionCookie(services: Services, value: string, maxAgeSeconds: number)
 export function registerAuth(app: FastifyInstance, services: Services): void {
   const { sessions, auth, config } = services;
 
-  app.addHook("onRequest", async (request: FastifyRequest) => {
-    const caller = sessions.get(readCookie(request, SESSION_COOKIE));
+  app.addHook("onRequest", (request: FastifyRequest, _reply, done) => {
+    // Callback style on purpose. The session lookup is async (it may read a
+    // database), and AsyncLocalStorage's enterWith only reaches the handler
+    // when the hook hands over from the same async context that bound the
+    // caller -- an async hook resumes in another one and the handler would
+    // see nobody signed in.
+    sessions.get(readCookie(request, SESSION_COOKIE)).then(
+      (caller) => {
+        try {
+          guard(request, caller);
+          done();
+        } catch (error) {
+          done(error as Error);
+        }
+      },
+      (error: Error) => done(error),
+    );
+  });
+
+  function guard(request: FastifyRequest, caller: Caller | undefined): void {
     enterRequestContext(caller);
     if (!config.auth.required || request.method === "OPTIONS") return;
 
@@ -72,7 +90,7 @@ export function registerAuth(app: FastifyInstance, services: Services): void {
     if (path.startsWith("/api/admin/") && !caller.isAdmin) {
       throw new AppError("forbidden", "Only administrators can do this.");
     }
-  });
+  }
 
   app.post("/api/auth/login", async (request, reply: FastifyReply) => {
     const body = parse(
@@ -83,13 +101,13 @@ export function registerAuth(app: FastifyInstance, services: Services): void {
     // End users are served by the self-service API (/api/portal), which the
     // guard keeps them to; staff get the whole API, as themselves.
     const caller = await auth.signIn(body.login, body.password);
-    const id = sessions.create(caller);
+    const id = await sessions.create(caller);
     reply.header("Set-Cookie", sessionCookie(services, id, Math.floor(config.auth.sessionMaxMs / 1000)));
     return { user: publicUser(caller) };
   });
 
   app.post("/api/auth/logout", async (request, reply) => {
-    sessions.delete(readCookie(request, SESSION_COOKIE));
+    await sessions.delete(readCookie(request, SESSION_COOKIE));
     reply.header("Set-Cookie", sessionCookie(services, "", 0));
     reply.code(204);
     return null;
@@ -114,7 +132,7 @@ export function registerAuth(app: FastifyInstance, services: Services): void {
     // The session keeps calling iTop as this user, so it needs the new password.
     const id = readCookie(request, SESSION_COOKIE);
     if (id && caller.credentials) {
-      sessions.update(id, { ...caller, credentials: { user: caller.login, password: body.next } });
+      await sessions.update(id, { ...caller, credentials: { user: caller.login, password: body.next } });
     }
     return { ok: true };
   });

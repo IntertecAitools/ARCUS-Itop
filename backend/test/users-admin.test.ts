@@ -5,7 +5,7 @@ import { AppError } from "../src/core/errors.js";
 import { runAs, type Caller } from "../src/core/request-context.js";
 import { UsersService } from "../src/platform/admin/users.service.js";
 import { AuthService } from "../src/platform/auth/auth.service.js";
-import { SessionStore } from "../src/platform/auth/session.store.js";
+import { MemorySessionStore } from "../src/platform/auth/session.store.js";
 import { ObjectsService } from "../src/platform/objects/objects.service.js";
 import { FakeItopClient, getResponse, sampleSchema } from "./helpers.js";
 
@@ -33,7 +33,7 @@ const admin: Caller = {
 };
 
 function build(fake: FakeItopClient) {
-  const sessions = new SessionStore(3_600_000, 3_600_000);
+  const sessions = new MemorySessionStore(3_600_000, 3_600_000);
   const objects = new ObjectsService(fake.asClient(), sampleSchema(), "test");
   return new UsersService(fake.asClient(), objects, new AuthService(fake.asClient()), sessions);
 }
@@ -86,8 +86,8 @@ describe("UsersService.update", () => {
     const fake = new FakeItopClient()
       .on("core/get", [USER(20), getResponse([]), getResponse([]), USER(20), getResponse([]), getResponse([])])
       .on("core/update", getResponse([{ class: "UserLocal", id: 20, fields: {} }]));
-    const sessions = new SessionStore(3_600_000, 3_600_000);
-    const sid = sessions.create({ ...admin, userId: 20, login: "bob", isAdmin: false });
+    const sessions = new MemorySessionStore(3_600_000, 3_600_000);
+    const sid = await sessions.create({ ...admin, userId: 20, login: "bob", isAdmin: false });
     const service = new UsersService(
       fake.asClient(),
       new ObjectsService(fake.asClient(), sampleSchema(), "test"),
@@ -95,6 +95,6 @@ describe("UsersService.update", () => {
       sessions,
     );
     await runAs(admin, () => service.update(20, { status: "disabled" }));
-    assert.equal(sessions.get(sid), undefined);
+    assert.equal(await sessions.get(sid), undefined);
   });
 });

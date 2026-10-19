@@ -33,6 +33,7 @@ export function testConfig(overrides: Partial<Config> = {}): Config {
       sessionIdleMs: 3_600_000,
       sessionMaxMs: 12 * 3_600_000,
       cookieSecure: false,
+      sessionStore: { kind: "memory" },
       ...overrides.auth,
     },
   };

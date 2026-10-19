@@ -4,6 +4,20 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-10-19 — Sign-ins survive BFF restarts (MySQL session store)
+
+| What ran | Result | Notes |
+| --- | --- | --- |
+| New unit tests (`backend/test/session-mysql.test.ts`) | ✅ 7/7 | Read back after a "restart", nothing readable stored, wrong secret, tampered row, idle and max life, idle timer written at most once a minute, sign-out everywhere, password change |
+| Backend unit tests + typecheck | ❌ 348/349 → ✅ 356/356, clean | See bug below |
+| Live: sign in, restart the BFF, same cookie | ✅ | `/api/auth/me` still signed in; a lifecycle change ran as the user (History shows their name); sign-out then 401 |
+| Live: row in `arcus_bff.bff_sessions` | ✅ | Key is a SHA-256, not the cookie; the iTop password is not found in the stored bytes |
+| Live: `npm run smoke`, `api-check.mjs` with `SESSION_STORE=mysql` | ✅ 13/13, 70/70 | |
+
+Bug caught by the existing sign-in test: once the session lookup became async, the guard (an async Fastify hook) bound the caller in an async context the route handler does not inherit, so `/api/auth/me` saw nobody signed in. The hook now uses the callback form and hands over from the context that bound the caller.
+
+Not covered: two BFF instances running at once (the store is shared, but only one instance was run); a real MySQL outage mid-session (requests then fail with an error rather than signing out).
+
 ### 2026-10-19 — Record lists show names, not ids
 
 | What ran | Result | Notes |
@@ -92,3 +106,21 @@ Not covered yet: approvals (extension not installed); load and concurrency beyon
   - command: `cat > lib/list-cells.ts <<'EOF' import type { ClassInfo } from '../types'; /** * What a list cell shows for one attribute. * * A picker (an external key such as 'org_id') holds an `
 - **2026-10-19 10:38 UTC** · `feature/itop-parity@4153270` + uncommitted changes · Frontend unit tests (vitest) · ✅ 76 passed, 0 failed
   - command: `npx vitest run 2>&1 | grep -E "Tests |Test Files"; npx tsc --noEmit -p tsconfig.app.json && echo typecheck-clean; npx eslint src/features/records 2>&1 | tail -3`
+- **2026-10-19 10:47 UTC** · `feature/itop-parity@609c382` + uncommitted changes · Typecheck · ❌ errors (see the session)
+  - command: `python - <<'PY' def edit(p, pairs): s=open(p,encoding='utf-8').read() for a,b in pairs: assert a in s, (p,a[:70]); s=s.replace(a,b,1) open(p,'w',encoding='utf-8').write(s) edit('sr`
+- **2026-10-19 10:48 UTC** · `feature/itop-parity@609c382` + uncommitted changes · Unit tests · ❌ 348 passed, 1 failed
+  - command: `sed -i 's/ auth: { required: true, sessionIdleMs: 3_600_000, sessionMaxMs: 3_600_000, cookieSecure: false },/ auth: {\n required: true,\n sessionIdleMs: 3_600_000,\n sessionMaxMs: `
+  - failed: starts an HttpOnly session and then calls iTop as that user
+  - failed: sign-in
+- **2026-10-19 10:49 UTC** · `feature/itop-parity@609c382` + uncommitted changes · Unit tests · ❌ 8 passed, 1 failed
+  - command: `node --import tsx --test test/auth.test.ts 2>&1 | grep -A25 "✖ starts an HttpOnly" | head -40`
+  - failed: starts an HttpOnly session and then calls iTop as that user
+  - failed: sign-in
+- **2026-10-19 10:50 UTC** · `feature/itop-parity@609c382` + uncommitted changes · Unit tests · ran — no summary line in the output
+  - command: `sed -i 's#^import { currentCaller, enterRequestContext } from "../../core/request-context.js";#import { currentCaller, enterRequestContext, type Caller } from "../../core/request-c`
+- **2026-10-19 10:51 UTC** · `feature/itop-parity@609c382` + uncommitted changes · Unit tests · ✅ 7 passed, 0 failed
+  - command: `cat > test/session-mysql.test.ts <<'EOF' import assert from "node:assert/strict"; import { describe, it } from "node:test"; import type { Caller } from "../src/core/request-context`
+- **2026-10-19 10:54 UTC** · `feature/itop-parity@609c382` + uncommitted changes · Unit tests (backend) · ✅ 356 passed, 0 failed
+  - command: `python - <<'PY' p='backend/README.md' s=open(p,encoding='utf-8').read() def sub(a,b): global s assert a in s; s=s.replace(a,b,1) sub("""- **Staff call iTop as themselves.** The ses`
+- **2026-10-19 10:55 UTC** · `feature/itop-parity@609c382` + uncommitted changes · Live API check (BFF → iTop) · ✅ 70 passed, 0 failed
+  - command: `npm run smoke 2>&1 | tail -3; API_CHECK_LOGIN=admin API_CHECK_PASSWORD='Weftbase#2026' node scripts/api-check.mjs 2>&1 | tail -3`
