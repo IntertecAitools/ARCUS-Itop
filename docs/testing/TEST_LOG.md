@@ -4,6 +4,22 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-10-19 — Forgot password by email
+
+Branch `feature/forgot-password`.
+
+| What ran | Result | Notes |
+| --- | --- | --- |
+| New backend tests (`backend/test/password-reset.test.ts`) | ✅ 14/14 | Link in fragment, by login and by email, no mail for unknown/disabled/LDAP/no-email accounts, single use, sign-out everywhere, link kept when the password is refused, newer link replaces older, rate limits, HTML escaping, off without SMTP, routes public and uniform |
+| New frontend tests (`features/auth/lib/reset-token.test.ts`) | ✅ 3/3 | Token parsing, password checks |
+| Backend unit tests + typecheck | ✅ 372/372, clean | |
+| Frontend unit tests + typecheck + build | ✅ 79/79, clean, built | |
+| Live: local SMTP test mailbox + BFF + iTop | ✅ | Unknown and real account both 202 in ~20 ms; one email to the real account only; link opened in the browser, token dropped from the address bar, mismatch caught, password set; old password 401, new 200; used link 400; original test password restored the same way; no rows left in `bff_password_resets` |
+
+`npm audit` flagged nodemailer 6 (11 advisories); 10.1.7 is used instead (0 found).
+
+Not covered: a real SMTP server (waiting for its details); STARTTLS/TLS (the test mailbox is plain); several BFF instances sharing the rate limits.
+
 ### 2026-10-19 — Review of the 6 commits not yet in main
 
 PR #2 was merged with its first two commits only; the six pushed after it were reviewed before a new PR.
@@ -151,3 +167,21 @@ Not covered yet: approvals (extension not installed); load and concurrency beyon
   - command: `cd /c/Users/Venkatesh.V/Arcus_ITOP && T="$TEMP/claude/hooktest2" && rm -rf "$T" && mkdir -p "$T" && run(){ node -e 'process.stdout.write(JSON.stringify({tool_input:{command:process`
 - **2026-10-19 11:44 UTC** · `feature/itop-parity@d16caee` + uncommitted changes · Unit tests (backend) · ✅ 358 passed, 0 failed
   - command: `cd /c/Users/Venkatesh.V/Arcus_ITOP/backend && npm test 2>&1 | grep -E "^ℹ (tests|pass|fail)"; npm run typecheck 2>&1 | grep -c " error "`
+- **2026-10-19 11:53 UTC** · `feature/forgot-password@0d9e94a` + uncommitted changes · Typecheck · ✅ clean
+  - command: `python - <<'PY' p='src/config/env.ts' s=open(p,encoding='utf-8').read() a=" ...(passwordResetConfig() ? { passwordReset: passwordResetConfig()! } : {})," assert a in s s=s.replace(`
+- **2026-10-19 11:55 UTC** · `feature/forgot-password@0d9e94a` + uncommitted changes · Typecheck · ✅ clean
+  - command: `python - <<'PY' p='src/core/errors.ts' s=open(p,encoding='utf-8').read() a=''' /** The body was not in a form this endpoint accepts. */ | "unsupported_media_type"''' assert a in s `
+- **2026-10-19 11:56 UTC** · `feature/forgot-password@0d9e94a` + uncommitted changes · Typecheck · ✅ clean
+  - command: `python - <<'PY' p='src/services.ts' s=open(p,encoding='utf-8').read() def sub(a,b): global s assert a in s, a[:70]; s=s.replace(a,b,1) sub('import { MemorySessionStore, type Sessio`
+- **2026-10-19 11:57 UTC** · `feature/forgot-password@0d9e94a` + uncommitted changes · Typecheck · ✅ clean
+  - command: `python - <<'PY' p='src/platform/auth/auth.routes.ts' s=open(p,encoding='utf-8').read() def sub(a,b): global s assert a in s, a[:70]; s=s.replace(a,b,1) sub('const PUBLIC_PATHS = ne`
+- **2026-10-19 11:58 UTC** · `feature/forgot-password@0d9e94a` + uncommitted changes · Typecheck · ✅ clean
+  - command: `sed -i 's/ server: { host: "127.0.0.1", port: 0, logLevel: "silent", ...overrides.server },/ server: { host: "127.0.0.1", port: 0, logLevel: "silent", trustProxy: false, ...overrid`
+- **2026-10-19 11:59 UTC** · `feature/forgot-password@0d9e94a` + uncommitted changes · Unit tests · ✅ 11 passed, 0 failed
+  - command: `node --import tsx --test test/password-reset.test.ts 2>&1 | grep -E "^ℹ (tests|pass|fail)|✖|rror" | head -20`
+- **2026-10-19 12:00 UTC** · `feature/forgot-password@0d9e94a` + uncommitted changes · Unit tests · ✅ 14 passed, 0 failed
+  - command: `python - <<'PY' p='test/password-reset.test.ts' s=open(p,encoding='utf-8').read() s=s.replace('''import { MemorySessionStore } from "../src/platform/auth/session.store.js";''','''i`
+- **2026-10-19 12:05 UTC** · `feature/forgot-password@0d9e94a` + uncommitted changes · Frontend unit tests (vitest) (frontend) · ✅ 79 passed, 0 failed
+  - command: `python - <<'PY' p='pages/LoginPage.tsx' lines=open(p,encoding='utf-8').read().split('\n') out=[];inside=False for l in lines: if l.startswith(' <AuthCard'): inside=True; out.append`
+- **2026-10-19 12:10 UTC** · `feature/forgot-password@0d9e94a` + uncommitted changes · Unit tests (frontend) · ✅ 372 passed, 0 failed
+  - command: `npm test 2>&1 | grep -E "^ℹ (tests|pass|fail)"; npm run typecheck 2>&1 | grep -c " error "; cd ../frontend && npm run build 2>&1 | tail -1`

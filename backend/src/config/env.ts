@@ -78,7 +78,16 @@ export interface Config {
     retries: number;
     defaultComment: string;
   };
-  server: { host: string; port: number; logLevel: string };
+  server: {
+    host: string;
+    port: number;
+    logLevel: string;
+    /**
+     * Read the client address from X-Forwarded-For. On only behind a reverse
+     * proxy you control, or a client could pick its own address.
+     */
+    trustProxy: boolean;
+  };
   corsOrigins: string[] | "*";
   schemaPath: string;
   /** iTop's navigation tree, from cmdb-schema/extract-navigation.py. */
@@ -107,6 +116,56 @@ export interface Config {
      * instance shares.
      */
     sessionStore: SessionStoreConfig;
+    /** "Forgot password" by email; absent when no SMTP server is configured. */
+    passwordReset?: PasswordResetConfig;
+  };
+}
+
+export interface PasswordResetConfig {
+  smtp: {
+    host: string;
+    port: number;
+    secure: boolean;
+    /** Refuse to send unless the connection is encrypted. Off only for a local test mailbox. */
+    requireTls: boolean;
+    user?: string;
+    password?: string;
+  };
+  /** The From address on reset emails. */
+  from: string;
+  /** The frontend's public address; reset links point at `<appBaseUrl>/reset-password`. */
+  appBaseUrl: string;
+  /** How long a reset link works. */
+  tokenTtlMs: number;
+}
+
+function withPasswordReset(config: PasswordResetConfig | undefined) {
+  return config ? { passwordReset: config } : {};
+}
+
+function passwordResetConfig(): PasswordResetConfig | undefined {
+  const host = optional("SMTP_HOST", "");
+  if (!host) return undefined;
+  const user = optional("SMTP_USER", "");
+  const password = optional("SMTP_PASSWORD", "");
+  const appBaseUrl = required("APP_BASE_URL").replace(/\/+$/, "");
+  if (!/^https?:\/\//.test(appBaseUrl)) {
+    throw new Error("APP_BASE_URL must start with http:// or https://.");
+  }
+  const port = integer("SMTP_PORT", 587, 1, 65_535);
+  return {
+    smtp: {
+      host,
+      port,
+      // 465 is implicit TLS; 587 and 25 upgrade with STARTTLS.
+      secure: optional("SMTP_SECURE", port === 465 ? "true" : "false").toLowerCase() === "true",
+      requireTls: optional("SMTP_REQUIRE_TLS", "true").toLowerCase() !== "false",
+      ...(user ? { user } : {}),
+      ...(password ? { password } : {}),
+    },
+    from: required("MAIL_FROM"),
+    appBaseUrl,
+    tokenTtlMs: integer("PASSWORD_RESET_MINUTES", 30, 5, 24 * 60) * 60_000,
   };
 }
 
@@ -188,6 +247,7 @@ export function loadConfig(envFile = resolve(PACKAGE_ROOT, ".env")): Config {
       // and test harnesses rely on.
       port: integer("PORT", 4000, 0, 65_535),
       logLevel: optional("LOG_LEVEL", "info"),
+      trustProxy: optional("TRUST_PROXY", "false").toLowerCase() === "true",
     },
     corsOrigins,
     schemaPath: resolve(
@@ -210,6 +270,7 @@ export function loadConfig(envFile = resolve(PACKAGE_ROOT, ".env")): Config {
       sessionMaxMs: integer("SESSION_MAX_HOURS", 12, 1, 24 * 30) * 3_600_000,
       cookieSecure: optional("COOKIE_SECURE", "false").toLowerCase() === "true",
       sessionStore: sessionStoreConfig(),
+      ...withPasswordReset(passwordResetConfig()),
     },
   };
 }

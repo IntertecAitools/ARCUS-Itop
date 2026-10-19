@@ -26,6 +26,7 @@ export interface BuildAppResult {
 
 export function buildApp(config: Config, options: BuildServicesOptions = {}): BuildAppResult {
   const app = Fastify({
+    trustProxy: config.server.trustProxy,
     logger: {
       level: config.server.logLevel,
       // The password is only ever in the outgoing form body, never in a logged

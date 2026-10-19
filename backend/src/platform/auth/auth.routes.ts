@@ -10,7 +10,16 @@ import { publicUser } from "./auth.service.js";
 export const SESSION_COOKIE = "intertec_sid";
 
 /** Paths that answer without a session. */
-const PUBLIC_PATHS = new Set(["/health", "/health/upstream", "/api/auth/login", "/api/auth/me", "/api/auth/logout"]);
+const PUBLIC_PATHS = new Set([
+  "/health",
+  "/health/upstream",
+  "/api/auth/login",
+  "/api/auth/me",
+  "/api/auth/logout",
+  "/api/auth/options",
+  "/api/auth/forgot-password",
+  "/api/auth/reset-password",
+]);
 
 /** What an end-user (portal) session may reach. Everything else is staff-only. */
 const PORTAL_PREFIXES = ["/api/auth/", "/api/portal/"];
@@ -48,7 +57,7 @@ function sessionCookie(services: Services, value: string, maxAgeSeconds: number)
  * origin outside CORS_ORIGINS.
  */
 export function registerAuth(app: FastifyInstance, services: Services): void {
-  const { sessions, auth, config } = services;
+  const { sessions, auth, config, passwordReset } = services;
 
   app.addHook("onRequest", (request: FastifyRequest, _reply, done) => {
     // Callback style on purpose. The session lookup is async (it may read a
@@ -104,6 +113,45 @@ export function registerAuth(app: FastifyInstance, services: Services): void {
     const id = await sessions.create(caller);
     reply.header("Set-Cookie", sessionCookie(services, id, Math.floor(config.auth.sessionMaxMs / 1000)));
     return { user: publicUser(caller) };
+  });
+
+  /** What the sign-in page may offer, before anyone is signed in. */
+  app.get("/api/auth/options", async () => ({ passwordReset: passwordReset.enabled }));
+
+  /**
+   * Sends a reset link to the account behind a login or email address. The
+   * answer is the same whether or not one exists, and the email goes out
+   * after it, so neither the wording nor the timing tells them apart.
+   */
+  app.post("/api/auth/forgot-password", async (request, reply) => {
+    const body = parse(
+      z.object({ identifier: z.string().max(255) }),
+      request.body,
+      "request body",
+    );
+    const work = passwordReset.request(body.identifier, request.ip);
+    setImmediate(() => {
+      work().catch((error: unknown) =>
+        request.log.error({ err: error }, "Could not send a password reset email"),
+      );
+    });
+    reply.code(202);
+    return {
+      ok: true,
+      message:
+        "If an account matches, we've sent a link to its email address. " +
+        "It works once and expires soon.",
+    };
+  });
+
+  app.post("/api/auth/reset-password", async (request) => {
+    const body = parse(
+      z.object({ token: z.string().max(200), password: z.string().max(1_024) }),
+      request.body,
+      "request body",
+    );
+    await passwordReset.reset(body.token, body.password);
+    return { ok: true };
   });
 
   app.post("/api/auth/logout", async (request, reply) => {

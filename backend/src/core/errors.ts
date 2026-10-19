@@ -17,6 +17,8 @@ export type ErrorCode =
   | "payload_too_large"
   /** The body was not in a form this endpoint accepts. */
   | "unsupported_media_type"
+  /** Too many attempts in a short time, e.g. password-reset requests. */
+  | "rate_limited"
   | "upstream_unavailable"
   | "upstream_timeout"
   | "upstream_error"
@@ -31,6 +33,7 @@ const STATUS_BY_CODE: Record<ErrorCode, number> = {
   unsafe_operation: 409,
   payload_too_large: 413,
   unsupported_media_type: 415,
+  rate_limited: 429,
   upstream_unavailable: 502,
   upstream_timeout: 504,
   upstream_error: 502,
