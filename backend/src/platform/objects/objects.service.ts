@@ -116,12 +116,26 @@ export class ObjectsService {
       throw badRequest("`fields` must name at least one attribute.");
     }
 
-    const out = new Set<string>(["id", "friendlyname"]);
+    // `finalclass` is implicit on every iTop object (the real subclass of a
+    // row) and is what dashboards group an abstract class by; like id and
+    // friendlyname it is always available but absent from the field map.
+    const out = new Set<string>(["id", "friendlyname", "finalclass"]);
     for (const code of requestedCodes) {
-      if (code === "id" || code === "friendlyname") continue;
+      if (code === "id" || code === "friendlyname" || code === "finalclass") continue;
       assertIdentifier(code, "attribute code");
       const field = info.fields[code];
       if (!field) {
+        // iTop resolves `<key>_friendlyname` for any ExternalKey, but the
+        // datamodel does not declare those as attributes, so they are absent
+        // from the schema. Allowing them is what lets a caller read a display
+        // name instead of a foreign-key id.
+        const base = code.endsWith("_friendlyname")
+          ? code.slice(0, -"_friendlyname".length)
+          : undefined;
+        if (base && info.fields[base]?.ui === "picker") {
+          out.add(code);
+          continue;
+        }
         throw badRequest(`Unknown attribute "${code}" on ${info.name}.`, {
           available: Object.keys(info.fields).sort(),
         });

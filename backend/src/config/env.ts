@@ -81,7 +81,13 @@ export interface Config {
   server: { host: string; port: number; logLevel: string };
   corsOrigins: string[] | "*";
   schemaPath: string;
+  /** iTop's navigation tree, from cmdb-schema/extract-navigation.py. */
+  navigationPath: string;
+  /** iTop's dashboard definitions, from cmdb-schema/extract-dashboards.py. */
+  dashboardsPath: string;
   lookupCacheTtlMs: number;
+  /** Pins the organisation new records belong to. Optional. */
+  defaultOrgId?: string;
 }
 
 export function loadConfig(envFile = resolve(PACKAGE_ROOT, ".env")): Config {
@@ -118,7 +124,9 @@ export function loadConfig(envFile = resolve(PACKAGE_ROOT, ".env")): Config {
       version,
       timeoutMs: integer("ITOP_TIMEOUT_MS", 30_000, 1_000, 600_000),
       retries: integer("ITOP_RETRIES", 2, 0, 10),
-      defaultComment: optional("ITOP_DEFAULT_COMMENT", "via arcus-backend"),
+      // Lands in iTop's change log on every write, so it is read by humans
+      // auditing history inside iTop itself.
+      defaultComment: optional("ITOP_DEFAULT_COMMENT", "via intertec-backend"),
     },
     server: {
       host: optional("HOST", "127.0.0.1"),
@@ -132,6 +140,15 @@ export function loadConfig(envFile = resolve(PACKAGE_ROOT, ".env")): Config {
       PACKAGE_ROOT,
       optional("CMDB_SCHEMA_PATH", "../cmdb-schema/cmdb-schema.json"),
     ),
+    navigationPath: resolve(
+      PACKAGE_ROOT,
+      optional("CMDB_NAVIGATION_PATH", "../cmdb-schema/cmdb-navigation.json"),
+    ),
+    dashboardsPath: resolve(
+      PACKAGE_ROOT,
+      optional("CMDB_DASHBOARDS_PATH", "../cmdb-schema/cmdb-dashboards.json"),
+    ),
     lookupCacheTtlMs: integer("LOOKUP_CACHE_TTL", 60, 0, 86_400) * 1000,
+    ...(optional("ITOP_DEFAULT_ORG_ID", "") ? { defaultOrgId: optional("ITOP_DEFAULT_ORG_ID", "") } : {}),
   };
 }

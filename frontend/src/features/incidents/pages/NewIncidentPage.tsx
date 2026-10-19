@@ -3,11 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button, buttonClasses, Card } from '@/components/ui';
-import {
-  useCreateIncident,
-  useIncidentOptions,
-  usePeopleByOrganization,
-} from '../api/useIncidents';
+import { useCreateIncident, useIncidentOptions } from '../api/useIncidents';
 import { CONTROL, Field, SectionLabel, Select } from '../components/FormField';
 import { newIncidentSchema, type NewIncidentForm } from '../schemas';
 
@@ -40,28 +36,17 @@ export function NewIncidentPage() {
     defaultValues: { origin: 'portal' },
   });
 
-  const organizationId = watch('organizationId');
   const serviceId = watch('serviceId');
   const urgency = watch('urgency');
   const impact = watch('impact');
 
-  const { data: callers, isFetching: callersLoading } =
-    usePeopleByOrganization(organizationId);
-
-  // Changing the customer invalidates whoever was selected as caller, and a
-  // subcategory only means anything under its own service. Clearing both keeps
-  // the form from submitting a pair that cannot go together.
-  useEffect(() => setValue('callerId', ''), [organizationId, setValue]);
+  // A subcategory only means something under its own service, so changing the
+  // service clears it rather than submitting a pair that cannot go together.
   useEffect(() => setValue('serviceSubcategoryId', ''), [serviceId, setValue]);
 
   const subcategories = useMemo(
     () => (options?.serviceSubcategories ?? []).filter((s) => s.serviceId === serviceId),
     [options, serviceId],
-  );
-
-  const callerOptions = useMemo(
-    () => (callers?.items ?? []).map((p) => ({ value: p.id, label: p.fullName })),
-    [callers],
   );
 
   const derivedPriority =
@@ -113,43 +98,6 @@ export function NewIncidentPage() {
       <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-3">
         {/* ----------------------------------------------------------- main */}
         <Card className="p-5 xl:col-span-2">
-          <SectionLabel>Customer details</SectionLabel>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field
-              label="Customer"
-              htmlFor="organizationId"
-              required
-              error={errors.organizationId?.message}
-            >
-              <Select
-                id="organizationId"
-                placeholder="Not selected"
-                options={options?.organizations ?? []}
-                {...register('organizationId')}
-              />
-            </Field>
-
-            <Field label="Caller" htmlFor="callerId" error={errors.callerId?.message}>
-              <Select
-                id="callerId"
-                placeholder={
-                  !organizationId
-                    ? 'Select a customer first'
-                    : callersLoading
-                      ? 'Loading…'
-                      : callerOptions.length
-                        ? 'Not selected'
-                        : 'No contacts for this customer'
-                }
-                options={callerOptions}
-                disabled={!organizationId || callersLoading || !callerOptions.length}
-                {...register('callerId')}
-              />
-            </Field>
-          </div>
-
-          <div className="my-5 border-t border-line" />
-
           <SectionLabel>Incident details</SectionLabel>
           <div className="space-y-4">
             <Field label="Subject" htmlFor="title" required error={errors.title?.message}>

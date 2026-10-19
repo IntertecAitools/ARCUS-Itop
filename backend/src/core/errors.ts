@@ -13,6 +13,10 @@ export type ErrorCode =
   | "not_found"
   | "conflict"
   | "unsafe_operation"
+  /** The upload exceeded the size the backend will accept. */
+  | "payload_too_large"
+  /** The body was not in a form this endpoint accepts. */
+  | "unsupported_media_type"
   | "upstream_unavailable"
   | "upstream_timeout"
   | "upstream_error"
@@ -25,6 +29,8 @@ const STATUS_BY_CODE: Record<ErrorCode, number> = {
   not_found: 404,
   conflict: 409,
   unsafe_operation: 409,
+  payload_too_large: 413,
+  unsupported_media_type: 415,
   upstream_unavailable: 502,
   upstream_timeout: 504,
   upstream_error: 502,

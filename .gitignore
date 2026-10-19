@@ -1,1 +1,11 @@
 .idea/
+
+# Local backups and operational dumps (DB dumps, compiled-env archives)
+/backups/
+
+# Python bytecode from the schema extractors
+__pycache__/
+*.pyc
+
+# Playwright artefacts
+frontend/test-results/

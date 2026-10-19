@@ -18,9 +18,13 @@ const stamp = () => `${Date.now()}-${Math.floor(Math.random() * 1e4)}`;
 
 async function raiseIncident(page: Page, title: string) {
   await page.goto('/incidents/new');
-  await page.getByLabel('Title').fill(title);
+  await page.getByLabel('Subject').fill(title);
   await page.getByLabel('Description').fill('Raised by an end-to-end test.');
-  await page.getByRole('button', { name: 'Raise incident' }).click();
+  // Urgency and impact are required because iTop derives priority from the
+  // pair; leaving them blank would let the server pick for the reporter.
+  await page.getByLabel('Urgency').selectOption({ index: 1 });
+  await page.getByLabel('Impact').selectOption({ index: 1 });
+  await page.getByRole('button', { name: 'Submit incident' }).click();
   // Lands on the detail page once the server responds.
   await expect(page).toHaveURL(/\/incidents\/\d+$/);
   await expect(page.getByRole('heading', { name: title, level: 1 })).toBeVisible();
@@ -42,9 +46,9 @@ test('raises an incident and lands on its detail page', async ({ page }) => {
 
 test('the create form refuses to submit without a title or description', async ({ page }) => {
   await page.goto('/incidents/new');
-  await page.getByRole('button', { name: 'Raise incident' }).click();
+  await page.getByRole('button', { name: 'Submit incident' }).click();
 
-  await expect(page.getByText('A title is required')).toBeVisible();
+  await expect(page.getByText('A subject is required')).toBeVisible();
   await expect(page.getByText('Describe what is happening')).toBeVisible();
   // Still on the form — nothing was sent.
   await expect(page).toHaveURL(/\/incidents\/new$/);
@@ -134,7 +138,7 @@ test('edits an incident and the change persists in iTop', async ({ page }) => {
   await expect(dialog).toBeVisible();
 
   const edited = `${title} (edited)`;
-  await page.getByLabel('Title').fill(edited);
+  await dialog.getByLabel('Title').fill(edited);
   await page.getByLabel('Urgency').selectOption('1');
   await page.getByRole('button', { name: 'Save changes' }).click();
 

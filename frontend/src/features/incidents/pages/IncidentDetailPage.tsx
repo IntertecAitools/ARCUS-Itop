@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { AlertTriangle, ArrowLeft, Pencil } from 'lucide-react';
 import { PageHeader } from '@/components/layout';
 import { Avatar, Button, buttonClasses, Card, CardBody, CardHeader, Skeleton } from '@/components/ui';
-import { PriorityBadge, StatusPill } from '@/components/data-display';
+import { PriorityBadge, StatusPill, OperationalStatusPill } from '@/components/data-display';
 import { friendlyDateTime } from '@/lib/utils';
 import { humanise, toPlainText } from '../lib/itop-text';
 import { useIncident } from '../api/useIncidents';
@@ -12,7 +12,6 @@ import { IncidentCaseLog } from '../components/IncidentCaseLog';
 import { IncidentEditDialog } from '../components/IncidentEditDialog';
 import type { IncidentDetail } from '../types';
 
-/** One labelled row in the details panel. Hidden entirely when empty. */
 function Field({ label, children }: { label: string; children?: ReactNode }) {
   if (children === undefined || children === null || children === '') return null;
   return (
@@ -51,7 +50,7 @@ export function IncidentDetailPage() {
 
   if (isError) {
     return (
-      <>
+      <div>
         <PageHeader
           breadcrumbs={[{ label: 'Home', to: '/' }, { label: 'Incidents', to: '/incidents' }, { label: id }]}
           title="Incident not found"
@@ -68,27 +67,49 @@ export function IncidentDetailPage() {
             </div>
           </CardBody>
         </Card>
-      </>
+      </div>
     );
   }
 
   if (isLoading || !incident) {
     return (
-      <>
+      <div>
         <PageHeader
           breadcrumbs={[{ label: 'Home', to: '/' }, { label: 'Incidents', to: '/incidents' }]}
-          title="Loading…"
+          title="Loading..."
         />
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
           <Skeleton className="h-64 xl:col-span-2" />
           <Skeleton className="h-64" />
         </div>
-      </>
+      </div>
     );
   }
 
-  return (
+  const actions = (
     <>
+      {incident.status !== 'closed' ? (
+        <Button
+          variant="secondary"
+          size="sm"
+          leadingIcon={<Pencil className="size-4" />}
+          onClick={() => setEditing(true)}
+        >
+          Edit
+        </Button>
+      ) : null}
+      <Link
+        to="/incidents"
+        className={buttonClasses({ variant: 'secondary', size: 'sm' })}
+      >
+        <ArrowLeft className="mr-1.5 size-4" />
+        All incidents
+      </Link>
+    </>
+  );
+
+  return (
+    <div>
       <PageHeader
         breadcrumbs={[
           { label: 'Home', to: '/' },
@@ -106,33 +127,9 @@ export function IncidentDetailPage() {
             </span>
           </span>
         }
-        actions={
-          <>
-            {/* A closed incident is a record, not a work item — editing it
-                would rewrite history rather than change anything. */}
-            {incident.status !== 'closed' ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                leadingIcon={<Pencil className="size-4" />}
-                onClick={() => setEditing(true)}
-              >
-                Edit
-              </Button>
-            ) : null}
-            <Link
-              to="/incidents"
-              className={buttonClasses({ variant: 'secondary', size: 'sm' })}
-            >
-              <ArrowLeft className="mr-1.5 size-4" />
-              All incidents
-            </Link>
-          </>
-        }
+        actions={actions}
       />
-
       <SlaBanner sla={incident.sla} />
-
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <div className="space-y-4 xl:col-span-2">
           <Card>
@@ -156,6 +153,15 @@ export function IncidentDetailPage() {
                 <p className="text-[13.5px] whitespace-pre-wrap text-ink-secondary">
                   {toPlainText(incident.resolution)}
                 </p>
+              </CardBody>
+            </Card>
+          ) : null}
+
+          {incident.privateLog && incident.privateLog.length > 0 ? (
+            <Card>
+              <CardHeader title="Private Log" />
+              <CardBody>
+                <IncidentCaseLog id={incident.id} entries={incident.privateLog} />
               </CardBody>
             </Card>
           ) : null}
@@ -190,11 +196,35 @@ export function IncidentDetailPage() {
                 <Field label="Organisation">{incident.organization?.name}</Field>
                 <Field label="Service">{incident.service}</Field>
                 <Field label="Category">{incident.serviceSubcategory}</Field>
-                {/* Priority is derived by iTop from urgency x impact, so it is
-                    shown here rather than offered as an editable field. */}
+                <Field label="Priority">
+                  <PriorityBadge priority={incident.priority} size="sm" />
+                </Field>
+                <Field label="Operational Status">
+                  {incident.operationalStatus ? (
+                    <OperationalStatusPill status={incident.operationalStatus} size="sm" />
+                  ) : (
+                    <span className="text-ink-muted">—</span>
+                  )}
+                </Field>
                 <Field label="Urgency">{humanise(incident.urgency)}</Field>
                 <Field label="Impact">{humanise(incident.impact)}</Field>
                 <Field label="Origin">{humanise(incident.origin)}</Field>
+                {incident.escalationFlagDisplay && (
+                  <Field label="Escalation Flag">{incident.escalationFlagDisplay}</Field>
+                )}
+                {incident.escalationReasonDisplay && (
+                  <Field label="Escalation Reason">{incident.escalationReasonDisplay}</Field>
+                )}
+                {incident.pendingReasonDisplay && (
+                  <Field label="Pending Reason">{incident.pendingReasonDisplay}</Field>
+                )}
+                <Field label="Operational Status">
+                  {incident.operationalStatus ? (
+                    <OperationalStatusPill status={incident.operationalStatus} size="sm" />
+                  ) : (
+                    <span className="text-ink-muted">—</span>
+                  )}
+                </Field>
                 <Field label="Resolved">
                   {incident.resolvedAt ? friendlyDateTime(incident.resolvedAt) : undefined}
                 </Field>
@@ -204,6 +234,115 @@ export function IncidentDetailPage() {
                 <Field label="Last updated">
                   {incident.lastUpdatedAt ? friendlyDateTime(incident.lastUpdatedAt) : undefined}
                 </Field>
+                {incident.assignmentDate && (
+                  <Field label="Assignment Date">{friendlyDateTime(incident.assignmentDate)}</Field>
+                )}
+                {incident.lastPendingDate && (
+                  <Field label="Last Pending Date">{friendlyDateTime(incident.lastPendingDate)}</Field>
+                )}
+                {incident.ttoDeadline && (
+                  <Field label="TTO Escalation Deadline">{friendlyDateTime(incident.ttoDeadline)}</Field>
+                )}
+                {incident.ttrDeadline && (
+                  <Field label="TTR Escalation Deadline">{friendlyDateTime(incident.ttrDeadline)}</Field>
+                )}
+                {incident.lastPendingDate && (
+                  <Field label="Last Pending Date">{friendlyDateTime(incident.lastPendingDate)}</Field>
+                )}
+                {incident.parentIncident && (
+                  <Field label="Parent Incident">
+                    <Link to={`/incidents/${incident.parentIncident.id}`} className="text-brand-ink hover:underline">
+                      {incident.parentIncident.ref} - {incident.parentIncident.title}
+                    </Link>
+                  </Field>
+                )}
+                {incident.parentRequest && (
+                  <Field label="Parent Request">
+                    <Link to={`/requests/${incident.parentRequest.id}`} className="text-brand-ink hover:underline">
+                      {incident.parentRequest.ref} - {incident.parentRequest.title}
+                    </Link>
+                  </Field>
+                )}
+                {incident.parentProblem && (
+                  <Field label="Parent Problem">
+                    <Link to={`/problems/${incident.parentProblem.id}`} className="text-brand-ink hover:underline">
+                      {incident.parentProblem.ref} - {incident.parentProblem.title}
+                    </Link>
+                  </Field>
+                )}
+                {incident.parentChange && (
+                  <Field label="Parent Change">
+                    <Link to={`/changes/${incident.parentChange.id}`} className="text-brand-ink hover:underline">
+                      {incident.parentChange.ref} - {incident.parentChange.title}
+                    </Link>
+                  </Field>
+                )}
+                <Field label="Related Requests">
+                  {incident.relatedRequests && incident.relatedRequests.length > 0 ? (
+                    <ul className="space-y-1">
+                      {incident.relatedRequests.map((req) => (
+                        <li key={req.id}>
+                          <Link to={`/requests/${req.id}`} className="text-brand-ink hover:underline">
+                            {req.ref} - {req.title}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <span className="text-ink-muted">None</span>
+                  )}
+                </Field>
+                <Field label="Child Incidents">
+                  {incident.childIncidents && incident.childIncidents.length > 0 ? (
+                    <ul className="space-y-1">
+                      {incident.childIncidents.map((child) => (
+                        <li key={child.id}>
+                          <Link to={`/incidents/${child.id}`} className="text-brand-ink hover:underline">
+                            {child.ref} - {child.title}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <span className="text-ink-muted">None</span>
+                  )}
+                </Field>
+                {incident.resolution && (
+                  <Field label="Resolution">{toPlainText(incident.resolution)}</Field>
+                )}
+                {incident.resolutionCode && (
+                  <Field label="Resolution Code">{humanise(incident.resolutionCode)}</Field>
+                )}
+                {incident.timeSpent && (
+                  <Field label="Time Spent">{incident.timeSpent}</Field>
+                )}
+                {incident.userSatisfaction && (
+                  <Field label="User Satisfaction">{incident.userSatisfaction}</Field>
+                )}
+                {incident.userComment && (
+                  <Field label="User Comment">{incident.userComment}</Field>
+                )}
+                {incident.sla.ttoPassed !== undefined && (
+                  <Field label="SLA TTO Passed">{incident.sla.ttoPassed ? 'Yes' : 'No'}</Field>
+                )}
+                {incident.sla.ttoOver !== undefined && (
+                  <Field label="SLA TTO Over">{incident.sla.ttoOver ? 'Yes' : 'No'}</Field>
+                )}
+                {incident.sla.ttrPassed !== undefined && (
+                  <Field label="SLA TTR Passed">{incident.sla.ttrPassed ? 'Yes' : 'No'}</Field>
+                )}
+                {incident.sla.ttrOver !== undefined && (
+                  <Field label="SLA TTR Over">{incident.sla.ttrOver ? 'Yes' : 'No'}</Field>
+                )}
+                {incident.escalationFlagDisplay && (
+                  <Field label="Escalation Flag">{incident.escalationFlagDisplay}</Field>
+                )}
+                {incident.escalationReasonDisplay && (
+                  <Field label="Escalation Reason">{incident.escalationReasonDisplay}</Field>
+                )}
+                {incident.pendingReasonDisplay && (
+                  <Field label="Pending Reason">{incident.pendingReasonDisplay}</Field>
+                )}
               </dl>
             </CardBody>
           </Card>
@@ -213,6 +352,6 @@ export function IncidentDetailPage() {
       {editing ? (
         <IncidentEditDialog incident={incident} onClose={() => setEditing(false)} />
       ) : null}
-    </>
+    </div>
   );
 }

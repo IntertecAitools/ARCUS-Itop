@@ -1,5 +1,5 @@
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
-import { LayoutDashboard, LifeBuoy, type LucideIcon } from 'lucide-react';
+import { Database, LayoutDashboard, LayoutGrid, LifeBuoy, type LucideIcon } from 'lucide-react';
 
 /**
  * ════════════════════════════════════════════════════════════════════════════
@@ -65,6 +65,19 @@ export interface ModuleDefinition {
    * value from the nav-counts query — the module itself owns the number.
    */
   badgeKey?: string;
+  /**
+   * Registered and routable, but kept out of the sidebar and the palette.
+   *
+   * For screens that are reached from somewhere else rather than chosen from a
+   * menu. The generic record screens are the case this exists for: every one
+   * of iTop's ~41 navigation entries links into `/records/<class>`, so those
+   * routes must exist, while a separate "Records" nav item would only be a
+   * second, developer-facing way into the same screens.
+   *
+   * It does NOT weaken the registry rule: a module is still listed here only
+   * once it is built. This says where it is offered, not whether it exists.
+   */
+  hidden?: boolean;
   /** Route element. Required: a registered module is a built module. */
   component: LazyExoticComponent<ComponentType>;
   /** Nested routes (detail screens, tabs) owned by the module. */
@@ -99,6 +112,9 @@ export const modules: ModuleDefinition[] = [
     group: 'operations',
     description: 'Unplanned interruptions to a service.',
     badgeKey: 'openIncidents',
+    // Reached from iTop's own Incident Management group and from the
+    // dashboard's cross-links, rather than from a nav item of its own.
+    hidden: true,
     component: lazy(() =>
       import('@/features/incidents').then((m) => ({ default: m.IncidentListPage })),
     ),
@@ -120,12 +136,92 @@ export const modules: ModuleDefinition[] = [
       },
     ],
   },
+  {
+    id: 'records',
+    label: 'Records',
+    path: 'records',
+    icon: Database,
+    group: 'resources',
+    description: 'Every record type, browsable and editable.',
+    // The target of every iTop navigation entry; not a menu item itself.
+    hidden: true,
+    component: lazy(() =>
+      import('@/features/records').then((m) => ({ default: m.RecordsIndexPage })),
+    ),
+    children: [
+      {
+        path: ':className',
+        component: lazy(() =>
+          import('@/features/records').then((m) => ({ default: m.RecordListPage })),
+        ),
+      },
+      // `new` before `:id`, or it is matched as a record id.
+      {
+        path: ':className/new',
+        label: 'New record',
+        component: lazy(() =>
+          import('@/features/records').then((m) => ({ default: m.RecordNewPage })),
+        ),
+      },
+      {
+        path: ':className/:id',
+        component: lazy(() =>
+          import('@/features/records').then((m) => ({ default: m.RecordDetailPage })),
+        ),
+      },
+    ],
+  },
+  {
+    id: 'dashboards',
+    label: 'Dashboards',
+    path: 'dashboards',
+    icon: LayoutGrid,
+    group: 'resources',
+    description: 'iTop overview dashboards.',
+    // Reached from the "Overview" entries in each module group.
+    hidden: true,
+    component: lazy(() =>
+      import('@/features/itop-dashboards').then((m) => ({ default: m.DashboardViewPage })),
+    ),
+    children: [
+      {
+        path: ':id',
+        component: lazy(() =>
+          import('@/features/itop-dashboards').then((m) => ({ default: m.DashboardViewPage })),
+        ),
+      },
+    ],
+  },
+  {
+    id: 'modules',
+    label: 'Modules',
+    path: 'modules',
+    icon: LayoutGrid,
+    group: 'resources',
+    description: 'All modules and what each provides.',
+    // Reached from the 'All' link in the sidebar's iTop modules header.
+    hidden: true,
+    component: lazy(() =>
+      import('@/features/navigation').then((m) => ({ default: m.ModulesIndexPage })),
+    ),
+  },
 ];
 
 export const navGroups: NavGroup[] = ['operations', 'resources', 'administration'];
 
+/**
+ * Modules offered in the chrome: the sidebar and the Ctrl-K palette.
+ *
+ * Routing uses `modules` instead, because a hidden module still routes. Keep
+ * these two separate — conflating them is how a reachable screen becomes
+ * unreachable, or a hidden one reappears in a menu.
+ */
+export function navigableModules() {
+  return modules.filter((m) => !m.hidden);
+}
+
 export function modulesInGroup(group: NavGroup) {
-  return modules.filter((m) => m.group === group);
+  return navigableModules().filter((m) => m.group === group);
 }
 
 export function findModuleByPath(path: string) {

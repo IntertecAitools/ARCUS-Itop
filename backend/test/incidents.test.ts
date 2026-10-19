@@ -9,6 +9,7 @@ import {
   updateIncidentSchema,
 } from "../src/modules/incidents/incidents.schemas.js";
 import type { CmdbSchema } from "../src/schema/load.js";
+import type { DefaultOrganization } from "../src/shared/default-organization.js";
 import type { ObjectsService } from "../src/platform/objects/objects.service.js";
 
 /** The real Incident lifecycle, lifted from the compiled datamodel. */
@@ -77,7 +78,9 @@ function stub(items: unknown[] = [], overrides: Record<string, unknown> = {}) {
     },
     ...overrides,
   } as unknown as ObjectsService;
-  return { objects, calls, svc: new IncidentsService(objects, schemaStub) };
+    // Resolves instantly so create() does not depend on a live lookup.
+  const defaultOrg = { resolve: async () => "1" } as unknown as DefaultOrganization;
+  return { objects, calls, svc: new IncidentsService(objects, schemaStub, defaultOrg) };
 }
 
 const baseQuery = { page: 1, limit: 25 };
@@ -168,6 +171,11 @@ describe("IncidentsService mapping", () => {
   });
 
   it("decodes impact and urgency out of iTop's numbers", async () => {
+    // The two scales measure different things, and conflating them caused a
+    // real bug: impact is HOW WIDELY the effect is felt ("a department"),
+    // urgency is HOW BAD it is ("high"). Mapping impact onto severity made our
+    // form say "Critical" while iTop displayed that same record as
+    // "A department".
     const { svc } = stub([row({ impact: "1", urgency: "2" })]);
     const detail = await svc.get("7");
     assert.equal(detail.impact, "department");

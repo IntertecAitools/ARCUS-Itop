@@ -106,7 +106,13 @@ export function validateWrite(
 
     const missing = info.writable.filter((code) => {
       if (code === lifecycleAttribute) return false;
-      if (!info.fields[code]?.required) return false;
+      const field = info.fields[code];
+      if (!field?.required) return false;
+      // NOT NULL with a default is not the caller's problem: iTop fills it.
+      // `Attachment.expire` is the case that exposed this -- it defaults to
+      // NOW() + 1 day, so demanding it made creating an attachment through
+      // the API impossible, for a value iTop was going to overwrite anyway.
+      if (field.hasDefault) return false;
       const value = fields[code];
       return value === undefined || value === null || value === "";
     });

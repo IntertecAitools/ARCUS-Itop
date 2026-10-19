@@ -1,0 +1,257 @@
+import { useMemo } from 'react';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, Database, Plus, Search } from 'lucide-react';
+import { PageHeader } from '@/components/layout';
+import { buttonClasses, Card, Input, Skeleton } from '@/components/ui';
+import { DataTable, type Column } from '@/components/data-display';
+import { EmptyState } from '@/components/feedback';
+import { useNavigation } from '@/features/navigation';
+import { useClassInfo, useRecords } from '../api/useRecords';
+import { humaniseAttcode } from '../components/FieldControls';
+import type { RecordDto } from '../types';
+
+/** The handful of columns worth showing for an arbitrary class. */
+const MAX_COLUMNS = 6;
+
+export function RecordListPage() {
+  const { className = '' } = useParams();
+  const navigate = useNavigate();
+  const [params, setParams] = useSearchParams();
+
+  const page = Math.max(1, Number(params.get('page')) || 1);
+  const q = params.get('q') ?? '';
+  // A navigation view id. The filter it stands for lives in the BFF; all this
+  // screen knows is that the list is narrowed and what the menu calls it.
+  const view = params.get('view') ?? undefined;
+
+  const { data: info, isLoading: schemaLoading, isError: schemaError, error } = useClassInfo(className);
+
+  // The menu label for the active view, so the heading reads like iTop's own
+  // ("Open", "Under escalation") instead of showing a raw menu id.
+  const { data: navigation } = useNavigation();
+  const viewLabel = useMemo(() => {
+    if (!view || !navigation) return undefined;
+    for (const group of navigation.groups) {
+      const entry = group.entries.find((e) => e.id === view);
+      if (entry) return entry.label;
+    }
+    return undefined;
+  }, [view, navigation]);
+
+  /**
+   * Which columns to show.
+   *
+   * iTop declares this per class in <presentation><list>, and using it is what
+   * makes a list look like iTop's list: `title, org_id, start_date, status,
+   * service_id, priority` for a Problem, rather than whatever the first few
+   * attributes happen to be. The heuristic below is the fallback for the 17
+   * classes that declare none.
+   */
+  const columns = useMemo(() => {
+    if (!info) return [];
+    const declared = (info.presentation?.list ?? []).filter((a) => info.fields[a]);
+    if (declared.length > 0) return declared.slice(0, MAX_COLUMNS);
+
+    const preferred = ['name', 'friendlyname', 'ref', 'title', 'status', 'org_name'];
+    const scalars = info.writable.filter((a) => info.fields[a]?.ui === 'scalar');
+    const ordered = [
+      ...preferred.filter((a) => info.fields[a]),
+      ...scalars.filter((a) => !preferred.includes(a)),
+    ];
+    return [...new Set(ordered)].slice(0, MAX_COLUMNS);
+  }, [info]);
+
+  const fields = columns.length ? ['id', ...columns].join(',') : undefined;
+  const { data, isLoading, isError: listError } = useRecords(
+    className,
+    { page, q: q || undefined, view },
+    fields,
+  );
+
+  const tableColumns = useMemo<Column<RecordDto>[]>(() => {
+    const cells: Column<RecordDto>[] = columns.map((attcode) => ({
+      id: attcode,
+      header: info?.labels?.fields?.[attcode] ?? humaniseAttcode(attcode),
+      enableSorting: false,
+      cell: ({ row }) => {
+        const value = row.original.fields[attcode];
+        const raw = value === null || value === undefined || value === '' ? '' : String(value);
+        // iTop's wording for enum values: `status` reads "Assigned", and
+        // impact/urgency are stored as "1".."4" which humanise to nothing.
+        const text = raw === '' ? '—' : (info?.labels?.values?.[attcode]?.[raw] ?? raw);
+        return (
+          <span className="block truncate text-ink" title={text}>
+            {text}
+          </span>
+        );
+      },
+    }));
+
+    return [
+      {
+        id: 'id',
+        header: 'ID',
+        size: 80,
+        enableSorting: false,
+        cell: ({ row }) => (
+          <Link
+            to={`/records/${className}/${row.original.id}`}
+            onClick={(e) => e.stopPropagation()}
+            className="font-medium whitespace-nowrap text-brand-ink transition-colors hover:underline"
+          >
+            #{row.original.id}
+          </Link>
+        ),
+      },
+      ...cells,
+    ];
+    // `info` carries the labels the headers and cells read, so it belongs in
+    // the dependencies — without it the first render's wording would stick.
+  }, [columns, className, info]);
+
+  const update = (patch: Record<string, string | undefined>) => {
+    const next = new URLSearchParams(params);
+    for (const [k, v] of Object.entries(patch)) {
+      if (!v) next.delete(k);
+      else next.set(k, v);
+    }
+    if (!('page' in patch)) next.delete('page');
+    setParams(next, { replace: true });
+  };
+
+  if (schemaError) {
+    return (
+      <>
+        <PageHeader
+          breadcrumbs={[{ label: 'Home', to: '/' }, { label: 'Records', to: '/records' }, { label: className }]}
+          title="Unknown class"
+        />
+        <Card>
+          <EmptyState
+            icon={<Database className="size-5" />}
+            title={`No record type called "${className}"`}
+            description={error instanceof Error ? error.message : undefined}
+            action={
+              <Link to="/records" className={buttonClasses({ variant: 'secondary', size: 'sm' })}>
+                Back to records
+              </Link>
+            }
+          />
+        </Card>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <PageHeader
+        breadcrumbs={[{ label: 'Home', to: '/' }, { label: 'Records', to: '/records' }, { label: className }]}
+        title={className}
+        description={
+          data
+            ? [
+                `${data.total} ${data.total === 1 ? 'record' : 'records'}`,
+                // Say that a filter is applied and whose it is. Without this a
+                // narrowed list is indistinguishable from an empty class.
+                viewLabel ? `filtered: ${viewLabel}` : null,
+                data.sortedInBff ? 'sorted by the BFF' : null,
+              ]
+                .filter(Boolean)
+                .join(' · ')
+            : info?.isCi
+              ? 'A configuration item.'
+              : 'A record type.'
+        }
+        actions={
+          <div className="flex items-center gap-2">
+            {view ? (
+              <Link
+                to={`/records/${className}`}
+                className={buttonClasses({ variant: 'secondary', size: 'sm' })}
+              >
+                Clear filter
+              </Link>
+            ) : null}
+            {info && !info.abstract ? (
+              <Link
+                to={`/records/${className}/new`}
+                className={buttonClasses({ variant: 'primary', size: 'sm' })}
+              >
+                <Plus className="mr-1.5 size-4" />
+                New
+              </Link>
+            ) : null}
+            <Link to="/records" className={buttonClasses({ variant: 'secondary', size: 'sm' })}>
+              <ArrowLeft className="mr-1.5 size-4" />
+              All classes
+            </Link>
+          </div>
+        }
+      />
+
+      {listError ? (
+        <div role="alert" className="mb-4 rounded-card border border-critical/30 bg-critical-soft px-4 py-3 text-[13px] text-critical-ink">
+          Couldn’t load {className} records.
+        </div>
+      ) : null}
+
+      <div className="mb-4">
+        <Input
+          defaultValue={q}
+          onChange={(e) => update({ q: e.target.value || undefined })}
+          placeholder={`Search ${className}…`}
+          aria-label={`Search ${className}`}
+          leadingIcon={<Search className="size-4" />}
+          className="w-full sm:w-80"
+        />
+      </div>
+
+      <Card>
+        {schemaLoading ? (
+          <Skeleton className="m-4 h-64" />
+        ) : !isLoading && data?.items.length === 0 ? (
+          <EmptyState
+            icon={<Database className="size-5" />}
+            title={q ? 'No records match that search' : `No ${className} records yet`}
+            description={q ? 'Try a shorter term.' : 'Records you create appear here.'}
+          />
+        ) : (
+          <>
+            <DataTable
+              data={data?.items ?? []}
+              columns={tableColumns}
+              isLoading={isLoading}
+              loadingRows={8}
+              onRowClick={(record) => navigate(`/records/${className}/${record.id}`)}
+            />
+            {data && data.pages > 1 ? (
+              <div className="flex items-center justify-between gap-4 border-t border-line px-4 py-3">
+                <p className="text-[13px] text-ink-muted tabular-nums">
+                  Page {data.page} of {data.pages} · {data.total} total
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={page <= 1}
+                    onClick={() => update({ page: String(page - 1) })}
+                    className={buttonClasses({ variant: 'secondary', size: 'sm' })}
+                  >
+                    Previous
+                  </button>
+                  <button
+                    type="button"
+                    disabled={page >= data.pages}
+                    onClick={() => update({ page: String(page + 1) })}
+                    className={buttonClasses({ variant: 'secondary', size: 'sm' })}
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </>
+        )}
+      </Card>
+    </>
+  );
+}

@@ -120,7 +120,7 @@ export const seededOverview: DashboardOverview = {
       summary: 'VPN connection unavailable',
       status: 'open',
       priority: 'critical',
-      assignee: { id: 'u-1', name: 'Vasanth' },
+      assignee: { id: 'u-1', name: 'admin' },
       createdAt: atOffset(0, 10, 42),
     },
     {

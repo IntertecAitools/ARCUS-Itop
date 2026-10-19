@@ -1,3 +1,4 @@
+import { badRequest } from "../core/errors.js";
 import type { ObjectDto } from "../platform/objects/objects.service.js";
 
 /**
@@ -108,6 +109,9 @@ export function toTicket(item: ObjectDto): TicketDto {
 
 /** Escapes a value for an OQL string literal. */
 export function oqlString(value: string): string {
+  if (value.includes("\0")) {
+    throw badRequest("Value contains a NUL byte, which OQL cannot represent.");
+  }
   return value.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
 }
 
@@ -162,10 +166,28 @@ export function actionsForState(
  * Enums iTop stores as numbers or snake_case
  * ------------------------------------------------------------------------ */
 
+/**
+ * Impact: HOW WIDELY the incident is felt, which is iTop's own meaning.
+ *
+ * This was briefly mapped onto urgency's severity scale (critical/high/medium)
+ * so the two controls would read alike. That was wrong in a way that only
+ * shows up in iTop: picking "critical" stores impact=1, and iTop then displays
+ * that record as "A department". The label on our form and the label in the
+ * system of record disagreed about what the user had chosen.
+ *
+ * Severity is urgency's job, and urgency has the full four-point scale.
+ */
 export const IMPACT_MAP: Record<string, string> = {
   "1": "department",
   "2": "service",
   "3": "person",
+};
+
+/** iTop's own wording for the impact scale, for anything user-facing. */
+export const IMPACT_LABELS: Record<string, string> = {
+  department: "A department",
+  service: "A service",
+  person: "A person",
 };
 
 export const URGENCY_MAP: Record<string, string> = {

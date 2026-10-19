@@ -1,37 +1,82 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CornerDownLeft, Search } from 'lucide-react';
+import { CornerDownLeft, List, Plus, Search, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { modules } from '@/config/modules';
+import { navigableModules } from '@/config/modules';
+import { entryPath, useNavigation } from '@/features/navigation';
 import { useUiStore } from '@/stores/ui.store';
 
 /**
  * Ctrl/⌘-K navigation.
  *
- * Entries come from the module registry, so a new module becomes searchable the
- * moment it is registered — there is no second list to keep in sync. Modules
- * will later contribute record-level results (a ticket by ref) through the
- * search feature; the shell only owns the navigation half.
+ * Two sources, neither of them a hand-written list: the modules we built, and
+ * iTop's own navigation as published by the BFF. The second matters more than
+ * it looks — most screens are now reached through iTop's tree, where finding
+ * something means expanding the right group. Typing its name is faster, and it
+ * is the only flat view of all ~40 entries.
+ *
+ * Modules will later contribute record-level results (a ticket by ref) through
+ * the search feature; the shell only owns the navigation half.
  */
+interface PaletteItem {
+  key: string;
+  label: string;
+  description: string;
+  path: string;
+  icon: LucideIcon;
+}
+
+const KIND_ICON: Record<string, LucideIcon> = {
+  create: Plus,
+  search: Search,
+  list: List,
+};
+
 export function CommandPalette() {
   const open = useUiStore((s) => s.commandPaletteOpen);
   const setOpen = useUiStore((s) => s.setCommandPaletteOpen);
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
+  // Already cached by the sidebar, so this costs nothing extra.
+  const { data: navigation } = useNavigation();
 
   const [query, setQuery] = useState('');
   const [highlighted, setHighlighted] = useState(0);
 
+  const items = useMemo<PaletteItem[]>(() => {
+    const built: PaletteItem[] = navigableModules().map((m) => ({
+      key: `module:${m.id}`,
+      label: m.label,
+      description: m.description,
+      path: `/${m.path}`,
+      icon: m.icon,
+    }));
+
+    const itop: PaletteItem[] = (navigation?.groups ?? []).flatMap((group) =>
+      group.entries.map((entry) => ({
+        key: `nav:${group.id}:${entry.id}`,
+        label: entry.label,
+        // The group is what disambiguates: several groups have an entry called
+        // "Open", and the label alone would not say which one.
+        description: `${group.label} · ${entry.class}`,
+        path: entryPath(entry),
+        icon: KIND_ICON[entry.kind] ?? List,
+      })),
+    );
+
+    return [...built, ...itop];
+  }, [navigation]);
+
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return modules;
-    return modules.filter(
-      (m) =>
-        m.label.toLowerCase().includes(q) ||
-        m.description.toLowerCase().includes(q) ||
-        m.path.includes(q),
+    if (!q) return items;
+    return items.filter(
+      (item) =>
+        item.label.toLowerCase().includes(q) ||
+        item.description.toLowerCase().includes(q) ||
+        item.path.toLowerCase().includes(q),
     );
-  }, [query]);
+  }, [items, query]);
 
   useEffect(() => {
     if (open) {
@@ -47,7 +92,7 @@ export function CommandPalette() {
   if (!open) return null;
 
   const go = (path: string) => {
-    navigate(`/${path}`);
+    navigate(path);
     setOpen(false);
   };
 
@@ -104,7 +149,7 @@ export function CommandPalette() {
               const Icon = m.icon;
               const active = i === highlighted;
               return (
-                <li key={m.id} role="option" aria-selected={active}>
+                <li key={m.key} role="option" aria-selected={active}>
                   <button
                     type="button"
                     onMouseEnter={() => setHighlighted(i)}

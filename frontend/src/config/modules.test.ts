@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { isModuleRegistered, modules, navGroups } from './modules';
+import {
+  isModuleRegistered,
+  modules,
+  modulesInGroup,
+  navGroups,
+  navigableModules,
+} from './modules';
 
 /**
  * The registry is the single source of truth for nav, routes and the command
@@ -41,6 +47,48 @@ describe('module registry', () => {
     for (const m of modules) {
       expect(m.component).toBeDefined();
     }
+  });
+});
+
+describe('hidden modules', () => {
+  it('keeps hidden modules out of the chrome', () => {
+    const navigable = navigableModules().map((m) => m.id);
+
+    expect(navigable).toEqual(['dashboard']);
+    for (const id of ['incidents', 'records', 'modules']) {
+      expect(navigable).not.toContain(id);
+    }
+  });
+
+  it('still registers them, so their routes exist', () => {
+    // The whole point of the flag, and the easiest thing to break: every one
+    // of iTop's navigation entries links into /records/<class>, so dropping
+    // the module instead of hiding it would 404 the entire sidebar.
+    const registered = modules.map((m) => m.id);
+
+    for (const id of ['incidents', 'records', 'modules']) {
+      expect(registered).toContain(id);
+    }
+  });
+
+  it('keeps cross-links to hidden modules working', () => {
+    // The dashboard's "View all →" asks isModuleRegistered, which must still
+    // answer: hidden means "not offered in a menu", not "gone".
+    expect(isModuleRegistered('/incidents')).toBe(true);
+    expect(isModuleRegistered('/records/Problem')).toBe(true);
+    expect(isModuleRegistered('/modules')).toBe(true);
+  });
+
+  it('leaves no nav group rendering an empty section', () => {
+    // modulesInGroup feeds the sidebar, which draws a separator per non-empty
+    // group. A group that is now entirely hidden must report empty rather than
+    // a group of invisible items.
+    for (const group of navGroups) {
+      for (const m of modulesInGroup(group)) {
+        expect(m.hidden).toBeFalsy();
+      }
+    }
+    expect(modulesInGroup('resources')).toEqual([]);
   });
 });
 

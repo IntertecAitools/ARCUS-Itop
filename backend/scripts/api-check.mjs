@@ -134,6 +134,71 @@ await check('overview 30d', 'GET', '/api/dashboard/overview?range=30d', {
 });
 await check('overview bad range', 'GET', '/api/dashboard/overview?range=nonsense', { status: 400 });
 
+console.log('\nDirectory module');
+await check('organizations', 'GET', '/api/organizations?limit=5', { expect: (b) => has(b, 'items') });
+await check('people', 'GET', '/api/people?limit=5', { expect: (b) => has(b, 'items') });
+await check('teams', 'GET', '/api/teams?limit=5', { expect: (b) => has(b, 'items') });
+await check('directory options', 'GET', '/api/directory/options', {
+  expect: (b) => (b.organizations?.length ? true : 'no organisations'),
+});
+await check('people scoped to an org', 'GET', '/api/people?organizationId=1', {
+  expect: (b) => has(b, 'items'),
+});
+await check('400 person without a name', 'POST', '/api/people', {
+  status: 400,
+  body: { organizationId: '1' },
+});
+await check('404 unknown team', 'GET', '/api/teams/999999', { status: 404 });
+
+console.log('\nGeneric records (every iTop class, through the BFF)');
+for (const cls of ['Organization', 'Person', 'Team', 'Service', 'Contract', 'Server', 'FAQ']) {
+  await check(`list ${cls}`, 'GET', `/api/objects/${cls}?limit=2`, {
+    expect: (b) => has(b, 'items'),
+  });
+}
+await check('class metadata', 'GET', '/api/meta/classes/Server', {
+  expect: (b) => (b.fields && b.writable ? true : 'schema shape missing'),
+});
+await check('404 unknown class', 'GET', '/api/objects/NotARealClass', { status: 404 });
+
+console.log("\niTop's modules, published by the BFF");
+let navigation;
+await check('navigation tree', 'GET', '/api/meta/navigation', {
+  expect: (b) => {
+    navigation = b;
+    if (!Array.isArray(b.groups) || b.groups.length === 0) return 'no groups published';
+    if (b.counts.entries !== b.groups.reduce((n, g) => n + g.entries.length, 0)) {
+      return 'counts disagree with the groups';
+    }
+    return true;
+  },
+});
+// The boundary, asserted on the wire rather than only in a unit test: the OQL
+// behind a view must never reach the frontend.
+await check('navigation leaks no OQL', 'GET', '/api/meta/navigation', {
+  expect: (b) => (JSON.stringify(b).includes('SELECT') ? 'response contains OQL' : true),
+});
+// Every ITSM module the user expects to find, confirmed reachable by class.
+for (const cls of ['Incident', 'Problem', 'UserRequest', 'Change', 'SLA', 'FAQ', 'KnownError']) {
+  await check(`navigation covers ${cls}`, 'GET', '/api/meta/navigation', {
+    expect: (b) =>
+      b.groups.some((g) => g.entries.some((e) => e.class === cls))
+        ? true
+        : `no navigation entry lists ${cls}`,
+  });
+}
+// A view resolves to iTop's own filter, addressed only by id.
+await check('list through a view', 'GET', '/api/objects/Incident?view=Incident:OpenIncidents', {
+  expect: (b) => has(b, 'items'),
+});
+await check('404 unknown view', 'GET', '/api/objects/Incident?view=NoSuchView', { status: 404 });
+await check('rejects a view from another class', 'GET', '/api/objects/Person?view=Incident:OpenIncidents', {
+  status: 400,
+});
+await check('rejects view and oql together', 'GET', '/api/objects/Incident?view=Incident:OpenIncidents&oql=SELECT%20Incident', {
+  status: 400,
+});
+
 console.log('\nIncidents module — reads');
 await check('list', 'GET', '/api/incidents?limit=5', { expect: (b) => has(b, 'items') });
 await check('list paged', 'GET', '/api/incidents?limit=2&page=2', {

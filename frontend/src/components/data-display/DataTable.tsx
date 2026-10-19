@@ -65,6 +65,21 @@ export function DataTable<T>({
 
   const cellPadding = density === 'compact' ? 'px-2 py-2' : 'px-2.5 py-2.5';
 
+  /**
+   * The width below which the table scrolls rather than squeezing.
+   *
+   * `table-fixed w-full` on its own keeps the table inside its container no
+   * matter how many columns it has, so adding a column silently crushes the
+   * others — far enough that a truncating cell can reach zero width and its
+   * text stops being rendered at all, which reads as missing data rather than
+   * as a layout problem. A minimum width restores the container's
+   * `overflow-x-auto`: columns keep their declared size and the table scrolls.
+   */
+  const minWidth = columns.reduce<number>(
+    (total, column) => total + (typeof column.size === 'number' ? column.size : 160),
+    0,
+  );
+
   if (!isLoading && data.length === 0) {
     return <EmptyState title={emptyTitle} description={emptyDescription} />;
   }
@@ -73,7 +88,10 @@ export function DataTable<T>({
     <div className={cn('w-full overflow-x-auto', className)}>
       {/* `table-fixed` makes the declared column sizes authoritative, so a long
           summary truncates instead of shoving the trailing columns off the card. */}
-      <table className="w-full table-fixed border-collapse text-left">
+      <table
+        style={{ minWidth: `${minWidth}px` }}
+        className="w-full table-fixed border-collapse text-left"
+      >
         <thead>
           {table.getHeaderGroups().map((headerGroup) => (
             <tr key={headerGroup.id} className="border-b border-line">

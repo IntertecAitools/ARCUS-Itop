@@ -1,0 +1,698 @@
+{
+ "classLabels": {
+  "": "",
+  "ApprovedChange": "Change To Approve",
+  "Change": "Change",
+  "Contact": "Contact",
+  "CustomerContract": "Customer Contract",
+  "DeliveryModel": "Delivery Model",
+  "Document": "Document",
+  "FAQ": "FAQ",
+  "FAQCategory": "FAQ Category",
+  "FunctionalCI": "Functional CI",
+  "Group": "Group",
+  "Incident": "Incident",
+  "KnownError": "Known Error",
+  "Location": "Location",
+  "NormalChange": "Normal Change",
+  "OAuthClient": "OAuth Mail Access",
+  "Organization": "Organization",
+  "Problem": "Problem",
+  "ProviderContract": "Provider Contract",
+  "SLA": "SLA",
+  "SLT": "SLT",
+  "Service": "Service",
+  "ServiceFamily": "Service Family",
+  "ServiceSubcategory": "Service Subcategory",
+  "Software": "Software",
+  "URP_Profiles": "Profile",
+  "User": "User",
+  "UserRequest": "User Request"
+ },
+ "excluded": [
+  {
+   "id": "QueryMenu",
+   "reason": "absent-from-schema: Query is not exported by extract-schema.py (iTop-internal bookkeeping, or its module is not installed)",
+   "type": "OQLMenuNode"
+  },
+  {
+   "id": "DataSources",
+   "reason": "absent-from-schema: SynchroDataSource is not exported by extract-schema.py (iTop-internal bookkeeping, or its module is not installed)",
+   "type": "OQLMenuNode"
+  },
+  {
+   "id": "SystemTools",
+   "reason": "empty: no renderable entries",
+   "type": "MenuGroup"
+  },
+  {
+   "id": "Audit",
+   "reason": "itop-admin-page: iTop's own tooling, not a data screen",
+   "type": "WebPageMenuNode"
+  },
+  {
+   "id": "BackupStatus",
+   "reason": "itop-admin-page: iTop's own tooling, not a data screen",
+   "type": "WebPageMenuNode"
+  },
+  {
+   "id": "CSVImport",
+   "reason": "itop-admin-page: iTop's own tooling, not a data screen",
+   "type": "WebPageMenuNode"
+  },
+  {
+   "id": "ConfigEditor",
+   "reason": "itop-admin-page: iTop's own tooling, not a data screen",
+   "type": "WebPageMenuNode"
+  },
+  {
+   "id": "DBToolsMenu",
+   "reason": "itop-admin-page: iTop's own tooling, not a data screen",
+   "type": "WebPageMenuNode"
+  },
+  {
+   "id": "DataFeatureRemovalMenu",
+   "reason": "itop-admin-page: iTop's own tooling, not a data screen",
+   "type": "WebPageMenuNode"
+  },
+  {
+   "id": "DataModelMenu",
+   "reason": "itop-admin-page: iTop's own tooling, not a data screen",
+   "type": "WebPageMenuNode"
+  },
+  {
+   "id": "ExportMenu",
+   "reason": "itop-admin-page: iTop's own tooling, not a data screen",
+   "type": "WebPageMenuNode"
+  },
+  {
+   "id": "NotificationsMenu",
+   "reason": "itop-admin-page: iTop's own tooling, not a data screen",
+   "type": "WebPageMenuNode"
+  },
+  {
+   "id": "RunQueriesMenu",
+   "reason": "itop-admin-page: iTop's own tooling, not a data screen",
+   "type": "WebPageMenuNode"
+  },
+  {
+   "id": "TagAdminMenu",
+   "reason": "itop-admin-page: iTop's own tooling, not a data screen",
+   "type": "WebPageMenuNode"
+  },
+  {
+   "id": "UniversalSearchMenu",
+   "reason": "itop-admin-page: iTop's own tooling, not a data screen",
+   "type": "WebPageMenuNode"
+  },
+  {
+   "id": "iTopUpdate",
+   "reason": "itop-admin-page: iTop's own tooling, not a data screen",
+   "type": "WebPageMenuNode"
+  },
+  {
+   "id": "MyShortcuts",
+   "reason": "needs-auth: per-user shortcuts require a session",
+   "type": "ShortcutContainerMenuNode"
+  }
+ ],
+ "groups": [
+  {
+   "entries": [
+    {
+     "class": "",
+     "id": "WelcomeMenuPage",
+     "kind": "dashboard",
+     "label": "Welcome",
+     "needsContact": false,
+     "rank": 10.0
+    }
+   ],
+   "id": "WelcomeMenu",
+   "isAdmin": false,
+   "label": "Welcome",
+   "rank": 10.0
+  },
+  {
+   "entries": [
+    {
+     "class": "",
+     "id": "ConfigManagementOverview",
+     "kind": "dashboard",
+     "label": "Overview",
+     "needsContact": false,
+     "rank": 1.0
+    },
+    {
+     "class": "",
+     "id": "Contact",
+     "kind": "dashboard",
+     "label": "Contacts",
+     "needsContact": false,
+     "rank": 2.0
+    },
+    {
+     "class": "Contact",
+     "id": "NewContact",
+     "kind": "create",
+     "label": "New contact",
+     "needsContact": false,
+     "rank": 3.0
+    },
+    {
+     "class": "Contact",
+     "id": "SearchContacts",
+     "kind": "search",
+     "label": "Search for contacts",
+     "needsContact": false,
+     "rank": 4.0
+    },
+    {
+     "class": "Location",
+     "id": "Location",
+     "kind": "list",
+     "label": "Locations",
+     "needsContact": false,
+     "oql": "SELECT Location",
+     "rank": 3.0
+    },
+    {
+     "class": "FunctionalCI",
+     "id": "NewCI",
+     "kind": "create",
+     "label": "New CI",
+     "needsContact": false,
+     "rank": 4.0
+    },
+    {
+     "class": "FunctionalCI",
+     "id": "SearchCIs",
+     "kind": "search",
+     "label": "Search for CIs",
+     "needsContact": false,
+     "rank": 5.0
+    },
+    {
+     "class": "Document",
+     "id": "Document",
+     "kind": "list",
+     "label": "Documents",
+     "needsContact": false,
+     "oql": "SELECT Document",
+     "rank": 6.0
+    },
+    {
+     "class": "Software",
+     "id": "Software",
+     "kind": "list",
+     "label": "Software catalog",
+     "needsContact": false,
+     "oql": "SELECT Software",
+     "rank": 7.0
+    },
+    {
+     "class": "Group",
+     "id": "Group",
+     "kind": "list",
+     "label": "Groups of CIs",
+     "needsContact": false,
+     "oql": "SELECT Group",
+     "rank": 8.0
+    }
+   ],
+   "id": "ConfigManagement",
+   "isAdmin": false,
+   "label": "Configuration management",
+   "rank": 20.0
+  },
+  {
+   "entries": [
+    {
+     "class": "",
+     "id": "UserRequest:Overview",
+     "kind": "dashboard",
+     "label": "Overview",
+     "needsContact": false,
+     "rank": 0.0
+    },
+    {
+     "class": "UserRequest",
+     "id": "NewUserRequest",
+     "kind": "create",
+     "label": "New request",
+     "needsContact": false,
+     "rank": 1.0
+    },
+    {
+     "class": "UserRequest",
+     "id": "SearchUserRequests",
+     "kind": "search",
+     "label": "Search for requests",
+     "needsContact": false,
+     "rank": 2.0
+    },
+    {
+     "class": "UserRequest",
+     "id": "UserRequest:MyRequests",
+     "kind": "list",
+     "label": "Assigned to me",
+     "needsContact": true,
+     "oql": "SELECT UserRequest WHERE agent_id = :current_contact_id AND status NOT IN (\"closed\",\"resolved\")",
+     "rank": 0.0
+    },
+    {
+     "class": "UserRequest",
+     "id": "UserRequest:EscalatedRequests",
+     "kind": "list",
+     "label": "Under escalation",
+     "needsContact": false,
+     "oql": "SELECT UserRequest WHERE status IN (\"escalated_tto\", \"escalated_ttr\") OR escalation_flag=\"yes\"",
+     "rank": 1.0
+    },
+    {
+     "class": "UserRequest",
+     "id": "UserRequest:OpenRequests",
+     "kind": "list",
+     "label": "Open",
+     "needsContact": false,
+     "oql": "SELECT UserRequest WHERE status NOT IN (\"closed\")",
+     "rank": 2.0
+    },
+    {
+     "class": "UserRequest",
+     "id": "UserRequest:MySupportRequests",
+     "kind": "list",
+     "label": "Initiated by me",
+     "needsContact": true,
+     "oql": "SELECT UserRequest WHERE caller_id = :current_contact_id AND status NOT IN (\"closed\")",
+     "rank": 3.0
+    }
+   ],
+   "id": "RequestManagement",
+   "isAdmin": false,
+   "label": "Helpdesk",
+   "rank": 30.0
+  },
+  {
+   "entries": [
+    {
+     "class": "",
+     "id": "Incident:Overview",
+     "kind": "dashboard",
+     "label": "Overview",
+     "needsContact": false,
+     "rank": 0.0
+    },
+    {
+     "class": "Incident",
+     "id": "NewIncident",
+     "kind": "create",
+     "label": "New incident",
+     "needsContact": false,
+     "rank": 1.0
+    },
+    {
+     "class": "Incident",
+     "id": "SearchIncidents",
+     "kind": "search",
+     "label": "Search for incidents",
+     "needsContact": false,
+     "rank": 2.0
+    },
+    {
+     "class": "Incident",
+     "id": "Incident:MyIncidents",
+     "kind": "list",
+     "label": "Assigned to me",
+     "needsContact": true,
+     "oql": "SELECT Incident WHERE agent_id = :current_contact_id AND status NOT IN (\"closed\",\"resolved\")",
+     "rank": 0.0
+    },
+    {
+     "class": "Incident",
+     "id": "Incident:EscalatedIncidents",
+     "kind": "list",
+     "label": "Under escalation",
+     "needsContact": false,
+     "oql": "SELECT Incident WHERE status IN (\"escalated_tto\", \"escalated_ttr\") OR escalation_flag=\"yes\"",
+     "rank": 1.0
+    },
+    {
+     "class": "Incident",
+     "id": "Incident:OpenIncidents",
+     "kind": "list",
+     "label": "Open",
+     "needsContact": false,
+     "oql": "SELECT Incident WHERE status NOT IN (\"closed\")",
+     "rank": 2.0
+    },
+    {
+     "class": "Incident",
+     "id": "Incident:MySupportIncidents",
+     "kind": "list",
+     "label": "Reported by me",
+     "needsContact": true,
+     "oql": "SELECT Incident WHERE caller_id = :current_contact_id AND status NOT IN (\"closed\")",
+     "rank": 3.0
+    }
+   ],
+   "id": "IncidentManagement",
+   "isAdmin": false,
+   "label": "Incident Management",
+   "rank": 35.0
+  },
+  {
+   "entries": [
+    {
+     "class": "",
+     "id": "Problem:Overview",
+     "kind": "dashboard",
+     "label": "Overview",
+     "needsContact": false,
+     "rank": 0.0
+    },
+    {
+     "class": "Problem",
+     "id": "NewProblem",
+     "kind": "create",
+     "label": "New problem",
+     "needsContact": false,
+     "rank": 1.0
+    },
+    {
+     "class": "Problem",
+     "id": "SearchProblems",
+     "kind": "search",
+     "label": "Search for problems",
+     "needsContact": false,
+     "rank": 2.0
+    },
+    {
+     "class": "KnownError",
+     "id": "NewError",
+     "kind": "create",
+     "label": "New known error",
+     "needsContact": false,
+     "rank": 3.0
+    },
+    {
+     "class": "KnownError",
+     "id": "SearchError",
+     "kind": "search",
+     "label": "Search for known errors",
+     "needsContact": false,
+     "rank": 4.0
+    },
+    {
+     "class": "Problem",
+     "id": "Problem:MyProblems",
+     "kind": "list",
+     "label": "My problems",
+     "needsContact": true,
+     "oql": "SELECT Problem WHERE agent_id = :current_contact_id AND status NOT IN (\"closed\", \"resolved\")",
+     "rank": 1.0
+    },
+    {
+     "class": "Problem",
+     "id": "Problem:OpenProblems",
+     "kind": "list",
+     "label": "All open problems",
+     "needsContact": false,
+     "oql": "SELECT Problem WHERE status IN (\"new\", \"assigned\", \"resolved\")",
+     "rank": 2.0
+    },
+    {
+     "class": "KnownError",
+     "id": "Problem:KnownErrors",
+     "kind": "list",
+     "label": "All known errors",
+     "needsContact": false,
+     "oql": "SELECT KnownError",
+     "rank": 3.0
+    },
+    {
+     "class": "FAQCategory",
+     "id": "FAQCategory",
+     "kind": "list",
+     "label": "FAQ categories",
+     "needsContact": false,
+     "oql": "SELECT FAQCategory",
+     "rank": 4.5
+    },
+    {
+     "class": "FAQ",
+     "id": "FAQ",
+     "kind": "list",
+     "label": "FAQs",
+     "needsContact": false,
+     "oql": "SELECT FAQ",
+     "rank": 6.0
+    }
+   ],
+   "id": "ProblemManagement",
+   "isAdmin": false,
+   "label": "Problem management",
+   "rank": 42.0
+  },
+  {
+   "entries": [
+    {
+     "class": "",
+     "id": "Change:Overview",
+     "kind": "dashboard",
+     "label": "Overview",
+     "needsContact": false,
+     "rank": 0.0
+    },
+    {
+     "class": "Change",
+     "id": "NewChange",
+     "kind": "create",
+     "label": "New change",
+     "needsContact": false,
+     "rank": 1.0
+    },
+    {
+     "class": "Change",
+     "id": "SearchChanges",
+     "kind": "search",
+     "label": "Search for changes",
+     "needsContact": false,
+     "rank": 2.0
+    },
+    {
+     "class": "Change",
+     "id": "MyChanges",
+     "kind": "list",
+     "label": "Changes assigned to me",
+     "needsContact": true,
+     "oql": "SELECT Change WHERE agent_id = :current_contact_id AND status NOT IN (\"closed\", \"resolved\")",
+     "rank": 1.0
+    },
+    {
+     "class": "Change",
+     "id": "Changes",
+     "kind": "list",
+     "label": "Open changes",
+     "needsContact": false,
+     "oql": "SELECT Change WHERE status != \"closed\"",
+     "rank": 2.0
+    },
+    {
+     "class": "ApprovedChange",
+     "id": "WaitingApproval",
+     "kind": "list",
+     "label": "Changes awaiting approval",
+     "needsContact": false,
+     "oql": "SELECT ApprovedChange WHERE status IN (\"plannedscheduled\")",
+     "rank": 3.0
+    },
+    {
+     "class": "NormalChange",
+     "id": "WaitingAcceptance",
+     "kind": "list",
+     "label": "Changes awaiting acceptance",
+     "needsContact": false,
+     "oql": "SELECT NormalChange WHERE status IN (\"new\")",
+     "rank": 4.0
+    }
+   ],
+   "id": "ChangeManagement",
+   "isAdmin": false,
+   "label": "Change management",
+   "rank": 50.0
+  },
+  {
+   "entries": [
+    {
+     "class": "",
+     "id": "Service:Overview",
+     "kind": "dashboard",
+     "label": "Overview",
+     "needsContact": false,
+     "rank": 0.0
+    },
+    {
+     "class": "CustomerContract",
+     "id": "CustomerContract",
+     "kind": "list",
+     "label": "Customer contracts",
+     "needsContact": false,
+     "oql": "SELECT CustomerContract",
+     "rank": 1.0
+    },
+    {
+     "class": "ProviderContract",
+     "id": "ProviderContract",
+     "kind": "list",
+     "label": "Provider contracts",
+     "needsContact": false,
+     "oql": "SELECT ProviderContract",
+     "rank": 2.0
+    },
+    {
+     "class": "",
+     "id": "ServiceCatalog",
+     "kind": "dashboard",
+     "label": "Service catalog",
+     "needsContact": false,
+     "rank": 5.0
+    },
+    {
+     "class": "ServiceFamily",
+     "id": "ServiceFamily",
+     "kind": "list",
+     "label": "Service families",
+     "needsContact": false,
+     "oql": "SELECT ServiceFamily",
+     "rank": 3.0
+    },
+    {
+     "class": "Service",
+     "id": "Service",
+     "kind": "list",
+     "label": "Services",
+     "needsContact": false,
+     "oql": "SELECT Service",
+     "rank": 4.0
+    },
+    {
+     "class": "ServiceSubcategory",
+     "id": "ServiceSubcategory",
+     "kind": "list",
+     "label": "Service subcategories",
+     "needsContact": false,
+     "oql": "SELECT ServiceSubcategory",
+     "rank": 5.0
+    },
+    {
+     "class": "SLA",
+     "id": "SLA",
+     "kind": "list",
+     "label": "SLAs",
+     "needsContact": false,
+     "oql": "SELECT SLA",
+     "rank": 6.0
+    },
+    {
+     "class": "SLT",
+     "id": "SLT",
+     "kind": "list",
+     "label": "SLTs",
+     "needsContact": false,
+     "oql": "SELECT SLT",
+     "rank": 7.0
+    },
+    {
+     "class": "DeliveryModel",
+     "id": "DeliveryModel",
+     "kind": "list",
+     "label": "Delivery models",
+     "needsContact": false,
+     "oql": "SELECT DeliveryModel",
+     "rank": 8.0
+    }
+   ],
+   "id": "ServiceManagement",
+   "isAdmin": false,
+   "label": "Service management",
+   "rank": 60.0
+  },
+  {
+   "entries": [
+    {
+     "class": "Organization",
+     "id": "Organization",
+     "kind": "list",
+     "label": "Organizations",
+     "needsContact": false,
+     "oql": "SELECT Organization",
+     "rank": 10.0
+    },
+    {
+     "class": "",
+     "id": "Typology",
+     "kind": "dashboard",
+     "label": "Typology configuration",
+     "needsContact": false,
+     "rank": 80.0
+    }
+   ],
+   "id": "DataAdministration",
+   "isAdmin": false,
+   "label": "Data administration",
+   "rank": 70.0
+  },
+  {
+   "entries": [
+    {
+     "class": "User",
+     "id": "UserAccountsMenu",
+     "kind": "list",
+     "label": "User accounts",
+     "needsContact": false,
+     "oql": "SELECT User",
+     "rank": 11.0
+    },
+    {
+     "class": "URP_Profiles",
+     "id": "ProfilesMenu",
+     "kind": "list",
+     "label": "Profiles",
+     "needsContact": false,
+     "oql": "SELECT URP_Profiles",
+     "rank": 12.0
+    },
+    {
+     "class": "",
+     "id": "AuditCategories",
+     "kind": "dashboard",
+     "label": "Audit configuration",
+     "needsContact": false,
+     "rank": 20.0
+    }
+   ],
+   "id": "AdminTools",
+   "isAdmin": true,
+   "label": "Administration",
+   "rank": 80.0
+  },
+  {
+   "entries": [
+    {
+     "class": "OAuthClient",
+     "id": "OAuthClient",
+     "kind": "list",
+     "label": "OAuth Mail Access",
+     "needsContact": false,
+     "oql": "SELECT OAuthClient",
+     "rank": 100.0
+    }
+   ],
+   "id": "ConfigurationTools",
+   "isAdmin": true,
+   "label": "Configuration",
+   "rank": 90.0
+  }
+ ]
+}

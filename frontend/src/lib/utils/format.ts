@@ -37,7 +37,7 @@ export function relativeTime(value: string | Date) {
   return formatDistanceToNowStrict(new Date(value), { addSuffix: true });
 }
 
-/** "VJ" from "Vasanth J" — avatar fallbacks. */
+/** "AB" from "Ada Byron" — avatar fallbacks. */
 export function initials(name: string) {
   return name
     .trim()

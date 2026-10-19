@@ -34,6 +34,8 @@ import os
 import sys
 import xml.etree.ElementTree as ET
 
+import presentation as pres
+
 XSI_TYPE = '{http://www.w3.org/2001/XMLSchema-instance}type'
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -90,6 +92,7 @@ def load(path):
     props = collections.defaultdict(dict)
     fields = collections.defaultdict(dict)
     lifecycles = {}
+    nodes = {}
 
     for node in root.findall('.//class'):
         cid = node.get('id')
@@ -129,6 +132,14 @@ def load(path):
                 if fld.findtext('is_null_allowed') == 'false':
                     spec['required'] = True
 
+                # A NOT NULL column with a default is not something a caller
+                # has to supply: iTop fills it. Attachment.expire is the case
+                # that exposed this -- it defaults to NOW()+1 day, so demanding
+                # it made creating an attachment through the API impossible.
+                default = fld.find('default_value')
+                if default is not None and (default.text or '').strip():
+                    spec['has_default'] = True
+
                 values = fld.find('values')
                 if values is not None:
                     enum = [v.get('id') for v in values.findall('value') if v.get('id')]
@@ -151,9 +162,17 @@ def load(path):
                     s.get('id'): [t.get('id') for t in s.findall('transitions/transition')]
                     for s in lifecycle.findall('states/state')
                 },
+                # The actions iTop offers on a record. Without these a generic
+                # detail screen can show a state but never change it.
+                'stimuli': [st.get('id') for st in lifecycle.findall('stimuli/*') if st.get('id')],
             }
 
-    return ids, parents, props, fields, lifecycles
+        # Kept for the presentation pass: <presentation> is merged per id the
+        # same way fields are, and the last definition wins.
+        if node.find('presentation') is not None:
+            nodes[cid] = node
+
+    return ids, parents, props, fields, lifecycles, nodes
 
 
 def main():
@@ -163,7 +182,8 @@ def main():
             "iTop has not been installed/compiled yet, or ITOP_MODEL is wrong." % MODEL
         )
 
-    ids, parents, props, fields, lifecycles = load(MODEL)
+    ids, parents, props, fields, lifecycles, nodes = load(MODEL)
+    labels = pres.read_dictionary()
 
     def chain(cid):
         """Inheritance chain, root first. Guards against cycles."""
@@ -226,9 +246,27 @@ def main():
 
         return lifecycle
 
+    def presentation_of(cid, resolved):
+        """iTop's form layout, inherited like everything else.
+
+        A subclass usually declares its own <presentation>, but not always --
+        Problem inherits most of Ticket's. Walking the chain from the class
+        upwards means a subclass that adds nothing still gets a real layout
+        rather than falling back to alphabetical order.
+        """
+        for ancestor in reversed(chain(cid)):
+            node = nodes.get(ancestor)
+            if node is None:
+                continue
+            built = pres.build_presentation(node, labels, resolved)
+            if built:
+                return built
+        return None
+
     schema = {}
     for cid in exported:
         resolved = resolve(cid)
+        lifecycle = resolve_lifecycle(cid, resolved)
         schema[cid] = {
             'is_ci': cid in ci_classes,
             'is_ticket': cid in ticket_classes,
@@ -236,12 +274,19 @@ def main():
             'category': props.get(cid, {}).get('category', ''),
             'abstract': props.get(cid, {}).get('abstract') == 'true',
             'inherits': chain(cid)[:-1],
-            'lifecycle': resolve_lifecycle(cid, resolved),
+            'lifecycle': lifecycle,
             # Precomputed so the BFF can strip read-only fields from writes
             # without walking every field itself.
             'writable': sorted(a for a, f in resolved.items() if f['ui'] in ('scalar', 'picker')),
             'readonly': sorted(a for a, f in resolved.items() if f['ui'] == 'readonly'),
             'fields': resolved,
+            # How iTop lays this class out, and what it calls everything. A
+            # consumer without these has to invent both.
+            'presentation': presentation_of(cid, resolved),
+            'labels': pres.build_labels(
+                cid, chain(cid), labels, resolved,
+                (lifecycle or {}).get('stimuli') or [],
+            ),
         }
 
     with open(OUT, 'w', encoding='utf-8') as fh:

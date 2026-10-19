@@ -1,0 +1,109 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  applyStimulus,
+  createRecord,
+  getClassInfo,
+  getClasses,
+  getFieldOptions,
+  getRecord,
+  getRelated,
+  listRecords,
+  updateRecord,
+} from './records.api';
+import type { RecordFilters } from '../types';
+
+/** The class catalogue barely changes; it is the schema, not the data. */
+export function useClasses() {
+  return useQuery({ queryKey: ['meta', 'classes'], queryFn: getClasses, staleTime: 30 * 60_000 });
+}
+
+export function useClassInfo(className: string) {
+  return useQuery({
+    queryKey: ['meta', 'class', className],
+    queryFn: () => getClassInfo(className),
+    enabled: Boolean(className),
+    staleTime: 30 * 60_000,
+  });
+}
+
+export function useRecords(className: string, filters: RecordFilters, fields?: string) {
+  return useQuery({
+    queryKey: ['records', className, filters, fields ?? ''],
+    queryFn: () => listRecords(className, filters, fields),
+    enabled: Boolean(className),
+    placeholderData: (previous) => previous,
+  });
+}
+
+export function useRecord(className: string, id: string, fields?: string) {
+  return useQuery({
+    queryKey: ['records', className, 'detail', id, fields ?? ''],
+    queryFn: () => getRecord(className, id, fields),
+    enabled: Boolean(className && id),
+  });
+}
+
+export function useFieldOptions(className: string, attcode: string, enabled = true) {
+  return useQuery({
+    queryKey: ['meta', 'options', className, attcode],
+    queryFn: () => getFieldOptions(className, attcode),
+    enabled: enabled && Boolean(className && attcode),
+    staleTime: 10 * 60_000,
+  });
+}
+
+/**
+ * Writes invalidate only this class, so one edit does not refetch the rest.
+ *
+ * Generic over the result as well as the arguments: a create needs the new
+ * record's id in order to navigate to it, and an `unknown` result would push a
+ * cast onto every caller.
+ */
+function useRecordMutation<TArgs, TResult>(
+  fn: (args: TArgs) => Promise<TResult>,
+  className: string,
+) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['records', className] });
+      queryClient.invalidateQueries({ queryKey: ['shell', 'nav-counts'] });
+    },
+  });
+}
+
+export function useCreateRecord(className: string) {
+  return useRecordMutation(
+    (fields: Record<string, unknown>) => createRecord(className, fields),
+    className,
+  );
+}
+
+export function useUpdateRecord(className: string, id: string) {
+  return useRecordMutation(
+    (fields: Record<string, unknown>) => updateRecord(className, id, fields),
+    className,
+  );
+}
+
+/** Related objects for one LinkedSet attribute. */
+export function useRelated(className: string, id: string, attcode: string) {
+  return useQuery({
+    queryKey: ['records', className, 'links', id, attcode],
+    queryFn: () => getRelated(className, id, attcode),
+    enabled: Boolean(className && id && attcode),
+  });
+}
+
+/** Lifecycle actions. Invalidates the record so the new state is shown. */
+export function useApplyStimulus(className: string, id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (stimulus: string) => applyStimulus(className, id, stimulus),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['records', className] });
+      queryClient.invalidateQueries({ queryKey: ['shell', 'nav-counts'] });
+    },
+  });
+}

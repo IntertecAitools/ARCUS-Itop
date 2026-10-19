@@ -191,6 +191,7 @@ function buildClass(
       widget: widgetFor(type, ui),
       owner: rawField.owner ?? name,
       required: rawField.required === true,
+      hasDefault: rawField.has_default === true,
     };
 
     if (rawField.values) field.values = rawField.values;
@@ -266,7 +267,13 @@ function buildClass(
     abstract: rawClass.abstract === true,
     inherits,
     parent: inherits.length > 0 ? inherits[inherits.length - 1]! : null,
-    lifecycle: rawClass.lifecycle ?? null,
+    lifecycle: rawClass.lifecycle
+      ? { ...rawClass.lifecycle, stimuli: rawClass.lifecycle.stimuli ?? [] }
+      : null,
+    presentation: rawClass.presentation ?? null,
+    // Defaulted rather than left optional, so a consumer can read
+    // `labels.fields[code]` without a null check at every lookup.
+    labels: rawClass.labels ?? { class: name, fields: {}, values: {} },
     fields,
     writable: writable.sort(),
     readonlyFields: readonlyFields.sort(),

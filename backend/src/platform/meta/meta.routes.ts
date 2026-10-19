@@ -62,6 +62,11 @@ export function registerMetaRoutes(app: FastifyInstance, services: Services): vo
       parent: info.parent,
       inherits: info.inherits,
       lifecycle: info.lifecycle,
+      // iTop's own layout and wording, so a generic screen can render the form
+      // iTop declares instead of inventing an order and labelling fields with
+      // raw attribute codes.
+      presentation: info.presentation,
+      labels: info.labels,
       writable: info.writable,
       readonly: info.readonlyFields,
       related: info.relatedFields,

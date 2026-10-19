@@ -42,7 +42,7 @@ async function main(): Promise<void> {
 main().catch((error: unknown) => {
   // The logger may not exist yet (bad config, missing schema file), so this
   // deliberately uses console and a non-zero exit.
-  console.error(`arcus-backend failed to start: ${(error as Error).message}`);
+  console.error(`intertec-backend failed to start: ${(error as Error).message}`);
   if (process.env["LOG_LEVEL"] === "debug") console.error(error);
   process.exit(1);
 });

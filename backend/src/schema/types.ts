@@ -38,18 +38,43 @@ export interface RawField {
   link_key?: string;
   filter?: string;
   required?: boolean;
+  /** The datamodel gives this NOT NULL attribute a default; iTop fills it. */
+  has_default?: boolean;
   values?: string[];
   depends_on?: string[];
+}
+
+/** iTop's form layout for a class: columns -> fieldsets -> ordered fields. */
+export interface Presentation {
+  columns: { id: string; fieldsets: { id: string; label: string; fields: string[] }[] }[];
+  /** The columns iTop shows when listing this class. */
+  list: string[];
+  /** LinkedSet attributes iTop renders as related-object tabs. */
+  related: string[];
+}
+
+/** What iTop calls a class, its fields, its enum values and its actions. */
+export interface ClassLabels {
+  class: string;
+  fields: Record<string, string>;
+  values: Record<string, Record<string, string>>;
+  stimuli?: Record<string, string>;
 }
 
 export interface RawClass {
   is_ci: boolean;
   abstract: boolean;
   inherits: string[];
-  lifecycle: { attribute: string; states: Record<string, string[]> } | null;
+  lifecycle: {
+    attribute: string;
+    states: Record<string, string[]>;
+    stimuli?: string[];
+  } | null;
   writable: string[];
   readonly: string[];
   fields: Record<string, RawField>;
+  presentation?: Presentation | null;
+  labels?: ClassLabels;
 }
 
 export type RawSchema = Record<string, RawClass>;
@@ -63,6 +88,12 @@ export interface Field {
   /** Class in the inheritance chain that declares this attribute. */
   owner: string;
   required: boolean;
+  /**
+   * iTop supplies a value when none is sent. Such an attribute is NOT NULL but
+   * is not something a caller must provide, so write-validation skips it and
+   * a form need not mark it mandatory.
+   */
+  hasDefault: boolean;
   /** Enum choices, for widget === "select". */
   values?: string[];
   /** Target class, for ui === "picker". */
@@ -91,7 +122,19 @@ export interface ClassInfo {
   /** Ancestors, root first, excluding the class itself. */
   inherits: string[];
   parent: string | null;
-  lifecycle: { attribute: string; states: Record<string, string[]> } | null;
+  lifecycle: {
+    attribute: string;
+    states: Record<string, string[]>;
+    /** The actions iTop offers on a record of this class. */
+    stimuli: string[];
+  } | null;
+  /**
+   * iTop's own form layout. Null when the class declares none, in which case a
+   * consumer falls back to ordering fields itself.
+   */
+  presentation: Presentation | null;
+  /** iTop's own wording, so screens read like iTop rather than like attcodes. */
+  labels: ClassLabels;
   fields: Record<string, Field>;
   /** Attribute codes safe to send on create/update. */
   writable: string[];

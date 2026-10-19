@@ -59,10 +59,10 @@ const seeded: IncidentDetail[] = [
     description: 'Branch office users cannot establish a tunnel.',
     status: 'open',
     priority: 'critical',
-    assignee: { id: '1', name: 'Vasanth' },
+    assignee: { id: '1', name: 'admin' },
     createdAt: '2026-10-06 10:42:00',
     sla: { ttoBreached: false, ttrBreached: true },
-    log: [{ date: '2026-10-06 11:00', author: 'Vasanth', message: 'Investigating the gateway.' }],
+    log: [{ date: '2026-10-06 11:00', author: 'admin', message: 'Investigating the gateway.' }],
   }),
   make({
     id: '1041',
@@ -145,7 +145,7 @@ export const incidentHandlers = [
       resolutionCodes: options(['assistance', 'training', 'other']),
       organizations: [{ value: '1', label: 'My Company/Department' }],
       agents: [
-        { value: '1', label: 'Vasanth' },
+        { value: '1', label: 'admin' },
         { value: '2', label: 'Ravi' },
       ],
       teams: [],
@@ -247,7 +247,7 @@ export const incidentHandlers = [
     const { message } = (await request.json()) as { message: string };
     incident.log = [
       ...incident.log,
-      { date: new Date().toISOString().slice(0, 16).replace('T', ' '), author: 'Vasanth', message },
+      { date: new Date().toISOString().slice(0, 16).replace('T', ' '), author: 'admin', message },
     ];
     persist();
     return HttpResponse.json(incident);

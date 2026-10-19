@@ -1,4 +1,5 @@
 import Fastify, { type FastifyInstance } from "fastify";
+import multipart from "@fastify/multipart";
 
 import type { Config } from "./config/env.js";
 import { AppError } from "./core/errors.js";
@@ -7,6 +8,9 @@ import { assertNoDuplicatePaths, modules } from "./config/modules.js";
 import { registerHealthRoutes } from "./platform/health/health.routes.js";
 import { registerLookupRoutes } from "./platform/lookups/lookups.routes.js";
 import { registerMetaRoutes } from "./platform/meta/meta.routes.js";
+import { registerAttachmentRoutes } from "./modules/attachments/attachments.routes.js";
+import { registerNavigationRoutes } from "./platform/navigation/navigation.routes.js";
+import { registerDashboardRoutes } from "./platform/dashboards/dashboards.routes.js";
 import { registerObjectRoutes } from "./platform/objects/objects.routes.js";
 import { buildServices, type BuildServicesOptions, type Services } from "./services.js";
 
@@ -35,6 +39,10 @@ export function buildApp(config: Config, options: BuildServicesOptions = {}): Bu
 
   registerCors(app, config.corsOrigins);
 
+  // File uploads. Registered before the routes that use it; the per-request
+  // limit is enforced in the attachment route, which can report it properly.
+  app.register(multipart);
+
   const services = buildServices(config, {
     ...options,
     logger: options.logger ?? app.log,
@@ -45,8 +53,11 @@ export function buildApp(config: Config, options: BuildServicesOptions = {}): Bu
   // on, because every module is built on top of them.
   registerHealthRoutes(app, services);
   registerMetaRoutes(app, services);
+  registerNavigationRoutes(app, services);
+  registerDashboardRoutes(app, services);
   registerObjectRoutes(app, services);
   registerLookupRoutes(app, services);
+  registerAttachmentRoutes(app, services);
 
   // Business modules come from the registry — this file never names one.
   // Adding a module is one entry in src/config/modules.ts and nothing here.
