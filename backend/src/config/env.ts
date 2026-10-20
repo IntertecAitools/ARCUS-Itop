@@ -77,6 +77,11 @@ export interface Config {
     timeoutMs: number;
     retries: number;
     defaultComment: string;
+    /**
+     * iTop's `timezone` (config-itop.php). iTop writes datetimes as wall-clock
+     * text in it, with no offset; this is how they become exact instants.
+     */
+    timezone: string;
   };
   server: {
     host: string;
@@ -147,6 +152,17 @@ export interface PasswordResetConfig {
   appBaseUrl: string;
   /** How long a reset link works. */
   tokenTtlMs: number;
+}
+
+function itopTimezone(): string {
+  // iTop's own default when config-itop.php does not set one.
+  const zone = optional("ITOP_TIMEZONE", "Europe/Paris");
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: zone });
+  } catch {
+    throw new Error(`ITOP_TIMEZONE "${zone}" is not a time zone (e.g. Europe/Paris, Asia/Kolkata).`);
+  }
+  return zone;
 }
 
 function appBaseUrl(): string | undefined {
@@ -273,6 +289,7 @@ export function loadConfig(envFile = resolve(PACKAGE_ROOT, ".env")): Config {
       // Lands in iTop's change log on every write, so it is read by humans
       // auditing history inside iTop itself.
       defaultComment: optional("ITOP_DEFAULT_COMMENT", "via intertec-backend"),
+      timezone: itopTimezone(),
     },
     server: {
       host: optional("HOST", "127.0.0.1"),

@@ -56,6 +56,8 @@ export interface Rule {
     testRecipient: string;
     sharedWith: number;
   };
+  /** Also shown in the app's bell. */
+  inApp: { on: boolean; message: string };
 }
 
 export interface RuleInput {
@@ -78,6 +80,7 @@ export interface RuleInput {
     status: EmailStatus;
     testRecipient?: string;
   };
+  inApp?: { on: boolean; message: string };
 }
 
 export interface RecordType {

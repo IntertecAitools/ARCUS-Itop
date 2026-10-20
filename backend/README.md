@@ -167,7 +167,28 @@ managed from **Notifications** in the frontend, administrators only:
   back from that filter (`platform/admin/conditions.ts`); parts set up in
   iTop that are not in that form are kept and ANDed back unless the user
   removes them. Dates are not offered: a trigger fires at one moment.
-- Not yet here: iTop's in-app ("newsroom") notifications.
+- **In the app (the bell).** A rule can also notify in the app's bell: the
+  BFF keeps one iTop `ActionNewsroom` on the rule's trigger, to the email's
+  To recipients, titled with its subject. It goes with the last email rule
+  on that trigger.
+
+## The bell (in-app notifications)
+
+`GET /api/me/notifications` (newest first, with the unread count),
+`GET /api/me/notifications/count` (polled for the badge),
+`POST /api/me/notifications/:id/read`, `POST /api/me/notifications/read-all`.
+Open to staff and end users (`/api/me/` passes the guard for both).
+
+- They are iTop's newsroom events (`EventNotificationNewsroom`), one per
+  recipient. Read with the service account (ordinary profiles may not), so
+  the service is the access control: every query is pinned to the caller's
+  own contact, and marking one read first re-reads it under that pin.
+- Each opens the record it is about in the platform (Incidents in their
+  module, others as records, a User Request in the portal for end users),
+  not iTop's URL.
+- iTop writes datetimes as local text in its own time zone
+  (`ITOP_TIMEZONE`, default `Europe/Paris`, iTop's default). The BFF sends
+  exact ISO times, so "5 minutes ago" is right in any browser.
 
 
 Without a shared iTop, run one from this repository's own `iTop/` copy:

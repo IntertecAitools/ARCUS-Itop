@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import { Bell, ChevronDown, CircleHelp, KeyRound, LogOut, Moon, Search, Sun } from 'lucide-react';
+import { ChevronDown, CircleHelp, KeyRound, LogOut, Moon, Search, Sun } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Avatar, IconButton } from '@/components/ui';
 import { useUiStore } from '@/stores/ui.store';
 import { useSessionStore } from '@/stores/session.store';
 import { ChangePasswordDialog, useSignOut } from '@/features/auth';
+import { NotificationBell } from '@/features/inbox';
+import { isModuleRegistered } from '@/config/modules';
 
 function ThemeToggle() {
   const theme = useUiStore((s) => s.theme);
@@ -156,16 +158,12 @@ export function Topbar() {
 
       <div className="ml-auto flex items-center gap-1">
         <ThemeToggle />
-        <div className="relative">
-          <IconButton label="Notifications" icon={<Bell className="size-[18px]" />} />
-          {/* Unread marker. Paired with the count in the panel it opens — the
-              dot alone is an affordance, not the information. */}
-          <span
-            className="pointer-events-none absolute top-1.5 right-1.5 size-2 rounded-full bg-critical ring-2 ring-[color:var(--arcus-surface)]"
-            aria-hidden
-          />
-          <span className="sr-only">You have unread notifications</span>
-        </div>
+        {/* Incidents have their own screens; everything else opens as a record. */}
+        <NotificationBell
+          linkFor={(r) =>
+            r.type === 'Incident' && isModuleRegistered('/incidents') ? `/incidents/${r.id}` : `/records/${r.type}/${r.id}`
+          }
+        />
         <IconButton label="Help and documentation" icon={<CircleHelp className="size-[18px]" />} />
         <div className="mx-1 h-6 w-px bg-line" aria-hidden />
         <UserMenu />
