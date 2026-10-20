@@ -18,6 +18,7 @@ Branch `feature/export-columns-import-mapping`.
 | Live import, simulate only | ✅ | `;`-separated file headed `Subject;Organization;Caller;Notes;Urgency` mapped to `title, org_id->friendlyname, caller_id->friendlyname, (skip), urgency`, matched on title: row 1 "to create", row 2 matched R-000017 and iTop refused urgency (read-only once resolved). Search afterwards: nothing written |
 
 | After merging main (CI, PR #9 time zones) — CI's commands | ✅ | Backend: typecheck clean, 420/420, build OK. Frontend: `tsc -b` clean, 107/107, build OK. Only this log conflicted; #9 did not touch the transfer code |
+| After merging main again (deployment #10, audit screen #11) — CI's commands | ✅ | Backend: typecheck clean, 433/433, build OK. Frontend: `tsc -b` clean, 114/114, build OK. Only this log conflicted |
 
 Bugs found and fixed (same commit):
 
