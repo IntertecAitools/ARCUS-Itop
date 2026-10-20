@@ -4,6 +4,22 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-10-20 — "Only when…" conditions on notification rules
+
+Branch `feature/notification-conditions`.
+
+| What ran | Result | Notes |
+| --- | --- | --- |
+| New backend tests (`backend/test/notification-conditions.test.ts`) | ✅ 6/6 | Writes the filter; reads back every operator it writes (including `'` and `%` in text); keeps and re-ANDs what it cannot show; keeps a JOIN filter whole and refuses to combine it; no split inside quotes/brackets; bad values refused |
+| Backend unit tests + typecheck | ✅ 391/391, clean | |
+| Frontend unit tests + typecheck + build | ✅ 82/82, clean, built | Condition rows moved out of advanced search into a shared component |
+| Live: API round trip on rule 7 | ✅ | priority, organization, a title with `it's 50% done`; filter stored in iTop as expected; organization shown by name |
+| Live: does iTop apply it? | ✅ | Condition "priority Critical or High": resolving R-000015 (low) sent nothing; resolving R-000016 (high) emailed the caller |
+| Browser: rule editor | ✅ | Saved condition shown; added "Organization is any of My Company" with the record picker; saved and reloaded intact; no date fields offered |
+| Browser: advanced search on User Requests | ✅ | Still works after the refactor ("priority is Low" → 4 records) |
+
+Not covered: iTop's newsroom (in-app) notifications.
+
 ### 2026-10-20 — Notification rules screen
 
 Branch `feature/notifications`.
@@ -266,3 +282,23 @@ Not covered yet: approvals (extension not installed); load and concurrency beyon
   - command: `cd /c/Users/Venkatesh.V/Arcus_ITOP/backend && npm run smoke 2>&1 | tail -2; API_CHECK_LOGIN=admin API_CHECK_PASSWORD='Weftbase#2026' node scripts/api-check.mjs 2>&1 | tail -1`
 - **2026-10-20 11:28 UTC** · `feature/notifications@e3d23f3` + uncommitted changes · Live API check (BFF → iTop) · ✅ 70 passed, 0 failed
   - command: `API_CHECK_LOGIN=admin API_CHECK_PASSWORD='Weftbase#2026' node scripts/api-check.mjs 2>&1 | grep -E "passed|failed" | tail -2`
+- **2026-10-20 11:38 UTC** · `feature/notification-conditions@f051354` + uncommitted changes · Typecheck · ✅ clean
+  - command: `python - <<'PY' p='src/platform/admin/conditions.ts' s=open(p,encoding='utf-8').read() old='''export function conditionsToFilter(info: ClassInfo, conditions: Criterion[], kept: str`
+- **2026-10-20 11:39 UTC** · `feature/notification-conditions@f051354` + uncommitted changes · Typecheck · ✅ clean
+  - command: `python - <<'PY' p='src/platform/admin/notifications.service.ts' s=open(p,encoding='utf-8').read() def sub(a,b,count=1): global s assert a in s, a[:80]; s=s.replace(a,b,count) sub('`
+- **2026-10-20 11:40 UTC** · `feature/notification-conditions@f051354` + uncommitted changes · Typecheck · ✅ clean
+  - command: `python - <<'PY' p='src/platform/admin/notifications.service.ts' s=open(p,encoding='utf-8').read() def sub(a,b,count=1): global s assert a in s, a[:80]; s=s.replace(a,b,count) sub('`
+- **2026-10-20 11:41 UTC** · `feature/notification-conditions@f051354` + uncommitted changes · Typecheck · ✅ clean
+  - command: `python - <<'PY' p='src/platform/admin/notifications.routes.ts' s=open(p,encoding='utf-8').read() s=s.replace('import { EDITABLE_EVENTS, type RuleInput } from "./notifications.servi`
+- **2026-10-20 11:43 UTC** · `feature/notification-conditions@f051354` + uncommitted changes · Unit tests · ✅ 6 passed, 0 failed
+  - command: `node --import tsx --test test/notification-conditions.test.ts 2>&1 | grep -E "^ℹ (tests|pass|fail)|✖|Expected|actual|expected|\+ |\- " | head -30`
+- **2026-10-20 11:45 UTC** · `feature/notification-conditions@f051354` + uncommitted changes · Typecheck (frontend) · ✅ clean
+  - command: `cd /c/Users/Venkatesh.V/Arcus_ITOP/frontend/src/features/records/components && python - <<'PY' p='AdvancedSearch.tsx' s=open(p,encoding='utf-8').read() def sub(a,b): global s asser`
+- **2026-10-20 11:47 UTC** · `feature/notification-conditions@f051354` + uncommitted changes · Typecheck (frontend) · ❌ errors (see the session)
+  - command: `cd /c/Users/Venkatesh.V/Arcus_ITOP/frontend/src/features && python - <<'PY' def edit(p, pairs): s=open(p,encoding='utf-8').read() for a,b in pairs: assert a in s, (p,a[:80]); s=s.r`
+- **2026-10-20 11:49 UTC** · `feature/notification-conditions@f051354` + uncommitted changes · Frontend unit tests (vitest) · ✅ 82 passed, 0 failed
+  - command: `python - <<'PY' p='src/features/notifications/lib/describe.ts' s=open(p,encoding='utf-8').read() old='''export function describeEvent( event: RuleEvent,''' assert old in s s=s.repl`
+- **2026-10-20 11:50 UTC** · `feature/notification-conditions@f051354` + uncommitted changes · Typecheck · ✅ clean
+  - command: `sed -i 's/{ kind, recordType, ...(state ? { state } : {}), fields, sla: { timer, percent }, hasCondition: false, firesFromPlatform: true },/{ kind, recordType, ...(state ? { state `
+- **2026-10-20 11:55 UTC** · `feature/notification-conditions@f051354` + uncommitted changes · Frontend unit tests (vitest) (backend) · ✅ 391 passed, 0 failed
+  - command: `npx vitest run 2>&1 | grep -E "Tests |Test Files"; npm run build 2>&1 | tail -1; cd ../backend && npm test 2>&1 | grep -E "^ℹ (tests|pass|fail)"; npm run typecheck 2>&1 | grep -c "`

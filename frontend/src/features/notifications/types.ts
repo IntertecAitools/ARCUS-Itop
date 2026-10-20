@@ -1,4 +1,5 @@
 // notifications: feature types. Mirrors the BFF's /api/admin/notifications.
+import type { Criterion } from '@/features/records';
 
 export type EditableEvent =
   | 'created'
@@ -30,6 +31,12 @@ export interface RuleEvent {
   fields?: string[];
   sla?: { timer: string; percent: string };
   hasCondition: boolean;
+  /** The "only when…" conditions this screen can edit. */
+  conditions: Criterion[];
+  /** Part of the condition was set up in iTop in a form not shown here; it is kept. */
+  keptCondition: boolean;
+  /** Names for record ids in conditions, keyed "field:id". */
+  valueLabels: Record<string, string>;
   /** False for events only iTop's own screens raise; nothing here fires them. */
   firesFromPlatform: boolean;
   /** Display names for the codes above. */
@@ -59,6 +66,9 @@ export interface RuleInput {
     state?: string;
     fields?: string[];
     sla?: { timer: string; percent: string };
+    conditions?: Criterion[];
+    /** Keep the part of the condition set up in iTop (default true). */
+    keepCondition?: boolean;
   };
   email: {
     to: RecipientInput[];

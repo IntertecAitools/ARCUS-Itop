@@ -23,7 +23,7 @@ const TIMER_LABEL: Record<string, string> = { tto: 'time to own', ttr: 'time to 
 
 /** "A User Request enters Resolved", from a rule's event and the labels to hand. */
 export function describeEvent(
-  event: RuleEvent,
+  event: Pick<RuleEvent, 'kind' | 'recordType' | 'state' | 'fields' | 'sla' | 'labels'>,
   given: { recordType?: string; state?: string; fields?: string[] } = {},
 ): string {
   const labels = { ...event.labels, ...given };
