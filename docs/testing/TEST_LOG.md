@@ -4,6 +4,24 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-10-20 — Audit screen (iTop's data-quality audit)
+
+Branch `claude/xenodochial-merkle-a3288c`.
+
+| What ran | Result | Notes |
+| --- | --- | --- |
+| New backend tests (`backend/test/audit.test.ts`) | ✅ 13/13 | Class of a query (incl. `SELECT a FROM X AS a`), iTop's tolerance colours, faulty vs valid rules (by class and id, records outside the set ignored), category run (per-rule counts, union, a rule iTop cannot run), one-rule run, empty set, unreadable set, 500-record cap, transport errors rethrown, 404s, no OQL in any response |
+| New frontend tests (`features/audit/lib/runs.test.ts`) | ✅ 7/7 | Merging whole and one-rule runs, percent never rounds a failure up to 100% |
+| Backend unit tests + typecheck | ✅ 404/404, clean | |
+| Frontend unit tests + typecheck + build | ✅ 89/89, clean, built | |
+| Live: API on own BFF (:4100) against local iTop | ✅ | Sample data created in iTop (category 1 "Servers", rules 1–3, domain 1 "Infrastructure"). Both servers fail "Has a serial number" and "Has a location" (valid-list rules), none fail "Not obsolete" (faulty-list rule) — matches the servers' fields; unknown rule → 404 |
+| Browser: Audit screen | ✅ | Run all → "Needs work", 2 of 2 failing, per-rule counts and badges; drill-down lists both servers; link opens `/records/Server/2` |
+
+Bug found and fixed: the first browser run got an HTTP 500 from iTop ("Packets out of order" from MySQL while four REST calls ran at once). Transient, but rules now run one at a time (as iTop's own page does), and "Run all" runs categories one after another.
+
+Not covered: a category with more than 500 failing records against the live iTop (unit test only); a non-administrator calling the routes (the existing `/api/admin` guard, covered by the auth tests).
+
+After merging main (CI, time zones, the bell): backend 423/423 and typecheck clean; frontend 94/94, `tsc` clean, build passes. The run time on the Audit screen now uses the shared `friendlyDateTime` helper (it is a server-made ISO instant).
 ### 2026-10-20 — Production images and compose (deployment)
 
 Branch `claude/pensive-grothendieck-3b0ba2`. Docker 29.3.1 on Windows, local iTop on :8080 reached as `host.docker.internal`, sessions in the Windows MySQL (`arcus_bff`), Mailpit for SMTP. Stack started as project `arcus-prodtest` on `127.0.0.1:8088`.
