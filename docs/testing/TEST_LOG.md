@@ -17,6 +17,8 @@ Branch `feature/export-columns-import-mapping`.
 | Live export through a BFF on :4200 | ✅ | UserRequest `id,ref,title,org_id_friendlyname,status` as CSV (names, not ids); `ref,title,caller_id_friendlyname` as Excel (5 KB) and PDF (149 KB); `fields=ref,bogus` refused with 400 |
 | Live import, simulate only | ✅ | `;`-separated file headed `Subject;Organization;Caller;Notes;Urgency` mapped to `title, org_id->friendlyname, caller_id->friendlyname, (skip), urgency`, matched on title: row 1 "to create", row 2 matched R-000017 and iTop refused urgency (read-only once resolved). Search afterwards: nothing written |
 
+| After merging main (CI, PR #9 time zones) — CI's commands | ✅ | Backend: typecheck clean, 420/420, build OK. Frontend: `tsc -b` clean, 107/107, build OK. Only this log conflicted; #9 did not touch the transfer code |
+
 Bugs found and fixed (same commit):
 
 - The import report split a cell holding `;` (`"Mapped import check; one"` showed as two cells); rows and headings are now read as qualified CSV.
