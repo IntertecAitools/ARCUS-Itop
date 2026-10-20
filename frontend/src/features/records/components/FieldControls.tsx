@@ -1,6 +1,6 @@
 import { useFieldOptions } from '../api/useRecords';
 import type { FieldSpec } from '../types';
-import { cn } from '@/lib/utils';
+import { cn, dateTimeText, fromDateTimeInput, toDateTimeInput } from '@/lib/utils';
 
 export const CONTROL =
   'w-full rounded-control border border-line-strong bg-surface px-3 py-2 text-sm text-ink outline-none ' +
@@ -68,7 +68,7 @@ export function FieldValue({
         {entries.map((entry, i) => (
           <li key={`${entry.date ?? i}-${i}`} className="border-l-2 border-line pl-2.5">
             <p className="text-[11.5px] text-ink-muted">
-              {[entry.user_login, entry.date].filter(Boolean).join(' · ')}
+              {[entry.user_login, entry.date ? dateTimeText(entry.date) : ''].filter(Boolean).join(' · ')}
             </p>
             <p className="whitespace-pre-wrap text-ink">{toText(String(entry.message ?? ''))}</p>
           </li>
@@ -108,6 +108,10 @@ export function FieldValue({
     return (
       <span className="block whitespace-pre-wrap text-ink">{text || <span className="text-ink-muted">—</span>}</span>
     );
+  }
+
+  if (spec.type === 'DateTime') {
+    return <span className="text-ink tabular-nums">{dateTimeText(raw)}</span>;
   }
 
   if (spec.type === 'Boolean') {
@@ -199,14 +203,26 @@ export function FieldInput({
     );
   }
 
+  // The record holds an exact instant; the input shows and edits it on the
+  // viewer's own clock, and hands back an instant again.
+  if (spec.type === 'DateTime') {
+    return (
+      <input
+        id={id}
+        type="datetime-local"
+        className={CONTROL}
+        value={toDateTimeInput(value)}
+        onChange={(e) => onChange(fromDateTimeInput(e.target.value))}
+      />
+    );
+  }
+
   const inputType =
     spec.type === 'Integer' || spec.type === 'Decimal'
       ? 'number'
       : spec.type === 'Date'
         ? 'date'
-        : spec.type === 'DateTime'
-          ? 'datetime-local'
-          : 'text';
+        : 'text';
 
   return (
     <input

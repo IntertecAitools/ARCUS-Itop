@@ -1,6 +1,7 @@
 import { badRequest } from "../core/errors.js";
 import type { ClassInfo, Field } from "../schema/types.js";
 import { IMPLICIT_FIELDS } from "../schema/load.js";
+import { DEFAULT_ITOP_TIMEZONE, isoToItopTime } from "./itop-time.js";
 
 export interface ValidatedWrite {
   /** Payload safe to hand to core/create or core/update. */
@@ -18,6 +19,8 @@ export interface ValidateOptions {
    * whole object it fetched with ui=readonly fields included.
    */
   strict?: boolean;
+  /** iTop's time zone, for turning an ISO instant into the wall-clock text iTop stores. */
+  timeZone?: string;
 }
 
 const IMPLICIT = new Set<string>(IMPLICIT_FIELDS);
@@ -86,7 +89,7 @@ export function validateWrite(
         break;
     }
 
-    const coerced = coerceValue(field, value);
+    const coerced = coerceValue(field, value, options.timeZone ?? DEFAULT_ITOP_TIMEZONE);
     if (coerced.error) {
       throw badRequest(`Invalid value for "${code}" on ${info.name}: ${coerced.error}`, {
         field: code,
@@ -142,7 +145,7 @@ interface Coerced {
  * What is checked is what the schema actually tells us: enum membership, picker
  * keys, and obviously-wrong JSON types.
  */
-function coerceValue(field: Field, value: unknown): Coerced {
+function coerceValue(field: Field, value: unknown, timeZone: string): Coerced {
   if (value === null) return { value: null };
 
   if (field.ui === "picker") {
@@ -207,6 +210,9 @@ function coerceValue(field: Field, value: unknown): Coerced {
       if (typeof value !== "string") return { error: "expected a YYYY-MM-DD HH:MM:SS string." };
       const trimmed = value.trim();
       if (trimmed === "") return { value: "" };
+      // An exact instant (what the browser sends) becomes iTop's own clock.
+      const fromInstant = isoToItopTime(trimmed, timeZone);
+      if (fromInstant) return { value: fromInstant };
       const match = /^(\d{4}-\d{2}-\d{2})(?:[ T](\d{2}:\d{2})(:\d{2})?)?$/.exec(trimmed);
       if (!match) {
         return { error: `expected YYYY-MM-DD HH:MM:SS, got "${value}".` };

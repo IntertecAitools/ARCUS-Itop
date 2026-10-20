@@ -3,6 +3,7 @@ import { z } from "zod";
 import { badRequest } from "../../core/errors.js";
 import { assertIdentifier, escapeLikeTerm, quoteString } from "../../itop/oql.js";
 import type { ClassInfo, Field } from "../../schema/types.js";
+import { DEFAULT_ITOP_TIMEZONE, isoToItopTime } from "../../shared/itop-time.js";
 
 /**
  * Advanced search, iTop's criteria builder, in our own vocabulary.
@@ -74,8 +75,14 @@ function asNumber(value: unknown, what: string): string {
   return String(n);
 }
 
-/** A date criterion's literal; a bare day widens to its first or last second. */
-function asDate(value: unknown, what: string, end: boolean): string {
+/**
+ * A date criterion's literal; a bare day widens to its first or last second.
+ * A bare day or wall-clock time is read on iTop's clock; an exact instant
+ * (with Z or an offset) is moved onto it first.
+ */
+function asDate(value: unknown, what: string, end: boolean, timeZone: string): string {
+  const instant = isoToItopTime(String(value ?? ""), timeZone);
+  if (instant) return quoteString(instant);
   const text = String(value ?? "").trim().replace("T", " ");
   if (!DATE.test(text)) throw badRequest(`${what} must be a date (YYYY-MM-DD).`);
   if (text.length === 10) return quoteString(`${text} ${end ? "23:59:59" : "00:00:00"}`);
@@ -89,7 +96,11 @@ function asKey(value: unknown, what: string): string {
 }
 
 /** One criterion as an OQL condition. */
-export function criterionToOql(info: ClassInfo, criterion: Criterion): string {
+export function criterionToOql(
+  info: ClassInfo,
+  criterion: Criterion,
+  timeZone: string = DEFAULT_ITOP_TIMEZONE,
+): string {
   const code = assertIdentifier(criterion.field, "attribute code");
   const field = info.fields[code];
   if (!field) throw badRequest(`Unknown attribute "${code}" on ${info.name}.`);
@@ -143,7 +154,7 @@ export function criterionToOql(info: ClassInfo, criterion: Criterion): string {
   }
 
   const literal = (v: unknown, end: boolean) =>
-    kind === "number" ? asNumber(v, label) : asDate(v, label, end);
+    kind === "number" ? asNumber(v, label) : asDate(v, label, end, timeZone);
 
   // A bare day on a datetime is a whole day: "equals 2026-10-19" means
   // between its first and last second.

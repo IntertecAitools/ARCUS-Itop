@@ -22,6 +22,25 @@ Branch `claude/pensive-grothendieck-3b0ba2`. Docker 29.3.1 on Windows, local iTo
 Bugs found and fixed before the commit: `/assets/` sent `Cache-Control` twice (`expires 1y` plus the explicit header; `expires` removed); `/health/upstream` took 13 s against the local iTop, so web's health-check timeout went from 15 s to 30 s.
 
 Not covered: signing in through the browser form (the session was not allowed to read the admin password to type it; the same login was checked with curl); HTTPS with `COOKIE_SECURE=true` behind a real TLS proxy; a Linux host (`host-gateway`); password-reset mail from the container.
+
+### 2026-10-20 — iTop dates in the viewer's time zone, everywhere
+
+Branch `feature/itop-dates`. Follows up the bell's "Not covered".
+
+| What ran | Result | Notes |
+| --- | --- | --- |
+| New backend tests (`backend/test/itop-time-paths.test.ts`) | ✅ 13/13 | Field conversion (DateTime, case-log dates, stopwatch deadline; Date-only, String and timespent untouched); ISO in → Paris text; iTop-calendar day maths; `oqlDate` on iTop's clock (Paris and Kolkata); ObjectsService get/create (+ `toTicket.createdAt`); criteria with an instant and a bare day; portal list + detail + log; history date and a DateTime change; notification send log; dashboard ranges, change week and trend buckets with the clock pinned at 00:30 Paris / 22:30 UTC |
+| New frontend tests (`lib/utils/format.test.ts`, +1 in `list-cells.test.ts`) | ✅ 4/4 | Instant detection; local display; datetime-local round trip; DateTime list cell vs Date |
+| Backend unit tests + typecheck + build | ✅ 410/410, clean, built | |
+| Frontend unit tests + typecheck + build | ✅ 87/87, clean, built | |
+| `npm run smoke` | ✅ 13/13 | |
+| `api-check.mjs` | ✅ 70/70 | First run 69/70: `GET /api/incidents?limit=2&page=2` got iTop HTTP 500 once while other test runs loaded the machine; passed on re-run, unrelated |
+| Live spot check (I-000020) | ✅ | iTop `start_date` "2026-10-20 15:22:23" (Paris) → BFF `2026-10-20T13:22:23.000Z` on `/api/objects`, `/api/incidents`, case log, history, dashboard recent list; send log likewise |
+
+What changed: the BFF now sends every iTop DateTime as an ISO instant (ObjectsService converts by the schema, so records, tickets, incidents, attachments and dashlets all get it; portal, history and the send log convert their own reads). Datetimes written or filtered on may be ISO instants and are moved onto iTop's clock; dashboard ranges and trend days use iTop's calendar rather than the BFF host's. The frontend formats instants locally (record fields and list cells, case logs, history, send log, portal) and the datetime inputs (record forms, new incident) edit on the viewer's clock and send instants.
+
+Not covered: no browser pass of the screens (unit tests + live API only); portal endpoints not hit live (no portal session in this run); no live write of an ISO datetime (unit-tested). A bare-day date filter still means iTop's day, not the viewer's; dashboard trend days are iTop's days. Exports keep iTop's own text.
+
 ### 2026-10-20 — Automatic checks (CI) on every pull request
 
 Branch `feature/ci`, in a separate worktree.
@@ -383,3 +402,70 @@ Not covered yet: approvals (extension not installed); load and concurrency beyon
   - command: `cd /c/Users/Venkatesh.V/Arcus_ITOP/backend && python - <<'PY' p='test/notifications.test.ts' s=open(p,encoding='utf-8').read() anchor=''' it("refuses rules it cannot send correctly`
 - **2026-10-20 12:23 UTC** · `feature/bell-notifications@6098932` + uncommitted changes · Live API check (BFF → iTop) (frontend) · ✅ 397 passed, 0 failed
   - command: `npm test 2>&1 | grep -E "^ℹ (tests|pass|fail)"; npm run typecheck 2>&1 | grep -c " error "; npm run smoke 2>&1 | grep -E "passed"; API_CHECK_LOGIN=admin API_CHECK_PASSWORD='Weftbas`
+- **2026-10-20 12:40 UTC** · `feature/bell-notifications@f841e4a` + uncommitted changes · Typecheck (backend) · ✅ clean
+  - command: `cd C:/Users/Venkatesh.V/Arcus_ITOP/backend; python - <<'EOF' p='src/modules/incidents/incidents.service.ts' s=open(p,encoding='utf-8').read() old=''' if (input.startDate) { // date`
+- **2026-10-20 12:41 UTC** · `feature/bell-notifications@f841e4a` + uncommitted changes · Unit tests (backend) · ran — no summary line in the output
+  - command: `cd C:/Users/Venkatesh.V/Arcus_ITOP/backend; grep -n '"test"' package.json; npm test 2>&1 | grep -E "^not ok|^# |fail|✖|Error" | head -40`
+- **2026-10-20 12:44 UTC** · `feature/bell-notifications@f841e4a` + uncommitted changes · Unit tests (backend) · ✅ 13 passed, 0 failed
+  - command: `cd C:/Users/Venkatesh.V/Arcus_ITOP/backend; node --import tsx --test test/itop-time-paths.test.ts 2>&1 | grep -vE "^\s+✔" | head -60`
+- **2026-10-20 12:45 UTC** · `feature/bell-notifications@f841e4a` + uncommitted changes · Unit tests (backend) · ran — no summary line in the output
+  - command: `cd C:/Users/Venkatesh.V/Arcus_ITOP/backend; python - <<'EOF' p='test/itop-time-paths.test.ts' s=open(p,encoding='utf-8').read() s=s.replace(''' public_log: { type: "CaseLog", ui: "`
+- **2026-10-20 12:51 UTC** · `feature/bell-notifications@f841e4a` + uncommitted changes · Unit tests (frontend) · ⏳ started in the background — result not captured here; see the session entry
+  - command: `cd /c/Users/Venkatesh.V/Arcus_ITOP/.worktrees/ci/backend && (npm ci --no-audit --no-fund 2>&1 | tail -1) && npm run typecheck 2>&1 | tail -1 && npm test 2>&1 | grep -E "^ℹ (tests|p`
+- **2026-10-20 12:53 UTC** · `feature/bell-notifications@f841e4a` + uncommitted changes · Frontend unit tests (vitest) (frontend) · ran — no summary line in the output
+  - command: `cd C:/Users/Venkatesh.V/Arcus_ITOP/frontend; cat > src/lib/utils/format.test.ts <<'EOF' import { describe, expect, it } from 'vitest'; import { dateTimeText, fromDateTimeInput, isI`
+- **2026-10-20 12:56 UTC** · `feature/bell-notifications@f841e4a` + uncommitted changes · Live API check (BFF → iTop) (backend) · ✅ 410 passed, 0 failed
+  - command: `cd C:/Users/Venkatesh.V/Arcus_ITOP/backend; grep -n '"typecheck\|"build\|"smoke\|"api:check' package.json; npx tsc --noEmit -p . && echo TYPECHECK_OK; npm test 2>&1 | grep -E "^ℹ (`
+- **2026-10-20 12:58 UTC** · `feature/bell-notifications@f841e4a` + uncommitted changes · Frontend unit tests (vitest) (frontend) · ⏳ started in the background — result not captured here; see the session entry
+  - command: `cd C:/Users/Venkatesh.V/Arcus_ITOP/frontend; npx tsc -b --noEmit 2>&1 | tail -20 && echo TC_DONE; npx vitest run 2>&1 | tail -8`
+- **2026-10-20 13:03 UTC** · `feature/bell-notifications@f841e4a` + uncommitted changes · Live API check (BFF → iTop) (backend) · ran — no summary line in the output
+  - command: `cd C:/Users/Venkatesh.V/Arcus_ITOP/backend; npm run build 2>&1 | tail -5; cat backend/README.md 2>/dev/null | head -0; grep -n "smoke\|api:check\|api-check" README.md | head; docke`
+- **2026-10-20 13:09 UTC** · `feature/bell-notifications@f841e4a` + uncommitted changes · Live smoke test (BFF → iTop) (backend) · ✅ 13 passed, 0 failed
+  - command: `cd C:/Users/Venkatesh.V/Arcus_ITOP/backend; grep -n '"dev"' package.json; npm run smoke 2>&1 | tail -25`
+- **2026-10-20 13:10 UTC** · `feature/bell-notifications@f841e4a` + uncommitted changes · Live API check (BFF → iTop) (backend) · ✅ 87 passed, 0 failed
+  - command: `cat "C:/Users/VENKAT~1.V/AppData/Local/Temp/claude/C--Users-Venkatesh-V-Arcus-ITOP/17187cdd-e0d6-45d4-a8aa-8539d518291e/tasks/bkk1mythd.output"; cd C:/Users/Venkatesh.V/Arcus_ITOP/`
+- **2026-10-20 13:18 UTC** · `feature/bell-notifications@f841e4a` + uncommitted changes · Unit tests (backend) · ran — no summary line in the output
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/funny-maxwell-1ae845/backend"; python - <<'EOF' p='test/transfer.test.ts' s=open(p,encoding='utf8').read() old=s[s.index(' for`
+- **2026-10-20 13:19 UTC** · `feature/bell-notifications@f841e4a` + uncommitted changes · Live API check (BFF → iTop) (backend) · ❌ 69 passed, 1 failed
+  - command: `cd C:/Users/Venkatesh.V/Arcus_ITOP/backend; API_CHECK_LOGIN=admin API_CHECK_PASSWORD='Weftbase#2026' node scripts/api-check.mjs 2>&1 | grep -vE "^\s+ok " | tail -25`
+  - failed: GET   /api/incidents?limit=2&page=2              502  expected 200, got 502 — {"error":{"code":"upstream_error","message":"iTop return
+- **2026-10-20 13:23 UTC** · `feature/bell-notifications@f841e4a` + uncommitted changes · Live API check (BFF → iTop) (backend) · ✅ 70 passed, 0 failed
+  - command: `cd C:/Users/Venkatesh.V/Arcus_ITOP; grep -n "list paged\|69 passed\|70 passed\|HTTP 500" docs/testing/TEST_LOG.md | tail -8; cd backend; API_CHECK_LOGIN=admin API_CHECK_PASSWORD='W`
+- **2026-10-20 13:25 UTC** · `feature/bell-notifications@f841e4a` + uncommitted changes · Unit tests (backend) · ran — no summary line in the output
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/funny-maxwell-1ae845/backend"; head -85 test/transfer.test.ts > /tmp/head.ts; cat > /tmp/tail.ts <<'EOF' describe("CSV for the`
+- **2026-10-20 13:25 UTC** · `feature/bell-notifications@f841e4a` + uncommitted changes · Live API check (BFF → iTop) (backend) · ran — no summary line in the output
+  - command: `cd C:/Users/Venkatesh.V/Arcus_ITOP/backend; sed -n 100,140p scripts/api-check.mjs`
+- **2026-10-20 13:26 UTC** · `feature/bell-notifications@f841e4a` + uncommitted changes · Typecheck (backend) · ✅ clean
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/xenodochial-merkle-a3288c/backend" && cat "C:\Users\VENKAT~1.V\AppData\Local\Temp\claude\C--Users-Venkatesh-V-Arcus-ITOP--clau`
+- **2026-10-20 13:27 UTC** · `feature/bell-notifications@f841e4a` + uncommitted changes · Frontend unit tests (vitest) (frontend) · ran — no summary line in the output
+  - command: `cd /c/Users/Venkatesh.V/Arcus_ITOP/.worktrees/ci/frontend && npx vitest run 2>&1 | grep -E "FAIL|×|AssertionError|Expected|Received|Error:" | head -15`
+- **2026-10-20 13:28 UTC** · `feature/bell-notifications@f841e4a` + uncommitted changes · Unit tests (backend) · ran — no summary line in the output
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/xenodochial-merkle-a3288c/backend" && node --import tsx --test test/audit.test.ts 2>&1 | grep -E "^not ok|^# (pass|fail)|Error`
+- **2026-10-20 13:28 UTC** · `feature/bell-notifications@f841e4a` + uncommitted changes · Unit tests (backend) · ✅ 13 passed, 0 failed
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/xenodochial-merkle-a3288c/backend" && node --import tsx --test test/audit.test.ts 2>&1 | tail -25`
+- **2026-10-20 13:30 UTC** · `feature/bell-notifications@f841e4a` + uncommitted changes · Frontend unit tests (vitest) · ✅ 83 passed, 0 failed
+  - command: `npx vitest run 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E "✓|×|FAIL|Test Files|Tests " | head -30`
+- **2026-10-20 13:30 UTC** · `feature/bell-notifications@f841e4a` + uncommitted changes · Typecheck (frontend) · ✅ clean
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/funny-maxwell-1ae845/frontend"; f=src/features/records/pages/RecordImportPage.tsx; sed -i 's/^ actions={$/ action={/' $f; grep`
+- **2026-10-20 13:31 UTC** · `feature/bell-notifications@f841e4a` + uncommitted changes · Frontend unit tests (vitest) · ran — no summary line in the output
+  - command: `ls vite.config.* vitest.config.* 2>/dev/null; grep -n "test:" -A12 vite.config.ts 2>/dev/null | head -20`
+- **2026-10-20 13:34 UTC** · `feature/bell-notifications@f841e4a` + uncommitted changes · Production build (frontend) · ✅ clean
+  - command: `cd C:/Users/Venkatesh.V/Arcus_ITOP/frontend; npm run build 2>&1 | tail -6`
+- **2026-10-20 13:36 UTC** · `feature/bell-notifications@f841e4a` + uncommitted changes · Typecheck (frontend) · ✅ clean
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/funny-maxwell-1ae845/frontend/src/features/records"; python - <<'PYEOF' def edit(p, pairs): s=open(p,encoding='utf8').read() f`
+- **2026-10-20 13:36 UTC** · `feature/bell-notifications@f841e4a` + uncommitted changes · Unit tests (backend) · ran — no summary line in the output
+  - command: `cd C:/Users/Venkatesh.V/Arcus_ITOP; git branch --show-current; git status --short | wc -l; cd backend && node --import tsx --test test/itop-time-paths.test.ts 2>&1 | grep -E "^ℹ (p`
+- **2026-10-20 13:38 UTC** · `feature/bell-notifications@f841e4a` + uncommitted changes · Frontend unit tests (vitest) (frontend) · ✅ 35 passed, 0 failed
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/funny-maxwell-1ae845/frontend"; npx vitest run src/features/records 2>&1 | tail -25`
+- **2026-10-20 13:38 UTC** · `feature/bell-notifications@f841e4a` + uncommitted changes · Frontend unit tests (vitest) (frontend) · ran — no summary line in the output
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/xenodochial-merkle-a3288c/frontend" && head -5 src/features/notifications/lib/describe.test.ts; cat > src/features/audit/lib/r`
+- **2026-10-20 13:38 UTC** · `feature/bell-notifications@f841e4a` + uncommitted changes · Unit tests (backend) · ⏳ started in the background — result not captured here; see the session entry
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/funny-maxwell-1ae845/backend"; npm test 2>&1 | grep -E "^ℹ (tests|pass|fail)|✖" | head -20; npm run typecheck 2>&1 | tail -3`
+- **2026-10-20 13:39 UTC** · `feature/bell-notifications@f841e4a` + uncommitted changes · Frontend unit tests (vitest) (frontend) · ⏳ started in the background — result not captured here; see the session entry
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/funny-maxwell-1ae845/frontend"; npx vitest run 2>&1 | tail -6; npx tsc --noEmit -p tsconfig.app.json 2>&1 | tail -5; echo TSC_`
+- **2026-10-20 13:42 UTC** · `feature/bell-notifications@f841e4a` + uncommitted changes · Unit tests (backend) · ⏳ started in the background — result not captured here; see the session entry
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/xenodochial-merkle-a3288c/backend" && npm test 2>&1 | tail -12`
+- **2026-10-20 13:50 UTC** · `feature/bell-notifications@f841e4a` + uncommitted changes · Frontend unit tests (vitest) (frontend) · ✅ 10 passed, 0 failed
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/funny-maxwell-1ae845/frontend"; npx vitest run src/features/records/lib/import-mapping.test.ts 2>&1 | tail -15; cat "C:/Users/`
+- **2026-10-20 13:56 UTC** · `feature/itop-dates@780553e` + uncommitted changes · Frontend unit tests (vitest) (frontend) · ✅ 36 passed, 0 failed
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/funny-maxwell-1ae845"; grep -n "friendly name" frontend/src/features/records/lib/import-mapping.ts; (cd backend && node --impo`

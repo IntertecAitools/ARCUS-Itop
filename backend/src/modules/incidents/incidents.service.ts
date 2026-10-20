@@ -232,11 +232,9 @@ export class IncidentsService {
     }
     if (input.agentId) fields["agent_id"] = Number(input.agentId);
     if (input.teamId) fields["team_id"] = Number(input.teamId);
-    if (input.startDate) {
-      // datetime-local gives "YYYY-MM-DDTHH:mm"; iTop wants a space and seconds.
-      const value = input.startDate.replace("T", " ");
-      fields["start_date"] = value.length === 16 ? `${value}:00` : value;
-    }
+    // An ISO instant or iTop's own wall-clock text; write validation puts
+    // either on iTop's clock with the seconds it insists on.
+    if (input.startDate) fields["start_date"] = input.startDate;
 
     const { object } = await this.objects.create("Incident", fields, {
       fields: DETAIL_FIELDS,

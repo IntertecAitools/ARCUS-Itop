@@ -3,13 +3,13 @@ import type { ObjectsService, ObjectDto } from "../../platform/objects/objects.s
 import type { CurrentContact } from "../../shared/current-contact.js";
 import {
   OPEN_STATES,
-  oqlDate,
   isTrue,
   str,
   TICKET_FIELDS,
   toTicket,
   type TicketDto,
 } from "../../shared/ticket-mapping.js";
+import { addDays, itopDay, weekday } from "../../shared/itop-time.js";
 
 // Re-exported so existing importers of this module keep working; the type is
 // owned by shared/ticket-mapping.ts, which every ticket module shares.
@@ -33,15 +33,15 @@ const RANGE_DAYS: Record<DateRange, number> = {
   "90d": 90,
 };
 
-// Ticket vocabulary (status/priority maps, OPEN_STATES, oqlDate, toTicket)
+// Ticket vocabulary (status/priority maps, OPEN_STATES, toTicket)
 // lives in shared/ticket-mapping.ts so this module and incidents cannot drift.
 
-function dayKey(value: unknown): string | null {
+/** The day (on iTop's clock, like the range limits) an ISO instant falls on. */
+function dayKey(value: unknown, timeZone: string): string | null {
   const raw = str(value);
   if (!raw) return null;
-  // iTop returns "YYYY-MM-DD HH:MM:SS"; the date half is the bucket.
-  const day = raw.slice(0, 10);
-  return /^\d{4}-\d{2}-\d{2}$/.test(day) ? day : null;
+  const instant = new Date(raw);
+  return Number.isNaN(instant.getTime()) ? null : itopDay(instant, timeZone);
 }
 
 export interface DashboardOverview {
@@ -228,15 +228,14 @@ export class DashboardService {
 
   async overview(range: DateRange): Promise<DashboardOverview> {
     const days = RANGE_DAYS[range] ?? 7;
-    const since = new Date(Date.now() - days * 86_400_000);
-    since.setHours(0, 0, 0, 0);
-    const sinceOql = `start_date >= '${oqlDate(since)}'`;
+    // Days are iTop's days: its stored times and its OQL literals are on its
+    // clock, whatever zone the BFF host runs in.
+    const timeZone = this.objects.timeZone;
+    const today = itopDay(new Date(), timeZone);
+    const sinceOql = `start_date >= '${addDays(today, -days)} 00:00:00'`;
 
-    const weekStart = new Date();
-    weekStart.setHours(0, 0, 0, 0);
-    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekEnd.getDate() + 7);
+    const weekStart = addDays(today, -weekday(today));
+    const weekEnd = addDays(weekStart, 7);
 
     // One round trip each, all in flight together — iTop is ~0.5s per call, so
     // doing these in sequence would make the dashboard feel broken.
@@ -271,7 +270,7 @@ export class DashboardService {
       this.fetch("ServiceSubcategory", "id > 0", "id,name,service_name", 4),
       this.fetch(
         "Change",
-        `start_date >= '${oqlDate(weekStart)}' AND start_date < '${oqlDate(weekEnd)}'`,
+        `start_date >= '${weekStart} 00:00:00' AND start_date < '${weekEnd} 00:00:00'`,
         "id,ref,title,start_date,status",
         50,
       ),
@@ -284,13 +283,12 @@ export class DashboardService {
     // rather than vanishing and distorting the line.
     const buckets = new Map<string, { created: number; resolved: number }>();
     for (let i = days - 1; i >= 0; i--) {
-      const d = new Date(Date.now() - i * 86_400_000);
-      buckets.set(oqlDate(d).slice(0, 10), { created: 0, resolved: 0 });
+      buckets.set(addDays(today, -i), { created: 0, resolved: 0 });
     }
     for (const item of inRange) {
-      const created = dayKey(item.fields["start_date"]);
+      const created = dayKey(item.fields["start_date"], timeZone);
       if (created && buckets.has(created)) buckets.get(created)!.created += 1;
-      const resolved = dayKey(item.fields["resolution_date"]);
+      const resolved = dayKey(item.fields["resolution_date"], timeZone);
       if (resolved && buckets.has(resolved)) buckets.get(resolved)!.resolved += 1;
     }
     const trend = [...buckets.entries()].map(([date, counts]) => ({ date, ...counts }));

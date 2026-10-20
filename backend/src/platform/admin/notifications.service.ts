@@ -4,6 +4,7 @@ import { normalizeObjects, parseFoundCount, type FlatObject } from "../../itop/n
 import type { CmdbSchema } from "../../schema/load.js";
 import type { ClassInfo } from "../../schema/types.js";
 import { str } from "../../shared/ticket-mapping.js";
+import { DEFAULT_ITOP_TIMEZONE, itopValueToIso } from "../../shared/itop-time.js";
 import { criterionKind, type Criterion } from "../objects/criteria.js";
 import { conditionsToFilter, filterToConditions } from "./conditions.js";
 
@@ -382,6 +383,7 @@ interface Snapshot {
 
 export interface SentEmail {
   id: number;
+  /** ISO instant. */
   date: string;
   to: string;
   subject: string;
@@ -397,6 +399,8 @@ export class NotificationsService {
     private readonly schema: CmdbSchema,
     private readonly appBaseUrl: string | undefined,
     private readonly sender: { address: string; label: string } | undefined,
+    /** iTop's configured time zone, which the send log's dates are written in. */
+    private readonly timeZone: string = DEFAULT_ITOP_TIMEZONE,
   ) {}
 
   private async get(cls: string, oql: string, fields: string): Promise<FlatObject[]> {
@@ -976,7 +980,7 @@ export class NotificationsService {
         const objectId = Number(f["object_id"]);
         return {
           id: r.id,
-          date: str(f["date"]),
+          date: str(itopValueToIso(f["date"], this.timeZone)),
           to: str(f["to"]),
           subject: str(f["subject"]),
           result: str(f["message"]),

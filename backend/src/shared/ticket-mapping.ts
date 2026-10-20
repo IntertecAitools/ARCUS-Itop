@@ -1,5 +1,6 @@
 import { badRequest } from "../core/errors.js";
 import type { ObjectDto } from "../platform/objects/objects.service.js";
+import { toItopTime } from "./itop-time.js";
 
 /**
  * The one place iTop's ticket vocabulary becomes ours.
@@ -68,13 +69,13 @@ export const str = (value: unknown): string => (value == null ? "" : String(valu
 export const isTrue = (value: unknown): boolean =>
   value === "1" || value === 1 || value === true;
 
-/** `YYYY-MM-DD HH:MM:SS`, the only datetime literal iTop's OQL accepts. */
-export function oqlDate(date: Date): string {
-  const p = (n: number) => String(n).padStart(2, "0");
-  return (
-    `${date.getFullYear()}-${p(date.getMonth() + 1)}-${p(date.getDate())} ` +
-    `${p(date.getHours())}:${p(date.getMinutes())}:${p(date.getSeconds())}`
-  );
+/**
+ * `YYYY-MM-DD HH:MM:SS` on iTop's clock, the only datetime literal iTop's OQL
+ * accepts. iTop compares it with its own stored wall-clock text, so the BFF's
+ * own time zone must not leak in.
+ */
+export function oqlDate(date: Date, timeZone: string): string {
+  return toItopTime(date, timeZone);
 }
 
 /** The shape every list screen and every dashboard table renders. */
@@ -85,6 +86,7 @@ export interface TicketDto {
   status: TicketStatus;
   priority: TicketPriority;
   assignee?: { id: string; name: string };
+  /** ISO instant (ObjectsService converts iTop's DateTime text). */
   createdAt: string;
 }
 

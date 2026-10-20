@@ -1,3 +1,4 @@
+import { dateTimeText } from '@/lib/utils';
 import type { ClassInfo } from '../types';
 
 /**
@@ -46,6 +47,8 @@ export function listCell(
   }
 
   if (raw === '') return { text: EMPTY };
+  // DateTimes arrive as exact instants; show them on the viewer's clock.
+  if (info.fields[attcode]?.type === 'DateTime') return { text: dateTimeText(raw) };
   // iTop's wording for enum values: `status` reads "Assigned", and
   // impact/urgency are stored as "1".."4" which humanise to nothing.
   return { text: info.labels?.values?.[attcode]?.[raw] ?? raw };

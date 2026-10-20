@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { notFound } from "../../core/errors.js";
 import type { CmdbSchema } from "../../schema/load.js";
 import type { ObjectsService } from "../objects/objects.service.js";
+import { itopDay } from "../../shared/itop-time.js";
 
 /**
  * iTop's "Overview" dashboards, rendered natively.
@@ -218,8 +219,13 @@ export class Dashboards {
     const value = raw === null || raw === undefined ? "" : String(raw);
     if (!value) return "—";
     if (!fn) return value;
-    // iTop date functions used by these dashboards.
-    const date = value.slice(0, 10); // YYYY-MM-DD
+    // iTop date functions used by these dashboards. DateTime values arrive as
+    // ISO instants; the day they count towards is iTop's, as in its console.
+    const instant = value.includes("T") ? new Date(value) : null;
+    const date =
+      instant && !Number.isNaN(instant.getTime())
+        ? itopDay(instant, this.objects.timeZone)
+        : value.slice(0, 10); // YYYY-MM-DD
     if (fn === "day_of_month") return date.slice(8, 10) || value;
     if (fn === "month") return date.slice(0, 7) || value; // YYYY-MM
     if (fn === "year") return date.slice(0, 4) || value;
