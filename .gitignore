@@ -9,3 +9,7 @@ __pycache__/
 
 # Playwright artefacts
 frontend/test-results/
+
+# Production compose settings (secrets)
+/docker/prod.env
+/docker/prod.local.env

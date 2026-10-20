@@ -1,0 +1,8 @@
+# Build context is the repository root; send only what backend/Dockerfile copies.
+*
+!backend/package.json
+!backend/package-lock.json
+!backend/tsconfig.json
+!backend/tsconfig.build.json
+!backend/src/**
+!cmdb-schema/*.json
