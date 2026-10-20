@@ -22,6 +22,27 @@ Bug found and fixed: the first browser run got an HTTP 500 from iTop ("Packets o
 Not covered: a category with more than 500 failing records against the live iTop (unit test only); a non-administrator calling the routes (the existing `/api/admin` guard, covered by the auth tests).
 
 After merging main (CI, time zones, the bell): backend 423/423 and typecheck clean; frontend 94/94, `tsc` clean, build passes. The run time on the Audit screen now uses the shared `friendlyDateTime` helper (it is a server-made ISO instant).
+### 2026-10-20 — Production images and compose (deployment)
+
+Branch `claude/pensive-grothendieck-3b0ba2`. Docker 29.3.1 on Windows, local iTop on :8080 reached as `host.docker.internal`, sessions in the Windows MySQL (`arcus_bff`), Mailpit for SMTP. Stack started as project `arcus-prodtest` on `127.0.0.1:8088`.
+
+| What ran | Result | Notes |
+| --- | --- | --- |
+| `docker build -f backend/Dockerfile .` | ✅ built | Multi-stage, `npm ci` → `tsc` → prod deps only; runs as `node` (uid 1000) |
+| `docker build frontend` | ✅ built | Vite build in the image (~1.5 min); MSW worker not shipped (`/mockServiceWorker.js` falls back to `index.html`) |
+| `docker compose -f docker/docker-compose.prod.yml up -d` | ✅ both healthy | BFF: schema loaded (158 classes), session store `mysql` ready; web's check reached iTop through `bff:4000/health/upstream` |
+| Caching headers | ✅ | `index.html` and SPA routes `no-cache`; `/assets/*.js` `public, max-age=31536000, immutable`; deep link `/incidents/123` → 200 (SPA fallback) |
+| Sign-in through nginx (curl) | ✅ | `POST /api/auth/login` 200, `intertec_sid` HttpOnly; `/api/auth/me` = admin; same call with `Origin: http://evil.example` → 403 |
+| Dashboard data | ✅ | `/api/dashboard/overview?range=7d` 200 with live counts (8 incidents, 1 open); `/api/meta/navigation` 200 |
+| Session survives `docker restart` of the BFF | ✅ | `/api/auth/me` 200 after restart (MySQL store) |
+| Browser: `http://localhost:8088/` | ✅ partly | Redirects to `/login`, page renders with "Forgot password?" (SMTP on) |
+
+After merging main (PRs #8 CI and #9 dates) at `45e3e54`: backend typecheck clean, 410/410 tests, build ✅; frontend typecheck clean, 87/87 tests, build ✅; GitHub Actions on PR #10: Backend (BFF) ✅, Frontend ✅.
+
+Bugs found and fixed before the commit: `/assets/` sent `Cache-Control` twice (`expires 1y` plus the explicit header; `expires` removed); `/health/upstream` took 13 s against the local iTop, so web's health-check timeout went from 15 s to 30 s.
+
+Not covered: signing in through the browser form (the session was not allowed to read the admin password to type it; the same login was checked with curl); HTTPS with `COOKIE_SECURE=true` behind a real TLS proxy; a Linux host (`host-gateway`); password-reset mail from the container.
+
 ### 2026-10-20 — iTop dates in the viewer's time zone, everywhere
 
 Branch `feature/itop-dates`. Follows up the bell's "Not covered".
