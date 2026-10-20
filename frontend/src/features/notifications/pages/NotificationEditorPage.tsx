@@ -134,6 +134,8 @@ function RuleEditor({ id, rule }: { id: string; rule: Rule | undefined }) {
   const [body, setBody] = useState(rule?.email.body ?? '');
   const [status, setStatus] = useState<EmailStatus>(rule?.email.status ?? 'test');
   const [testRecipient, setTestRecipient] = useState(rule?.email.testRecipient ?? '');
+  const [inAppOn, setInAppOn] = useState(rule?.inApp.on ?? true);
+  const [inAppMessage, setInAppMessage] = useState(rule?.inApp.message ?? '');
   const [conditions, setConditions] = useState<Criterion[]>(rule?.event.conditions ?? []);
   const [keepCondition, setKeepCondition] = useState(rule?.event.keptCondition ?? false);
   const { data: classInfo } = useClassInfo(recordType);
@@ -221,6 +223,7 @@ function RuleEditor({ id, rule }: { id: string; rule: Rule | undefined }) {
         status,
         ...(testRecipient.trim() ? { testRecipient: testRecipient.trim() } : {}),
       },
+      inApp: { on: inAppOn, message: inAppMessage.trim() },
     };
     save.mutate(input, { onSuccess: (saved) => navigate(`/notifications/${saved.id}`, { replace: true }) });
   };
@@ -440,6 +443,27 @@ function RuleEditor({ id, rule }: { id: string; rule: Rule | undefined }) {
           />
           <p className={HINT}>Plain text. A blank line starts a new paragraph. “Link to the record” opens it in this platform.</p>
         </div>
+      </Section>
+
+      <Section title="In the app" subtitle="A notification in the bell of the people in To, alongside the email.">
+        <label className="flex items-center gap-2 text-[13px] text-ink">
+          <input type="checkbox" checked={inAppOn} onChange={(e) => setInAppOn(e.target.checked)} />
+          Also show it in the app’s bell
+        </label>
+        {inAppOn ? (
+          <div>
+            <label htmlFor="in-app-message" className={LABEL}>
+              Short message
+            </label>
+            <Input
+              id="in-app-message"
+              value={inAppMessage}
+              onChange={(e) => setInAppMessage(e.target.value)}
+              placeholder="e.g. {{ref}} was assigned to you"
+            />
+            <p className={HINT}>The subject is its title. Fields work as in the email; clicking it opens the record here.</p>
+          </div>
+        ) : null}
       </Section>
 
       <Section title="Sending">

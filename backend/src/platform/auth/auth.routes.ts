@@ -22,7 +22,7 @@ const PUBLIC_PATHS = new Set([
 ]);
 
 /** What an end-user (portal) session may reach. Everything else is staff-only. */
-const PORTAL_PREFIXES = ["/api/auth/", "/api/portal/"];
+const PORTAL_PREFIXES = ["/api/auth/", "/api/portal/", "/api/me/"];
 
 export function readCookie(request: FastifyRequest, name: string): string | undefined {
   const header = request.headers.cookie;
