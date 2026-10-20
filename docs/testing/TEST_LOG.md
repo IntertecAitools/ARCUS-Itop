@@ -20,6 +20,8 @@ Branch `claude/xenodochial-merkle-a3288c`.
 Bug found and fixed: the first browser run got an HTTP 500 from iTop ("Packets out of order" from MySQL while four REST calls ran at once). Transient, but rules now run one at a time (as iTop's own page does), and "Run all" runs categories one after another.
 
 Not covered: a category with more than 500 failing records against the live iTop (unit test only); a non-administrator calling the routes (the existing `/api/admin` guard, covered by the auth tests).
+
+After merging main (CI, time zones, the bell): backend 423/423 and typecheck clean; frontend 94/94, `tsc` clean, build passes. The run time on the Audit screen now uses the shared `friendlyDateTime` helper (it is a server-made ISO instant).
 ### 2026-10-20 — iTop dates in the viewer's time zone, everywhere
 
 Branch `feature/itop-dates`. Follows up the bell's "Not covered".
