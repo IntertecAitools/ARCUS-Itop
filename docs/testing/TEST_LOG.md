@@ -4,6 +4,19 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-10-20 — Automatic checks (CI) on every pull request
+
+Branch `feature/ci`, in a separate worktree.
+
+| What ran | Result | Notes |
+| --- | --- | --- |
+| The CI steps by hand, from a clean `npm ci`, backend | ✅ typecheck clean, 397/397, build | |
+| The same, frontend | ❌ 82/83 → ✅ 83/83 | A component test passed Vitest's 5 s limit while five sessions shared the laptop; passes on a re-run |
+
+Fix: Vitest's per-test limit raised to 20 s (`frontend/vite.config.ts`), so a slow shared CI runner does not fail a passing test.
+
+From now on GitHub Actions runs these checks on every PR and every push to main; its results are on the PR, not repeated here. Tests needing a running iTop (`npm run smoke`, `api-check.mjs`) stay local.
+
 ### 2026-10-20 — The bell: iTop's in-app notifications in the platform
 
 Branch `feature/bell-notifications`.
