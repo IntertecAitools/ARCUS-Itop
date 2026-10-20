@@ -4,6 +4,25 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-10-20 — Production images and compose (deployment)
+
+Branch `claude/pensive-grothendieck-3b0ba2`. Docker 29.3.1 on Windows, local iTop on :8080 reached as `host.docker.internal`, sessions in the Windows MySQL (`arcus_bff`), Mailpit for SMTP. Stack started as project `arcus-prodtest` on `127.0.0.1:8088`.
+
+| What ran | Result | Notes |
+| --- | --- | --- |
+| `docker build -f backend/Dockerfile .` | ✅ built | Multi-stage, `npm ci` → `tsc` → prod deps only; runs as `node` (uid 1000) |
+| `docker build frontend` | ✅ built | Vite build in the image (~1.5 min); MSW worker not shipped (`/mockServiceWorker.js` falls back to `index.html`) |
+| `docker compose -f docker/docker-compose.prod.yml up -d` | ✅ both healthy | BFF: schema loaded (158 classes), session store `mysql` ready; web's check reached iTop through `bff:4000/health/upstream` |
+| Caching headers | ✅ | `index.html` and SPA routes `no-cache`; `/assets/*.js` `public, max-age=31536000, immutable`; deep link `/incidents/123` → 200 (SPA fallback) |
+| Sign-in through nginx (curl) | ✅ | `POST /api/auth/login` 200, `intertec_sid` HttpOnly; `/api/auth/me` = admin; same call with `Origin: http://evil.example` → 403 |
+| Dashboard data | ✅ | `/api/dashboard/overview?range=7d` 200 with live counts (8 incidents, 1 open); `/api/meta/navigation` 200 |
+| Session survives `docker restart` of the BFF | ✅ | `/api/auth/me` 200 after restart (MySQL store) |
+| Browser: `http://localhost:8088/` | ✅ partly | Redirects to `/login`, page renders with "Forgot password?" (SMTP on) |
+
+Bugs found and fixed before the commit: `/assets/` sent `Cache-Control` twice (`expires 1y` plus the explicit header; `expires` removed); `/health/upstream` took 13 s against the local iTop, so web's health-check timeout went from 15 s to 30 s.
+
+Not covered: signing in through the browser form (the session was not allowed to read the admin password to type it; the same login was checked with curl); HTTPS with `COOKIE_SECURE=true` behind a real TLS proxy; a Linux host (`host-gateway`); password-reset mail from the container.
+
 ### 2026-10-20 — The bell: iTop's in-app notifications in the platform
 
 Branch `feature/bell-notifications`.

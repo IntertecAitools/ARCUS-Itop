@@ -1,0 +1,64 @@
+# Rendered by the nginx image at start (envsubst): ${BFF_UPSTREAM} is the BFF's
+# address, e.g. http://bff:4000. nginx's own $variables are left alone.
+
+# Keep the scheme the outer TLS proxy saw; fall back to this hop's.
+map $http_x_forwarded_proto $forwarded_proto {
+  default $http_x_forwarded_proto;
+  ""      $scheme;
+}
+
+server {
+  listen 80;
+  server_name _;
+  root /usr/share/nginx/html;
+  server_tokens off;
+
+  # Attachments go up to 32 MB, imports to 10 MB (backend limits).
+  client_max_body_size 33m;
+
+  gzip on;
+  gzip_types text/css application/javascript application/json image/svg+xml;
+  gzip_min_length 1024;
+
+  add_header X-Content-Type-Options nosniff always;
+  add_header X-Frame-Options DENY always;
+  add_header Referrer-Policy strict-origin-when-cross-origin always;
+
+  # The BFF. Same origin as the page, so the session cookie is first-party.
+  location /api/ {
+    proxy_pass ${BFF_UPSTREAM};
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $forwarded_proto;
+    proxy_set_header X-Forwarded-Host $host;
+    # iTop can be slow; the BFF's own timeout (ITOP_TIMEOUT_MS) is 30 s by default.
+    proxy_read_timeout 120s;
+    proxy_send_timeout 120s;
+  }
+
+  # Container health check for this nginx only; the BFF's /health and
+  # /health/upstream are not published to the internet.
+  location = /healthz {
+    access_log off;
+    default_type text/plain;
+    return 200 "ok\n";
+  }
+
+  # Vite's hashed bundles never change under the same name.
+  location /assets/ {
+    add_header Cache-Control "public, max-age=31536000, immutable" always;
+    add_header X-Content-Type-Options nosniff always;
+    try_files $uri =404;
+  }
+
+  # Everything else is the single-page app; index.html must always be fresh
+  # so a deploy is picked up on the next load.
+  location / {
+    add_header Cache-Control "no-cache" always;
+    add_header X-Content-Type-Options nosniff always;
+    add_header X-Frame-Options DENY always;
+    add_header Referrer-Policy strict-origin-when-cross-origin always;
+    try_files $uri $uri/ /index.html;
+  }
+}
