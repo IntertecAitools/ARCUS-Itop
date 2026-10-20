@@ -11,6 +11,8 @@ const info = {
     org_id: { type: 'ExternalKey', ui: 'picker', target: 'Organization' },
     service_id: { type: 'ExternalKey', ui: 'picker', target: 'Service' },
     status: { type: 'Enum', ui: 'scalar' },
+    start_date: { type: 'DateTime', ui: 'scalar' },
+    due_date: { type: 'Date', ui: 'scalar' },
   },
   labels: { values: { status: { assigned: 'Assigned' } } },
 } as unknown as ClassInfo;
@@ -43,5 +45,14 @@ describe('list cells', () => {
   it('keeps enum wording and the empty dash for ordinary columns', () => {
     expect(listCell(info, 'status', { status: 'assigned' }).text).toBe('Assigned');
     expect(listCell(info, 'title', { title: '' }).text).toBe('—');
+  });
+
+  it("shows a DateTime instant on the viewer's clock, a Date as its day", () => {
+    const iso = '2026-10-20T12:04:17.000Z';
+    const d = new Date(iso);
+    const hhmm = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    expect(listCell(info, 'start_date', { start_date: iso }).text).toContain(hhmm);
+    expect(listCell(info, 'start_date', { start_date: iso }).text).not.toContain('T');
+    expect(listCell(info, 'due_date', { due_date: '2026-10-21' }).text).toBe('2026-10-21');
   });
 });
