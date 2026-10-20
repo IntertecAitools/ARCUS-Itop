@@ -19,6 +19,8 @@ Branch `claude/pensive-grothendieck-3b0ba2`. Docker 29.3.1 on Windows, local iTo
 | Session survives `docker restart` of the BFF | ✅ | `/api/auth/me` 200 after restart (MySQL store) |
 | Browser: `http://localhost:8088/` | ✅ partly | Redirects to `/login`, page renders with "Forgot password?" (SMTP on) |
 
+After merging main (PRs #8 CI and #9 dates) at `45e3e54`: backend typecheck clean, 410/410 tests, build ✅; frontend typecheck clean, 87/87 tests, build ✅; GitHub Actions on PR #10: Backend (BFF) ✅, Frontend ✅.
+
 Bugs found and fixed before the commit: `/assets/` sent `Cache-Control` twice (`expires 1y` plus the explicit header; `expires` removed); `/health/upstream` took 13 s against the local iTop, so web's health-check timeout went from 15 s to 30 s.
 
 Not covered: signing in through the browser form (the session was not allowed to read the admin password to type it; the same login was checked with curl); HTTPS with `COOKIE_SECURE=true` behind a real TLS proxy; a Linux host (`host-gateway`); password-reset mail from the container.
