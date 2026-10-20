@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { DEFAULT_ITOP_TIMEZONE } from "../shared/itop-time.js";
 
 /**
  * Relative paths in .env resolve against the package root (the directory
@@ -155,8 +156,7 @@ export interface PasswordResetConfig {
 }
 
 function itopTimezone(): string {
-  // iTop's own default when config-itop.php does not set one.
-  const zone = optional("ITOP_TIMEZONE", "Europe/Paris");
+  const zone = optional("ITOP_TIMEZONE", DEFAULT_ITOP_TIMEZONE);
   try {
     new Intl.DateTimeFormat("en-US", { timeZone: zone });
   } catch {

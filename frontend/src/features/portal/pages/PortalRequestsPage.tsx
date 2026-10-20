@@ -3,11 +3,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Search } from 'lucide-react';
 import { buttonClasses, Card, Input } from '@/components/ui';
 import { DataTable, StatusPill, type Column } from '@/components/data-display';
-import { cn } from '@/lib/utils';
+import { cn, dateTimeText } from '@/lib/utils';
 import { useMyRequests } from '../api/portal.api';
 import type { PortalTicket } from '../types';
 
-export const formatDate = (value: string) => (value ? value.slice(0, 16) : '—');
+/** A request's date-time on the viewer's clock. */
+export const formatDate = (value: string) => (value ? dateTimeText(value) : '—');
 
 const columns: Column<PortalTicket>[] = [
   { id: 'ref', header: 'Reference', size: 110, enableSorting: false, cell: ({ row }) => <span className="font-medium text-brand-ink">{row.original.ref}</span> },

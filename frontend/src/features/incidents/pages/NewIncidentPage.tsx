@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button, buttonClasses, Card } from '@/components/ui';
+import { fromDateTimeInput } from '@/lib/utils';
 import { useCreateIncident, useIncidentOptions } from '../api/useIncidents';
 import { CONTROL, Field, SectionLabel, Select } from '../components/FormField';
 import { newIncidentSchema, type NewIncidentForm } from '../schemas';
@@ -57,6 +58,8 @@ export function NewIncidentPage() {
     const payload = Object.fromEntries(
       Object.entries(values).filter(([, v]) => v !== '' && v !== undefined),
     ) as NewIncidentForm;
+    // The picker shows the viewer's wall clock; send the exact instant.
+    if (payload.startDate) payload.startDate = fromDateTimeInput(payload.startDate);
 
     create.mutate(payload, { onSuccess: (incident) => navigate(`/incidents/${incident.id}`) });
   });

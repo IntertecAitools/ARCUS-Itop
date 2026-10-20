@@ -188,7 +188,8 @@ Open to staff and end users (`/api/me/` passes the guard for both).
   not iTop's URL.
 - iTop writes datetimes as local text in its own time zone
   (`ITOP_TIMEZONE`, default `Europe/Paris`, iTop's default). The BFF sends
-  exact ISO times, so "5 minutes ago" is right in any browser.
+  exact ISO times, so "5 minutes ago" is right in any browser (see
+  "Datetimes have no time zone" below).
 
 
 Without a shared iTop, run one from this repository's own `iTop/` copy:
@@ -305,6 +306,27 @@ Pagination needs a total, and the only one available is the `"Found: N"` text in
 `message`. `DBObjectSet::Count()` builds it with `limit=0`
 (`dbobjectset.class.php:808`), so `N` *is* the across-all-pages total. Parsed in
 `parseFoundCount`, with a fallback so a format change degrades instead of lying.
+
+### 6. Datetimes have no time zone
+
+iTop stores a DateTime as wall-clock text on its own clock
+(`"2026-10-20 14:04:17"`, `timezone` in config-itop.php), with no offset. A
+browser elsewhere would read that as its own local time and be hours out.
+The BFF knows iTop's zone from `ITOP_TIMEZONE` (default `Europe/Paris`) and
+converts at the edges, in `shared/itop-time.ts`:
+
+- **Out:** every DateTime attribute, case-log entry date and stopwatch
+  deadline goes to the browser as an exact ISO instant
+  (`"2026-10-20T12:04:17.000Z"`): records (`ObjectsService`), tickets,
+  the portal, history, the dashboard, the notification send log and the bell.
+  Date-only attributes (AttributeDate) are calendar days and stay `YYYY-MM-DD`.
+- **In:** a DateTime written or filtered on may be an ISO instant (what the
+  frontend sends); it is moved onto iTop's clock. Wall-clock text and bare
+  days are read as iTop's own, as before.
+- **Days:** the dashboard's ranges, trend buckets and change week are iTop's
+  calendar days, whatever zone the BFF host runs in.
+
+Exports (`transfer`) are iTop's own files and keep iTop's wall-clock text.
 
 ---
 
