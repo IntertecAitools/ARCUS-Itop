@@ -25,6 +25,7 @@ import {
 } from "./platform/auth/reset-token.store.js";
 import { UsersService } from "./platform/admin/users.service.js";
 import { NotificationsService } from "./platform/admin/notifications.service.js";
+import { AuditService } from "./platform/admin/audit.service.js";
 import { InboxService } from "./platform/inbox/inbox.service.js";
 import { PortalService } from "./platform/portal/portal.service.js";
 import { DefaultOrganization } from "./shared/default-organization.js";
@@ -47,6 +48,7 @@ export interface Services {
   passwordReset: PasswordResetService;
   users: UsersService;
   notifications: NotificationsService;
+  audit: AuditService;
   inbox: InboxService;
   portal: PortalService;
   dashboard: DashboardService;
@@ -139,6 +141,7 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
       config.itop.timezone,
     ),
     inbox: new InboxService(client, config.itop.timezone),
+    audit: new AuditService(client, schema),
     users: new UsersService(client, objects, auth, sessions),
     portal: new PortalService(client, schema, objects),
     dashboard: new DashboardService(objects, navigation, currentContact),

@@ -239,6 +239,30 @@ If the mail provider requires OAuth instead of a password (Microsoft 365
 may), iTop has `'email_transport' => 'SMTP_OAuth'`; the BFF needs OAuth
 support added first.
 
+## Audit
+
+iTop's data-quality audit is run from **Audit** in the frontend,
+administrators only:
+
+- `GET /api/admin/audit` lists domains and categories, each category with
+  its rules (name, description, the record type it checks, its good/warning
+  tolerances, and whether a rule lists the `faulty` or the `valid` records).
+- `POST /api/admin/audit/categories/:id/run` runs every rule of a category.
+- `POST /api/admin/audit/rules/:id/run` runs one rule against its category.
+
+A run returns the size of the category's set, how many records fail at least
+one rule, and per rule: the failing count, percent OK, a status (`good`,
+`warning`, `bad`, from the category's tolerances as iTop colours them) and
+the failing records (id, class, name; the first 500, with `truncated` when
+there are more). A rule whose query iTop cannot run comes back with an
+`error` instead of a count, as on iTop's own page.
+
+Counting mirrors `pages/audit.php`: a rule listing faulty records fails
+those that are also in the category's set; a rule listing valid records
+fails every record of the set it does not return. Queries are read with the
+administrator's own rights and never leave the BFF. Rules run one at a time.
+Creating and editing categories and rules is not here yet (still in iTop).
+
 ## What this layer is actually for
 
 Five upstream behaviours make a direct browser-to-iTop integration painful.
