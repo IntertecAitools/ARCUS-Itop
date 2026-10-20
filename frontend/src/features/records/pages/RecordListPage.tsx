@@ -12,8 +12,9 @@ import { BulkDeleteDialog, BulkEditDialog, BulkResultBanner } from '../component
 import { TransitionDialog } from '../components/TransitionDialog';
 import { AdvancedSearch } from '../components/AdvancedSearch';
 import { listCell, listFields } from '../lib/list-cells';
+import { exportableColumns, exportFields, loadExportColumns, saveExportColumns } from '../lib/export-columns';
 import { requiredForTransition, transitionPrompts } from '../lib/transitions';
-import type { BulkRequest, BulkResult, Criterion, RecordDto } from '../types';
+import type { BulkRequest, BulkResult, ClassInfo, Criterion, RecordDto } from '../types';
 
 type BulkDialog = { kind: 'edit' } | { kind: 'delete' } | { kind: 'action'; action: string };
 
@@ -45,6 +46,8 @@ export function RecordListPage() {
   const [searchOpen, setSearchOpen] = useState(false);
 
   const { data: info, isLoading: schemaLoading, isError: schemaError, error } = useClassInfo(className);
+  // "User Request", not "UserRequest": the class's own label once known.
+  const classLabel = info?.labels?.class ?? className;
 
   // The menu label for the active view, so the heading reads like iTop's own
   // ("Open", "Under escalation") instead of showing a raw menu id.
@@ -295,8 +298,8 @@ export function RecordListPage() {
   return (
     <>
       <PageHeader
-        breadcrumbs={[{ label: 'Home', to: '/' }, { label: 'Records', to: '/records' }, { label: className }]}
-        title={className}
+        breadcrumbs={[{ label: 'Home', to: '/' }, { label: 'Records', to: '/records' }, { label: classLabel }]}
+        title={classLabel}
         description={
           data
             ? [
@@ -322,7 +325,9 @@ export function RecordListPage() {
                 Clear filter
               </Link>
             ) : null}
-            <ExportMenu className={className} q={q || undefined} view={view} criteria={criteria} />
+            {info ? (
+              <ExportMenu info={info} listColumns={columns} q={q || undefined} view={view} criteria={criteria} />
+            ) : null}
             {info && !info.abstract ? (
               <Link
                 to={`/records/${className}/import`}
@@ -351,7 +356,7 @@ export function RecordListPage() {
 
       {listError ? (
         <div role="alert" className="mb-4 rounded-card border border-critical/30 bg-critical-soft px-4 py-3 text-[13px] text-critical-ink">
-          Couldn’t load {className} records.
+          Couldn’t load {classLabel} records.
         </div>
       ) : null}
 
@@ -427,8 +432,8 @@ export function RecordListPage() {
         <Input
           defaultValue={q}
           onChange={(e) => update({ q: e.target.value || undefined })}
-          placeholder={`Search ${className}…`}
-          aria-label={`Search ${className}`}
+          placeholder={`Search ${classLabel}…`}
+          aria-label={`Search ${classLabel}`}
           leadingIcon={<Search className="size-4" />}
           className="w-full sm:w-80"
         />
@@ -465,7 +470,7 @@ export function RecordListPage() {
         ) : !isLoading && data?.items.length === 0 ? (
           <EmptyState
             icon={<Database className="size-5" />}
-            title={q ? 'No records match that search' : `No ${className} records yet`}
+            title={q ? 'No records match that search' : `No ${classLabel} records yet`}
             description={q ? 'Try a shorter term.' : 'Records you create appear here.'}
           />
         ) : (
@@ -513,21 +518,39 @@ const EXPORT_LABELS = { csv: 'CSV', xlsx: 'Excel', pdf: 'PDF' } as const;
 
 /**
  * Export the list as shown — same view and search, every page — in a format
- * iTop renders itself.
+ * iTop renders itself, with the columns the user picks. They start as the
+ * list's own columns; the last choice per class is remembered.
  */
 function ExportMenu({
-  className,
+  info,
+  listColumns,
   q,
   view,
   criteria,
 }: {
-  className: string;
+  info: ClassInfo;
+  listColumns: string[];
   q?: string;
   view?: string;
   criteria?: Criterion[];
 }) {
   const [open, setOpen] = useState(false);
-  const exporter = useExport(className);
+  const [picking, setPicking] = useState(false);
+  const exporter = useExport(info.name);
+
+  const defaults = useMemo(() => ['id', ...listColumns.filter((c) => c !== 'id')], [listColumns]);
+  const available = useMemo(() => exportableColumns(info), [info]);
+  const [chosen, setChosen] = useState<string[]>(() => loadExportColumns(info) ?? defaults);
+  // Another class, or its schema arriving: start again from what is stored.
+  useEffect(() => setChosen(loadExportColumns(info) ?? defaults), [info, defaults]);
+
+  const label = (code: string) => (code === 'id' ? 'ID' : (info.labels?.fields?.[code] ?? humaniseAttcode(code)));
+  const choose = (next: string[]) => {
+    setChosen(next);
+    saveExportColumns(info.name, next);
+  };
+  const toggle = (code: string) =>
+    choose(chosen.includes(code) ? chosen.filter((c) => c !== code) : [...chosen, code]);
 
   return (
     <div className="relative">
@@ -537,30 +560,79 @@ function ExportMenu({
         leadingIcon={<Download className="size-4" />}
         loading={exporter.isPending}
         onClick={() => setOpen((o) => !o)}
-        aria-haspopup="menu"
+        aria-haspopup="dialog"
         aria-expanded={open}
       >
         Export
       </Button>
       {open ? (
         <div
-          role="menu"
-          className="absolute right-0 z-20 mt-1 w-40 rounded-card border border-line bg-surface-raised py-1 shadow-overlay"
+          role="dialog"
+          aria-label="Export"
+          className="absolute right-0 z-20 mt-1 w-72 rounded-card border border-line bg-surface-raised py-1 shadow-overlay"
         >
           {(Object.keys(EXPORT_LABELS) as Array<keyof typeof EXPORT_LABELS>).map((format) => (
             <button
               key={format}
               type="button"
-              role="menuitem"
-              className="block w-full px-3 py-1.5 text-left text-[13px] text-ink hover:bg-surface-hover"
+              disabled={chosen.length === 0}
+              className="block w-full px-3 py-1.5 text-left text-[13px] text-ink hover:bg-surface-hover disabled:text-ink-muted"
               onClick={() => {
                 setOpen(false);
-                exporter.mutate({ format, q, view, ...(criteria?.length ? { criteria } : {}) });
+                setPicking(false);
+                exporter.mutate({
+                  format,
+                  q,
+                  view,
+                  fields: exportFields(info, chosen),
+                  ...(criteria?.length ? { criteria } : {}),
+                });
               }}
             >
               {EXPORT_LABELS[format]}
             </button>
           ))}
+          <div className="mt-1 border-t border-line px-3 pt-2 pb-1">
+            <button
+              type="button"
+              className="flex w-full items-center justify-between text-left text-[12px] text-ink-secondary hover:text-ink"
+              aria-expanded={picking}
+              onClick={() => setPicking((p) => !p)}
+            >
+              <span>
+                Columns: {chosen.length} of {available.length}
+              </span>
+              <span className="text-brand-ink">{picking ? 'Done' : 'Choose…'}</span>
+            </button>
+            {picking ? (
+              <>
+                <div className="mt-2 flex gap-3 text-[12px]">
+                  <button type="button" className="text-brand-ink hover:underline" onClick={() => choose(defaults)}>
+                    List columns
+                  </button>
+                  <button type="button" className="text-brand-ink hover:underline" onClick={() => choose(available)}>
+                    All
+                  </button>
+                  <button type="button" className="text-brand-ink hover:underline" onClick={() => choose([])}>
+                    None
+                  </button>
+                </div>
+                <div className="mt-2 max-h-64 space-y-1 overflow-y-auto pr-1">
+                  {available.map((code) => (
+                    <label key={code} className="flex items-center gap-2 text-[13px] text-ink">
+                      <input type="checkbox" checked={chosen.includes(code)} onChange={() => toggle(code)} />
+                      <span className="truncate" title={code}>
+                        {label(code)}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+                {chosen.length === 0 ? (
+                  <p className="mt-1 text-[12px] text-critical-ink">Pick at least one column.</p>
+                ) : null}
+              </>
+            ) : null}
+          </div>
         </div>
       ) : null}
       {exporter.isError ? (

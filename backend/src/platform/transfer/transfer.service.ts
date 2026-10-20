@@ -1,6 +1,7 @@
 import { AppError, badRequest } from "../../core/errors.js";
 import type { ItopClient } from "../../itop/client.js";
 import type { CmdbSchema } from "../../schema/load.js";
+import { parseCsv, remapCsv, writeCsv } from "./csv.js";
 
 /** The export formats offered, as iTop's export-v2.php names them. */
 export const EXPORT_FORMATS = ["csv", "xlsx", "pdf"] as const;
@@ -21,6 +22,13 @@ export interface ImportOptions {
   separator?: string;
   qualifier?: string;
   comment?: string;
+  /**
+   * The column each of the file's columns loads into (an attribute code,
+   * `id`, or `org_id->name`), in file order; null skips that column. Lets a
+   * file whose headings are labels, or another system's names, be imported
+   * without editing it. Reconciliation keys then name the mapped columns.
+   */
+  mapping?: (string | null)[];
 }
 
 export type ImportRowKind = "created" | "updated" | "unchanged" | "error" | "other";
@@ -98,12 +106,18 @@ export class TransferService {
       if (char !== undefined && char.length !== 1) throw badRequest("Separator and qualifier are single characters.");
     }
 
+    const separator = options.separator ?? ",";
+    const qualifier = options.qualifier ?? '"';
+    const csvdata = options.mapping
+      ? this.applyMapping(info.name, options.csv, separator, qualifier, options.mapping)
+      : options.csv;
+
     const params: Record<string, string> = {
       class: info.name,
-      csvdata: options.csv,
+      csvdata,
       charset: "UTF-8",
-      separator: options.separator ?? ",",
-      qualifier: options.qualifier ?? '"',
+      separator,
+      qualifier,
       output: "details",
       no_localize: "1",
       simulate: options.simulate ? "1" : "0",
@@ -115,6 +129,42 @@ export class TransferService {
 
     const response = await this.client.postScript("webservices/import.php", params);
     return parseImportReport(await response.text(), options.simulate);
+  }
+
+  /** Rewrites the file with the mapped headings, leaving out skipped columns. */
+  private applyMapping(
+    className: string,
+    csv: string,
+    separator: string,
+    qualifier: string,
+    mapping: (string | null)[],
+  ): string {
+    const rows = parseCsv(csv, separator, qualifier);
+    const header = rows[0] ?? [];
+    if (mapping.length !== header.length) {
+      throw badRequest(`The mapping lists ${mapping.length} columns but the file has ${header.length}.`);
+    }
+    const targets = mapping.filter((t): t is string => t !== null);
+    if (targets.length === 0) throw badRequest("Every column is skipped; map at least one.");
+    const seen = new Set<string>();
+    for (const target of targets) {
+      this.checkImportColumn(className, target);
+      if (seen.has(target)) throw badRequest(`Two file columns are mapped to "${target}".`);
+      seen.add(target);
+    }
+    return writeCsv(remapCsv(rows, mapping), separator, qualifier);
+  }
+
+  /** An import column: `id`, an attribute, or a picker matched on its target's field. */
+  private checkImportColumn(className: string, column: string): void {
+    const info = this.schema.require(className);
+    if (column === "id") return;
+    const [code, ...path] = column.split("->");
+    const field = code ? info.fields[code] : undefined;
+    if (!field) throw badRequest(`Unknown attribute "${code}" on ${className}.`);
+    if (path.length > 0 && (field.ui !== "picker" || !path.every((p) => /^[A-Za-z0-9_]+$/.test(p)))) {
+      throw badRequest(`"${column}" is not a column iTop can import.`);
+    }
   }
 
   /** Export columns must be real attributes of the class. */
@@ -182,7 +232,8 @@ export function parseImportReport(text: string, simulated: boolean): ImportRepor
 
   const [header, ...body] = tableLines;
   const rows = body.map((line) => {
-    const cells = line.split(";");
+    // Cells are `"`-qualified when they hold the separator.
+    const cells = parseCsv(line, ";", '"')[0] ?? [];
     const status = cells[1] ?? "";
     return {
       line: Number(cells[0]) || 0,
@@ -198,7 +249,7 @@ export function parseImportReport(text: string, simulated: boolean): ImportRepor
     simulated,
     summary,
     messages,
-    columns: header ? header.split(";").slice(4) : [],
+    columns: header ? (parseCsv(header, ";", '"')[0] ?? []).slice(4) : [],
     rows,
   };
 }
