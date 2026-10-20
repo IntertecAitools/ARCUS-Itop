@@ -1,5 +1,14 @@
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
-import { BellRing, Database, LayoutDashboard, LayoutGrid, LifeBuoy, UsersRound, type LucideIcon } from 'lucide-react';
+import {
+  BellRing,
+  Database,
+  LayoutDashboard,
+  LayoutGrid,
+  LifeBuoy,
+  ShieldCheck,
+  UsersRound,
+  type LucideIcon,
+} from 'lucide-react';
 
 /**
  * ════════════════════════════════════════════════════════════════════════════
@@ -254,6 +263,16 @@ export const modules: ModuleDefinition[] = [
         ),
       },
     ],
+  },
+  {
+    id: 'audit',
+    label: 'Audit',
+    path: 'audit',
+    icon: ShieldCheck,
+    group: 'administration',
+    description: 'Data-quality checks on the CMDB, and the records that fail them.',
+    adminOnly: true,
+    component: lazy(() => import('@/features/audit').then((m) => ({ default: m.AuditPage }))),
   },
 ];
 
