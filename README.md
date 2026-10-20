@@ -64,6 +64,11 @@ npm run dev                 # http://127.0.0.1:4000
 curl http://127.0.0.1:4000/health/upstream   # proves it can reach + auth to iTop
 ```
 
+The iTop account in `ITOP_USER` needs the **Administrator** and **REST
+Services User** profiles, set once by hand per iTop install; staff accounts
+get REST Services User automatically when created from the app. Details:
+`backend/README.md`, "iTop accounts the BFF needs".
+
 **3. Frontend**
 
 ```bash

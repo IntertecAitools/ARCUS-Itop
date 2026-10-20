@@ -4,6 +4,17 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-10-20 — Mailpit test mailbox for the BFF and iTop
+
+| What ran | Result | Notes |
+| --- | --- | --- |
+| Mailpit v1.31.6 started from `docker/docker-compose.local.yml` | ✅ | Web inbox on :8025 answers 200; iTop still up |
+| iTop sends through its own `Email` class (synchronous), SMTP to `mailpit:1025` | ✅ sent | Arrived from helpdesk@intertecsys.com |
+| BFF `POST /api/auth/forgot-password` for a portal user | ✅ 202 | Reset email arrived in Mailpit with the link |
+| Mailpit inbox in the browser | ✅ | Both messages listed |
+
+Not covered: a real mail server (waiting for IT: Microsoft 365 mailbox, SMTP AUTH or OAuth); iTop notification rules themselves (not built yet).
+
 ### 2026-10-19 — Forgot password by email
 
 Branch `feature/forgot-password`.

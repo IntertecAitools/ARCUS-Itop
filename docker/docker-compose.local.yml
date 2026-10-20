@@ -11,7 +11,7 @@
 #        docker compose -f docker/docker-compose.local.yml run --rm --no-deps \
 #          -v "$PWD/iTop:/src:ro" itop-local \
 #          bash -c "cd /src && tar --exclude=./.git -cf - . | tar -C /var/www/html -xf - && chown -R www-data:www-data /var/www/html"
-#   3. Start it:
+#   3. Start it (and Mailpit, the test mailbox on http://localhost:8025):
 #        docker compose -f docker/docker-compose.local.yml up -d
 #   4. First time only, run iTop's setup (see backend/README.md, "Local iTop").
 #
@@ -29,6 +29,20 @@ services:
     extra_hosts:
       # Reaches MySQL 8.0 running as a Windows service.
       - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  # A local test mailbox: catches every email iTop and the BFF send, so nothing
+  # reaches real people. Read them at http://localhost:8025. iTop reaches it
+  # as mailpit:1025; the BFF (on Windows) as 127.0.0.1:1025. Replace with the
+  # real SMTP server in production (backend/.env and iTop's config).
+  mailpit:
+    image: axllent/mailpit:v1.31.6
+    container_name: itop-mailpit
+    ports:
+      - "127.0.0.1:1025:1025" # SMTP
+      - "127.0.0.1:8025:8025" # web inbox
+    environment:
+      MP_MAX_MESSAGES: "2000"
     restart: unless-stopped
 
 volumes:
