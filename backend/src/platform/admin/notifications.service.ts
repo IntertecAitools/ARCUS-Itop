@@ -4,6 +4,7 @@ import { normalizeObjects, parseFoundCount, type FlatObject } from "../../itop/n
 import type { CmdbSchema } from "../../schema/load.js";
 import type { ClassInfo } from "../../schema/types.js";
 import { str } from "../../shared/ticket-mapping.js";
+import { DEFAULT_ITOP_TIMEZONE, itopValueToIso } from "../../shared/itop-time.js";
 import { criterionKind, type Criterion } from "../objects/criteria.js";
 import { conditionsToFilter, filterToConditions } from "./conditions.js";
 
@@ -110,6 +111,8 @@ export interface RuleDto {
     /** Other rules sending this same email: editing it changes them too. */
     sharedWith: number;
   };
+  /** Also shown in the app's bell (an iTop newsroom action on the same trigger). */
+  inApp: { on: boolean; message: string };
 }
 
 export interface RuleInput {
@@ -133,6 +136,8 @@ export interface RuleInput {
     status: EmailStatus;
     testRecipient?: string;
   };
+  /** Also notify in the app's bell, to the same recipients as the email's To. */
+  inApp?: { on: boolean; message: string };
 }
 
 /* ------------------------------------------------------------------------ *
@@ -372,10 +377,13 @@ interface Snapshot {
   links: Array<{ id: number; triggerId: number; actionId: number }>;
   triggers: Map<number, FlatObject>;
   emails: Map<number, FlatObject>;
+  /** iTop's in-app (newsroom) actions. */
+  inApp: Map<number, FlatObject>;
 }
 
 export interface SentEmail {
   id: number;
+  /** ISO instant. */
   date: string;
   to: string;
   subject: string;
@@ -391,6 +399,8 @@ export class NotificationsService {
     private readonly schema: CmdbSchema,
     private readonly appBaseUrl: string | undefined,
     private readonly sender: { address: string; label: string } | undefined,
+    /** iTop's configured time zone, which the send log's dates are written in. */
+    private readonly timeZone: string = DEFAULT_ITOP_TIMEZONE,
   ) {}
 
   private async get(cls: string, oql: string, fields: string): Promise<FlatObject[]> {
@@ -399,7 +409,7 @@ export class NotificationsService {
   }
 
   private async snapshot(): Promise<Snapshot> {
-    const [links, triggers, emails] = await Promise.all([
+    const [links, triggers, emails, inApp] = await Promise.all([
       this.get("lnkTriggerAction", "SELECT lnkTriggerAction", "id,trigger_id,action_id"),
       // `*+` reads each trigger's own subclass attributes (state, fields…).
       this.get("Trigger", "SELECT Trigger", "*+"),
@@ -408,6 +418,7 @@ export class NotificationsService {
         "SELECT ActionEmail",
         "id,name,status,test_recipient,to,cc,bcc,subject,body",
       ),
+      this.get("ActionNewsroom", "SELECT ActionNewsroom", "id,name,status,title,message,recipients"),
     ]);
     return {
       links: links.map((l) => ({
@@ -417,7 +428,14 @@ export class NotificationsService {
       })),
       triggers: new Map(triggers.map((t) => [t.id, t])),
       emails: new Map(emails.map((e) => [e.id, e])),
+      inApp: new Map(inApp.map((a) => [a.id, a])),
     };
+  }
+
+  /** The in-app action on a trigger, and its link, if there is one. */
+  private inAppOf(snap: Snapshot, triggerId: number) {
+    const link = snap.links.find((l) => l.triggerId === triggerId && snap.inApp.has(l.actionId));
+    return link ? { link, action: snap.inApp.get(link.actionId)! } : undefined;
   }
 
   async list(): Promise<RuleDto[]> {
@@ -537,7 +555,69 @@ export class NotificationsService {
         testRecipient: str(email.fields["test_recipient"]),
         sharedWith: snap.links.filter((l) => l.actionId === link.actionId).length - 1,
       },
+      inApp: (() => {
+        const found = this.inAppOf(snap, link.triggerId);
+        return found
+          ? {
+              on: str(found.action.fields["status"]) === "enabled",
+              message: subjectFromItop(str(found.action.fields["message"])),
+            }
+          : { on: false, message: "" };
+      })(),
     };
+  }
+
+  /**
+   * Makes the trigger's in-app action match the rule: created or updated
+   * (same recipients as the email's To, the subject as its title) when on;
+   * removed when off and nothing else uses it.
+   */
+  private async syncInApp(snap: Snapshot | null, triggerId: number, input: RuleInput, keptTo: string[]): Promise<void> {
+    const found = snap ? this.inAppOf(snap, triggerId) : undefined;
+    const comment = "Notification rule edited in the platform";
+    if (!input.inApp?.on) {
+      if (!found) return;
+      const usedElsewhere = snap!.links.some((l) => l.actionId === found.link.actionId && l.triggerId !== triggerId);
+      await this.client.call(
+        "core/delete",
+        usedElsewhere
+          ? { class: "lnkTriggerAction", key: found.link.id, comment }
+          : { class: "ActionNewsroom", key: found.link.actionId, comment },
+      );
+      return;
+    }
+    const { recordType } = input.event;
+    const fields = {
+      name: `${input.name.trim()} (in the app)`.slice(0, 255),
+      status: "enabled",
+      title: subjectToItop(input.email.subject, recordType, this.appBaseUrl),
+      message: subjectToItop(input.inApp.message || input.email.subject, recordType, this.appBaseUrl),
+      recipients: buildRecipients(input.email.to, keptTo),
+      // iTop's own link; the platform opens the record itself, from the event.
+      url: "$this->url()$",
+    };
+    if (found) {
+      await this.client.call("core/update", {
+        class: "ActionNewsroom",
+        key: found.link.actionId,
+        fields,
+        output_fields: "id",
+        comment,
+      });
+      return;
+    }
+    const created = await this.client.call("core/create", {
+      class: "ActionNewsroom",
+      fields: { ...fields, language: "EN US", priority: "3" },
+      output_fields: "id",
+      comment,
+    });
+    await this.client.call("core/create", {
+      class: "lnkTriggerAction",
+      fields: { trigger_id: triggerId, action_id: normalizeObjects(created.objects)[0]!.id, order: 2 },
+      output_fields: "id",
+      comment,
+    });
   }
 
   private async personNames(ids: number[]): Promise<Map<number, string>> {
@@ -708,6 +788,7 @@ export class NotificationsService {
       output_fields: "id",
       comment: "Notification rule created in the platform",
     });
+    await this.syncInApp(null, triggerId, input, []);
     return this.getRule(normalizeObjects(link.objects)[0]!.id);
   }
 
@@ -751,6 +832,7 @@ export class NotificationsService {
       comment: "Notification rule edited in the platform",
     });
 
+    let ruleTriggerId = link.triggerId;
     if (editableEvent) {
       if (TRIGGER_CLASS[effective.event.kind] === trigger.class) {
         await this.client.call("core/update", {
@@ -761,23 +843,34 @@ export class NotificationsService {
           comment: "Notification rule edited in the platform",
         });
       } else {
-        // A trigger cannot change class: make the new one, move this rule to
-        // it, and drop the old one if nothing else uses it.
+        // A trigger cannot change class: make the new one, move this rule
+        // (and its in-app part, when no other rule shares the old trigger)
+        // to it, and drop the old one if nothing else uses it.
         const created = await this.client.call("core/create", {
           class: TRIGGER_CLASS[effective.event.kind],
           fields: triggerData,
           output_fields: "id",
           comment: "Notification rule edited in the platform",
         });
-        const newTriggerId = normalizeObjects(created.objects)[0]!.id;
-        await this.client.call("core/update", {
-          class: "lnkTriggerAction",
-          key: id,
-          fields: { trigger_id: newTriggerId },
-          output_fields: "id",
-          comment: "Notification rule edited in the platform",
-        });
-        if (!snap.links.some((l) => l.triggerId === link.triggerId && l.id !== id)) {
+        ruleTriggerId = normalizeObjects(created.objects)[0]!.id;
+        const move = async (linkId: number) =>
+          this.client.call("core/update", {
+            class: "lnkTriggerAction",
+            key: linkId,
+            fields: { trigger_id: ruleTriggerId },
+            output_fields: "id",
+            comment: "Notification rule edited in the platform",
+          });
+        await move(id);
+        const otherEmails = snap.links.filter(
+          (l) => l.triggerId === link.triggerId && l.id !== id && snap.emails.has(l.actionId),
+        );
+        const inApp = this.inAppOf(snap, link.triggerId);
+        if (!otherEmails.length && inApp) await move(inApp.link.id);
+        const remaining = snap.links.filter(
+          (l) => l.triggerId === link.triggerId && l.id !== id && (otherEmails.length || l.id !== inApp?.link.id),
+        );
+        if (!remaining.length) {
           await this.client.call("core/delete", {
             class: trigger.class,
             key: link.triggerId,
@@ -786,6 +879,8 @@ export class NotificationsService {
         }
       }
     }
+    // Links moved above: work from what iTop holds now.
+    await this.syncInApp(await this.snapshot(), ruleTriggerId, effective, kept.to);
     return this.getRule(id);
   }
 
@@ -831,7 +926,22 @@ export class NotificationsService {
     if (!link) throw notFound(`No notification rule ${id}.`);
     const comment = "Notification rule deleted in the platform";
     await this.client.call("core/delete", { class: "lnkTriggerAction", key: id, comment });
-    const others = snap.links.filter((l) => l.id !== id);
+    // The in-app part belongs to the trigger's email rules: it goes with
+    // the last of them.
+    const inApp = this.inAppOf(snap, link.triggerId);
+    const otherEmails = snap.links.filter(
+      (l) => l.triggerId === link.triggerId && l.id !== id && snap.emails.has(l.actionId),
+    );
+    if (inApp && !otherEmails.length) {
+      const usedElsewhere = snap.links.some((l) => l.actionId === inApp.link.actionId && l.triggerId !== link.triggerId);
+      await this.client.call(
+        "core/delete",
+        usedElsewhere
+          ? { class: "lnkTriggerAction", key: inApp.link.id, comment }
+          : { class: "ActionNewsroom", key: inApp.link.actionId, comment },
+      );
+    }
+    const others = snap.links.filter((l) => l.id !== id && (otherEmails.length || l.id !== inApp?.link.id));
     const trigger = snap.triggers.get(link.triggerId);
     if (trigger && !others.some((l) => l.triggerId === link.triggerId)) {
       await this.client.call("core/delete", { class: trigger.class, key: link.triggerId, comment });
@@ -870,7 +980,7 @@ export class NotificationsService {
         const objectId = Number(f["object_id"]);
         return {
           id: r.id,
-          date: str(f["date"]),
+          date: str(itopValueToIso(f["date"], this.timeZone)),
           to: str(f["to"]),
           subject: str(f["subject"]),
           result: str(f["message"]),

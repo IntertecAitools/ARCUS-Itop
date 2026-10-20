@@ -4,6 +4,7 @@ import { assertIdentifier, quoteString } from "../../itop/oql.js";
 import type { CmdbSchema } from "../../schema/load.js";
 import type { ClassInfo } from "../../schema/types.js";
 import { notFound } from "../../core/errors.js";
+import { DEFAULT_ITOP_TIMEZONE, itopValueToIso } from "../../shared/itop-time.js";
 
 /** One field-level change, already worded for a person to read. */
 export interface HistoryChange {
@@ -16,11 +17,14 @@ export interface HistoryChange {
   text: string;
   oldValue?: string;
   newValue?: string;
+  /** "datetime" when oldValue/newValue are ISO instants, for the viewer to format in their zone. */
+  valueKind?: "datetime";
 }
 
 /** One save in iTop: who, when, and every field it touched. */
 export interface HistoryEntry {
   id: string;
+  /** ISO instant. */
   date: string;
   /** Who made the change: the account's person, else its login. */
   user: string;
@@ -57,6 +61,8 @@ export class HistoryService {
   constructor(
     private readonly client: ItopClient,
     private readonly schema: CmdbSchema,
+    /** iTop's configured time zone, which its stored dates are written in. */
+    private readonly timeZone: string = DEFAULT_ITOP_TIMEZONE,
   ) {}
 
   async forObject(className: string, id: number): Promise<HistoryResult> {
@@ -100,14 +106,14 @@ export class HistoryService {
         const userId = str(f["user_id"]);
         entry = {
           id: changeId,
-          date: str(f["date"]),
+          date: str(itopValueToIso(str(f["date"]), this.timeZone)),
           user: authors.get(userId) ?? str(f["userinfo"]),
           comment: str(f["userinfo"]),
           changes: [],
         };
         byChange.set(changeId, entry);
       }
-      entry.changes.push(describe(info, op, names));
+      entry.changes.push(describe(info, op, names, this.timeZone));
     }
 
     // Newest first; iTop's ids grow with time, which breaks same-second ties.
@@ -190,6 +196,7 @@ export function describe(
   info: ClassInfo,
   op: FlatObject,
   names: Map<string, string> = new Map(),
+  timeZone: string = DEFAULT_ITOP_TIMEZONE,
 ): HistoryChange {
   const f = op.fields;
   const attcode = str(f["attcode"]) || undefined;
@@ -213,6 +220,21 @@ export function describe(
       return { kind: "deleted", text: `Deleted ${str(f["fclass"])} ${str(f["fname"])}`.trim() };
     case "CMDBChangeOpSetAttributeScalar":
     case "CMDBChangeOpSetAttributeURL": {
+      if (field?.widget === "datetime") {
+        const iso = (raw: unknown) => str(itopValueToIso(str(raw), timeZone));
+        const oldValue = iso(f["oldvalue"]);
+        const newValue = iso(f["newvalue"]);
+        const shown = (v: string) => v || "(empty)";
+        return {
+          kind: "set",
+          attcode,
+          label,
+          oldValue,
+          newValue,
+          valueKind: "datetime",
+          text: `${label}: ${shown(oldValue)} → ${shown(newValue)}`,
+        };
+      }
       const oldValue = show(f["oldvalue"]);
       const newValue = show(f["newvalue"]);
       return { kind: "set", attcode, label, oldValue, newValue, text: `${label}: ${oldValue} → ${newValue}` };

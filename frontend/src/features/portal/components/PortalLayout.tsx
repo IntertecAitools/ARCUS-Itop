@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { env } from '@/config/env';
 import { useSessionStore } from '@/stores/session.store';
 import { useSignOut } from '@/features/auth';
+import { NotificationBell } from '@/features/inbox';
 
 const LINKS = [
   { to: '/portal', label: 'Home', end: true },
@@ -53,6 +54,8 @@ export function PortalLayout() {
             ))}
           </nav>
           <div className="flex items-center gap-3 text-[13px]">
+            {/* End users only reach their own requests here. */}
+            <NotificationBell linkFor={(r) => (r.type === 'UserRequest' ? `/portal/requests/${r.id}` : null)} />
             <span className="text-ink">{user?.name}</span>
             <button
               type="button"

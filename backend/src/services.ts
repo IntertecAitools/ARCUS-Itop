@@ -25,6 +25,7 @@ import {
 } from "./platform/auth/reset-token.store.js";
 import { UsersService } from "./platform/admin/users.service.js";
 import { NotificationsService } from "./platform/admin/notifications.service.js";
+import { InboxService } from "./platform/inbox/inbox.service.js";
 import { PortalService } from "./platform/portal/portal.service.js";
 import { DefaultOrganization } from "./shared/default-organization.js";
 import { CurrentContact } from "./shared/current-contact.js";
@@ -46,6 +47,7 @@ export interface Services {
   passwordReset: PasswordResetService;
   users: UsersService;
   notifications: NotificationsService;
+  inbox: InboxService;
   portal: PortalService;
   dashboard: DashboardService;
   incidents: IncidentsService;
@@ -98,7 +100,7 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
   const navigation =
     options.navigation ?? Navigation.fromFile(config.navigationPath, schema);
   const client = options.client ?? new ItopClient(config, options.logger);
-  const objects = new ObjectsService(client, schema, config.itop.defaultComment);
+  const objects = new ObjectsService(client, schema, config.itop.defaultComment, config.itop.timezone);
   const currentContact = new CurrentContact(client, config.itop.user);
   const defaultOrganization = new DefaultOrganization(
     objects,
@@ -124,12 +126,19 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     attachments: new AttachmentsService(objects, schema),
     lookups: new LookupsService(client, schema, config.lookupCacheTtlMs),
     relations: new RelationsService(client, schema),
-    history: new HistoryService(client, schema),
+    history: new HistoryService(client, schema, config.itop.timezone),
     transfer: new TransferService(client, schema),
     auth,
     sessions,
     passwordReset: new PasswordResetService(client, auth, resetTokens, sessions, mailer, reset),
-    notifications: new NotificationsService(client, schema, config.appBaseUrl, config.notificationSender),
+    notifications: new NotificationsService(
+      client,
+      schema,
+      config.appBaseUrl,
+      config.notificationSender,
+      config.itop.timezone,
+    ),
+    inbox: new InboxService(client, config.itop.timezone),
     users: new UsersService(client, objects, auth, sessions),
     portal: new PortalService(client, schema, objects),
     dashboard: new DashboardService(objects, navigation, currentContact),

@@ -182,6 +182,8 @@ export interface HistoryChange {
   text: string;
   oldValue?: string;
   newValue?: string;
+  /** "datetime" when oldValue/newValue are ISO instants. */
+  valueKind?: 'datetime';
 }
 
 /** One save: who, when, and what it changed. */

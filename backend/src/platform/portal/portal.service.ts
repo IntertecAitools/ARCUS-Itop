@@ -12,6 +12,7 @@ import {
   type TicketPriority,
   type TicketStatus,
 } from "../../shared/ticket-mapping.js";
+import { itopFieldsToIso } from "../../shared/itop-time.js";
 
 /** iTop's profile that widens an end user's view to their organisation. */
 export const POWER_USER_PROFILE = "Portal power user";
@@ -104,8 +105,13 @@ export class PortalService {
     return TICKET_CLASSES.map((c) => `${c}:${fields}`).join(";");
   }
 
+  /** A row's fields with its DateTimes and case-log dates as ISO instants. */
+  private fieldsOf(row: FlatObject): Record<string, unknown> {
+    return itopFieldsToIso(row.fields, this.schema.get(row.class), this.objects.timeZone);
+  }
+
   private toTicket(row: FlatObject): PortalTicket {
-    const f = row.fields;
+    const f = this.fieldsOf(row);
     return {
       id: row.id,
       ref: str(f["ref"]) || `#${row.id}`,
@@ -165,7 +171,7 @@ export class PortalService {
   /** One ticket, or 404 when it does not exist OR is outside the user's scope. */
   async getTicket(caller: Caller, id: number): Promise<PortalTicketDetail> {
     const row = await this.loadInScope(caller, id, DETAIL_FIELDS);
-    const f = row.fields;
+    const f = this.fieldsOf(row);
     const lifecycle = this.schema.get(row.class)?.lifecycle;
     const offered = lifecycle?.states[str(f["status"])] ?? [];
 

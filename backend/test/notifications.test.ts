@@ -187,6 +187,28 @@ describe("NotificationsService", () => {
     assert.deepEqual(itop.writes, [`delete lnkTriggerAction ${l1}`, `delete TriggerOnObjectCreate ${t1}`]);
   });
 
+  it("adds the in-app part on the same trigger, and removes it with the rule", async () => {
+    const itop = fakeItop();
+    const service = new NotificationsService(itop.client, sampleSchema(), BASE, sender);
+    const created = await service.create({ ...rule, inApp: { on: true, message: "{{ref}} resolved" } });
+    assert.deepEqual(itop.writes, [
+      "create ActionEmail",
+      "create TriggerOnStateEnter",
+      "create lnkTriggerAction",
+      "create ActionNewsroom",
+      "create lnkTriggerAction",
+    ]);
+    const inApp = [...itop.objects.values()].find((o) => o.class === "ActionNewsroom")!;
+    assert.equal(inApp.fields["recipients"], "SELECT Person WHERE id = :this->caller_id");
+    assert.equal(inApp.fields["message"], "$this->ref$ resolved");
+    assert.deepEqual(created.inApp, { on: true, message: "{{ref}} resolved" });
+
+    itop.writes.length = 0;
+    await service.remove(created.id);
+    assert.ok(itop.writes.includes(`delete ActionNewsroom ${inApp.id}`), itop.writes.join(" | "));
+    assert.equal([...itop.objects.values()].filter((o) => o.class !== "lnkTriggerAction").length, 0);
+  });
+
   it("refuses rules it cannot send correctly", async () => {
     const itop = fakeItop();
     const service = new NotificationsService(itop.client, sampleSchema(), BASE, undefined);

@@ -1,6 +1,15 @@
 import { Card, CardBody, Skeleton } from '@/components/ui';
 import { EmptyState } from '@/components/feedback';
+import { dateTimeText } from '@/lib/utils';
 import { useHistory } from '../api/useRecords';
+import type { HistoryChange } from '../types';
+
+/** A change line; date-time values are shown on the viewer's clock. */
+function changeText(change: HistoryChange) {
+  if (change.valueKind !== 'datetime') return change.text;
+  const show = (v?: string) => (v ? dateTimeText(v) : '(empty)');
+  return `${change.label ?? change.attcode}: ${show(change.oldValue)} → ${show(change.newValue)}`;
+}
 
 /**
  * A record's history: every save, newest first, with who made it and what it
@@ -36,12 +45,12 @@ export function HistoryTab({ className, id }: { className: string; id: string })
           {data.items.map((entry) => (
             <li key={entry.id} className="border-l-2 border-line pl-3">
               <div className="text-[12px] text-ink-muted">
-                {entry.date} · {entry.user || 'Unknown user'}
+                {dateTimeText(entry.date)} · {entry.user || 'Unknown user'}
                 {entry.comment && entry.comment !== entry.user ? <span> — {entry.comment}</span> : null}
               </div>
               <ul className="mt-1 space-y-0.5 text-[13px] text-ink">
                 {entry.changes.map((change, i) => (
-                  <li key={i}>{change.text}</li>
+                  <li key={i}>{changeText(change)}</li>
                 ))}
               </ul>
             </li>
