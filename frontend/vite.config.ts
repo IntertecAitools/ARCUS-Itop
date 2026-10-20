@@ -71,6 +71,10 @@ export default defineConfig(({ mode }) => {
     // Unit tests live beside the code. `tests/` is Playwright's — Vitest would
     // otherwise try to run the e2e specs and fail on Playwright's test().
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    // The component tests render real screens in jsdom; on a busy machine or
+    // a shared CI runner one can pass 5 s, Vitest's default, and fail for no
+    // reason. A real hang still fails, just later.
+    testTimeout: 20_000,
   },
   // Cast because `test` belongs to Vitest's config, not Vite's, and importing
   // vitest/config here would pull the test runner into the build.
