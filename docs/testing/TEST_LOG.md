@@ -6,7 +6,7 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ### 2026-10-20 — iTop dates in the viewer's time zone, everywhere
 
-Branch `feature/bell-notifications` (on top of `f841e4a`), uncommitted. Follows up the bell's "Not covered".
+Branch `feature/itop-dates`. Follows up the bell's "Not covered".
 
 | What ran | Result | Notes |
 | --- | --- | --- |
@@ -21,6 +21,19 @@ Branch `feature/bell-notifications` (on top of `f841e4a`), uncommitted. Follows 
 What changed: the BFF now sends every iTop DateTime as an ISO instant (ObjectsService converts by the schema, so records, tickets, incidents, attachments and dashlets all get it; portal, history and the send log convert their own reads). Datetimes written or filtered on may be ISO instants and are moved onto iTop's clock; dashboard ranges and trend days use iTop's calendar rather than the BFF host's. The frontend formats instants locally (record fields and list cells, case logs, history, send log, portal) and the datetime inputs (record forms, new incident) edit on the viewer's clock and send instants.
 
 Not covered: no browser pass of the screens (unit tests + live API only); portal endpoints not hit live (no portal session in this run); no live write of an ISO datetime (unit-tested). A bare-day date filter still means iTop's day, not the viewer's; dashboard trend days are iTop's days. Exports keep iTop's own text.
+
+### 2026-10-20 — Automatic checks (CI) on every pull request
+
+Branch `feature/ci`, in a separate worktree.
+
+| What ran | Result | Notes |
+| --- | --- | --- |
+| The CI steps by hand, from a clean `npm ci`, backend | ✅ typecheck clean, 397/397, build | |
+| The same, frontend | ❌ 82/83 → ✅ 83/83 | A component test passed Vitest's 5 s limit while five sessions shared the laptop; passes on a re-run |
+
+Fix: Vitest's per-test limit raised to 20 s (`frontend/vite.config.ts`), so a slow shared CI runner does not fail a passing test.
+
+From now on GitHub Actions runs these checks on every PR and every push to main; its results are on the PR, not repeated here. Tests needing a running iTop (`npm run smoke`, `api-check.mjs`) stay local.
 
 ### 2026-10-20 — The bell: iTop's in-app notifications in the platform
 
@@ -435,3 +448,5 @@ Not covered yet: approvals (extension not installed); load and concurrency beyon
   - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/xenodochial-merkle-a3288c/backend" && npm test 2>&1 | tail -12`
 - **2026-10-20 13:50 UTC** · `feature/bell-notifications@f841e4a` + uncommitted changes · Frontend unit tests (vitest) (frontend) · ✅ 10 passed, 0 failed
   - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/funny-maxwell-1ae845/frontend"; npx vitest run src/features/records/lib/import-mapping.test.ts 2>&1 | tail -15; cat "C:/Users/`
+- **2026-10-20 13:56 UTC** · `feature/itop-dates@780553e` + uncommitted changes · Frontend unit tests (vitest) (frontend) · ✅ 36 passed, 0 failed
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/funny-maxwell-1ae845"; grep -n "friendly name" frontend/src/features/records/lib/import-mapping.ts; (cd backend && node --impo`
