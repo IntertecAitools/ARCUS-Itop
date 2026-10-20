@@ -1,5 +1,5 @@
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
-import { Database, LayoutDashboard, LayoutGrid, LifeBuoy, UsersRound, type LucideIcon } from 'lucide-react';
+import { BellRing, Database, LayoutDashboard, LayoutGrid, LifeBuoy, UsersRound, type LucideIcon } from 'lucide-react';
 
 /**
  * ════════════════════════════════════════════════════════════════════════════
@@ -231,6 +231,27 @@ export const modules: ModuleDefinition[] = [
         path: ':id',
         label: 'User',
         component: lazy(() => import('@/features/users').then((m) => ({ default: m.UserEditorPage }))),
+      },
+    ],
+  },
+  {
+    id: 'notifications',
+    label: 'Notifications',
+    path: 'notifications',
+    icon: BellRing,
+    group: 'administration',
+    description: 'Who gets an email when tickets are created, assigned or resolved.',
+    adminOnly: true,
+    component: lazy(() =>
+      import('@/features/notifications').then((m) => ({ default: m.NotificationListPage })),
+    ),
+    children: [
+      {
+        path: ':id',
+        label: 'Rule',
+        component: lazy(() =>
+          import('@/features/notifications').then((m) => ({ default: m.NotificationEditorPage })),
+        ),
       },
     ],
   },

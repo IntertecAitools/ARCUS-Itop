@@ -24,6 +24,7 @@ import {
   type ResetTokenStore,
 } from "./platform/auth/reset-token.store.js";
 import { UsersService } from "./platform/admin/users.service.js";
+import { NotificationsService } from "./platform/admin/notifications.service.js";
 import { PortalService } from "./platform/portal/portal.service.js";
 import { DefaultOrganization } from "./shared/default-organization.js";
 import { CurrentContact } from "./shared/current-contact.js";
@@ -44,6 +45,7 @@ export interface Services {
   sessions: SessionStore;
   passwordReset: PasswordResetService;
   users: UsersService;
+  notifications: NotificationsService;
   portal: PortalService;
   dashboard: DashboardService;
   incidents: IncidentsService;
@@ -127,6 +129,7 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     auth,
     sessions,
     passwordReset: new PasswordResetService(client, auth, resetTokens, sessions, mailer, reset),
+    notifications: new NotificationsService(client, schema, config.appBaseUrl, config.notificationSender),
     users: new UsersService(client, objects, auth, sessions),
     portal: new PortalService(client, schema, objects),
     dashboard: new DashboardService(objects, navigation, currentContact),

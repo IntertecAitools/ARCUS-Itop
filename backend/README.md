@@ -113,12 +113,57 @@ user list.
   - Other settings: `AUTH_REQUIRED`, `SESSION_IDLE_MINUTES`,
     `SESSION_MAX_HOURS`, `COOKIE_SECURE` (on behind HTTPS).
 
-**One-time setup in iTop:** the service account in `ITOP_USER` needs the
-Administrator and REST Services User profiles, and the first administrator
-(the installer's `admin` will do) signs in to create everyone else from
-**Users** in the frontend (`/api/admin/users`, `/api/admin/profiles`).
+### iTop accounts the BFF needs
 
-## Local iTop
+Both are still required: iTop's REST API accepts only accounts with the
+**REST Services User** profile (`secure_rest_services` is on by default), and
+its token login is not installed.
+
+| Account | Profiles | Why | How it gets them |
+| --- | --- | --- | --- |
+| Service account (`ITOP_USER`) | Administrator + REST Services User | Sign-in lookups, user admin, the end-user portal (iTop's REST API refuses portal accounts), comments written in a portal user's name, password resets | **By hand, once per iTop install.** The API cannot give REST Services User to an account that lacks it: see step 3 of "Local iTop" below |
+| Every staff account | REST Services User (plus their own) | Staff call iTop as themselves, so iTop applies their rights and History shows their name | **Automatic** when the account is created or saved from **Users** in the frontend |
+| Portal (end-user) accounts | Portal user | Served by `/api/portal/*` through the service account | Never given REST Services User |
+
+- Accounts created in iTop before the platform was set up lack REST Services
+  User. Signing in then says so ("it needs the REST Services User
+  profile"); open the account in **Users** and save it to add the profile.
+- After the service account is ready, the first administrator (the
+  installer's `admin` will do) signs in and creates everyone else from
+  **Users** (`/api/admin/users`, `/api/admin/profiles`). Nobody needs to open
+  iTop for this.
+
+## Notifications
+
+Email rules ("when a User Request enters Resolved, email the caller") are
+managed from **Notifications** in the frontend, administrators only:
+`/api/admin/notifications/rules` (list, get, create, `PUT` edit, `PATCH
+…/status`, delete), `/api/admin/notifications/options?recordType=`, and
+`/api/admin/notifications/sent` (iTop's log of sent emails).
+
+- **iTop sends them**, not the BFF: it is the only place that sees every
+  change, including its own background jobs (SLA escalations, auto-resolve).
+  So iTop needs its own mail settings (see "Switching to the real mail
+  server" below).
+- A rule is one iTop `lnkTriggerAction`: a Trigger (when) linked to an
+  ActionEmail (what). The BFF translates both ways; the frontend never sees
+  OQL or `$this->…$` placeholders:
+  - events: created, changed (optionally only some fields), deleted, enters
+    or leaves a status, SLA timer (TTO/TTR) at 75% or 100%;
+  - recipients: the caller, the assigned agent, the assigned team, specific
+    people, combined into one `SELECT Person WHERE … OR …` query. Parts of a
+    query set up in iTop that do not match are kept as they are;
+  - texts: plain text with `{{ref}}`-style fields; `{{link}}` points at
+    `APP_BASE_URL/records/<type>/<id>`, never at iTop. iTop's own
+    `$this->hyperlink()$` reads back as `{{link}}`, so saving an old rule
+    moves its link to the platform;
+  - every rule is sent from `NOTIFICATION_FROM` (default `MAIL_FROM`).
+- Rules on events only iTop's own screens raise (@mentions in iTop's editor,
+  updates from iTop's portal) are listed and editable but marked: nothing
+  done in this platform fires them.
+- Not yet editable here: "only when…" conditions (existing ones are kept),
+  and iTop's in-app ("newsroom") notifications.
+
 
 Without a shared iTop, run one from this repository's own `iTop/` copy:
 
@@ -137,6 +182,35 @@ Without a shared iTop, run one from this repository's own `iTop/` copy:
    `URP_UserProfile` linking `admin` to that profile) does.
 4. `cp .env.example .env`, set `ITOP_USER`/`ITOP_PASSWORD` to that account,
    `npm run dev`, then `npm run smoke` and `npm run api:check`.
+5. Email goes to **Mailpit**, a test mailbox started with iTop by the same
+   compose file: every message the BFF or iTop sends lands at
+   http://localhost:8025 and reaches nobody. Two places point at it:
+   - the BFF, in `backend/.env`: `SMTP_HOST=127.0.0.1`, `SMTP_PORT=1025`,
+     `SMTP_REQUIRE_TLS=false`, plus `MAIL_FROM` and `APP_BASE_URL`;
+   - iTop itself (its notifications), in
+     `/var/www/html/conf/production/config-itop.php` inside the container:
+     `'email_transport' => 'SMTP'`, `'email_transport_smtp.host' => 'mailpit'`,
+     `'email_transport_smtp.port' => 1025`,
+     `'email_transport_smtp.encryption' => ''`, and
+     `email_default_sender_address` / `_label`. The file is read-only;
+     `chmod u+w` it, edit, `chmod u-w`, then check with `php -l`.
+
+### Switching to the real mail server
+
+Change **both** places; they send different emails (the BFF: password
+resets; iTop: ticket notifications).
+
+| | BFF (`backend/.env`) | iTop (`config-itop.php`) |
+| --- | --- | --- |
+| Server | `SMTP_HOST=smtp.office365.com` | `'email_transport_smtp.host' => 'smtp.office365.com'` |
+| Port | `SMTP_PORT=587` | `'email_transport_smtp.port' => 587` |
+| Encryption | remove `SMTP_REQUIRE_TLS=false` (TLS is then required) | `'email_transport_smtp.encryption' => 'tls'` |
+| Account | `SMTP_USER`, `SMTP_PASSWORD` | `'email_transport_smtp.username'`, `'email_transport_smtp.password'` |
+| Sender | `MAIL_FROM` | `email_default_sender_address`, `email_default_sender_label` |
+
+If the mail provider requires OAuth instead of a password (Microsoft 365
+may), iTop has `'email_transport' => 'SMTP_OAuth'`; the BFF needs OAuth
+support added first.
 
 ## What this layer is actually for
 

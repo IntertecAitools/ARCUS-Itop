@@ -95,6 +95,16 @@ export interface Config {
   /** iTop's dashboard definitions, from cmdb-schema/extract-dashboards.py. */
   dashboardsPath: string;
   lookupCacheTtlMs: number;
+  /**
+   * The frontend's public address, e.g. https://helpdesk.example.com. Links
+   * in emails (password resets, notifications) point here, never at iTop.
+   */
+  appBaseUrl?: string;
+  /**
+   * Sender of iTop's notification emails, from NOTIFICATION_FROM or else
+   * MAIL_FROM ("Label <address>" or a bare address). Absent when neither is set.
+   */
+  notificationSender?: { address: string; label: string };
   /** Pins the organisation new records belong to. Optional. */
   defaultOrgId?: string;
   auth: {
@@ -139,6 +149,31 @@ export interface PasswordResetConfig {
   tokenTtlMs: number;
 }
 
+function appBaseUrl(): string | undefined {
+  const value = optional("APP_BASE_URL", "").replace(/\/+$/, "");
+  if (!value) return undefined;
+  if (!/^https?:\/\//.test(value)) {
+    throw new Error("APP_BASE_URL must start with http:// or https://.");
+  }
+  return value;
+}
+
+/** "Intertec Helpdesk <helpdesk@x.com>" or "helpdesk@x.com" to address and label. */
+export function parseMailbox(value: string): { address: string; label: string } | undefined {
+  const named = /^\s*"?([^"<]*?)"?\s*<([^>]+)>\s*$/.exec(value);
+  const address = (named?.[2] ?? value).trim();
+  if (!/^[^\s@]+@[^\s@]+$/.test(address)) return undefined;
+  return { address, label: named ? named[1]!.trim() : "" };
+}
+
+function notificationSender(): { address: string; label: string } | undefined {
+  const raw = optional("NOTIFICATION_FROM", "") || optional("MAIL_FROM", "");
+  if (!raw) return undefined;
+  const parsed = parseMailbox(raw);
+  if (!parsed) throw new Error(`NOTIFICATION_FROM / MAIL_FROM is not an email address: "${raw}".`);
+  return parsed;
+}
+
 function withPasswordReset(config: PasswordResetConfig | undefined) {
   return config ? { passwordReset: config } : {};
 }
@@ -148,10 +183,8 @@ function passwordResetConfig(): PasswordResetConfig | undefined {
   if (!host) return undefined;
   const user = optional("SMTP_USER", "");
   const password = optional("SMTP_PASSWORD", "");
-  const appBaseUrl = required("APP_BASE_URL").replace(/\/+$/, "");
-  if (!/^https?:\/\//.test(appBaseUrl)) {
-    throw new Error("APP_BASE_URL must start with http:// or https://.");
-  }
+  const base = appBaseUrl();
+  if (!base) throw new Error("APP_BASE_URL is required when SMTP_HOST is set: reset links point at it.");
   const port = integer("SMTP_PORT", 587, 1, 65_535);
   return {
     smtp: {
@@ -164,7 +197,7 @@ function passwordResetConfig(): PasswordResetConfig | undefined {
       ...(password ? { password } : {}),
     },
     from: required("MAIL_FROM"),
-    appBaseUrl,
+    appBaseUrl: base,
     tokenTtlMs: integer("PASSWORD_RESET_MINUTES", 30, 5, 24 * 60) * 60_000,
   };
 }
@@ -263,6 +296,8 @@ export function loadConfig(envFile = resolve(PACKAGE_ROOT, ".env")): Config {
       optional("CMDB_DASHBOARDS_PATH", "../cmdb-schema/cmdb-dashboards.json"),
     ),
     lookupCacheTtlMs: integer("LOOKUP_CACHE_TTL", 60, 0, 86_400) * 1000,
+    ...(appBaseUrl() ? { appBaseUrl: appBaseUrl()! } : {}),
+    ...(notificationSender() ? { notificationSender: notificationSender()! } : {}),
     ...(optional("ITOP_DEFAULT_ORG_ID", "") ? { defaultOrgId: optional("ITOP_DEFAULT_ORG_ID", "") } : {}),
     auth: {
       required: optional("AUTH_REQUIRED", "true").toLowerCase() !== "false",
