@@ -31,6 +31,7 @@ const ruleSchema = z.object({
     status: z.enum(["on", "test", "off"]),
     testRecipient: z.string().max(255).optional(),
   }),
+  inApp: z.object({ on: z.boolean(), message: z.string().max(255) }).optional(),
 });
 
 /**

@@ -4,7 +4,7 @@ import { ChevronDown, ChevronRight, Play, ShieldCheck } from 'lucide-react';
 import { PageHeader } from '@/components/layout';
 import { Badge, Button, Card, CardHeader, Tabs } from '@/components/ui';
 import { EmptyState } from '@/components/feedback';
-import { cn } from '@/lib/utils';
+import { cn, friendlyDateTime } from '@/lib/utils';
 import { useAuditOverview, useAuditRuns, useRunAudit, type RunTarget } from '../api/audit.api';
 import { describeRule, formatPercent, plural, STATUS_LABEL, STATUS_TONE } from '../lib/runs';
 import type { AuditCategory, AuditRule, CategoryRun, RuleResult } from '../types';
@@ -122,8 +122,8 @@ function CategoryCard({ category, run, isRunning, onRun }: CategoryCardProps) {
 
   const subtitle = run
     ? run.summary
-      ? `${plural(run.summary.failing, 'record')} of ${run.total.toLocaleString()} fail at least one rule · ${formatPercent(run.summary.percentOk)} OK · run ${new Date(run.ranAt).toLocaleString()}`
-      : `${plural(run.total, 'record')} checked · run ${new Date(run.ranAt).toLocaleString()}`
+      ? `${plural(run.summary.failing, 'record')} of ${run.total.toLocaleString()} fail at least one rule · ${formatPercent(run.summary.percentOk)} OK · run ${friendlyDateTime(run.ranAt)}`
+      : `${plural(run.total, 'record')} checked · run ${friendlyDateTime(run.ranAt)}`
     : `Checks ${category.recordTypeLabel || 'records'} · ${plural(category.rules.length, 'rule')} · not run yet`;
 
   return (

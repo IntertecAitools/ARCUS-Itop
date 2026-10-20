@@ -28,6 +28,7 @@ let rules = [
       testRecipient: '',
       sharedWith: 0,
     },
+    inApp: { on: true, message: '{{ref}} was resolved' },
   },
 ];
 

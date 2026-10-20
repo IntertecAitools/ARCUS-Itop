@@ -37,6 +37,34 @@ export function relativeTime(value: string | Date) {
   return formatDistanceToNowStrict(new Date(value), { addSuffix: true });
 }
 
+/**
+ * An exact instant ("2026-10-20T12:04:17.000Z", or with an offset), which is
+ * how the BFF sends every iTop DateTime. Date-only values (YYYY-MM-DD) are
+ * not instants: they name a calendar day and are shown as they are.
+ */
+const INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})$/i;
+
+export function isInstant(value: unknown): value is string {
+  return typeof value === 'string' && INSTANT.test(value);
+}
+
+/** A record's date-time in the viewer's zone: "20 Oct 2026, 17:34". Anything else as given. */
+export function dateTimeText(value: string) {
+  return isInstant(value) ? format(new Date(value), 'dd MMM yyyy, HH:mm') : value;
+}
+
+/** An instant as an <input type="datetime-local"> value, in the viewer's zone. */
+export function toDateTimeInput(value: string) {
+  return isInstant(value) ? format(new Date(value), "yyyy-MM-dd'T'HH:mm") : value;
+}
+
+/** A datetime-local input's value (the viewer's wall clock) as an exact instant; "" stays "". */
+export function fromDateTimeInput(value: string) {
+  if (!value) return '';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toISOString();
+}
+
 /** "AB" from "Ada Byron" — avatar fallbacks. */
 export function initials(name: string) {
   return name

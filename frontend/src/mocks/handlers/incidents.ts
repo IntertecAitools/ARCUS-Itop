@@ -43,7 +43,7 @@ function make(partial: Partial<IncidentDetail> & { id: string; ref: string }): I
     description: '',
     status,
     priority: 'medium',
-    createdAt: '2026-10-06 09:00:00',
+    createdAt: '2026-10-06T09:00:00Z',
     sla: { ttoBreached: false, ttrBreached: false },
     log: [],
     availableActions: ACTIONS_BY_STATUS[status] ?? [],
@@ -60,9 +60,9 @@ const seeded: IncidentDetail[] = [
     status: 'open',
     priority: 'critical',
     assignee: { id: '1', name: 'admin' },
-    createdAt: '2026-10-06 10:42:00',
+    createdAt: '2026-10-06T10:42:00Z',
     sla: { ttoBreached: false, ttrBreached: true },
-    log: [{ date: '2026-10-06 11:00', author: 'admin', message: 'Investigating the gateway.' }],
+    log: [{ date: '2026-10-06T11:00:00Z', author: 'admin', message: 'Investigating the gateway.' }],
   }),
   make({
     id: '1041',
@@ -71,7 +71,7 @@ const seeded: IncidentDetail[] = [
     status: 'in_progress',
     priority: 'high',
     assignee: { id: '2', name: 'Ravi' },
-    createdAt: '2026-10-06 09:15:00',
+    createdAt: '2026-10-06T09:15:00Z',
   }),
   make({
     id: '1040',
@@ -79,7 +79,7 @@ const seeded: IncidentDetail[] = [
     summary: 'Laptop not booting',
     status: 'resolved',
     priority: 'medium',
-    createdAt: '2026-10-05 16:21:00',
+    createdAt: '2026-10-05T16:21:00Z',
   }),
 ];
 

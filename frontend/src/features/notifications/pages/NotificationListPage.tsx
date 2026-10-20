@@ -4,7 +4,7 @@ import { AlertTriangle, Plus } from 'lucide-react';
 import { PageHeader } from '@/components/layout';
 import { buttonClasses, Card, Select, Tabs } from '@/components/ui';
 import { DataTable, type Column } from '@/components/data-display';
-import { cn } from '@/lib/utils';
+import { cn, dateTimeText } from '@/lib/utils';
 import { useRules, useSentEmails, useSetRuleStatus } from '../api/notifications.api';
 import { describeEvent, describeRecipients } from '../lib/describe';
 import type { EmailStatus, Rule, SentEmail } from '../types';
@@ -80,7 +80,7 @@ export function NotificationListPage() {
   ];
 
   const sentColumns: Column<SentEmail>[] = [
-    { id: 'date', header: 'Sent', enableSorting: false, size: 150, cell: ({ row }) => row.original.date },
+    { id: 'date', header: 'Sent', enableSorting: false, size: 150, cell: ({ row }) => dateTimeText(row.original.date) },
     { id: 'to', header: 'To', enableSorting: false, cell: ({ row }) => <span className="block truncate">{row.original.to || '—'}</span> },
     { id: 'subject', header: 'Subject', enableSorting: false, cell: ({ row }) => <span className="block truncate">{row.original.subject}</span> },
     { id: 'rule', header: 'Rule', enableSorting: false, cell: ({ row }) => <span className="block truncate">{row.original.rule}</span> },

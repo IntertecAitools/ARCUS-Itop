@@ -5,6 +5,7 @@ import { isDeadlock, normalizeObjects, parseFoundCount, type FlatObject } from "
 import { assertIdentifier, buildOql } from "../../itop/oql.js";
 import type { CmdbSchema } from "../../schema/load.js";
 import type { ClassInfo } from "../../schema/types.js";
+import { DEFAULT_ITOP_TIMEZONE, itopFieldsToIso } from "../../shared/itop-time.js";
 import { validateWrite } from "../../shared/write-validation.js";
 import { criterionToOql, type Criterion } from "./criteria.js";
 
@@ -63,6 +64,8 @@ export class ObjectsService {
     private readonly client: ItopClient,
     private readonly schema: CmdbSchema,
     private readonly defaultComment: string,
+    /** iTop's configured time zone: DateTime values go out as ISO instants. */
+    readonly timeZone: string = DEFAULT_ITOP_TIMEZONE,
   ) {}
 
   /**
@@ -160,7 +163,8 @@ export class ObjectsService {
         : typeof name === "string" && name !== ""
           ? name
           : `${flat.class}::${flat.id}`;
-    return { class: flat.class, id: flat.id, label, fields: flat.fields };
+    const fields = itopFieldsToIso(flat.fields, this.schema.get(flat.class), this.timeZone);
+    return { class: flat.class, id: flat.id, label, fields };
   }
 
   /**
@@ -216,7 +220,7 @@ export class ObjectsService {
       }
       built.search = { term: query.q, attributes: info.searchable };
     }
-    const criteria = (query.criteria ?? []).map((c) => criterionToOql(info, c));
+    const criteria = (query.criteria ?? []).map((c) => criterionToOql(info, c, this.timeZone));
     if (criteria.length > 0) built.rawConditions = criteria;
     if (Object.keys(equals).length === 0 && !built.search && criteria.length === 0) return null;
     return buildOql(built);
@@ -384,6 +388,7 @@ export class ObjectsService {
     const validated = validateWrite(info, rawFields, {
       mode: "create",
       strict: options.strict ?? true,
+      timeZone: this.timeZone,
     });
 
     const result = await this.client.call("core/create", {
@@ -412,6 +417,7 @@ export class ObjectsService {
     const validated = validateWrite(info, rawFields, {
       mode: "update",
       strict: options.strict ?? true,
+      timeZone: this.timeZone,
     });
 
     const result = await this.client.call("core/update", {
@@ -530,7 +536,7 @@ export class ObjectsService {
       !(typeof rawFields === "object" && !Array.isArray(rawFields) && Object.keys(rawFields).length === 0);
 
     const fields = hasFields
-      ? validateWrite(info, rawFields, { mode: "update", strict: true }).fields
+      ? validateWrite(info, rawFields, { mode: "update", strict: true, timeZone: this.timeZone }).fields
       : {};
 
     const result = await this.client.call("core/apply_stimulus", {
@@ -741,7 +747,7 @@ export class ObjectsService {
     }
     // Validate once up front, so a bad payload fails the request instead of
     // failing identically for every record.
-    if (request.action === "update") validateWrite(info, request.fields, { mode: "update" });
+    if (request.action === "update") validateWrite(info, request.fields, { mode: "update", timeZone: this.timeZone });
     if (request.action === "stimulus") {
       if (!info.lifecycle) throw badRequest(`${info.name} has no lifecycle, so it accepts no actions.`);
       assertIdentifier(request.stimulus, "stimulus");

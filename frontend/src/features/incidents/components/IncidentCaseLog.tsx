@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { MessageSquare, Send } from 'lucide-react';
 import { Avatar, Button, Card, CardBody, CardHeader } from '@/components/ui';
 import { EmptyState } from '@/components/feedback';
+import { friendlyDateTime, isInstant } from '@/lib/utils';
 import { useAddLogEntry } from '../api/useIncidents';
 import { toPlainText } from '../lib/itop-text';
 import type { CaseLogEntry } from '../types';
@@ -38,7 +39,9 @@ export function IncidentCaseLog({ id, entries }: { id: string; entries: CaseLogE
                       {entry.author || 'System'}
                     </span>
                     {entry.date ? (
-                      <span className="text-[11px] text-ink-muted tabular-nums">{entry.date}</span>
+                      <span className="text-[11px] text-ink-muted tabular-nums">
+                        {isInstant(entry.date) ? friendlyDateTime(entry.date) : entry.date}
+                      </span>
                     ) : null}
                   </p>
                   <p className="mt-0.5 text-[13px] whitespace-pre-wrap text-ink-secondary">

@@ -11,6 +11,7 @@ import type { RawSchema } from "../src/schema/types.js";
 export function testConfig(overrides: Partial<Config> = {}): Config {
   return {
     itop: {
+      timezone: "Europe/Paris",
       baseUrl: "http://itop.test",
       endpoint: "http://itop.test/webservices/rest.php",
       user: "svc",
