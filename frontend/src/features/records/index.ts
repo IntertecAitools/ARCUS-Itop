@@ -5,3 +5,7 @@ export { RecordNewPage } from './pages/RecordNewPage';
 export { RecordDetailPage } from './pages/RecordDetailPage';
 export { RecordImportPage } from './pages/RecordImportPage';
 export type { ClassInfo, ClassSummary, FieldSpec, RecordDto } from './types';
+// Shared with notification rules ("only when…" conditions).
+export { ConditionRows, isComplete } from './components/AdvancedSearch';
+export { useClassInfo } from './api/useRecords';
+export type { Criterion } from './types';

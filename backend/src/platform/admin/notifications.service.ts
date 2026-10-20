@@ -4,6 +4,8 @@ import { normalizeObjects, parseFoundCount, type FlatObject } from "../../itop/n
 import type { CmdbSchema } from "../../schema/load.js";
 import type { ClassInfo } from "../../schema/types.js";
 import { str } from "../../shared/ticket-mapping.js";
+import { criterionKind, type Criterion } from "../objects/criteria.js";
+import { conditionsToFilter, filterToConditions } from "./conditions.js";
 
 /**
  * Email notification rules, in our vocabulary.
@@ -75,8 +77,14 @@ export interface RuleEvent {
   state?: string;
   fields?: string[];
   sla?: { timer: string; percent: string };
-  /** An "only when" condition set up in iTop; kept, not editable here yet. */
+  /** True when the rule has any "only when…" condition. */
   hasCondition: boolean;
+  /** The conditions this screen can show and edit. */
+  conditions: Criterion[];
+  /** Part of the condition was set up in iTop in a form not shown here; it is kept. */
+  keptCondition: boolean;
+  /** Names for record ids in key conditions, keyed "field:id". */
+  valueLabels: Record<string, string>;
   /**
    * False for events only iTop's own screens raise (an @mention in iTop's
    * editor, an update from iTop's portal): nothing done in this platform
@@ -112,6 +120,10 @@ export interface RuleInput {
     state?: string;
     fields?: string[];
     sla?: { timer: string; percent: string };
+    /** "Only when…" conditions, ANDed. */
+    conditions?: Criterion[];
+    /** Keep the part of the condition set up in iTop (default true). */
+    keepCondition?: boolean;
   };
   email: {
     to: RecipientInput[];
@@ -415,9 +427,10 @@ export class NotificationsService {
       for (const f of ["to", "cc"]) parseRecipients(str(e.fields[f])).personIds.forEach((id) => personIds.add(id));
     }
     const names = await this.personNames([...personIds]);
+    const valueLabels = await this.conditionValueLabels([...snap.triggers.values()]);
     return snap.links
       .filter((l) => snap.emails.has(l.actionId) && snap.triggers.has(l.triggerId))
-      .map((l) => this.toDto(l, snap, names))
+      .map((l) => this.toDto(l, snap, names, valueLabels.get(l.triggerId) ?? {}))
       .sort((a, b) => a.name.localeCompare(b.name));
   }
 
@@ -427,7 +440,53 @@ export class NotificationsService {
     return rule;
   }
 
-  private toDto(link: Snapshot["links"][number], snap: Snapshot, names: Map<number, string>): RuleDto {
+  /** The parsed filter of a trigger, against its own class. */
+  private parseFilter(trigger: FlatObject) {
+    const info = this.schema.get(str(trigger.fields["target_class"]));
+    const filter = str(trigger.fields["filter"]);
+    if (!filter) return { conditions: [], kept: [] };
+    return info ? filterToConditions(info, filter) : { conditions: [], kept: [filter] };
+  }
+
+  /** Names of the records key conditions point at, per trigger. */
+  private async conditionValueLabels(triggers: FlatObject[]): Promise<Map<number, Record<string, string>>> {
+    const wanted = new Map<string, Set<string>>(); // target class -> ids
+    const uses: Array<{ triggerId: number; field: string; target: string; ids: string[] }> = [];
+    for (const trigger of triggers) {
+      const info = this.schema.get(str(trigger.fields["target_class"]));
+      if (!info) continue;
+      for (const c of this.parseFilter(trigger).conditions) {
+        const target = info.fields[c.field]?.target;
+        if (!target || !c.values?.length) continue;
+        const ids = c.values.map(String);
+        uses.push({ triggerId: trigger.id, field: c.field, target, ids });
+        const set = wanted.get(target) ?? new Set<string>();
+        ids.forEach((id) => set.add(id));
+        wanted.set(target, set);
+      }
+    }
+    const names = new Map<string, string>(); // "Class:id" -> name
+    await Promise.all(
+      [...wanted].map(async ([cls, ids]) => {
+        const rows = await this.get(cls, `SELECT ${cls} WHERE id IN (${[...ids].join(",")})`, "id,friendlyname");
+        rows.forEach((r) => names.set(`${cls}:${r.id}`, str(r.fields["friendlyname"])));
+      }),
+    );
+    const out = new Map<number, Record<string, string>>();
+    for (const u of uses) {
+      const labels = out.get(u.triggerId) ?? {};
+      for (const id of u.ids) labels[`${u.field}:${id}`] = names.get(`${u.target}:${id}`) ?? `#${id}`;
+      out.set(u.triggerId, labels);
+    }
+    return out;
+  }
+
+  private toDto(
+    link: Snapshot["links"][number],
+    snap: Snapshot,
+    names: Map<number, string>,
+    valueLabels: Record<string, string>,
+  ): RuleDto {
     const trigger = snap.triggers.get(link.triggerId)!;
     const email = snap.emails.get(link.actionId)!;
     const t = trigger.fields;
@@ -459,6 +518,9 @@ export class NotificationsService {
           ? { sla: { timer: str(t["stop_watch_code"]), percent: str(t["threshold_index"]) } }
           : {}),
         hasCondition: Boolean(str(t["filter"])),
+        conditions: this.parseFilter(trigger).conditions,
+        keptCondition: this.parseFilter(trigger).kept.length > 0,
+        valueLabels,
         firesFromPlatform: kind !== "mentioned" && kind !== "portal_update",
         labels: {
           recordType: info?.labels.class || recordType,
@@ -555,6 +617,13 @@ export class NotificationsService {
         }
       }
     }
+    for (const c of event.conditions ?? []) {
+      const field = info.fields[c.field];
+      if (!field) throw badRequest(`${info.labels.class || info.name} has no field "${c.field}".`);
+      if (criterionKind(field) === "date") {
+        throw badRequest("Dates cannot be used as notification conditions.");
+      }
+    }
     if (!email.to.length) throw badRequest("Choose who receives the email.");
     if (!email.subject.trim()) throw badRequest("Write a subject.");
     if (email.status === "test" && !email.testRecipient?.includes("@")) {
@@ -563,7 +632,7 @@ export class NotificationsService {
     return info;
   }
 
-  private triggerFields(input: RuleInput, info: ClassInfo): Record<string, unknown> {
+  private triggerFields(input: RuleInput, info: ClassInfo, kept: string[] = []): Record<string, unknown> {
     const { event } = input;
     const what = info.labels.class || info.name;
     const stateLabel = event.state ? info.labels.values[info.lifecycle?.attribute ?? ""]?.[event.state] ?? event.state : "";
@@ -578,6 +647,7 @@ export class NotificationsService {
     return {
       description: `${description} (${input.name.trim()})`.slice(0, 255),
       target_class: event.recordType,
+      filter: conditionsToFilter(info, event.conditions ?? [], event.keepCondition === false ? [] : kept),
       ...(event.kind === "state_entered" || event.kind === "state_left" ? { state: event.state } : {}),
       ...(event.kind === "updated" ? { target_attcodes: (event.fields ?? []).join(",") } : {}),
       ...(event.kind === "sla_threshold"
@@ -613,6 +683,8 @@ export class NotificationsService {
 
   async create(input: RuleInput): Promise<RuleDto> {
     const info = this.validate(input);
+    // Built before anything is written, so a bad condition saves nothing.
+    const triggerData = this.triggerFields(input, info);
     if (input.email.to.some((r) => r.kind === "custom") || input.email.cc.some((r) => r.kind === "custom")) {
       throw badRequest("A new rule cannot reuse recipients from another rule.");
     }
@@ -625,7 +697,7 @@ export class NotificationsService {
     const emailId = normalizeObjects(email.objects)[0]!.id;
     const trigger = await this.client.call("core/create", {
       class: TRIGGER_CLASS[input.event.kind],
-      fields: this.triggerFields(input, info),
+      fields: triggerData,
       output_fields: "id",
       comment: "Notification rule created in the platform",
     });
@@ -658,6 +730,19 @@ export class NotificationsService {
       to: parseRecipients(str(email.fields["to"])).custom,
       cc: parseRecipients(str(email.fields["cc"])).custom,
     };
+    // The part of the condition set up in iTop belongs to the old record type;
+    // it cannot follow the rule to another one.
+    const keptFilter = this.parseFilter(trigger).kept;
+    if (
+      keptFilter.length &&
+      effective.event.keepCondition !== false &&
+      effective.event.recordType !== str(trigger.fields["target_class"])
+    ) {
+      throw badRequest("Remove the condition set up in iTop before changing the kind of record.");
+    }
+    // Built before anything is written, so a bad condition saves nothing.
+    const triggerData = editableEvent ? this.triggerFields(effective, info, keptFilter) : null;
+
     await this.client.call("core/update", {
       class: "ActionEmail",
       key: link.actionId,
@@ -671,7 +756,7 @@ export class NotificationsService {
         await this.client.call("core/update", {
           class: trigger.class,
           key: link.triggerId,
-          fields: this.triggerFields(effective, info),
+          fields: triggerData,
           output_fields: "id",
           comment: "Notification rule edited in the platform",
         });
@@ -680,7 +765,7 @@ export class NotificationsService {
         // it, and drop the old one if nothing else uses it.
         const created = await this.client.call("core/create", {
           class: TRIGGER_CLASS[effective.event.kind],
-          fields: this.triggerFields(effective, info),
+          fields: triggerData,
           output_fields: "id",
           comment: "Notification rule edited in the platform",
         });

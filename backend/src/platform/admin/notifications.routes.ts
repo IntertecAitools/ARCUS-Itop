@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { idParam, parse } from "../../core/validate.js";
 import type { Services } from "../../services.js";
+import { criteriaSchema } from "../objects/criteria.js";
 import { EDITABLE_EVENTS, type RuleInput } from "./notifications.service.js";
 
 const recipient = z.union([
@@ -19,6 +20,8 @@ const ruleSchema = z.object({
     state: z.string().max(64).optional(),
     fields: z.array(z.string().regex(/^[a-z0-9_]+$/).max(64)).max(50).optional(),
     sla: z.object({ timer: z.string().max(16), percent: z.string().max(4) }).optional(),
+    conditions: criteriaSchema.optional(),
+    keepCondition: z.boolean().optional(),
   }),
   email: z.object({
     to: z.array(recipient).max(20),

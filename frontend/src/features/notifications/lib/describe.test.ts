@@ -6,6 +6,9 @@ const event = (e: Partial<RuleEvent>): RuleEvent => ({
   kind: 'created',
   recordType: 'UserRequest',
   hasCondition: false,
+  conditions: [],
+  keptCondition: false,
+  valueLabels: {},
   firesFromPlatform: true,
   ...e,
 });

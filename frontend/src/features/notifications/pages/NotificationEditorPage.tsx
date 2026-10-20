@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { AlertTriangle, ArrowLeft, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/layout';
 import { Button, buttonClasses, Card, CardBody, CardHeader, Input, Select, Skeleton } from '@/components/ui';
+import { ConditionRows, isComplete, useClassInfo, type Criterion } from '@/features/records';
 import { RecordPicker, type Option } from '@/features/users';
 import { cn } from '@/lib/utils';
 import { useDeleteRule, useRule, useRuleOptions, useSaveRule } from '../api/notifications.api';
@@ -133,6 +134,16 @@ function RuleEditor({ id, rule }: { id: string; rule: Rule | undefined }) {
   const [body, setBody] = useState(rule?.email.body ?? '');
   const [status, setStatus] = useState<EmailStatus>(rule?.email.status ?? 'test');
   const [testRecipient, setTestRecipient] = useState(rule?.email.testRecipient ?? '');
+  const [conditions, setConditions] = useState<Criterion[]>(rule?.event.conditions ?? []);
+  const [keepCondition, setKeepCondition] = useState(rule?.event.keptCondition ?? false);
+  const { data: classInfo } = useClassInfo(recordType);
+
+  // Conditions name fields of one record type; another type starts afresh.
+  const changeRecordType = (next: string) => {
+    setRecordType(next);
+    setConditions([]);
+    setKeepCondition(false);
+  };
   const [formError, setFormError] = useState<string | null>(null);
 
   const { data: options } = useRuleOptions(recordType);
@@ -176,7 +187,7 @@ function RuleEditor({ id, rule }: { id: string; rule: Rule | undefined }) {
   }, [options, rule]);
 
   const summary = describeEvent(
-    { kind, recordType, ...(state ? { state } : {}), fields, sla: { timer, percent }, hasCondition: false, firesFromPlatform: true },
+    { kind, recordType, ...(state ? { state } : {}), fields, sla: { timer, percent } },
     {
       recordType: typeLabel,
       ...(state ? { state: options?.states?.find((s) => s.code === state)?.label ?? state } : {}),
@@ -198,6 +209,9 @@ function RuleEditor({ id, rule }: { id: string; rule: Rule | undefined }) {
         ...(kind === 'state_entered' || kind === 'state_left' ? { state } : {}),
         ...(kind === 'updated' ? { fields } : {}),
         ...(kind === 'sla_threshold' ? { sla: { timer, percent } } : {}),
+        // Half-filled rows are left out, as in advanced search.
+        conditions: conditions.filter((c) => isComplete(c, classInfo?.criteria?.[c.field]?.kind)),
+        keepCondition,
       },
       email: {
         to: toInput(to),
@@ -265,7 +279,7 @@ function RuleEditor({ id, rule }: { id: string; rule: Rule | undefined }) {
                 <Select
                   id="record-type"
                   value={recordType}
-                  onChange={(e) => setRecordType(e.target.value)}
+                  onChange={(e) => changeRecordType(e.target.value)}
                   options={(options?.recordTypes ?? [{ name: recordType, label: recordType, ticket: true }]).map((t) => ({
                     value: t.name,
                     label: t.label,
@@ -349,12 +363,35 @@ function RuleEditor({ id, rule }: { id: string; rule: Rule | undefined }) {
               </div>
             ) : null}
 
-            {rule?.event.hasCondition ? (
-              <p className={HINT}>This rule also has an “only when…” condition set up in iTop. It is kept as it is.</p>
-            ) : null}
           </>
         )}
       </Section>
+
+      {readOnlyEvent ? null : (
+        <Section title="Only when…" subtitle="Optional. The email is sent only for records that meet every condition.">
+          {classInfo ? (
+            <ConditionRows
+              info={classInfo}
+              value={conditions}
+              onChange={setConditions}
+              // A trigger fires at one moment: a date window rarely means what it seems.
+              exclude={(_, kind) => kind === 'date'}
+              valueLabels={rule?.event.valueLabels ?? {}}
+              emptyText="No conditions: every record of this type counts."
+            />
+          ) : (
+            <Skeleton className="h-9 w-full" />
+          )}
+          {keepCondition ? (
+            <div className="flex flex-wrap items-center gap-2 text-[12px] text-ink-secondary">
+              <span>Also: a condition set up in iTop that cannot be shown here. It is kept as it is.</span>
+              <button type="button" className="font-medium text-brand-ink hover:underline" onClick={() => setKeepCondition(false)}>
+                Remove it
+              </button>
+            </div>
+          ) : null}
+        </Section>
+      )}
 
       <Section
         title="Email"

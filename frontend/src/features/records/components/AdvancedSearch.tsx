@@ -51,82 +51,19 @@ export function AdvancedSearch({
   onApply: (criteria: Criterion[]) => void;
   onClose: () => void;
 }) {
-  const fields = useMemo(
-    () =>
-      Object.keys(info.criteria ?? {})
-        .filter((code) => !['id', 'friendlyname'].includes(code))
-        .sort((a, b) => label(info, a).localeCompare(label(info, b))),
-    [info],
-  );
   const [rows, setRows] = useState<Criterion[]>(value.length ? value : []);
-
-  const kindOf = (field: string) => info.criteria?.[field]?.kind;
-  const setRow = (index: number, patch: Partial<Criterion>) =>
-    setRows((r) => r.map((row, i) => (i === index ? { ...row, ...patch } : row)));
-
-  const add = () => {
-    const field = fields[0];
-    if (!field) return;
-    setRows((r) => [...r, { field, op: info.criteria![field]!.ops[0]! }]);
-  };
-
-  const complete = rows.filter((r) => isComplete(r, kindOf(r.field)));
+  const complete = rows.filter((r) => isComplete(r, info.criteria?.[r.field]?.kind));
 
   return (
     <Card className="mb-4">
       <CardBody className="space-y-3">
-        {rows.length === 0 ? (
-          <p className="text-[13px] text-ink-muted">No conditions yet. Add one to narrow the list.</p>
-        ) : null}
-        {rows.map((row, index) => {
-          const spec = info.criteria?.[row.field];
-          return (
-            <div key={index} className="flex flex-wrap items-start gap-2">
-              <select
-                aria-label="Field"
-                className={cn(CONTROL, 'w-48 appearance-none')}
-                value={row.field}
-                onChange={(e) => {
-                  const field = e.target.value;
-                  setRow(index, { field, op: info.criteria![field]!.ops[0]!, value: undefined, value2: undefined, values: undefined });
-                }}
-              >
-                {fields.map((code) => (
-                  <option key={code} value={code}>
-                    {label(info, code)}
-                  </option>
-                ))}
-              </select>
-              <select
-                aria-label="Condition"
-                className={cn(CONTROL, 'w-48 appearance-none')}
-                value={row.op}
-                onChange={(e) => setRow(index, { op: e.target.value as CriterionOp })}
-              >
-                {(spec?.ops ?? []).map((op) => (
-                  <option key={op} value={op}>
-                    {OP_LABELS[op]}
-                  </option>
-                ))}
-              </select>
-              {NO_VALUE.has(row.op) ? null : (
-                <ValueInput info={info} row={row} kind={spec?.kind} onChange={(patch) => setRow(index, patch)} />
-              )}
-              <button
-                type="button"
-                aria-label="Remove condition"
-                onClick={() => setRows((r) => r.filter((_, i) => i !== index))}
-                className="mt-1.5 rounded-control p-1 text-ink-muted hover:bg-surface-hover hover:text-ink"
-              >
-                <X className="size-4" />
-              </button>
-            </div>
-          );
-        })}
+        <ConditionRows
+          info={info}
+          value={rows}
+          onChange={setRows}
+          emptyText="No conditions yet. Add one to narrow the list."
+        />
         <div className="flex flex-wrap items-center gap-2 pt-1">
-          <Button variant="secondary" size="sm" leadingIcon={<Plus className="size-4" />} onClick={add}>
-            Add condition
-          </Button>
           <span className="flex-1" />
           <Button variant="ghost" size="sm" onClick={onClose}>
             Close
@@ -145,6 +82,105 @@ export function AdvancedSearch({
   );
 }
 
+/**
+ * Editable condition rows: field, operator, value, ANDed together. Shared by
+ * advanced search and notification rules ("only when…"), so both offer the
+ * same operators and check values the same way. `exclude` hides fields that
+ * make no sense for the caller (e.g. dates for a notification rule);
+ * `valueLabels` names record ids already chosen, keyed "field:id".
+ */
+export function ConditionRows({
+  info,
+  value,
+  onChange,
+  exclude,
+  valueLabels,
+  emptyText,
+}: {
+  info: ClassInfo;
+  value: Criterion[];
+  onChange: (rows: Criterion[]) => void;
+  exclude?: (code: string, kind: CriterionKind) => boolean;
+  valueLabels?: Record<string, string>;
+  emptyText?: string;
+}) {
+  const fields = useMemo(
+    () =>
+      Object.entries(info.criteria ?? {})
+        .filter(([code, spec]) => !['id', 'friendlyname'].includes(code) && !exclude?.(code, spec.kind))
+        .map(([code]) => code)
+        .sort((a, b) => label(info, a).localeCompare(label(info, b))),
+    [info, exclude],
+  );
+  const setRow = (index: number, patch: Partial<Criterion>) =>
+    onChange(value.map((row, i) => (i === index ? { ...row, ...patch } : row)));
+  const add = () => {
+    const field = fields[0];
+    if (!field) return;
+    onChange([...value, { field, op: info.criteria![field]!.ops[0]! }]);
+  };
+
+  return (
+    <div className="space-y-3">
+      {value.length === 0 && emptyText ? <p className="text-[13px] text-ink-muted">{emptyText}</p> : null}
+      {value.map((row, index) => {
+        const spec = info.criteria?.[row.field];
+        return (
+          <div key={index} className="flex flex-wrap items-start gap-2">
+            <select
+              aria-label="Field"
+              className={cn(CONTROL, 'w-48 appearance-none')}
+              value={row.field}
+              onChange={(e) => {
+                const field = e.target.value;
+                setRow(index, { field, op: info.criteria![field]!.ops[0]!, value: undefined, value2: undefined, values: undefined });
+              }}
+            >
+              {(fields.includes(row.field) ? fields : [row.field, ...fields]).map((code) => (
+                <option key={code} value={code}>
+                  {label(info, code)}
+                </option>
+              ))}
+            </select>
+            <select
+              aria-label="Condition"
+              className={cn(CONTROL, 'w-48 appearance-none')}
+              value={row.op}
+              onChange={(e) => setRow(index, { op: e.target.value as CriterionOp })}
+            >
+              {(spec?.ops ?? []).map((op) => (
+                <option key={op} value={op}>
+                  {OP_LABELS[op]}
+                </option>
+              ))}
+            </select>
+            {NO_VALUE.has(row.op) ? null : (
+              <ValueInput
+                info={info}
+                row={row}
+                kind={spec?.kind}
+                valueLabels={valueLabels}
+                onChange={(patch) => setRow(index, patch)}
+              />
+            )}
+            <button
+              type="button"
+              aria-label="Remove condition"
+              onClick={() => onChange(value.filter((_, i) => i !== index))}
+              className="mt-1.5 rounded-control p-1 text-ink-muted hover:bg-surface-hover hover:text-ink"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+        );
+      })}
+      <Button variant="secondary" size="sm" leadingIcon={<Plus className="size-4" />} onClick={add}>
+        Add condition
+      </Button>
+    </div>
+  );
+}
+
 function label(info: ClassInfo, code: string) {
   return info.labels?.fields?.[code] ?? humaniseAttcode(code);
 }
@@ -153,11 +189,13 @@ function ValueInput({
   info,
   row,
   kind,
+  valueLabels,
   onChange,
 }: {
   info: ClassInfo;
   row: Criterion;
   kind: CriterionKind | undefined;
+  valueLabels?: Record<string, string> | undefined;
   onChange: (patch: Partial<Criterion>) => void;
 }) {
   if (kind === 'enum') {
@@ -182,7 +220,7 @@ function ValueInput({
   }
 
   if (kind === 'key') {
-    return <KeyPicker info={info} row={row} onChange={onChange} />;
+    return <KeyPicker info={info} row={row} valueLabels={valueLabels} onChange={onChange} />;
   }
 
   const type = kind === 'number' ? 'number' : kind === 'date' ? 'date' : 'text';
@@ -215,14 +253,23 @@ function ValueInput({
 function KeyPicker({
   info,
   row,
+  valueLabels,
   onChange,
 }: {
   info: ClassInfo;
   row: Criterion;
+  valueLabels?: Record<string, string> | undefined;
   onChange: (patch: Partial<Criterion>) => void;
 }) {
   const [q, setQ] = useState('');
-  const [labels, setLabels] = useState<Record<string, string>>({});
+  // Names for ids chosen before this screen opened come from the caller.
+  const [labels, setLabels] = useState<Record<string, string>>(() =>
+    Object.fromEntries(
+      Object.entries(valueLabels ?? {})
+        .filter(([key]) => key.startsWith(`${row.field}:`))
+        .map(([key, name]) => [key.slice(row.field.length + 1), name]),
+    ),
+  );
   const { data } = useOptionSearch({ className: info.name, attcode: row.field }, q.trim());
   const selected = row.values ?? [];
 

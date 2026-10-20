@@ -161,8 +161,13 @@ managed from **Notifications** in the frontend, administrators only:
 - Rules on events only iTop's own screens raise (@mentions in iTop's editor,
   updates from iTop's portal) are listed and editable but marked: nothing
   done in this platform fires them.
-- Not yet editable here: "only when…" conditions (existing ones are kept),
-  and iTop's in-app ("newsroom") notifications.
+- **"Only when…" conditions** are the advanced-search criteria (same
+  operators, same value checks, `platform/objects/criteria.ts`), written as
+  the trigger's `filter`: `SELECT <Class> WHERE … AND …`. They are read
+  back from that filter (`platform/admin/conditions.ts`); parts set up in
+  iTop that are not in that form are kept and ANDed back unless the user
+  removes them. Dates are not offered: a trigger fires at one moment.
+- Not yet here: iTop's in-app ("newsroom") notifications.
 
 
 Without a shared iTop, run one from this repository's own `iTop/` copy:
