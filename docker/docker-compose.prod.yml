@@ -1,0 +1,71 @@
+# Production example: the frontend and the BFF behind one origin.
+#
+#   browser ──HTTPS──> your TLS proxy ──> web (nginx :80) ──/api──> bff (:4000) ──> iTop
+#
+# iTop and MySQL are an existing install and stay outside this file. See
+# docs/deployment.md for every setting and the checklist.
+#
+#   cp docker/prod.env.example docker/prod.env      # then fill it in
+#   docker compose -f docker/docker-compose.prod.yml --env-file docker/prod.env up -d --build
+#
+# `--env-file` feeds the ${...} below (WEB_PORT, VITE_*); `env_file` hands the
+# same file to the BFF as its environment.
+
+name: arcus
+
+services:
+  bff:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    image: arcus-bff:${ARCUS_VERSION:-latest}
+    restart: unless-stopped
+    # Relative to this folder. Set ARCUS_ENV_FILE in the shell to use another.
+    env_file: ${ARCUS_ENV_FILE:-prod.env}
+    environment:
+      # Fixed by the image layout and this file; not meant to be overridden.
+      HOST: 0.0.0.0
+      PORT: "4000"
+      TRUST_PROXY: "true"
+    extra_hosts:
+      # Lets ITOP_BASE_URL / SESSION_DB_HOST say host.docker.internal on Linux too.
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      # Liveness: the process is up and the schema loaded. Does not need iTop.
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:4000/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+    # Not published: only `web` talks to it.
+    expose:
+      - "4000"
+
+  web:
+    build:
+      context: ../frontend
+      args:
+        VITE_BFF_URL: /api
+        VITE_APP_NAME: ${VITE_APP_NAME:-Intertec}
+        VITE_PLATFORM_NAME: ${VITE_PLATFORM_NAME:-Helpdesk}
+        VITE_DEFAULT_LOCALE: ${VITE_DEFAULT_LOCALE:-en}
+    image: arcus-web:${ARCUS_VERSION:-latest}
+    restart: unless-stopped
+    environment:
+      BFF_UPSTREAM: http://bff:4000
+    depends_on:
+      bff:
+        condition: service_healthy
+    healthcheck:
+      # Readiness of the whole chain: nginx -> BFF -> iTop (signs in as the
+      # service account). Unhealthy here with `bff` healthy means iTop is down
+      # or rejects ITOP_USER; `docker compose logs bff` says which.
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/healthz && wget -qO- http://bff:4000/health/upstream"]
+      interval: 30s
+      timeout: 30s
+      start_period: 15s
+      retries: 3
+    ports:
+      # Put your TLS proxy in front of this; bind to 127.0.0.1 when it runs on
+      # the same host.
+      - "${WEB_BIND:-127.0.0.1}:${WEB_PORT:-8088}:80"
