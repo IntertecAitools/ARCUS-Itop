@@ -4,6 +4,30 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-10-20 — Notification rules screen
+
+Branch `feature/notifications`.
+
+| What ran | Result | Notes |
+| --- | --- | --- |
+| New backend tests (`backend/test/notifications.test.ts`) | ✅ 13/13 | Recipients both ways (roles, people, kept custom parts, OR inside sub-queries/quotes), texts both ways (escaping, our link, iTop's encoded link, iTop's hyperlink), create writes, delete keeps shared parts, validation |
+| New frontend tests (`features/notifications/lib/describe.test.ts`) | ✅ 3/3 | Plain-language events, recipients, field insertion at the cursor |
+| Backend unit tests + typecheck | ✅ 385/385, clean | |
+| Frontend unit tests + typecheck + build | ✅ 82/82, clean, built | |
+| Live API against iTop 3.4 | ✅ | Listed iTop's 3 mention rules; created state, changed-fields and SLA rules; status switch; changed a rule's event type (old trigger removed); delete left no trigger or email behind |
+| Live send: resolved R-000010 | ✅ | iTop emailed the caller (cc agent) through Mailpit; fields filled; link opened `/records/UserRequest/10` in the platform |
+| Browser: rule created in the editor, test mode | ✅ | Missing test address caught; fields inserted at the cursor; assigning I-000009 sent only to the test address, subject marked TEST |
+| Browser: rules list, Recently sent | ✅ | Display names, mention rules flagged, sent log with results |
+| `npm run smoke`, `api-check.mjs` | ✅ 13/13, 70/70 | |
+
+Bugs found and fixed before commit:
+1. iTop requires a sender on every email rule; rules now use NOTIFICATION_FROM / MAIL_FROM.
+2. iTop's HTML cleaner URL-encodes `$this->id$` in links, so the link did not read back as `{{link}}`; the reader accepts both forms (iTop still fills in the encoded one).
+3. The list showed codes ("resolved", "team_id"); the BFF now sends display names.
+4. A class labelled with an untranslated format string showed as `%2$s for class %1$s`.
+
+Not covered: "only when" conditions (kept, not editable); iTop's newsroom notifications; a real mail server.
+
 ### 2026-10-20 — Mailpit test mailbox for the BFF and iTop
 
 | What ran | Result | Notes |
@@ -196,3 +220,49 @@ Not covered yet: approvals (extension not installed); load and concurrency beyon
   - command: `python - <<'PY' p='pages/LoginPage.tsx' lines=open(p,encoding='utf-8').read().split('\n') out=[];inside=False for l in lines: if l.startswith(' <AuthCard'): inside=True; out.append`
 - **2026-10-19 12:10 UTC** · `feature/forgot-password@0d9e94a` + uncommitted changes · Unit tests (frontend) · ✅ 372 passed, 0 failed
   - command: `npm test 2>&1 | grep -E "^ℹ (tests|pass|fail)"; npm run typecheck 2>&1 | grep -c " error "; cd ../frontend && npm run build 2>&1 | tail -1`
+- **2026-10-20 10:54 UTC** · `feature/notifications@e3d23f3` + uncommitted changes · Typecheck (frontend) · ✅ clean
+  - command: `python - <<'PY' p='src/config/env.ts' s=open(p,encoding='utf-8').read() def sub(a,b): global s assert a in s, a[:60]; s=s.replace(a,b,1) sub(""" lookupCacheTtlMs: number; """,""" l`
+- **2026-10-20 10:58 UTC** · `feature/notifications@e3d23f3` + uncommitted changes · Typecheck · ✅ clean
+  - command: `python - <<'PY' p='src/platform/admin/notifications.service.ts' s=open(p,encoding='utf-8').read() def sub(a,b): global s assert a in s, a[:70]; s=s.replace(a,b,1) sub('import { App`
+- **2026-10-20 10:59 UTC** · `feature/notifications@e3d23f3` + uncommitted changes · Typecheck · ✅ clean
+  - command: `grep -n "registerUserAdminRoutes" src/app.ts; python - <<'PY' def edit(p, pairs): s=open(p,encoding='utf-8').read() for a,b in pairs: assert a in s, (p,a[:70]); s=s.replace(a,b,1) `
+- **2026-10-20 11:01 UTC** · `feature/notifications@e3d23f3` + uncommitted changes · Typecheck · ✅ clean
+  - command: `python - <<'PY' p='src/platform/admin/notifications.service.ts' s=open(p,encoding='utf-8').read() def sub(a,b): global s assert a in s, a[:70]; s=s.replace(a,b,1) sub(''' /** The a`
+- **2026-10-20 11:02 UTC** · `feature/notifications@e3d23f3` + uncommitted changes · Typecheck · ❌ errors (see the session)
+  - command: `python - <<'PY' def edit(p, pairs): s=open(p,encoding='utf-8').read() for a,b in pairs: assert a in s, (p,a[:70]); s=s.replace(a,b,1) open(p,'w',encoding='utf-8').write(s) edit('sr`
+- **2026-10-20 11:03 UTC** · `feature/notifications@e3d23f3` + uncommitted changes · Typecheck · ✅ clean
+  - command: `sed -i '164s/(named ? named\[2\] : value)/(named?.[2] ?? value)/' src/config/env.ts && sed -n 164p src/config/env.ts && npm run typecheck 2>&1 | grep error | head -3`
+- **2026-10-20 11:06 UTC** · `feature/notifications@e3d23f3` + uncommitted changes · Typecheck · ✅ clean
+  - command: `python - <<'PY' p='src/platform/admin/notifications.service.ts' s=open(p,encoding='utf-8').read() a=s.index('export function bodyFromItop(html: string): string {') b=s.index(' cons`
+- **2026-10-20 11:06 UTC** · `feature/notifications@e3d23f3` + uncommitted changes · Typecheck · ✅ clean
+  - command: `node -e ' const fs=require("fs");const p="src/platform/admin/notifications.service.ts";let s=fs.readFileSync(p,"utf8"); s=s.replace("\x08","\\b"); s=s.replace("/** iTop\x27s HTML b`
+- **2026-10-20 11:07 UTC** · `feature/notifications@e3d23f3` + uncommitted changes · Typecheck · ✅ clean
+  - command: `node "C:/Users/VENKAT~1.V/AppData/Local/Temp/claude/C--Users-Venkatesh-V-Arcus-ITOP/1d0555bf-6955-416f-a464-cd91a8a0ece7/scratchpad/fix-bs.mjs" src/platform/admin/notifications.ser`
+- **2026-10-20 11:10 UTC** · `feature/notifications@e3d23f3` + uncommitted changes · Unit tests · ❌ 12 passed, 1 failed
+  - command: `node --import tsx --test test/notifications.test.ts 2>&1 | grep -E "^ℹ (tests|pass|fail)|✖" | head; node -e ' const {readFileSync}=require("fs");' ; grep -n "UserRequest\|Incident"`
+  - failed: refuses rules it cannot send correctly
+  - failed: NotificationsService
+- **2026-10-20 11:10 UTC** · `feature/notifications@e3d23f3` + uncommitted changes · Unit tests · ✅ 13 passed, 0 failed
+  - command: `grep -rn "CmdbSchema.fromFile(" test | head -3; python - <<'PY' p='test/notifications.test.ts' s=open(p,encoding='utf-8').read() s=s.replace('import { sampleSchema } from "./helper`
+- **2026-10-20 11:15 UTC** · `feature/notifications@e3d23f3` + uncommitted changes · Typecheck · ✅ clean
+  - command: `cat > features/notifications/index.ts <<'EOF' // notifications: public API. Other features may import ONLY from this file. export { NotificationListPage } from './pages/Notificatio`
+- **2026-10-20 11:17 UTC** · `feature/notifications@e3d23f3` + uncommitted changes · Frontend unit tests (vitest) · ❌ 81 passed, 1 failed
+  - command: `npx vitest run 2>&1 | grep -E "Tests |Test Files|FAIL|✗|×" | head`
+  - failed: describeEvent > reads like a sentence, with the labels it is given 20ms
+  - failed: src/features/notifications/lib/describe.test.ts > describeEvent > reads like a sentence, with the labels it is given
+- **2026-10-20 11:17 UTC** · `feature/notifications@e3d23f3` + uncommitted changes · Frontend unit tests (vitest) · ran — no summary line in the output
+  - command: `npx vitest run src/features/notifications 2>&1 | grep -E "Expected|Received|expected" | head -6`
+- **2026-10-20 11:19 UTC** · `feature/notifications@e3d23f3` + uncommitted changes · Frontend unit tests (vitest) · ✅ 82 passed, 0 failed
+  - command: `python - <<'PY' p='src/features/notifications/lib/describe.ts' s=open(p,encoding='utf-8').read() old=" const article = /^[aeiou]/i.test(what) ? 'An' : 'A';" assert old in s s=s.rep`
+- **2026-10-20 11:21 UTC** · `feature/notifications@e3d23f3` + uncommitted changes · Typecheck (frontend) · ❌ errors (see the session)
+  - command: `cd /c/Users/Venkatesh.V/Arcus_ITOP && python - <<'PY' def edit(p, pairs): s=open(p,encoding='utf-8').read() for a,b in pairs: assert a in s, (p,a[:70]); s=s.replace(a,b,1) open(p,'`
+- **2026-10-20 11:21 UTC** · `feature/notifications@e3d23f3` + uncommitted changes · Frontend unit tests (vitest) (frontend) · ✅ 3 passed, 0 failed
+  - command: `cd /c/Users/Venkatesh.V/Arcus_ITOP/frontend && python - <<'PY' p='src/features/notifications/pages/NotificationListPage.tsx' s=open(p,encoding='utf-8').read() old=''' const { data:`
+- **2026-10-20 11:24 UTC** · `feature/notifications@e3d23f3` + uncommitted changes · Typecheck (backend) · ✅ clean
+  - command: `cd /c/Users/Venkatesh.V/Arcus_ITOP/backend && python - <<'PY' p='src/platform/admin/notifications.service.ts' s=open(p,encoding='utf-8').read() old=''' .map((c) => ({ name: c.name,`
+- **2026-10-20 11:27 UTC** · `feature/notifications@e3d23f3` + uncommitted changes · Frontend unit tests (vitest) (frontend) · ✅ 385 passed, 0 failed
+  - command: `cd /c/Users/Venkatesh.V/Arcus_ITOP/frontend && python - <<'PY' p='src/mocks/handlers/index.ts' s=open(p,encoding='utf-8').read() s=s.replace("import { incidentHandlers } from './in`
+- **2026-10-20 11:28 UTC** · `feature/notifications@e3d23f3` + uncommitted changes · Live API check (BFF → iTop) (backend) · ✅ 13 passed, 0 failed
+  - command: `cd /c/Users/Venkatesh.V/Arcus_ITOP/backend && npm run smoke 2>&1 | tail -2; API_CHECK_LOGIN=admin API_CHECK_PASSWORD='Weftbase#2026' node scripts/api-check.mjs 2>&1 | tail -1`
+- **2026-10-20 11:28 UTC** · `feature/notifications@e3d23f3` + uncommitted changes · Live API check (BFF → iTop) · ✅ 70 passed, 0 failed
+  - command: `API_CHECK_LOGIN=admin API_CHECK_PASSWORD='Weftbase#2026' node scripts/api-check.mjs 2>&1 | grep -E "passed|failed" | tail -2`

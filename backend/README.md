@@ -133,7 +133,37 @@ its token login is not installed.
   **Users** (`/api/admin/users`, `/api/admin/profiles`). Nobody needs to open
   iTop for this.
 
-## Local iTop
+## Notifications
+
+Email rules ("when a User Request enters Resolved, email the caller") are
+managed from **Notifications** in the frontend, administrators only:
+`/api/admin/notifications/rules` (list, get, create, `PUT` edit, `PATCH
+…/status`, delete), `/api/admin/notifications/options?recordType=`, and
+`/api/admin/notifications/sent` (iTop's log of sent emails).
+
+- **iTop sends them**, not the BFF: it is the only place that sees every
+  change, including its own background jobs (SLA escalations, auto-resolve).
+  So iTop needs its own mail settings (see "Switching to the real mail
+  server" below).
+- A rule is one iTop `lnkTriggerAction`: a Trigger (when) linked to an
+  ActionEmail (what). The BFF translates both ways; the frontend never sees
+  OQL or `$this->…$` placeholders:
+  - events: created, changed (optionally only some fields), deleted, enters
+    or leaves a status, SLA timer (TTO/TTR) at 75% or 100%;
+  - recipients: the caller, the assigned agent, the assigned team, specific
+    people, combined into one `SELECT Person WHERE … OR …` query. Parts of a
+    query set up in iTop that do not match are kept as they are;
+  - texts: plain text with `{{ref}}`-style fields; `{{link}}` points at
+    `APP_BASE_URL/records/<type>/<id>`, never at iTop. iTop's own
+    `$this->hyperlink()$` reads back as `{{link}}`, so saving an old rule
+    moves its link to the platform;
+  - every rule is sent from `NOTIFICATION_FROM` (default `MAIL_FROM`).
+- Rules on events only iTop's own screens raise (@mentions in iTop's editor,
+  updates from iTop's portal) are listed and editable but marked: nothing
+  done in this platform fires them.
+- Not yet editable here: "only when…" conditions (existing ones are kept),
+  and iTop's in-app ("newsroom") notifications.
+
 
 Without a shared iTop, run one from this repository's own `iTop/` copy:
 
