@@ -4,6 +4,31 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-10-20 — Export column picker, import column mapping, class labels on lists
+
+Branch `feature/export-columns-import-mapping`.
+
+| What ran | Result | Notes |
+| --- | --- | --- |
+| Backend transfer tests (`backend/test/transfer.test.ts`) | ✅ 15/15 | New: CSV read/write (quoted separators, doubled quotes, line breaks, other qualifier), remap drops skipped columns, import sends mapped headings, file untouched without a mapping, refusals (unknown attribute, path on a non-picker, column-count mismatch, two columns into one field, all skipped), report cell holding `;` |
+| Backend unit tests + typecheck | ✅ 401/401, clean | |
+| New frontend tests: `lib/import-mapping.test.ts`, `lib/export-columns.test.ts`, `pages/transfer-screens.test.tsx`, extra `headerOf` case | ✅ 10 + 5 + 4 + 1 | Mapping guesses by code/label, "(ID)"/"(name)", "id (Primary Key)", "Label->Name"; export defaults, picker → `_friendlyname`, localStorage per class incl. junk and throwing storage; rendered list heading, export picker and mapping step |
+| Frontend unit tests + typecheck + build | ✅ 102/102, clean, built | First full run: 2 of the new screen tests failed on vitest's 5 s timeout under parallel load (they pass alone in ~2 s); given a 30 s timeout, then 102/102 |
+| Live export through a BFF on :4200 | ✅ | UserRequest `id,ref,title,org_id_friendlyname,status` as CSV (names, not ids); `ref,title,caller_id_friendlyname` as Excel (5 KB) and PDF (149 KB); `fields=ref,bogus` refused with 400 |
+| Live import, simulate only | ✅ | `;`-separated file headed `Subject;Organization;Caller;Notes;Urgency` mapped to `title, org_id->friendlyname, caller_id->friendlyname, (skip), urgency`, matched on title: row 1 "to create", row 2 matched R-000017 and iTop refused urgency (read-only once resolved). Search afterwards: nothing written |
+
+Bugs found and fixed (same commit):
+
+- The import report split a cell holding `;` (`"Mapped import check; one"` showed as two cells); rows and headings are now read as qualified CSV.
+- A picker matched on `->name` would use a person's last name only; mapping now uses `->friendlyname`, which iTop's import accepts and which is what the export writes.
+
+Not covered / found:
+
+- The new screens were not looked at in a browser: the frontend needs a real sign-in, and no test account is in the repo's example files. The component tests render them instead.
+- Unticking every "match on" column does not create every row for UserRequest: iTop falls back to the class's reconciliation key (`ref`) and refuses a file without it. This was already the case before this change.
+- iTop's CSV export writes enum labels ("Resolved") while the import reads codes, so an exported status column does not import back unchanged.
+- The test-run hook writes to `$CLAUDE_PROJECT_DIR`, the main checkout, so runs from this worktree were recorded in the main folder's `TEST_LOG.md`, under the main folder's branch. This entry records them instead.
+
 ### 2026-10-20 — "Only when…" conditions on notification rules
 
 Branch `feature/notification-conditions`.

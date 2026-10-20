@@ -215,6 +215,8 @@ export function useExport(className: string) {
       q?: string;
       view?: string;
       criteria?: Criterion[];
+      /** iTop's `fields`: the columns to export, comma-separated. */
+      fields?: string;
     }) => {
       const blob = await exportRecords(className, format, filters);
       const url = URL.createObjectURL(blob);

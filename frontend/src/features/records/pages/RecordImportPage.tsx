@@ -7,6 +7,15 @@ import { Button, buttonClasses, Card, CardBody, CardHeader, Skeleton } from '@/c
 import { cn } from '@/lib/utils';
 import { useClassInfo, useImport } from '../api/useRecords';
 import { CONTROL } from '../components/FieldControls';
+import {
+  importTargets,
+  isIdentityMapping,
+  isImportColumn,
+  mappedColumns,
+  needsMapping,
+  suggestMapping,
+  type ImportMapping,
+} from '../lib/import-mapping';
 import type { ClassInfo, ImportReport } from '../types';
 
 const SEPARATORS = [
@@ -34,14 +43,29 @@ export function RecordImportPage() {
   const [separator, setSeparator] = useState(',');
   const [keys, setKeys] = useState<string[] | null>(null);
   const [report, setReport] = useState<ImportReport | null>(null);
+  // The user's edits to the suggested mapping; null = the suggestion.
+  const [editedMapping, setEditedMapping] = useState<ImportMapping | null>(null);
+  const [showMapping, setShowMapping] = useState(false);
 
-  const columns = useMemo(() => headerOf(csv, separator), [csv, separator]);
+  const headings = useMemo(() => headerOf(csv, separator), [csv, separator]);
+  const suggested = useMemo(() => (info ? suggestMapping(info, headings) : []), [info, headings]);
+  const mapping = editedMapping ?? suggested;
+  const mustMap = info ? needsMapping(info, headings) : false;
+  const mapped = isIdentityMapping(headings, mapping) ? null : mapping;
+  // What iTop will see: the headings once mapped.
+  const columns = mapped ? mappedColumns(mapped) : headings;
   // Default to matching on `id` when the file has it, as an export does.
-  const reconciliation = keys ?? (columns.includes('id') ? ['id'] : []);
+  const reconciliation = (keys ?? (columns.includes('id') ? ['id'] : [])).filter((k) => columns.includes(k));
 
   const send = (simulate: boolean) =>
     run.mutate(
-      { csv, simulate, separator, ...(reconciliation.length ? { reconciliationKeys: reconciliation } : {}) },
+      {
+        csv,
+        simulate,
+        separator,
+        ...(reconciliation.length ? { reconciliationKeys: reconciliation } : {}),
+        ...(mapped ? { mapping: mapped } : {}),
+      },
       { onSuccess: setReport },
     );
 
@@ -49,8 +73,23 @@ export function RecordImportPage() {
     setCsv(text);
     setFileName(name);
     setKeys(null);
+    setEditedMapping(null);
+    setShowMapping(false);
     setReport(null);
     run.reset();
+  };
+
+  const mapColumn = (index: number, target: string | null) => {
+    const next = [...mapping];
+    // A field takes one column: moving it here frees it elsewhere.
+    if (target !== null) {
+      next.forEach((t, i) => {
+        if (t === target) next[i] = null;
+      });
+    }
+    next[index] = target;
+    setEditedMapping(next);
+    setReport(null);
   };
 
   const crumbs = [
@@ -96,7 +135,7 @@ export function RecordImportPage() {
       />
 
       <Card className="mb-4">
-        <CardHeader title="1. File" />
+        <CardHeader title="File" />
         <CardBody className="space-y-4">
           <div className="flex flex-wrap items-center gap-3">
             <input
@@ -138,10 +177,31 @@ export function RecordImportPage() {
         </CardBody>
       </Card>
 
+      {headings.length > 0 && (mustMap || showMapping) ? (
+        <MappingCard
+          info={info}
+          headings={headings}
+          mapping={mapping}
+          mustMap={mustMap}
+          onChange={mapColumn}
+          onReset={() => {
+            setEditedMapping(null);
+            setReport(null);
+          }}
+        />
+      ) : headings.length > 0 ? (
+        <p className="mb-4 text-[12px] text-ink-muted">
+          Every heading names a field.{' '}
+          <button type="button" className="text-brand-ink hover:underline" onClick={() => setShowMapping(true)}>
+            Map columns…
+          </button>
+        </p>
+      ) : null}
+
       {columns.length > 0 ? (
         <Card className="mb-4">
           <CardHeader
-            title="2. Match existing records on"
+            title="Match existing records on"
             subtitle="Rows whose values in these columns match a record update it; the rest are created. Tick none to create every row."
           />
           <CardBody>
@@ -161,7 +221,7 @@ export function RecordImportPage() {
                     }}
                   />
                   <span className="font-mono text-[12px]">{column}</span>
-                  {info.fields[column.split('->')[0]!] ? null : column === 'id' ? null : (
+                  {isImportColumn(info, column) ? null : (
                     <span className="text-[11px] text-critical-ink">unknown column</span>
                   )}
                 </label>
@@ -173,8 +233,14 @@ export function RecordImportPage() {
 
       {csv.trim() ? (
         <div className="mb-4 flex flex-wrap items-center gap-2">
-          <Button variant="secondary" size="sm" onClick={() => send(true)} loading={run.isPending && run.variables?.simulate}>
-            3. Check file
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => send(true)}
+            disabled={columns.length === 0}
+            loading={run.isPending && run.variables?.simulate}
+          >
+            Check file
           </Button>
           <Button
             size="sm"
@@ -182,9 +248,11 @@ export function RecordImportPage() {
             disabled={!checked || report.summary.issues > 0}
             loading={run.isPending && run.variables?.simulate === false}
           >
-            4. Import
+            Import
           </Button>
-          {!checked ? (
+          {columns.length === 0 ? (
+            <span className="text-[12px] text-critical-ink">Map at least one column.</span>
+          ) : !checked ? (
             <span className="text-[12px] text-ink-muted">Check the file first.</span>
           ) : report.summary.issues > 0 ? (
             <span className="text-[12px] text-critical-ink">Fix the lines with issues, then check again.</span>
@@ -206,7 +274,89 @@ export function RecordImportPage() {
   );
 }
 
-const KIND_STYLE: Record<ImportReport['rows'][number]['kind'], string> = {
+const SKIP = '';
+
+/**
+ * Which field each of the file's columns loads into. Pre-filled from codes
+ * and labels; a column can be skipped. iTop gets the file with these
+ * headings, so its own checks and the dry run still apply.
+ */
+function MappingCard({
+  info,
+  headings,
+  mapping,
+  mustMap,
+  onChange,
+  onReset,
+}: {
+  info: ClassInfo;
+  headings: string[];
+  mapping: ImportMapping;
+  mustMap: boolean;
+  onChange: (index: number, target: string | null) => void;
+  onReset: () => void;
+}) {
+  const targets = useMemo(() => importTargets(info), [info]);
+  return (
+    <Card className="mb-4">
+      <CardHeader
+        title="Map columns"
+        subtitle={
+          mustMap
+            ? 'Some headings are not field names. Say which field each column fills, or skip it.'
+            : 'Say which field each column fills, or skip it.'
+        }
+        action={
+          <Button variant="ghost" size="sm" onClick={onReset}>
+            Reset
+          </Button>
+        }
+      />
+      <CardBody>
+        <table className="w-full text-left text-[13px]">
+          <thead className="text-[12px] text-ink-muted">
+            <tr>
+              <th className="py-1 pr-3 font-medium">Column in file</th>
+              <th className="py-1 pr-3 font-medium">Field</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-line">
+            {headings.map((heading, index) => {
+              const target = mapping[index] ?? null;
+              // A heading such as `org_id->code` is valid but not in the list.
+              const extra = target !== null && !targets.some((t) => t.value === target);
+              return (
+                <tr key={index}>
+                  <td className="py-1.5 pr-3 font-mono text-[12px] text-ink">
+                    {heading || <span className="text-ink-muted italic">(no heading)</span>}
+                  </td>
+                  <td className="py-1.5 pr-3">
+                    <select
+                      aria-label={`Field for column ${heading || index + 1}`}
+                      className={cn(CONTROL, 'max-w-sm py-1.5', target === null && 'text-ink-muted')}
+                      value={target ?? SKIP}
+                      onChange={(e) => onChange(index, e.target.value === SKIP ? null : e.target.value)}
+                    >
+                      <option value={SKIP}>— Skip this column —</option>
+                      {extra ? <option value={target}>{target}</option> : null}
+                      {targets.map((t) => (
+                        <option key={t.value} value={t.value}>
+                          {t.label}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </CardBody>
+    </Card>
+  );
+}
+
+const KIND_STYLE:Record<ImportReport['rows'][number]['kind'], string> = {
   created: 'text-good-ink',
   updated: 'text-brand-ink',
   unchanged: 'text-ink-muted',
@@ -279,14 +429,35 @@ function ImportReportView({ className, report }: { className: string; report: Im
   );
 }
 
-/** The header row of a CSV, unquoted. */
+/**
+ * The header row of a CSV, unquoted: the first non-blank record, read as
+ * iTop reads it (a quoted heading may hold the separator). Every column is
+ * kept, even an unnamed one, so positions line up with the file's columns
+ * for the mapping.
+ */
 export function headerOf(csv: string, separator: string): string[] {
-  const first = csv.split(/\r?\n/).find((line) => line.trim() !== '');
-  if (!first) return [];
-  return first
-    .split(separator)
-    .map((cell) => cell.trim().replace(/^"(.*)"$/, '$1').trim())
-    .filter(Boolean);
+  const text = csv.replace(/^﻿/, '').replace(/^(?:[ \t]*\r?\n)+/, '');
+  if (text.trim() === '') return [];
+  const cells: string[] = [];
+  let cell = '';
+  let quoted = false;
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i]!;
+    if (quoted) {
+      if (ch === '"' && text[i + 1] === '"') {
+        cell += '"';
+        i += 1;
+      } else if (ch === '"') quoted = false;
+      else cell += ch;
+    } else if (ch === '"') quoted = true;
+    else if (ch === separator) {
+      cells.push(cell.trim());
+      cell = '';
+    } else if (ch === '\n' || ch === '\r') break;
+    else cell += ch;
+  }
+  cells.push(cell.trim());
+  return cells;
 }
 
 /** A header-only CSV of the class's importable columns, to fill in. */

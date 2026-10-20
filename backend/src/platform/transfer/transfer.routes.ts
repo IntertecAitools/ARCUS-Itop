@@ -67,6 +67,10 @@ export function registerTransferRoutes(app: FastifyInstance, services: Services)
           separator: z.string().length(1).optional(),
           qualifier: z.string().length(1).optional(),
           comment: z.string().max(500).optional(),
+          mapping: z
+            .array(z.string().regex(/^[A-Za-z0-9_>-]+$/).nullable())
+            .max(500)
+            .optional(),
         }),
         request.body,
         "request body",
@@ -78,6 +82,7 @@ export function registerTransferRoutes(app: FastifyInstance, services: Services)
         ...(body.separator ? { separator: body.separator } : {}),
         ...(body.qualifier ? { qualifier: body.qualifier } : {}),
         ...(body.comment ? { comment: body.comment } : {}),
+        ...(body.mapping ? { mapping: body.mapping } : {}),
       });
     },
   );

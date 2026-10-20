@@ -147,12 +147,13 @@ export const getBulkDeletePlan = (className: string, ids: number[]) =>
 export const exportRecords = (
   className: string,
   format: ExportFormat,
-  filters: { q?: string; view?: string; criteria?: Criterion[] },
+  filters: { q?: string; view?: string; criteria?: Criterion[]; fields?: string },
 ) =>
   apiClient.getBlob(`/objects/${className}/export`, {
     format,
     q: filters.q,
     view: filters.view,
+    fields: filters.fields || undefined,
     criteria: filters.criteria?.length ? JSON.stringify(filters.criteria) : undefined,
   });
 

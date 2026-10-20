@@ -18,4 +18,13 @@ describe('headerOf', () => {
   it('is empty for an empty file', () => {
     expect(headerOf('  \n', ',')).toEqual([]);
   });
+
+  it('keeps a separator inside quotes, doubled quotes and unnamed columns', () => {
+    expect(headerOf('﻿"Caller, name","Say ""hi""",,Status\r\nx,y,z,w', ',')).toEqual([
+      'Caller, name',
+      'Say "hi"',
+      '',
+      'Status',
+    ]);
+  });
 });

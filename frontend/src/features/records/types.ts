@@ -237,6 +237,8 @@ export interface ImportRequest {
   simulate: boolean;
   reconciliationKeys?: string[];
   separator?: string;
+  /** Per file column, the column it loads into; null skips it. */
+  mapping?: (string | null)[];
 }
 
 export type CriterionKind = 'string' | 'enum' | 'key' | 'number' | 'date';
