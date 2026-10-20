@@ -32,7 +32,6 @@ Not covered / found:
 - iTop's CSV export writes enum labels ("Resolved") while the import reads codes, so an exported status column does not import back unchanged.
 - The test-run hook writes to `$CLAUDE_PROJECT_DIR`, the main checkout, so runs from this worktree were recorded in the main folder's `TEST_LOG.md`, under the main folder's branch. This entry records them instead.
 
-
 ### 2026-10-20 — Audit screen (iTop's data-quality audit)
 
 Branch `claude/xenodochial-merkle-a3288c`.
