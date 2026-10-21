@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Search } from 'lucide-react';
 import { buttonClasses, Card, Input } from '@/components/ui';
+import { PageIntro } from '@/components/public';
 import { DataTable, StatusPill, type Column } from '@/components/data-display';
 import { cn, dateTimeText } from '@/lib/utils';
 import { useMyRequests } from '../api/portal.api';
@@ -11,7 +12,7 @@ import type { PortalTicket } from '../types';
 export const formatDate = (value: string) => (value ? dateTimeText(value) : '—');
 
 const columns: Column<PortalTicket>[] = [
-  { id: 'ref', header: 'Reference', size: 110, enableSorting: false, cell: ({ row }) => <span className="font-medium text-brand-ink">{row.original.ref}</span> },
+  { id: 'ref', header: 'Reference', size: 110, enableSorting: false, cell: ({ row }) => <span className="text-ink-secondary tabular-nums">{row.original.ref}</span> },
   { id: 'title', header: 'Title', enableSorting: false, cell: ({ row }) => <span className="block truncate text-ink">{row.original.title}</span> },
   { id: 'service', header: 'Service', enableSorting: false, cell: ({ row }) => row.original.subcategory || row.original.service || '—' },
   { id: 'status', header: 'Status', size: 120, enableSorting: false, cell: ({ row }) => <StatusPill status={row.original.status} size="sm" /> },
@@ -28,15 +29,18 @@ export function PortalRequestsPage() {
 
   return (
     <>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-[20px] font-semibold text-ink">My requests</h1>
-        <Link to="/portal/new" className={buttonClasses({ variant: 'primary', size: 'sm' })}>
-          <Plus className="mr-1.5 size-4" />
-          New request
-        </Link>
-      </div>
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-        <div className="flex rounded-control border border-line p-0.5" role="tablist" aria-label="Request state">
+      <PageIntro
+        title="My requests"
+        intro="Everything you have raised, with where it stands."
+        action={
+          <Link to="/portal/new" className={buttonClasses({ variant: 'primary', size: 'lg', className: 'h-11 px-5' })}>
+            <Plus className="size-4" aria-hidden />
+            New request
+          </Link>
+        }
+      />
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-4 border-b border-line">
+        <div className="flex gap-6" role="tablist" aria-label="Request state">
           {(['open', 'closed'] as const).map((s) => (
             <button
               key={s}
@@ -48,8 +52,8 @@ export function PortalRequestsPage() {
                 setPage(1);
               }}
               className={cn(
-                'rounded-control px-3 py-1 text-[13px]',
-                state === s ? 'bg-brand-soft font-medium text-brand-ink' : 'text-ink-secondary hover:text-ink',
+                '-mb-px border-b-2 pb-3 text-[15px] transition-colors',
+                state === s ? 'border-ink text-ink' : 'border-transparent text-ink-secondary hover:text-ink',
               )}
             >
               {s === 'open' ? 'Open' : 'Closed'}
@@ -65,7 +69,7 @@ export function PortalRequestsPage() {
           placeholder="Search by reference or title…"
           aria-label="Search my requests"
           leadingIcon={<Search className="size-4" />}
-          className="w-full sm:w-72"
+          className="mb-3 h-10 w-full sm:w-72"
         />
       </div>
       {isError ? (
@@ -73,18 +77,44 @@ export function PortalRequestsPage() {
           {error instanceof Error ? error.message : 'Your requests could not be loaded.'}
         </div>
       ) : null}
-      <Card>
-        <DataTable
-          data={data?.items ?? []}
-          columns={columns}
-          isLoading={isLoading}
-          loadingRows={5}
-          emptyTitle={state === 'open' ? 'No open requests' : 'No closed requests'}
-          emptyDescription={state === 'open' ? 'Raise a request and it appears here.' : undefined}
-          onRowClick={(t) => navigate(`/portal/requests/${t.id}`)}
-        />
+      {/* Phones: a stacked list; the table needs more width than a phone has. */}
+      <ul className="-mt-6 divide-y divide-line border-b border-line sm:hidden" aria-label="My requests">
+        {isLoading ? (
+          <li className="py-6 text-[14px] text-ink-secondary">Loading…</li>
+        ) : !data || data.items.length === 0 ? (
+          <li className="py-6 text-[14px] text-ink-secondary">{state === 'open' ? 'No open requests' : 'No closed requests'}</li>
+        ) : (
+          data.items.map((t) => (
+            <li key={t.id}>
+              <Link to={`/portal/requests/${t.id}`} className="block py-4 hover:bg-surface-hover">
+                <span className="flex items-center justify-between gap-3 text-[13px] text-ink-secondary">
+                  <span className="tabular-nums">{t.ref}</span>
+                  <span>{formatDate(t.createdAt)}</span>
+                </span>
+                <span className="mt-1 block text-[16px] text-ink">{t.title}</span>
+                <span className="mt-2 flex items-center gap-3">
+                  <StatusPill status={t.status} size="sm" />
+                  <span className="truncate text-[13px] text-ink-secondary">{t.subcategory || t.service}</span>
+                </span>
+              </Link>
+            </li>
+          ))
+        )}
+      </ul>
+      <Card className="max-sm:border-0 max-sm:bg-transparent">
+        <div className="hidden sm:block">
+          <DataTable
+            data={data?.items ?? []}
+            columns={columns}
+            isLoading={isLoading}
+            loadingRows={5}
+            emptyTitle={state === 'open' ? 'No open requests' : 'No closed requests'}
+            emptyDescription={state === 'open' ? 'Raise a request and it appears here.' : undefined}
+            onRowClick={(t) => navigate(`/portal/requests/${t.id}`)}
+          />
+        </div>
         {data && data.pages > 1 ? (
-          <div className="flex items-center justify-between border-t border-line px-4 py-3 text-[13px] text-ink-muted">
+          <div className="flex items-center justify-between border-line py-3 text-[13px] text-ink-muted sm:border-t sm:px-4">
             <span>
               Page {data.page} of {data.pages}
             </span>

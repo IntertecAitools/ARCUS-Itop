@@ -50,29 +50,31 @@ export function LoginPage() {
         id="login"
         autoComplete="username"
         autoFocus
+        className="h-11"
         value={login}
         onChange={(e) => setLogin(e.target.value)}
       />
 
-      <label htmlFor="password" className="mt-4 mb-1.5 block text-[13px] font-medium text-ink">
+      <label htmlFor="password" className="mt-5 mb-1.5 block text-[13px] font-medium text-ink">
         Password
       </label>
       <Input
         id="password"
         type="password"
         autoComplete="current-password"
+        className="h-11"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
       />
 
-      <Button type="submit" className="mt-6 w-full" loading={signIn.isPending}>
+      <Button type="submit" className="mt-8 h-12 w-full text-[14px]" loading={signIn.isPending}>
         Sign in
       </Button>
 
       {/* Offered only when the BFF can send email. */}
       {options?.passwordReset ? (
-        <p className="mt-5 text-center text-[13px]">
-          <Link to="/forgot-password" className="font-medium text-brand-ink hover:underline">
+        <p className="mt-6 text-[14px]">
+          <Link to="/forgot-password" className="text-ink-secondary underline underline-offset-4 hover:text-ink">
             Forgot password?
           </Link>
         </p>
