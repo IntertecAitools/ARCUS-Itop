@@ -4,6 +4,57 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-10-21 — Realistic data volume: 50,000 tickets, timings, fixes
+
+Branch `claude/data-volume-601f54`. A separate iTop: the production stack as its own compose project, `arcus-perf`, with its own MySQL (`itop_perf`) and iTop on 127.0.0.1:8189. The shared `itop-local`, `itop-mailpit` and `itop_prod` were not touched. It was filled through REST by `backend/scripts/perf-seed.mjs`:
+
+- 20 organisations, 2,000 people, 100 teams, 300 services and subcategories;
+- 10,000 CIs and 501 accounts;
+- 50,000 tickets over 12 months, with case logs;
+- 300 bell items.
+
+Loading took ≈ 4 h 50 min. There were two BFFs on that iTop, `main` on :4801 and this branch on :4800, plus the frontend on :5873. Full results are in `docs/performance.md`.
+
+| What ran | Result | Notes |
+| --- | --- | --- |
+| `perf-seed.mjs`: tiny scale, then full scale (resumed twice: idempotent) | ✅ 0 failures | 50,000 tickets at 2.3–4.5/s; the CPU-bound laptop was shared with other projects |
+| `perf-measure.mjs`: 31 calls × 3 runs, before and after, at 12,242 tickets (busy laptop) and at 50,000 (quiet) | ✅ | Before: 90-day dashboard trend 2,000 of 6,132; "recent incidents" a year old; bell showing the oldest 30; portal 3–15 s. After: all correct, portal 0.3–0.4 s, dashboard 1.1 / 2.3 s |
+| Full exports: 20,000 requests and 50,000 tickets, CSV | ✅ | 12–17 s; BFF under 250 MB |
+| Real imports: 1,000 people, 200 user requests | ✅ | 33.9 s and 26.5 s |
+| MySQL slow log (> 0.5 s) during the runs | ✅ | ~55 queries, worst 2 s; no index needed |
+| Browser, frontend :5873 → BFF :4800 | ✅ | Dashboard counts and this week's incidents; User Request list, 20,200 rows, newest first |
+| Backend typecheck + unit tests | ✅ 499/499, clean | New: `volume.test.ts` (pageFromEnd, newestRows in both orders, parallel listAll, fail-fast sort, overview SLA counts), portal newest page, enum dashlet counts, audit counted in iTop with an unrelated-class fallback, form agents, transfer timeouts and import caps |
+| Frontend typecheck + unit tests + build | ✅ 130/130, clean, built | New: `Dashlet.test.tsx` ("Grouped from the first N of M" note). The first full run failed 11 AttachmentsPanel tests only because a local `.env.local` pointed `VITE_BFF_URL` at :4800 (the MSW handlers expect the default); they pass without it |
+| Backend build | ✅ | |
+| nginx template (`nginx -t` in nginx:1.28.0-alpine) | ✅ | New export/import location with 300 s |
+
+Bugs found and fixed (same branch):
+
+- iTop returns each class in its default order. `UserRequest`, `Incident`, `Change` and events come newest first; `Ticket` comes oldest first. Several places read "the last page" for the newest items and got the oldest:
+  - the dashboard's recent incidents;
+  - the bell list;
+  - notifications sent;
+  - the portal.
+
+  Fixed with `newestRows()` / `pageFromEnd()`.
+- The dashboard's trend, categories and SLA used the first 2,000 incidents of the window. They now read the whole window in parallel pages.
+- The SLA flags cost iTop ~3 ms per row, so the split is now counted in iTop.
+- A new `Intl.DateTimeFormat` per date cost 1.3 s per 2,000 rows; there is now one formatter per time zone.
+- The KPI window was one day longer than the trend's.
+- Grouping dashlets read 5,000 rows in sequence and called that the total. Enums are now counted per value; other groupings report the real total and say when they are truncated.
+- Audit runs downloaded whole classes. iTop now counts with nested `IN` / `NOT IN`.
+- Incident forms offered only the first 200 people as agents. They now list team members, up to 2,000.
+- A sorted list over the 2,000-row cap downloaded 2,000 rows before refusing; it now counts first.
+- Exports and imports were cut at 120 s while iTop kept importing. They now get 300 s in the BFF and nginx, and imports over 1,000 tickets or 5,000 other rows are refused at the preview step.
+
+Not covered:
+
+- A Linux server. All timings are from a shared Windows laptop; see "Sizing" in `docs/performance.md`.
+- Many users at once. Each call was timed alone, with no concurrent-user load test.
+- iTop cron, because no SLTs were defined (SLA flags were all zero).
+- Excel and PDF exports of 50,000 rows.
+- The test-run hook records into the main checkout's log (see the side-session notes), so these runs are recorded here by hand.
+
 ### 2026-10-21 — Production iTop in the prod stack: install, cron, lock-down, backup/restore
 
 Branch `claude/great-williams-dba424`. The whole production stack (`docker/docker-compose.prod.yml` + `docker-compose.prod.localtest.yml` for Mailpit) on Docker Desktop, compose project `arcus-itoptest`, web on `:8098`, Mailpit on `:8026`, test env files in the session's scratchpad (not in the repo). The shared `itop-local`, `itop-mailpit` and `itop_prod` were not touched. Only `itop-local-cron` was added to `docker-compose.local.yml`; it was not started (it would run cron against the shared `itop_prod`).
