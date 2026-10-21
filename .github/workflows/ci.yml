@@ -60,3 +60,32 @@ jobs:
         run: npm test
       - name: Build
         run: npm run build
+
+  deployment:
+    name: Deployment files
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      # The example files leave secrets blank; the compose file refuses blanks.
+      ITOP_PASSWORD: ci-placeholder
+      SESSION_DB_PASSWORD: ci-placeholder
+      ARCUS_ENV_FILE: prod.env.example
+      ITOP_ENV_FILE: itop.env.example
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compose files resolve
+        working-directory: docker
+        run: |
+          docker compose -f docker-compose.prod.yml --env-file prod.env.example config -q
+          docker compose -f docker-compose.prod.yml -f docker-compose.prod.itop-admin.yml --env-file prod.env.example config -q
+          docker compose -f docker-compose.prod.yml -f docker-compose.prod.localtest.yml --env-file prod.env.example config -q
+          docker compose -f docker-compose.local.yml config -q
+      - name: Shell scripts (shellcheck, executable)
+        run: |
+          shellcheck docker/itop-prod/*.sh docker/backup/*.sh docker/mysql-init/*.sh
+          # The backup and MySQL scripts are bind-mounted and run as they are.
+          for f in docker/itop-prod/*.sh docker/backup/*.sh docker/mysql-init/*.sh; do
+            test -x "$f" || { echo "::error file=$f::not executable (git update-index --chmod=+x $f)"; exit 1; }
+          done
+      - name: PHP syntax
+        run: php -l docker/itop-prod/configure.php

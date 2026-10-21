@@ -15,6 +15,10 @@
 #        docker compose -f docker/docker-compose.local.yml up -d
 #   4. First time only, run iTop's setup (see backend/README.md, "Local iTop").
 #
+# itop-local-cron runs iTop's background jobs (cron.php: SLA deadlines,
+# escalations, queued email, newsroom) against the same volume, as the
+# account in backend/.env (ITOP_USER / ITOP_PASSWORD, an Administrator).
+#
 # Stop with `docker compose -f docker/docker-compose.local.yml down`; the
 # volume (installed config + compiled datamodel) is kept until `down -v`.
 
@@ -29,6 +33,23 @@ services:
     extra_hosts:
       # Reaches MySQL 8.0 running as a Windows service.
       - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  itop-local-cron:
+    image: itop-dev:php8.3
+    container_name: itop-local-cron
+    user: www-data
+    command: ["sh", "/usr/local/bin/itop-cron"]
+    volumes:
+      - itop-local-code:/var/www/html
+      - ./itop-prod/itop-cron.sh:/usr/local/bin/itop-cron:ro
+    env_file:
+      - path: ../backend/.env
+        required: false
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - itop-local
     restart: unless-stopped
 
   # A local test mailbox: catches every email iTop and the BFF send, so nothing

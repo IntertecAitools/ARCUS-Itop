@@ -1,17 +1,40 @@
-# Production example: the frontend and the BFF behind one origin.
+# Production: the platform and its own iTop on one server.
 #
-#   browser ──HTTPS──> your TLS proxy ──> web (nginx :80) ──/api──> bff (:4000) ──> iTop
+#   browser ──HTTPS──> your TLS proxy ──> web (nginx :80) ──/api──> bff (:4000) ──> itop (Apache :80, rest.php only)
+#                                                                    │                │
+#                                                                    └──── db (MySQL 8.4: itop + arcus_bff) ────┘
+#   itop-cron: iTop's background jobs (cron.php)     backup: daily dumps + iTop files into BACKUP_DIR
 #
-# iTop and MySQL are an existing install and stay outside this file. See
-# docs/deployment.md for every setting and the checklist.
+# Only `web` publishes a port. iTop, MySQL, cron and backup sit on the
+# internal network `itop`, which has no route out and no published port.
+# docs/deployment.md is the step-by-step guide (first install included).
 #
-#   cp docker/prod.env.example docker/prod.env      # then fill it in
+#   cp docker/prod.env.example docker/prod.env      # platform + compose values
+#   cp docker/itop.env.example docker/itop.env      # iTop, MySQL, backups
 #   docker compose -f docker/docker-compose.prod.yml --env-file docker/prod.env up -d --build
 #
-# `--env-file` feeds the ${...} below (WEB_PORT, VITE_*); `env_file` hands the
-# same file to the BFF as its environment.
+# `--env-file` feeds the ${...} below; `env_file` hands prod.env to the BFF and
+# itop.env to iTop, MySQL and the backup job. Values that both sides need
+# (the service account, the time zone, the sessions database) are written
+# once, in prod.env, and passed to the iTop side under `environment`.
 
 name: arcus
+
+x-itop-env: &itop-env
+  # The BFF's service account: created by itop-setup, used by itop-cron.
+  ITOP_SERVICE_USER: ${ITOP_USER:?set ITOP_USER in prod.env}
+  ITOP_SERVICE_PASSWORD: ${ITOP_PASSWORD:?set ITOP_PASSWORD in prod.env}
+  ITOP_CRON_USER: ${ITOP_USER}
+  ITOP_CRON_PASSWORD: ${ITOP_PASSWORD}
+  ITOP_TIMEZONE: ${ITOP_TIMEZONE:-Europe/Paris}
+  # itop.env holds MySQL's root password for `db`; iTop never needs it.
+  MYSQL_ROOT_PASSWORD: ""
+
+x-itop-volumes: &itop-volumes
+  - itop-conf:/var/www/html/conf
+  - itop-data:/var/www/html/data
+  - itop-env:/var/www/html/env-production
+  - itop-log:/var/www/html/log
 
 services:
   bff:
@@ -34,6 +57,11 @@ services:
     extra_hosts:
       # Lets ITOP_BASE_URL / SESSION_DB_HOST say host.docker.internal on Linux too.
       - "host.docker.internal:host-gateway"
+    depends_on:
+      db:
+        condition: service_healthy
+        # Not started with an external MySQL (COMPOSE_PROFILES without bundled-db).
+        required: false
     healthcheck:
       # Liveness: the process is up and the schema loaded. Does not need iTop.
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:4000/health"]
@@ -41,6 +69,7 @@ services:
       timeout: 5s
       start_period: 20s
       retries: 3
+    networks: [front, itop]
     # Not published: only `web` talks to it.
     expose:
       - "4000"
@@ -69,7 +98,115 @@ services:
       timeout: 30s
       start_period: 15s
       retries: 3
+    networks: [front]
     ports:
       # Put your TLS proxy in front of this; bind to 127.0.0.1 when it runs on
       # the same host.
       - "${WEB_BIND:-127.0.0.1}:${WEB_PORT:-8088}:80"
+
+  # iTop with the repository's iTop/ baked in. Apache answers only
+  # /webservices/rest.php, export-v2.php and import.php (the BFF's calls);
+  # docker/docker-compose.prod.itop-admin.yml opens the console in an emergency.
+  itop:
+    build:
+      context: ..
+      dockerfile: docker/itop-prod/Dockerfile
+    image: arcus-itop:${ARCUS_VERSION:-latest}
+    restart: unless-stopped
+    env_file: ${ITOP_ENV_FILE:-itop.env}
+    environment:
+      <<: *itop-env
+    volumes: *itop-volumes
+    depends_on:
+      db:
+        condition: service_healthy
+        required: false
+    # `itop` for the BFF and cron; `egress` only so iTop can reach the SMTP
+    # server (and an external MySQL). Neither publishes a port.
+    networks: [itop, egress]
+
+  itop-cron:
+    image: arcus-itop:${ARCUS_VERSION:-latest}
+    restart: unless-stopped
+    user: www-data
+    command: ["itop-cron"]
+    env_file: ${ITOP_ENV_FILE:-itop.env}
+    environment:
+      <<: *itop-env
+      # Starts only once itop-setup has finished (data/arcus-setup.done).
+      ITOP_CRON_AFTER_SETUP: "true"
+    volumes: *itop-volumes
+    depends_on:
+      itop:
+        condition: service_started
+    healthcheck:
+      disable: true
+    networks: [itop, egress]
+
+  # The bundled MySQL, holding iTop's database and the BFF's sessions. For an
+  # existing MySQL, drop `bundled-db` from COMPOSE_PROFILES in prod.env and
+  # point ITOP_DB_HOST / SESSION_DB_HOST at it (docs/deployment.md).
+  db:
+    image: ${MYSQL_IMAGE:-mysql:8.4.6}
+    profiles: [bundled-db]
+    restart: unless-stopped
+    env_file: ${ITOP_ENV_FILE:-itop.env}
+    environment:
+      SESSION_DB_NAME: ${SESSION_DB_NAME:-arcus_bff}
+      SESSION_DB_USER: ${SESSION_DB_USER:-arcus_bff}
+      SESSION_DB_PASSWORD: ${SESSION_DB_PASSWORD:?set SESSION_DB_PASSWORD in prod.env}
+    command:
+      # iTop stores attachments in the database: allow large rows.
+      - --max-allowed-packet=64M
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - db-data:/var/lib/mysql
+      - ./mysql-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 10s
+      timeout: 5s
+      # The first start initialises the data directory: minutes on a slow disk.
+      start_period: 300s
+      retries: 10
+    networks: [itop]
+
+  # Daily dumps of both databases plus iTop's conf/ data/ env-production/,
+  # into BACKUP_DIR on the host. Copy that folder off the server.
+  backup:
+    image: ${MYSQL_IMAGE:-mysql:8.4.6}
+    restart: unless-stopped
+    entrypoint: ["/scripts/loop.sh"]
+    env_file: ${ITOP_ENV_FILE:-itop.env}
+    environment:
+      SESSION_DB_HOST: ${SESSION_DB_HOST:-db}
+      SESSION_DB_PORT: ${SESSION_DB_PORT:-3306}
+      SESSION_DB_NAME: ${SESSION_DB_NAME:-arcus_bff}
+      SESSION_DB_USER: ${SESSION_DB_USER:-arcus_bff}
+      SESSION_DB_PASSWORD: ${SESSION_DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ""
+    volumes:
+      - ./backup:/scripts:ro
+      - ${BACKUP_DIR:-../backups}:/backups
+      - itop-conf:/itop/conf
+      - itop-data:/itop/data
+      - itop-env:/itop/env-production
+    networks: [itop, egress]
+
+networks:
+  # Browser-facing side: web and the BFF.
+  front:
+  # iTop, MySQL and the jobs. internal: no route to the outside world and no
+  # published ports; the BFF joins it to reach iTop and its sessions database.
+  itop:
+    internal: true
+  # Outbound only (no published ports): iTop's mail, an external MySQL.
+  egress:
+
+volumes:
+  itop-conf:
+  itop-data:
+  itop-env:
+  itop-log:
+  db-data:

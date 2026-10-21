@@ -1,0 +1,24 @@
+# Emergency access to iTop's own console. Not for day-to-day use: everything
+# is done in the platform. Opens the whole of iTop on 127.0.0.1:8089 of the
+# server only; reach it through an SSH tunnel (docs/deployment.md,
+# "Emergency access to iTop"):
+#
+#   docker compose -f docker/docker-compose.prod.yml -f docker/docker-compose.prod.itop-admin.yml \
+#     --env-file docker/prod.env up -d itop
+#   ssh -L 8089:127.0.0.1:8089 you@server      # then http://localhost:8089/
+#
+# Close it again by starting iTop without this file:
+#
+#   docker compose -f docker/docker-compose.prod.yml --env-file docker/prod.env up -d itop
+
+services:
+  itop:
+    environment:
+      ITOP_ADMIN_UI: "true"
+    networks: [itop, egress, admin]
+    ports:
+      - "127.0.0.1:${ITOP_ADMIN_PORT:-8089}:80"
+
+networks:
+  # The `itop` network is internal and cannot publish; this one can.
+  admin:

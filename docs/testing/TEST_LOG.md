@@ -4,6 +4,45 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-10-21 — Production iTop in the prod stack: install, cron, lock-down, backup/restore
+
+Branch `claude/great-williams-dba424`. The whole production stack (`docker/docker-compose.prod.yml` + `docker-compose.prod.localtest.yml` for Mailpit) on Docker Desktop, compose project `arcus-itoptest`, web on `:8098`, Mailpit on `:8026`, test env files in the session's scratchpad (not in the repo). The shared `itop-local`, `itop-mailpit` and `itop_prod` were not touched. Only `itop-local-cron` was added to `docker-compose.local.yml`; it was not started (it would run cron against the shared `itop_prod`).
+
+| What ran | Result | Notes |
+| --- | --- | --- |
+| Compose files resolve (`config -q`): prod, prod+itop-admin, prod+localtest, local | ✅ | Same commands as the new CI job |
+| shellcheck 0.10 on every new script | ✅ | After two fixes (SC2016 note on the inline PHP, SC2010 `ls \| grep` in restore) |
+| Build: `arcus-itop` (iTop/ baked in), `arcus-bff`, `arcus-web` | ✅ | pecl.php.net was down (504) for a while: APCu now in its own layer, pinned 5.1.24 |
+| From nothing (`down -v`, `up -d`) | ✅ | MySQL created `itop` and `arcus_bff` with their users; bff healthy; web unhealthy until the install (expected); cron waiting |
+| `itop-setup`, first install (46 modules) | ✅ | 1–7 min on this machine. configure.php set timezone `Asia/Kolkata`, SMTP → mailpit, async email, sender; created `arcus-service` (Administrator + REST Services User), gave `admin` REST Services User. Config stays 0440 |
+| Health after install | ✅ | All 7 services healthy; `/health/upstream` ok as the service account |
+| Lock-down, from the BFF container | ✅ | `rest.php`, `export-v2.php`, `import.php` 200; `cron.php`, `pages/UI.php`, `index.php`, `setup/`, `portal/`, `conf/…/config-itop.php`, `env-production/`, `status.php` 403. iTop publishes no port; `db` has no route out (internal network) |
+| Sign-in through the platform | ✅ | API through nginx, and in the browser (dashboard, bell badge, Organizations list with New/Import/Export) |
+| Ticket and SLA through the platform API | ✅ | Team, service family, service, SLT (TTO 1 minute, priority 4), SLA, customer contract + service link, two user requests. TTO deadline = start + 1 min; times read back correctly in UTC with iTop on Asia/Kolkata. Request A assigned and resolved |
+| SLA job via cron | ✅ | Request B, left New, moved to `escalated_tto` with `sla_tto_passed=yes` once its TTO passed (twice: first stack, clean run) |
+| iTop mail via the queue | ✅ | A notification rule made in the platform (created, to the caller, + bell): the email reached Mailpit from `helpdesk@example.com` ~1 s after the ticket |
+| Scheduled backup (`BACKUP_TIME` 2 min ahead) and `run --rm backup backup` | ✅ | 9.2 MB: `itop.sql.gz`, `arcus_bff.sql.gz`, `itop-files.tar.gz` |
+| Restore onto wiped volumes (`down -v`, `up -d`, `stop`, `run --rm backup restore <stamp>`, `up -d`) | ✅ | All healthy; admin signs in with the restored password; both requests back as they were; cron resumed |
+| `itop-setup --upgrade` | ✅ | 2.5 min; cron paused (maintenance, then waiting for the setup) and resumed |
+| Emergency console override | ✅ | `ITOP_ADMIN_UI=true`, iTop's login page on 127.0.0.1:8089 only; closed again by `up -d itop` without the file (8089 gone, console 403 from the BFF) |
+| After merging main (PR #14 security pass, audit editing): bff + web rebuilt, `up -d` | ✅ | All healthy, `/health/upstream` ok, the new CSP header served, sign-in and both requests read back |
+
+Bugs found and fixed (in this branch):
+
+- The base image's `/var/www/html` is world-writable and owned by www-data; the code root is now root's, 0755.
+- The setup compiles into `env-production-build` next to the code root, which is not writable any more: the image creates it for www-data (iTop copies it into the `env-production` volume, it does not rename, so the volume works).
+- The iTop health check failed until installed (`rest.php` answers 500 before); it now only checks that Apache and PHP answer.
+- Right after the install, configure.php died on a half-written `expressioncache-ENUS.php`: cron.php started the moment the config file appeared and built the same caches. itop-setup now writes `data/arcus-setup.done` when finished, and the prod cron waits for it (and pauses whenever itop-setup runs).
+- MySQL's first start (~70 s here) outran the health check's start period, so the BFF and iTop started before it; start period now 300 s.
+- Python on Windows wrote two scripts with CRLF; `docker/.gitattributes` keeps `*.sh` LF, and the scripts are now executable in git (the backup entrypoint is bind-mounted and would not run on a Linux checkout). CI checks both.
+
+Not covered:
+
+- Everything ran on Docker Desktop for Windows, not a Linux server; bind-mounted scripts are executable there whatever git says (CI now checks the mode).
+- Real SMTP (only Mailpit), TLS proxy, an external MySQL (`COMPOSE_PROFILES=` empty), and `ITOP_DB_TLS`.
+- No backend or frontend code changed, so their unit tests were left to CI.
+- `itop-local-cron` was not started (see above).
+
 ### 2026-10-21 — Impact graph export and grouping, "My changes", portal uploads under the end user
 
 Branch `claude/small-items-42d376`.
