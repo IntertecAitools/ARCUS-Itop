@@ -25,5 +25,6 @@ test('notification rules list → create a rule', { tag: '@mock' }, async ({ pag
   await expect(page).toHaveURL(/\/notifications\/\d+$/);
   await expect(page.getByRole('heading', { name, level: 1 })).toBeVisible();
   await page.getByRole('link', { name: 'All rules' }).click();
-  await expect(page.getByText(name)).toBeVisible();
+  await expect(page).toHaveURL(/\/notifications$/);
+  await expect(page.getByRole('row').filter({ hasText: name })).toHaveCount(1);
 });
