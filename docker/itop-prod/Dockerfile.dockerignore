@@ -1,0 +1,20 @@
+# Build context is the repository root; send only what the iTop image needs.
+*
+!iTop/
+!docker/php.ini
+!docker/itop-prod/
+
+# Never bake in an install's state, local experiments or test code.
+iTop/.git
+iTop/.github
+iTop/.idea
+iTop/.make
+iTop/.doc
+iTop/conf/production
+iTop/conf/test
+iTop/data/**
+iTop/log/**
+iTop/env-*
+iTop/tests
+iTop/test_*.php
+iTop/verify_*.php

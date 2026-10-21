@@ -177,7 +177,7 @@ the contract.
 | `frontend/docs/ui-guidelines.md` | design system rules — read before building UI |
 | `backend/README.md` | API reference, and the five iTop quirks this layer exists to absorb |
 | `cmdb-schema/extract-schema.py` | how the datamodel JSON is produced |
-| `docs/deployment.md` | Docker images, production compose, every production setting |
+| `docs/deployment.md` | Production: the platform and its own iTop from scratch (compose, first install, cron, backups), every setting |
 
 New to the codebase? Read `backend/README.md` § *"What this layer is actually
 for"* first — it explains why the BFF exists at all, and will save you a day of

@@ -209,7 +209,13 @@ Without a shared iTop, run one from this repository's own `iTop/` copy:
    `URP_UserProfile` linking `admin` to that profile) does.
 4. `cp .env.example .env`, set `ITOP_USER`/`ITOP_PASSWORD` to that account,
    `npm run dev`, then `npm run smoke` and `npm run api:check`.
-5. Email goes to **Mailpit**, a test mailbox started with iTop by the same
+5. iTop's background jobs (`cron.php`: TTO/TTR escalations, auto-close,
+   queued email, the bell's newsroom) run in `itop-local-cron`, started by
+   the same compose file as the account in `backend/.env`
+   (`ITOP_USER`/`ITOP_PASSWORD`, an Administrator). Without it no SLA
+   threshold ever fires. Start it alone with
+   `docker compose -f docker/docker-compose.local.yml up -d itop-local-cron`.
+6. Email goes to **Mailpit**, a test mailbox started with iTop by the same
    compose file: every message the BFF or iTop sends lands at
    http://localhost:8025 and reaches nobody. Two places point at it:
    - the BFF, in `backend/.env`: `SMTP_HOST=127.0.0.1`, `SMTP_PORT=1025`,

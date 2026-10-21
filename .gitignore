@@ -13,3 +13,4 @@ frontend/test-results/
 # Production compose settings (secrets)
 /docker/prod.env
 /docker/prod.local.env
+/docker/itop.env
