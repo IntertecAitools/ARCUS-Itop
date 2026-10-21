@@ -135,6 +135,14 @@ export function Dashlet({ dashboardId, dashlet }: { dashboardId: string; dashlet
     return null;
   }
   const groups = data.groups;
+  // Past the BFF's scan limit the groups cover part of the matches: say so
+  // rather than show a total the slices do not add up to.
+  const counted = groups.reduce((sum, g) => sum + g.count, 0);
+  const partial = data.truncated ? (
+    <p className="mt-2 text-[12px] text-ink-muted">
+      Grouped from the first {counted.toLocaleString()} of {data.total.toLocaleString()} records.
+    </p>
+  ) : null;
 
   if (data.kind === 'pie') {
     return (
@@ -150,6 +158,7 @@ export function Dashlet({ dashboardId, dashlet }: { dashboardId: string; dashlet
             />
           </div>
         )}
+        {partial}
       </Panel>
     );
   }
@@ -176,6 +185,7 @@ export function Dashlet({ dashboardId, dashlet }: { dashboardId: string; dashlet
             </ResponsiveContainer>
           </div>
         )}
+        {partial}
       </Panel>
     );
   }
@@ -197,6 +207,7 @@ export function Dashlet({ dashboardId, dashlet }: { dashboardId: string; dashlet
           </tbody>
         </table>
       )}
+      {partial}
       {'class' in data && data.class ? (
         <Link
           to={`/records/${data.class}`}
