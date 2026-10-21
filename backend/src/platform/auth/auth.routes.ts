@@ -82,14 +82,17 @@ export function registerAuth(app: FastifyInstance, services: Services): void {
     enterRequestContext(caller);
     if (!config.auth.required || request.method === "OPTIONS") return;
 
-    const path = request.url.split("?")[0] ?? "";
-
-    if (!["GET", "HEAD"].includes(request.method) && Array.isArray(config.corsOrigins)) {
-      const origin = request.headers.origin?.replace(/\/+$/, "");
-      if (origin && !config.corsOrigins.includes(origin)) {
-        throw new AppError("forbidden", "This request did not come from an allowed origin.");
-      }
+    if (!["GET", "HEAD"].includes(request.method) && !allowedOrigin(request)) {
+      throw new AppError("forbidden", "This request did not come from an allowed origin.");
     }
+
+    // Decide on the route that will answer, as registered (/api/admin/users/:id),
+    // never on the raw URL: the router decodes percent-escapes, so
+    // "/%61pi/%61dmin/users" reaches /api/admin/users while a prefix check on
+    // the raw text sees neither "/api/" nor "/api/admin/".
+    const path = request.routeOptions.url;
+    // No route: the not-found handler answers, and it reveals nothing.
+    if (path === undefined) return;
 
     if (PUBLIC_PATHS.has(path) || !path.startsWith("/api/")) return;
     if (!caller) throw new AppError("unauthorized", "Sign in to continue.");
@@ -101,6 +104,23 @@ export function registerAuth(app: FastifyInstance, services: Services): void {
     }
   }
 
+  /**
+   * A write's Origin, when the browser sent one, must be allow-listed. With
+   * CORS_ORIGINS=* (no list) it must at least be this server's own origin:
+   * no other site can use the API with credentials then anyway, so this only
+   * shuts out a cross-origin form or fetch riding on a same-site cookie.
+   */
+  function allowedOrigin(request: FastifyRequest): boolean {
+    const origin = request.headers.origin?.replace(/\/+$/, "");
+    if (!origin) return true;
+    if (Array.isArray(config.corsOrigins)) return config.corsOrigins.includes(origin);
+    try {
+      return new URL(origin).host === request.host;
+    } catch {
+      return false;
+    }
+  }
+
   app.post("/api/auth/login", async (request, reply: FastifyReply) => {
     const body = parse(
       z.object({ login: z.string().max(255), password: z.string().max(1_024) }),
@@ -109,7 +129,7 @@ export function registerAuth(app: FastifyInstance, services: Services): void {
     );
     // End users are served by the self-service API (/api/portal), which the
     // guard keeps them to; staff get the whole API, as themselves.
-    const caller = await auth.signIn(body.login, body.password);
+    const caller = await auth.signIn(body.login, body.password, request.ip);
     const id = await sessions.create(caller);
     reply.header("Set-Cookie", sessionCookie(services, id, Math.floor(config.auth.sessionMaxMs / 1000)));
     return { user: publicUser(caller) };

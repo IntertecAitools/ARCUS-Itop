@@ -59,6 +59,17 @@ export interface ListResult {
   sortedInBff: boolean;
 }
 
+export interface WriteOptions {
+  comment?: string;
+  fields?: string;
+  strict?: boolean;
+  /**
+   * Write with the service account. Only for callers that are themselves the
+   * access control, like the self-service portal (iTop refuses end users).
+   */
+  asService?: boolean;
+}
+
 export class ObjectsService {
   constructor(
     private readonly client: ItopClient,
@@ -376,7 +387,7 @@ export class ObjectsService {
   async create(
     className: string,
     rawFields: unknown,
-    options: { comment?: string; fields?: string; strict?: boolean } = {},
+    options: WriteOptions = {},
   ): Promise<{ object: ObjectDto; rejected: { field: string; reason: string }[] }> {
     const info = this.schema.require(className);
     if (info.abstract) {
@@ -398,7 +409,7 @@ export class ObjectsService {
       // Mandatory: RestUtils::InitTrackingComment calls GetMandatoryParam, so
       // omitting it fails the whole call.
       comment: options.comment?.trim() || this.defaultComment,
-    });
+    }, { asService: options.asService ?? false });
 
     const created = normalizeObjects(result.objects)[0];
     if (!created) {
@@ -411,7 +422,7 @@ export class ObjectsService {
     className: string,
     id: number,
     rawFields: unknown,
-    options: { comment?: string; fields?: string; strict?: boolean } = {},
+    options: WriteOptions = {},
   ): Promise<{ object: ObjectDto; rejected: { field: string; reason: string }[] }> {
     const info = this.schema.require(className);
     const validated = validateWrite(info, rawFields, {
@@ -426,7 +437,7 @@ export class ObjectsService {
       fields: validated.fields,
       output_fields: this.outputFields(info, options.fields, "full"),
       comment: options.comment?.trim() || this.defaultComment,
-    });
+    }, { asService: options.asService ?? false });
 
     const updated = normalizeObjects(result.objects)[0];
     if (!updated) {
@@ -608,7 +619,12 @@ export class ObjectsService {
     // Ticket/User are not exported), so fall back to iTop's own full field list.
     const outputFields = linkedInfo
       ? this.outputFields(linkedInfo, query.fields, "summary")
-      : (query.fields ?? "*");
+      : query.fields === undefined || query.fields === "*"
+        ? "*"
+        : query.fields
+            .split(",")
+            .map((code) => assertIdentifier(code.trim(), "attribute code"))
+            .join(",");
 
     const result = await this.client.call("core/get", {
       class: field.linked,

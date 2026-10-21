@@ -1,7 +1,7 @@
 import { AppError, badRequest } from "../../core/errors.js";
 import type { ItopClient } from "../../itop/client.js";
 import type { CmdbSchema } from "../../schema/load.js";
-import { parseCsv, remapCsv, writeCsv } from "./csv.js";
+import { defuseFormulas, parseCsv, remapCsv, writeCsv } from "./csv.js";
 
 /** The export formats offered, as iTop's export-v2.php names them. */
 export const EXPORT_FORMATS = ["csv", "xlsx", "pdf"] as const;
@@ -81,9 +81,19 @@ export class TransferService {
       throw new AppError("upstream_error", `iTop refused the export: ${text || "no file was produced."}`);
     }
 
+    const contentType = response.headers.get("content-type") ?? "application/octet-stream";
+    if (format === "csv") {
+      // Rewritten rather than streamed, to defuse formulas (see csv.ts).
+      // ignoreBOM keeps iTop's byte-order mark, which Excel needs to read UTF-8.
+      const text = new TextDecoder("utf-8", { ignoreBOM: true }).decode(await response.arrayBuffer());
+      const bom = text.startsWith("﻿") ? "﻿" : "";
+      const safe = bom + writeCsv(defuseFormulas(parseCsv(text.slice(bom.length), ",", '"')), ",", '"');
+      return { body: new Blob([safe]).stream(), contentType, filename: `${info.name}-${new Date().toISOString().slice(0, 10)}.csv` };
+    }
+
     return {
       body: response.body,
-      contentType: response.headers.get("content-type") ?? "application/octet-stream",
+      contentType,
       filename: `${info.name}-${new Date().toISOString().slice(0, 10)}.${format}`,
     };
   }

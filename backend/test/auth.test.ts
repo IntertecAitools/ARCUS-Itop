@@ -155,3 +155,103 @@ describe("the guard", () => {
     assert.equal((await app.inject({ method: "GET", url: "/api/auth/me", headers: { cookie } })).statusCode, 401);
   });
 });
+
+describe("the guard, on encoded paths", () => {
+  // The router decodes percent-escapes, so each of these reaches a real route.
+  it("does not let an encoded path skip the sign-in check", async () => {
+    const { app, fake } = setup([getResponse([])]);
+    for (const url of ["/%61pi/objects/Server", "/%61pi/admin/users", "/api/%61dmin/users"]) {
+      const res = await app.inject({ method: "GET", url });
+      assert.equal(res.statusCode, 401, url);
+    }
+    assert.equal(fake.calls.length, 0, "nothing reached iTop");
+  });
+
+  it("does not let an encoded path reach the admin API", async () => {
+    const { app } = setup([...account("jane", ["Service Desk Agent", "REST Services User"]), getResponse([])]);
+    const { cookie } = await signIn(app);
+    for (const url of ["/api/%61dmin/users", "/%61pi/admin/users", "/api/admi%6E/profiles"]) {
+      const res = await app.inject({ method: "GET", url, headers: { cookie } });
+      assert.equal(res.statusCode, 403, url);
+    }
+  });
+
+  it("keeps an end user to the portal on encoded paths too", async () => {
+    const { app } = setup(account("jane", ["Portal user"]));
+    const { cookie } = await signIn(app);
+    const res = await app.inject({ method: "GET", url: "/api/%6Fbjects/Server", headers: { cookie } });
+    assert.equal(res.statusCode, 403);
+  });
+});
+
+describe("cross-origin writes with CORS_ORIGINS=*", () => {
+  it("refuses a write from another site, allows one from this host", async () => {
+    const { app } = setup([]);
+    const evil = await app.inject({
+      method: "POST",
+      url: "/api/auth/login",
+      headers: { origin: "https://evil.example", host: "help.example.com" },
+      payload: { login: "jane", password: "nope" },
+    });
+    assert.equal(evil.statusCode, 403);
+    const own = await app.inject({
+      method: "POST",
+      url: "/api/auth/login",
+      headers: { origin: "https://help.example.com", host: "help.example.com" },
+      payload: { login: "jane", password: "nope" },
+    });
+    assert.equal(own.statusCode, 401);
+  });
+});
+
+describe("sign-in rate limiting", () => {
+  const attempt = (app: ReturnType<typeof setup>["app"], login: string, password: string, ip = "10.0.0.1") =>
+    app.inject({ method: "POST", url: "/api/auth/login", remoteAddress: ip, payload: { login, password } });
+
+  it("locks a login after 5 failures, whatever the address, without asking iTop", async () => {
+    const { app, fake } = setup(account("jane", ["Service Desk Agent", "REST Services User"]));
+    for (let i = 1; i <= 5; i += 1) {
+      assert.equal((await attempt(app, "jane", "wrong", `10.0.0.${i}`)).statusCode, 401);
+    }
+    const checks = fake.calls.filter((c) => c.verb === "core/check_credentials").length;
+    // Even the right password waits now, from a fresh address, and the
+    // login's case does not matter.
+    const blocked = await attempt(app, "JANE", "s3cret-pass", "10.0.0.99");
+    assert.equal(blocked.statusCode, 429);
+    assert.equal(blocked.json().error.code, "rate_limited");
+    assert.match(blocked.json().error.message, /Too many failed sign-in attempts\. Try again in 15 minutes/);
+    const retryAfter = Number(blocked.headers["retry-after"]);
+    assert.ok(retryAfter > 800 && retryAfter <= 900, `Retry-After ${retryAfter}`);
+    assert.equal(fake.calls.filter((c) => c.verb === "core/check_credentials").length, checks);
+  });
+
+  it("limits one address to 10 failures across logins", async () => {
+    const { app } = setup([]);
+    for (let i = 1; i <= 10; i += 1) {
+      assert.equal((await attempt(app, `user${i}`, "wrong")).statusCode, 401);
+    }
+    assert.equal((await attempt(app, "someone-else", "wrong")).statusCode, 429);
+    // Another address is unaffected.
+    assert.equal((await attempt(app, "someone-else", "wrong", "10.0.0.2")).statusCode, 401);
+  });
+
+  it("clears a login's count on a successful sign-in", async () => {
+    const { app } = setup(account("jane", ["Service Desk Agent", "REST Services User"]));
+    for (let i = 0; i < 4; i += 1) assert.equal((await attempt(app, "jane", "wrong")).statusCode, 401);
+    assert.equal((await attempt(app, "jane", "s3cret-pass")).statusCode, 200);
+    for (let i = 0; i < 4; i += 1) {
+      assert.equal((await attempt(app, "jane", "wrong", "10.0.0.7")).statusCode, 401);
+    }
+  });
+});
+
+describe("changing one's own password", () => {
+  it("counts wrong current passwords against the login, like sign-ins", async () => {
+    const { app } = setup(account("jane", ["Service Desk Agent", "REST Services User"]));
+    const { cookie } = await signIn(app);
+    const change = () =>
+      app.inject({ method: "POST", url: "/api/auth/password", headers: { cookie }, payload: { current: "guess", next: "new-password-1" } });
+    for (let i = 0; i < 5; i += 1) assert.equal((await change()).statusCode, 400);
+    assert.equal((await change()).statusCode, 429);
+  });
+});

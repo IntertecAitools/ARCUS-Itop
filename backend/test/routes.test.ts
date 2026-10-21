@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { after, describe, it } from "node:test";
 
 import { buildApp } from "../src/app.js";
+import { AppError } from "../src/core/errors.js";
 import {
   FakeItopClient,
   getResponse,
@@ -333,5 +334,59 @@ describe("error handling", () => {
     assert.equal(response.statusCode, 204);
     assert.equal(response.headers["access-control-allow-origin"], "*");
     assert.match(String(response.headers["access-control-allow-methods"]), /PATCH/);
+  });
+});
+
+describe("security headers", () => {
+  it("are on every response, errors included, and nothing is cached", async () => {
+    const fake = new FakeItopClient();
+    for (const url of ["/health", "/api/no-such-route"]) {
+      const res = await app(fake).inject({ method: "GET", url });
+      assert.equal(res.headers["x-content-type-options"], "nosniff", url);
+      assert.equal(res.headers["x-frame-options"], "DENY", url);
+      assert.equal(res.headers["referrer-policy"], "no-referrer", url);
+      assert.match(String(res.headers["content-security-policy"]), /default-src 'none'.*frame-ancestors 'none'/, url);
+      assert.equal(res.headers["cache-control"], "no-store", url);
+    }
+  });
+});
+
+describe("5xx answers", () => {
+  it("keep iTop's internal address and raw upstream text to the log", async () => {
+    const fake = new FakeItopClient();
+    fake.callRaw = async () => {
+      throw new AppError("upstream_error", "iTop returned HTTP 500 for core/get. Check that http://itop-internal:8080/webservices/rest.php is correct.", {
+        details: "Fatal error: /var/www/itop/core/dbobject.class.inc.php line 12",
+      });
+    };
+    const res = await app(fake).inject({ method: "GET", url: "/api/objects/Server" });
+    assert.equal(res.statusCode, 502);
+    assert.equal(res.json().error.code, "upstream_error");
+    assert.ok(!/itop-internal|dbobject|Fatal/.test(res.body), res.body);
+    assert.equal(res.json().error.details, undefined);
+  });
+
+  it("still show the message iTop itself answered with", async () => {
+    const fake = new FakeItopClient().on("core/get", { code: 100, message: "Error: the value 'x' is not allowed" });
+    const res = await app(fake).inject({ method: "GET", url: "/api/objects/Server" });
+    assert.equal(res.statusCode, 502);
+    assert.match(res.json().error.message, /is not allowed/);
+    assert.equal(res.json().error.itopCode, 100);
+  });
+});
+
+describe("Object.prototype names as field codes", () => {
+  it("are unknown attributes and dashboards, not 500s", async () => {
+    const fake = new FakeItopClient().on("core/get", getResponse([]));
+    const criteria = encodeURIComponent(JSON.stringify([{ field: "constructor", op: "=", value: "x" }]));
+    for (const [url, status] of [
+      ["/api/objects/Server?constructor=x", 400],
+      ["/api/objects/Server?sort=toString", 400],
+      [`/api/objects/Server?criteria=${criteria}`, 400],
+      ["/api/meta/dashboards/constructor", 404],
+    ] as const) {
+      const res = await app(fake).inject({ method: "GET", url });
+      assert.equal(res.statusCode, status, `${url}: ${res.body}`);
+    }
   });
 });

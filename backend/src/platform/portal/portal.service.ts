@@ -287,6 +287,7 @@ export class PortalService {
     const { object } = await this.objects.create("UserRequest", fields, {
       fields: "id",
       comment: `Raised by ${caller.name} (${caller.login}) in the self-service portal`,
+      asService: true,
     });
     return this.getTicket(caller, object.id);
   }
@@ -426,6 +427,7 @@ export class PortalService {
     await this.objects.update("Person", caller.contactId, fields, {
       fields: "id",
       comment: `Updated by ${caller.login} in the self-service portal`,
+      asService: true,
     });
     return this.profile(caller);
   }

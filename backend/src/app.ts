@@ -4,6 +4,7 @@ import multipart from "@fastify/multipart";
 import type { Config } from "./config/env.js";
 import { AppError } from "./core/errors.js";
 import { registerCors } from "./core/cors.js";
+import { registerSecurityHeaders } from "./core/security-headers.js";
 import { assertNoDuplicatePaths, modules } from "./config/modules.js";
 import { registerHealthRoutes } from "./platform/health/health.routes.js";
 import { registerLookupRoutes } from "./platform/lookups/lookups.routes.js";
@@ -27,9 +28,35 @@ export interface BuildAppResult {
   services: Services;
 }
 
+/**
+ * What a client learns of a 5xx. The full error is logged; the answer keeps
+ * iTop's own message when iTop answered (a rule it applied, worth showing),
+ * but never the BFF's view of the upstream -- iTop's internal URL, the raw
+ * socket error, or `details` holding up to 600 characters of a PHP error page.
+ */
+const PUBLIC_5XX: Partial<Record<AppError["code"], string>> = {
+  upstream_unavailable: "iTop cannot be reached right now. Try again in a moment.",
+  upstream_timeout: "iTop took too long to answer. Try again in a moment.",
+  upstream_error: "iTop could not complete the request. If it keeps happening, tell an administrator.",
+  internal_error: "Internal server error.",
+};
+
+function publicPayload(error: AppError) {
+  const message =
+    error.itopCode !== undefined ? error.message : (PUBLIC_5XX[error.code] ?? "Internal server error.");
+  return {
+    error: { code: error.code, message, ...(error.itopCode !== undefined ? { itopCode: error.itopCode } : {}) },
+  };
+}
+
 export function buildApp(config: Config, options: BuildServicesOptions = {}): BuildAppResult {
   const app = Fastify({
-    trustProxy: config.server.trustProxy,
+    // A hop count as the function proxy-addr builds for one (Fastify's types
+    // leave the number form out): trust the first n hops from the socket.
+    trustProxy:
+      typeof config.server.trustProxy === "number"
+        ? ((hops: number) => (_address: string, hop: number) => hop < hops)(config.server.trustProxy)
+        : config.server.trustProxy,
     logger: {
       level: config.server.logLevel,
       // The password is only ever in the outgoing form body, never in a logged
@@ -47,6 +74,7 @@ export function buildApp(config: Config, options: BuildServicesOptions = {}): Bu
   });
 
   registerCors(app, config.corsOrigins);
+  registerSecurityHeaders(app);
 
   // File uploads. Registered before the routes that use it; the per-request
   // limit is enforced in the attachment route, which can report it properly.
@@ -105,7 +133,11 @@ export function buildApp(config: Config, options: BuildServicesOptions = {}): Bu
       } else {
         request.log.debug(logLine, error.message);
       }
-      reply.code(error.status).send(error.toPayload());
+      const retryAfter = (error.details as { retryAfterSeconds?: unknown } | undefined)?.retryAfterSeconds;
+      if (error.code === "rate_limited" && typeof retryAfter === "number") {
+        reply.header("Retry-After", String(retryAfter));
+      }
+      reply.code(error.status).send(error.status >= 500 ? publicPayload(error) : error.toPayload());
       return;
     }
 

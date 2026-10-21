@@ -218,7 +218,7 @@ await check('404 unknown view', 'GET', '/api/objects/Incident?view=NoSuchView', 
 await check('rejects a view from another class', 'GET', '/api/objects/Person?view=Incident:OpenIncidents', {
   status: 400,
 });
-await check('rejects view and oql together', 'GET', '/api/objects/Incident?view=Incident:OpenIncidents&oql=SELECT%20Incident', {
+await check('rejects raw oql', 'GET', '/api/objects/Incident?view=Incident:OpenIncidents&oql=SELECT%20Incident', {
   status: 400,
 });
 

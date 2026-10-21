@@ -223,8 +223,11 @@ export class UsersService {
       comment: `Account updated by ${currentCaller()?.login ?? "the platform"}`,
     });
 
-    // Rights and status are read at sign-in, so a changed account signs in again.
-    if (!self && (input.status || input.profileIds || input.allowedOrgIds)) await this.sessions.deleteForUser(id);
+    // Rights, status and the linked person are read at sign-in (the person
+    // scopes the portal and the inbox), so a changed account signs in again.
+    if (!self && (input.status || input.profileIds || input.allowedOrgIds || input.contactId !== undefined)) {
+      await this.sessions.deleteForUser(id);
+    }
     return this.get(id);
   }
 
