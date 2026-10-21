@@ -7,7 +7,7 @@ export type ButtonSize = 'sm' | 'md' | 'lg';
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    'bg-brand text-white shadow-xs hover:bg-brand-hover active:bg-brand-active disabled:bg-brand/50',
+    'bg-brand text-on-brand shadow-xs hover:bg-brand-hover active:bg-brand-active disabled:bg-brand/50',
   secondary:
     'bg-surface text-ink border border-line-strong shadow-xs hover:bg-surface-hover active:bg-surface-sunken',
   ghost: 'text-ink-secondary hover:bg-surface-hover hover:text-ink',

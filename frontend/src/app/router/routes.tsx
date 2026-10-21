@@ -1,7 +1,8 @@
 import { createElement } from 'react';
-import { createBrowserRouter, Navigate, type RouteObject } from 'react-router-dom';
+import { createBrowserRouter, type RouteObject } from 'react-router-dom';
 import { AgentLayout } from '@/app/layouts/AgentLayout';
 import { ForgotPasswordPage, LoginPage, RequireAuth, ResetPasswordPage } from '@/features/auth';
+import { LandingPage } from '@/features/landing';
 import {
   PortalFaqPage,
   PortalFaqsPage,
@@ -12,7 +13,7 @@ import {
   PortalRequestPage,
   PortalRequestsPage,
 } from '@/features/portal';
-import { HOME_PATH, modules } from '@/config/modules';
+import { modules } from '@/config/modules';
 import { NotFoundPage } from './NotFoundPage';
 
 /**
@@ -34,6 +35,9 @@ const moduleRoutes: RouteObject[] = modules.map((module) => ({
 }));
 
 export const router = createBrowserRouter([
+  // The public front door. Signed-in visitors are sent on to their own home
+  // (staff → dashboard, end users → portal), as `/` always did.
+  { path: '/', element: <LandingPage /> },
   // Outside the shell: the screens someone who is not signed in can see.
   { path: '/login', element: <LoginPage /> },
   // Password reset by email: also reachable without a session.
@@ -58,14 +62,14 @@ export const router = createBrowserRouter([
     ],
   },
   {
-    path: '/',
+    // Pathless: the staff shell wraps every module route, but `/` itself is
+    // the landing page above.
     element: (
       <RequireAuth audience="staff">
         <AgentLayout />
       </RequireAuth>
     ),
     children: [
-      { index: true, element: <Navigate to={HOME_PATH} replace /> },
       ...moduleRoutes,
       { path: '*', element: <NotFoundPage /> },
     ],

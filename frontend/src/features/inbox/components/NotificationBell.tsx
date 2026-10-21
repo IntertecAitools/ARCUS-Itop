@@ -72,7 +72,7 @@ export function NotificationBell({
       />
       {unread > 0 ? (
         <span
-          className="pointer-events-none absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-critical px-1 text-[10px] leading-none font-semibold text-white ring-2 ring-[color:var(--arcus-surface)]"
+          className="pointer-events-none absolute -top-0.5 -end-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-critical px-1 text-[10px] leading-none font-semibold text-white ring-2 ring-[color:var(--arcus-surface)]"
           aria-hidden
         >
           {badgeText(unread)}
@@ -83,11 +83,11 @@ export function NotificationBell({
         <div
           role="dialog"
           aria-label="Notifications"
-          className="absolute right-0 z-50 mt-2 w-[22rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-card border border-line bg-surface-raised shadow-overlay"
+          className="absolute end-0 z-50 mt-2 w-[22rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-card border border-line bg-surface-raised shadow-overlay"
         >
           <div className="flex items-center justify-between border-b border-line px-3 py-2">
             <p className="text-[13px] font-semibold text-ink">
-              Notifications{unread ? <span className="ml-1.5 text-ink-muted">{unread} unread</span> : null}
+              Notifications{unread ? <span className="ms-1.5 text-ink-muted">{unread} unread</span> : null}
             </p>
             {unread > 0 ? (
               <button
@@ -120,7 +120,7 @@ export function NotificationBell({
                       type="button"
                       onClick={() => openItem(item)}
                       className={cn(
-                        'flex w-full gap-2.5 border-b border-line px-3 py-2.5 text-left transition-colors last:border-b-0 hover:bg-surface-hover',
+                        'flex w-full gap-2.5 border-b border-line px-3 py-2.5 text-start transition-colors last:border-b-0 hover:bg-surface-hover',
                         !item.read && 'bg-brand-soft/40',
                       )}
                     >

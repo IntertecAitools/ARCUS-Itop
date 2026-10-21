@@ -3,13 +3,13 @@ import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Button, Card, CardBody, CardHeader, Skeleton } from '@/components/ui';
 import { StatusPill } from '@/components/data-display';
+import { Eyebrow, publicControl } from '@/components/public';
 import { cn } from '@/lib/utils';
 import { AttachmentsPanel } from '@/features/attachments';
 import { useMyRequest, useRequestActions } from '../api/portal.api';
 import { formatDate } from './PortalRequestsPage';
 
-const TEXTAREA =
-  'w-full rounded-control border border-line bg-surface px-3 py-2 text-[13px] text-ink placeholder:text-ink-muted focus:border-brand focus:outline-none';
+const TEXTAREA = publicControl;
 
 const SATISFACTION = [
   { value: '1', label: 'Very satisfied' },
@@ -58,18 +58,18 @@ export function PortalRequestPage() {
 
   return (
     <>
-      <Link to="/portal/requests" className="mb-3 inline-flex items-center gap-1 text-[13px] text-ink-secondary hover:text-ink">
-        <ArrowLeft className="size-4" />
+      <Link to="/portal/requests" className="mb-8 inline-flex items-center gap-1.5 text-[14px] text-ink-secondary hover:text-ink">
+        <ArrowLeft className="size-4 rtl:-scale-x-100" aria-hidden />
         My requests
       </Link>
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-[12px] text-ink-muted">
+      <div className="mb-10 flex flex-wrap items-end justify-between gap-x-8 gap-y-5">
+        <div className="min-w-0">
+          <Eyebrow className="normal-case tracking-normal">
             {ticket.ref} · {ticket.kind === 'incident' ? 'Incident' : 'Request'} · raised {formatDate(ticket.createdAt)}
-          </p>
-          <h1 className="mt-0.5 text-[20px] font-semibold text-ink">{ticket.title}</h1>
+          </Eyebrow>
+          <h1 className="display mt-4 max-w-4xl text-[32px] break-words sm:text-[44px]">{ticket.title}</h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-3">
           <StatusPill status={ticket.status} />
           {ticket.actions.includes('close') ? (
             <Button size="sm" onClick={() => setClosing((c) => !c)}>
@@ -146,14 +146,14 @@ export function PortalRequestPage() {
         </Card>
       ) : null}
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="space-y-4 lg:col-span-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="space-y-6 lg:col-span-2">
           <Card>
             <CardHeader title="Description" />
             <CardBody>
-              <p className="text-[13px] whitespace-pre-wrap text-ink">{plain(ticket.description) || '—'}</p>
+              <p className="text-[15px] leading-7 whitespace-pre-wrap text-ink">{plain(ticket.description) || '—'}</p>
               {ticket.solution ? (
-                <div className="mt-4 rounded-card border border-good/30 bg-good-soft px-3 py-2">
+                <div className="mt-5 rounded-card border border-good/40 bg-good-soft px-4 py-3">
                   <p className="text-[12px] font-medium text-good-ink">Solution</p>
                   <p className="mt-1 text-[13px] whitespace-pre-wrap text-ink">{plain(ticket.solution)}</p>
                 </div>
@@ -182,11 +182,11 @@ export function PortalRequestPage() {
               ) : (
                 <ol className="space-y-3">
                   {ticket.log.map((entry, i) => (
-                    <li key={i} className="border-l-2 border-line pl-3">
+                    <li key={i} className="border-s-2 border-line-strong ps-4">
                       <p className="text-[12px] text-ink-muted">
                         {entry.author || 'Support'} · {formatDate(entry.date)}
                       </p>
-                      <p className="mt-0.5 text-[13px] whitespace-pre-wrap text-ink">{plain(entry.message)}</p>
+                      <p className="mt-1 text-[15px] leading-7 whitespace-pre-wrap text-ink">{plain(entry.message)}</p>
                     </li>
                   ))}
                 </ol>
@@ -205,7 +205,7 @@ export function PortalRequestPage() {
         <Card className="h-fit">
           <CardHeader title="Details" />
           <CardBody>
-            <dl className="space-y-2.5 text-[13px]">
+            <dl className="space-y-4 text-[14px]">
               {[
                 ['Service', ticket.subcategory ? `${ticket.service} › ${ticket.subcategory}` : ticket.service],
                 ['Handled by', [ticket.agent, ticket.team].filter(Boolean).join(' · ')],
