@@ -1,0 +1,18 @@
+# Trying the production stack on a workstation: adds a Mailpit test mailbox
+# that iTop and the BFF send to, so no email reaches anyone. Not for a server.
+#
+#   docker compose -p arcus-itoptest -f docker/docker-compose.prod.yml \
+#     -f docker/docker-compose.prod.localtest.yml --env-file <test prod.env> up -d --build
+#
+# In the test env files: ITOP_SMTP_HOST=mailpit, ITOP_SMTP_PORT=1025,
+# ITOP_SMTP_ENCRYPTION=none (itop.env); SMTP_HOST=mailpit, SMTP_PORT=1025,
+# SMTP_REQUIRE_TLS=false, COOKIE_SECURE=false (prod.env). The inbox is on
+# 127.0.0.1:${MAILPIT_PORT:-8026}.
+
+services:
+  mailpit:
+    image: axllent/mailpit:v1.31.6
+    restart: unless-stopped
+    networks: [itop, egress]
+    ports:
+      - "127.0.0.1:${MAILPIT_PORT:-8026}:8025"

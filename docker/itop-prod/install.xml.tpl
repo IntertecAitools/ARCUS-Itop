@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Response file for the unattended install (or upgrade) of iTop in production.
+     itop-setup fills the {{...}} values from the container's environment
+     (escaped for XML) and runs setup/unattended-install. The modules and
+     extensions are the same 46 as the local install (itop-add-incident.xml):
+     CMDB, ITIL requests and incidents, changes, problems, known errors, FAQ. -->
+<installation>
+  <mode>{{MODE}}</mode>
+  <optional_steps>
+    <log-parameters>0</log-parameters>
+    <migrate-before>1</migrate-before>
+    <migrate-after>1</migrate-after>
+    <setup-audit>1</setup-audit>
+    <copy>1</copy>
+  </optional_steps>
+  <source_dir>datamodels/2.x/</source_dir>
+  <datamodel_version>3.4.0</datamodel_version>
+  <previous_configuration_file>{{PREVIOUS_CONF}}</previous_configuration_file>
+  <extensions_dir>extensions</extensions_dir>
+  <target_env>production</target_env>
+  <workspace_dir></workspace_dir>
+  <database>
+    <server>{{DB_SERVER}}</server>
+    <user>{{DB_USER}}</user>
+    <pwd>{{DB_PASSWORD}}</pwd>
+    <name>{{DB_NAME}}</name>
+    <db_tls_enabled>{{DB_TLS}}</db_tls_enabled>
+    <db_tls_ca>{{DB_TLS_CA}}</db_tls_ca>
+    <prefix></prefix>
+  </database>
+  <url>{{APP_ROOT_URL}}</url>
+  <graphviz_path>/usr/bin/dot</graphviz_path>
+  <admin_account>
+    <user>{{ADMIN_USER}}</user>
+    <pwd>{{ADMIN_PASSWORD}}</pwd>
+    <language>{{LANGUAGE}}</language>
+  </admin_account>
+  <language>{{LANGUAGE}}</language>
+  <selected_modules type="array">
+    <item>authent-cas</item>
+    <item>authent-external</item>
+    <item>authent-ldap</item>
+    <item>authent-local</item>
+    <item>combodo-backoffice-darkmoon-theme</item>
+    <item>combodo-backoffice-fullmoon-high-contrast-theme</item>
+    <item>combodo-backoffice-fullmoon-protanopia-deuteranopia-theme</item>
+    <item>combodo-backoffice-fullmoon-tritanopia-theme</item>
+    <item>combodo-data-feature-removal</item>
+    <item>itop-backup</item>
+    <item>itop-config</item>
+    <item>itop-files-information</item>
+    <item>itop-portal-base</item>
+    <item>itop-profiles-itil</item>
+    <item>itop-sla-computation</item>
+    <item>itop-structure</item>
+    <item>itop-welcome-itil</item>
+    <item>itop-config-mgmt</item>
+    <item>itop-attachments</item>
+    <item>itop-tickets</item>
+    <item>combodo-db-tools</item>
+    <item>itop-core-update</item>
+    <item>itop-hub-connector</item>
+    <item>itop-oauth-client</item>
+    <item>itop-themes-compat</item>
+    <item>itop-datacenter-mgmt</item>
+    <item>itop-endusers-devices</item>
+    <item>itop-flow-map</item>
+    <item>itop-storage-mgmt</item>
+    <item>itop-virtualization-mgmt</item>
+    <item>itop-container-mgmt</item>
+    <item>itop-bridge-cmdb-ticket</item>
+    <item>itop-bridge-virtualization-storage</item>
+    <item>itop-service-mgmt</item>
+    <item>itop-bridge-cmdb-services</item>
+    <item>itop-bridge-datacenter-mgmt-services</item>
+    <item>itop-bridge-endusers-devices-services</item>
+    <item>itop-bridge-storage-mgmt-services</item>
+    <item>itop-bridge-virtualization-mgmt-services</item>
+    <item>itop-request-mgmt-itil</item>
+    <item>itop-incident-mgmt-itil</item>
+    <item>itop-portal</item>
+    <item>itop-change-mgmt-itil</item>
+    <item>itop-faq-light</item>
+    <item>itop-knownerror-mgmt</item>
+    <item>itop-problem-mgmt</item>
+  </selected_modules>
+  <selected_extensions type="array">
+    <item>itop-config-mgmt-core</item>
+    <item>itop-config-mgmt-datacenter</item>
+    <item>itop-config-mgmt-end-user</item>
+    <item>itop-flow-map</item>
+    <item>itop-config-mgmt-storage</item>
+    <item>itop-config-mgmt-virtualization</item>
+    <item>itop-container-mgmt</item>
+    <item>itop-service-mgmt-enterprise</item>
+    <item>itop-ticket-mgmt-itil</item>
+    <item>itop-ticket-mgmt-itil-user-request</item>
+    <item>itop-ticket-mgmt-itil-incident</item>
+    <item>itop-ticket-mgmt-itil-enhanced-portal</item>
+    <item>itop-change-mgmt-itil</item>
+    <item>itop-kown-error-mgmt</item>
+    <item>itop-problem-mgmt</item>
+  </selected_extensions>
+  <sample_data>0</sample_data>
+  <old_addon></old_addon>
+  <options type="array"/>
+  <mysql_bindir></mysql_bindir>
+  <use_symbolic_links></use_symbolic_links>
+</installation>
