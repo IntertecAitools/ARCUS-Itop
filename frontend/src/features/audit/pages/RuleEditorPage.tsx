@@ -50,16 +50,19 @@ function RuleEditor({
   const [formError, setFormError] = useState<string | null>(null);
 
   const category = categories.find((c) => c.id === categoryId);
-  const recordType = category?.recordType ?? rule?.recordType ?? '';
-  const typeLabel = category?.recordTypeLabel || rule?.recordTypeLabel || recordType;
+  // An existing rule's conditions are on its own query's record type, which
+  // iTop lets be a parent of the category's (every FunctionalCI, say).
+  const recordType = rule?.recordType ?? category?.recordType ?? '';
+  const typeLabel = (rule ? rule.recordTypeLabel : category?.recordTypeLabel) || recordType;
   const { data: classInfo } = useClassInfo(recordType);
 
-  // Conditions name fields of one record type, so a rule only moves between
-  // categories that check the same kind of record; a new one starts afresh.
-  const choices = rule ? categories.filter((c) => c.recordType === rule.recordType) : categories;
+  // A rule only moves between categories that check the same kind of record;
+  // a new one starts afresh when its category's kind changes.
+  const homeType = categories.find((c) => c.id === rule?.categoryId)?.recordType;
+  const choices = rule ? categories.filter((c) => c.recordType === homeType) : categories;
   const changeCategory = (next: number) => {
     const target = categories.find((c) => c.id === next);
-    if (target?.recordType !== recordType) {
+    if (target?.recordType !== category?.recordType) {
       setConditions([]);
       setKeepCondition(false);
     }
@@ -145,7 +148,7 @@ function RuleEditor({
             onChange={(e) => changeCategory(Number(e.target.value))}
             options={choices.map((c) => ({ value: String(c.id), label: `${c.name} (${c.recordTypeLabel || c.recordType})` }))}
           />
-          {rule ? <p className={HINT}>It can move to another category that checks {typeLabel} records.</p> : null}
+          {rule ? <p className={HINT}>It can move to another category that checks the same kind of record.</p> : null}
         </div>
       </Section>
 

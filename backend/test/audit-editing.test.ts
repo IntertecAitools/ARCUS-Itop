@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import type { ItopClient } from "../src/itop/client.js";
+import { fileURLToPath } from "node:url";
+
 import { AuditService } from "../src/platform/admin/audit.service.js";
+import { CmdbSchema } from "../src/schema/load.js";
 import { sampleSchema } from "./helpers.js";
 
 type Fields = Record<string, unknown>;
@@ -278,6 +281,32 @@ describe("audit editing", () => {
     await s.deleteDomain(domain.id);
     assert.equal(tables["AuditDomain"]!.has(domain.id), false);
     await assert.rejects(s.createDomain({ name: " " }), /name/);
+  });
+
+  it("reads and edits a rule on a parent class against its own query's class", async () => {
+    // The real schema: iTop lets a rule check e.g. every FunctionalCI against a category of Servers.
+    const real = CmdbSchema.fromFile(fileURLToPath(new URL("../../cmdb-schema/cmdb-schema.json", import.meta.url)));
+    const data = seed();
+    (data.AuditRule as Record<number, Record<string, unknown>>)[30] = {
+      name: "Has a criticity",
+      description: "",
+      query: "SELECT FunctionalCI WHERE business_criticity IN ('high')",
+      valid_flag: "true",
+      category_id: 10,
+    };
+    const { client, tables } = memoryItop(data);
+    const s = new AuditService(client, real);
+    const form = await s.getRule(30);
+    assert.equal(form.recordType, "FunctionalCI");
+    assert.deepEqual(form.conditions, [{ field: "business_criticity", op: "in", values: ["high"] }]);
+    assert.equal(form.keptCondition, false);
+    await s.updateRule(30, {
+      categoryId: 10,
+      name: "Has a criticity",
+      lists: "valid",
+      conditions: [{ field: "business_criticity", op: "in", values: ["high", "medium"] }],
+    });
+    assert.equal(tables["AuditRule"]!.get(30)!["query"], "SELECT FunctionalCI WHERE business_criticity IN ('high', 'medium')");
   });
 
   it("offers record types, CIs first", async () => {

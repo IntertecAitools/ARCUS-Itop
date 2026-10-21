@@ -460,14 +460,24 @@ export class AuditService {
   async getRule(id: number): Promise<AuditRuleForm> {
     const { rule, categoryId } = await this.ruleRow(id);
     const category = await this.category(categoryId);
-    const { recordType, recordTypeLabel } = category.dto;
+    const recordType = this.ruleType(rule.query, category.dto.recordType);
     return {
       ...rule.dto,
       categoryId,
       recordType,
-      recordTypeLabel,
+      recordTypeLabel: this.label(recordType),
       ...(await this.editable(this.schema.get(recordType), rule.query)),
     };
+  }
+
+  /**
+   * The record type a rule's conditions are on: its own query's class when
+   * iTop has one we know (a rule may check a parent class of the category's,
+   * e.g. every FunctionalCI against every Server), else the category's.
+   */
+  private ruleType(query: string, categoryType: string): string {
+    const own = selectedClass(query);
+    return own && this.schema.get(own) ? own : categoryType;
   }
 
   /** Conditions to a query; conditions on dates are refused, since they cannot be read back. */
@@ -626,7 +636,7 @@ export class AuditService {
     if (to.dto.recordType !== from.dto.recordType) {
       throw badRequest("A rule can only move to a category that checks the same kind of record.");
     }
-    const info = this.requireClass(from.dto.recordType);
+    const info = this.requireClass(this.ruleType(rule.query, from.dto.recordType));
     const kept = this.parse(info, rule.query).kept;
     await this.client.call("core/update", {
       class: "AuditRule",

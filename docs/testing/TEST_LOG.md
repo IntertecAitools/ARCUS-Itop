@@ -17,6 +17,8 @@ Branch `claude/audit-editing-021ce6`.
 | Frontend vitest + typecheck + build | ✅ 119/119, clean, built | |
 | Live check, own BFF on :4400 against local iTop (script, signed in as the local admin) | ✅ 20/20 after the fix | Domain, category (`status IN ('production')`, tolerances 10/40, domain) and rule (serial number empty, faulty) created; iTop rows checked by REST; category and rule runs match direct iTop counts; rule switched to "valid / serial not empty" gives the same failures; category edited (two statuses, domain removed, link gone in iTop); record-type change refused; delete without `withRules` → 409 naming the rule; with it → category and rule gone in iTop; domain deleted. The existing "Servers" category and its 3 rules read back (one keeps a part set up in iTop) |
 
+| Follow-up: rules on a parent class (idea from another session's unfinished copy) | ✅ backend 451/451 + typecheck; audit vitest 12/12; build | New test on the real schema: a rule `SELECT FunctionalCI WHERE business_criticity IN ('high')` under a Server category reads back as a condition and is edited in place |
+
 Bugs found and fixed (same commit):
 
 - **"Is not empty" never worked in iTop.** `criterionToOql` wrote it as `NOT (…)`, but iTop's OQL has no `NOT` ("Unexpected token PAR_OPEN"), so a "not empty" condition failed in advanced search and notification conditions too, and here a "valid" rule could not run. It is now `x != 0` (pickers), `x != ''` (text, lists) and `ISNULL(x) = 0` (numbers, dates), checked against iTop (complementary counts). The old form is still read, so a rule saved with it is rewritten correctly on its next save.
