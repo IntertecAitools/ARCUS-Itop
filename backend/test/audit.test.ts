@@ -59,24 +59,70 @@ describe("failingRecords", () => {
 
 type Row = { class: string; id: number; code: number; message: string; fields: Record<string, unknown> };
 
-/** Answers core/get by class and query, from fixed tables. */
+/** The text inside the parenthesis that opens at `open`, and the index after it. */
+function group(text: string, open: number): [string, number] {
+  let depth = 0;
+  for (let i = open; i < text.length; i++) {
+    if (text[i] === "(") depth++;
+    if (text[i] === ")" && --depth === 0) return [text.slice(open + 1, i), i + 1];
+  }
+  throw new Error(`unbalanced: ${text}`);
+}
+
+/**
+ * Answers core/get by class and query, from fixed tables. Understands the
+ * nested form the audit sends -- `SELECT C WHERE id IN (set) AND id [NOT] IN
+ * (rule)`, and an OR of such terms -- by evaluating each inner query, the way
+ * iTop would: by class and id.
+ */
 function fakeItop(tables: Record<string, Row[]>, failing: Set<string> = new Set()) {
   const calls: Array<{ class: string; key: unknown }> = [];
+  const lookup = (key: string): Row[] => {
+    if (failing.has(key)) throw new AppError("upstream_error", "OQL error");
+    const head = /^SELECT (\w+) WHERE id IN \(/.exec(key);
+    if (!head || tables[key]) return tables[key] ?? [];
+    const [setQuery, after] = group(key, head[0].length - 1);
+    const set = lookup(setQuery);
+    const rest = key.slice(after).replace(/^ AND /, "");
+    const term = (text: string) => {
+      const m = /^id (NOT )?IN \(/.exec(text)!;
+      const [inner] = group(text, m[0].length - 1);
+      const keys = new Set(lookup(inner).map((r) => `${r.class}::${r.id}`));
+      return (r: Row) => keys.has(`${r.class}::${r.id}`) !== Boolean(m[1]);
+    };
+    if (!rest.startsWith("(")) return set.filter(term(rest));
+    const [inner] = group(rest, 0);
+    const parts: string[] = [];
+    for (let i = 0; i < inner.length; ) {
+      const start = inner.indexOf("(", i);
+      const [, end] = group(inner, start);
+      parts.push(inner.slice(i, end));
+      i = end + " OR ".length;
+    }
+    const tests = parts.map(term);
+    return set.filter((r) => tests.some((t) => t(r)));
+  };
   const client = {
     async call(verb: string, params: Record<string, unknown>) {
       assert.equal(verb, "core/get");
       const cls = String(params["class"]);
       const key = params["key"];
       calls.push({ class: cls, key });
-      if (typeof key === "string" && failing.has(key)) throw new AppError("upstream_error", "OQL error");
-      let rows = tables[typeof key === "string" && tables[key] ? key : cls] ?? [];
+      let rows = typeof key === "string" && /^SELECT \w+ WHERE id IN \(/.test(key) ? lookup(key) : null;
+      if (rows === null) {
+        if (typeof key === "string" && failing.has(key)) throw new AppError("upstream_error", "OQL error");
+        rows = tables[typeof key === "string" && tables[key] ? key : cls] ?? [];
+      }
       const byId = typeof key === "number" ? key : /WHERE id = (\d+)$/.exec(String(key))?.[1];
       if (byId !== undefined) rows = rows.filter((r) => r.id === Number(byId));
       const byCategory = /WHERE category_id = (\d+)$/.exec(String(key))?.[1];
       if (byCategory) rows = rows.filter((r) => String(r.fields["category_id"]) === byCategory);
+      const found = rows.length;
+      const limit = Number(params["limit"] ?? 0);
+      if (limit > 0) rows = rows.slice(0, limit);
       return {
         code: 0,
-        message: `Found: ${rows.length}`,
+        message: `Found: ${found}`,
         objects: Object.fromEntries(
           rows.map((r) => [`${r.class}::${r.id}`, { code: 0, message: "", class: r.class, key: String(r.id), fields: r.fields }]),
         ),
@@ -168,7 +214,29 @@ describe("AuditService", () => {
     const result = await new AuditService(client, sampleSchema()).runCategory(10);
     assert.equal(result.total, 0);
     assert.ok(result.rules.every((r) => r.failing === 0 && r.status === "good"));
-    assert.ok(!calls.some((c) => c.key === NO_SERIAL));
+    assert.ok(!calls.some((c) => String(c.key).includes(NO_SERIAL)));
+  });
+
+  it("lets iTop count: no call downloads the whole set or a rule's whole result", async () => {
+    const { client, calls } = fakeItop(tables, new Set([BROKEN]));
+    await new AuditService(client, sampleSchema()).runCategory(10);
+    const reads = calls.filter((c) => c.class === "Server");
+    // The set and each rule are only ever read inside a narrowing query, or counted.
+    assert.ok(reads.length > 0);
+    for (const c of reads) assert.ok(c.key === DEFINITION ? true : String(c.key).startsWith(`SELECT Server WHERE id IN (${DEFINITION})`), String(c.key));
+  });
+
+  it("falls back to comparing records for a rule over an unrelated class", async () => {
+    const PEOPLE = "SELECT Person WHERE name = 'x'";
+    const { client } = fakeItop({
+      ...tables,
+      AuditRule: [row("AuditRule", 23, { name: "People", description: "", query: PEOPLE, valid_flag: "false", category_id: 10 })],
+      [PEOPLE]: [{ ...obj("Person", 1) }],
+    });
+    const result = await new AuditService(client, sampleSchema()).runCategory(10);
+    // Person 1 is not Server 1: nothing fails.
+    assert.equal(result.failing, 0);
+    assert.equal(result.total, 4);
   });
 
   it("reports a set that cannot be read", async () => {

@@ -3,6 +3,7 @@ import { currentCaller } from "../../core/request-context.js";
 import type { ItopClient } from "../../itop/client.js";
 import { normalizeObjects, parseFoundCount, type FlatObject } from "../../itop/normalize.js";
 import { itopTimeToIso, toItopTime } from "../../shared/itop-time.js";
+import { newestRows } from "../objects/objects.service.js";
 import { str } from "../../shared/ticket-mapping.js";
 
 /**
@@ -100,19 +101,15 @@ export class InboxService {
   async list(limit = 30, unreadOnly = false): Promise<{ items: InboxItem[]; unread: number }> {
     const contactId = this.contactId();
     if (!contactId) return { items: [], unread: 0 };
-    // iTop lists oldest first and cannot be told otherwise: read the last
-    // page (found from the total), topped up from the one before.
+    // iTop orders events newest first (date descending); newestRows() does
+    // not depend on that, and reads two rounds at most however many there are.
     const oql = this.where(contactId, unreadOnly);
-    const first = await this.get(oql, limit);
-    const total = parseFoundCount(first.message) ?? 0;
-    const last = Math.max(1, Math.ceil(total / limit));
-    let rows = normalizeObjects(first.objects);
-    if (last > 1) {
-      rows = normalizeObjects((await this.get(oql, limit, last)).objects);
-      if (rows.length < limit) rows = [...normalizeObjects((await this.get(oql, limit, last - 1)).objects), ...rows];
-    }
+    const { rows, total } = await newestRows(limit, async (page, size) => {
+      const result = await this.get(oql, size, page);
+      return { rows: normalizeObjects(result.objects), total: parseFoundCount(result.message) ?? 0 };
+    });
     const [items, unread] = await Promise.all([
-      Promise.resolve(rows.sort((a, b) => b.id - a.id).slice(0, limit).map((row) => toItem(row, this.timeZone))),
+      Promise.resolve(rows.map((row) => toItem(row, this.timeZone))),
       unreadOnly ? Promise.resolve(total) : this.unreadCount(),
     ]);
     return { items, unread };

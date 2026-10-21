@@ -45,6 +45,8 @@ export type DashletData =
       class: string;
       total: number;
       groups: { key: string; label: string; count: number }[];
+      /** The groups count only the first rows read; `total` is every match. */
+      truncated?: boolean;
     }
   | {
       kind: 'list';

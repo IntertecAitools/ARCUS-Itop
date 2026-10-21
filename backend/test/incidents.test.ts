@@ -331,6 +331,23 @@ describe("IncidentsService.formOptions", () => {
     assert.equal(options.priorities.length, 4);
     assert.deepEqual(options.organizations, []);
   });
+
+  it("lists every agent (team members), past the old 200-row cap", async () => {
+    const seen: Array<{ className: string; oql: unknown; cap: number }> = [];
+    const people = Array.from({ length: 650 }, (_, i) => ({ class: "Person", id: i + 1, label: `P${i + 1}`, fields: { friendlyname: `P${i + 1}` } }));
+    const { svc } = stub([], {
+      listAll: async (className: string, query: Record<string, unknown>, cap: number) => {
+        seen.push({ className, oql: query.oql, cap });
+        const items = className === "Person" ? people : [];
+        return { items, total: items.length, truncated: false };
+      },
+    });
+    const options = await svc.formOptions();
+    assert.equal(options.agents.length, 650);
+    const person = seen.find((c) => c.className === "Person")!;
+    assert.match(String(person.oql), /JOIN lnkPersonToTeam/);
+    assert.ok(person.cap >= 2000);
+  });
 });
 
 describe("validation schemas", () => {

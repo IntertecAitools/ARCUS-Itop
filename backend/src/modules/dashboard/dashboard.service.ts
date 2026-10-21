@@ -1,10 +1,9 @@
 import type { Navigation } from "../../platform/navigation/navigation.service.js";
-import type { ObjectsService, ObjectDto } from "../../platform/objects/objects.service.js";
+import { newestRows, SCAN_PAGE_SIZE, type ObjectsService, type ObjectDto } from "../../platform/objects/objects.service.js";
 import type { CmdbSchema } from "../../schema/load.js";
 import type { CurrentContact } from "../../shared/current-contact.js";
 import {
   OPEN_STATES,
-  isTrue,
   str,
   TICKET_FIELDS,
   toTicket,
@@ -116,6 +115,9 @@ const CHANGE_FIELDS = "id,ref,title,status,start_date,finalclass";
 
 /** Rows per queue. The tab count uses the real total, so nothing is hidden. */
 const ASSIGNMENT_ROWS = 50;
+
+/** Most incidents the overview reads for its trend, category and SLA views. */
+const IN_RANGE_CAP = 20_000;
 
 const PRIORITY_RANK: Record<TicketDto["priority"], number> = {
   critical: 0,
@@ -237,23 +239,23 @@ export class DashboardService {
     where: string,
     fields: string,
     limit = 200,
+    pageSize?: number,
   ): Promise<ObjectDto[]> {
     const result = await this.objects.listAll(
       className,
       { oql: `SELECT ${className} WHERE ${where}`, fields },
       limit,
+      pageSize,
     );
     return result.items;
   }
 
   /**
-   * The `count` newest rows.
-   *
-   * iTop cannot be told how to order, but it does order: by the class default,
-   * which for tickets is `ref` ascending (dbobjectset.class.php:691). So the
-   * first page holds the OLDEST rows. The newest are on the last page, which
-   * the "Found: N" total locates; the page before it tops up a short last
-   * page. Rows are then ordered by id, newest first.
+   * The `count` newest rows. iTop cannot be told how to order, and its class
+   * defaults differ (Incident is `ref` descending, newest first): newestRows()
+   * reads page 1 and, past one page, the end of the set, and keeps the
+   * highest ids. Reading only the last page showed the OLDEST incidents as
+   * "recent" as soon as there were more than `count`.
    */
   private async latest(
     className: string,
@@ -261,23 +263,16 @@ export class DashboardService {
     fields: string,
     count: number,
   ): Promise<ObjectDto[]> {
-    const page = (n: number) =>
-      this.objects.list(className, {
-        page: n,
-        limit: count,
+    const { rows } = await newestRows(count, async (page, limit) => {
+      const result = await this.objects.list(className, {
+        page,
+        limit,
         oql: `SELECT ${className} WHERE ${where}`,
         fields,
       });
-
-    const first = await page(1);
-    const lastPage = Math.max(1, Math.ceil(first.total / count));
-    let rows = first.items;
-    if (lastPage > 1) {
-      const last = await page(lastPage);
-      rows = last.items;
-      if (rows.length < count) rows = [...(await page(lastPage - 1)).items, ...rows];
-    }
-    return [...rows].sort((a, b) => b.id - a.id).slice(0, count);
+      return { rows: result.items, total: result.total };
+    });
+    return rows;
   }
 
   async navCounts(): Promise<NavCounts> {
@@ -294,7 +289,9 @@ export class DashboardService {
     // clock, whatever zone the BFF host runs in.
     const timeZone = this.objects.timeZone;
     const today = itopDay(new Date(), timeZone);
-    const sinceOql = `start_date >= '${addDays(today, -days)} 00:00:00'`;
+    // The window is the `days` days the trend shows, today included; the
+    // KPI and the SLA split count the same days (they counted one more).
+    const sinceOql = `start_date >= '${addDays(today, -(days - 1))} 00:00:00'`;
 
     const weekStart = addDays(today, -weekday(today));
     const weekEnd = addDays(weekStart, 7);
@@ -305,6 +302,8 @@ export class DashboardService {
       totalIncidents,
       openIncidents,
       slaBreached,
+      breachedInRange,
+      atRiskInRange,
       inRange,
       recent,
       subcategories,
@@ -315,13 +314,20 @@ export class DashboardService {
       this.count("Incident", sinceOql),
       this.count("Incident", `status IN (${OPEN_STATES})`),
       this.count("Incident", `sla_ttr_passed = 1`),
-      // The trend, the category split and the SLA breakdown are three views of
-      // the same rows, so they share a single fetch.
+      // The SLA split is counted by iTop: the passed flags are computed per
+      // row from the stopwatches, ~3 ms each, which made reading them for a
+      // 90-day window of 6,000 incidents take 20 s.
+      this.count("Incident", `${sinceOql} AND sla_ttr_passed = 1`),
+      this.count("Incident", `${sinceOql} AND sla_tto_passed = 1 AND sla_ttr_passed = 0`),
+      // The trend and the category split read the window's rows: every
+      // incident in it, not the first 2,000 (a capped scan dropped the newest
+      // days), with only the fields they use, in big pages.
       this.fetch(
         "Incident",
         sinceOql,
-        "id,ref,title,status,priority,start_date,resolution_date,service_name,servicesubcategory_name,sla_ttr_passed,sla_tto_passed",
-        2000,
+        "id,start_date,resolution_date,service_name,servicesubcategory_name",
+        IN_RANGE_CAP,
+        SCAN_PAGE_SIZE,
       ),
       this.latest(
         "Incident",
@@ -381,14 +387,9 @@ export class DashboardService {
     }
 
     // ── SLA breakdown ──────────────────────────────────────────────────────
-    let onTime = 0;
-    let atRisk = 0;
-    let breached = 0;
-    for (const item of inRange) {
-      if (isTrue(item.fields["sla_ttr_passed"])) breached += 1;
-      else if (isTrue(item.fields["sla_tto_passed"])) atRisk += 1;
-      else onTime += 1;
-    }
+    const breached = breachedInRange;
+    const atRisk = atRiskInRange;
+    const onTime = Math.max(0, totalIncidents - breached - atRisk);
     const underSla = onTime + atRisk + breached;
     // null, not 0 — "nothing measured" is not "0% compliant".
     const compliance = underSla === 0 ? null : onTime / underSla;

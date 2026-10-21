@@ -42,6 +42,24 @@ export interface ImportReport {
   rows: { line: number; kind: ImportRowKind; status: string; class: string; id: string; cells: string[] }[];
 }
 
+/**
+ * How long an export or import may run. iTop's own ceiling is PHP's
+ * max_execution_time (300 s, docker/php.ini); the default 120 s cut off
+ * exports past ~40,000 rows and imports past a few thousand on a loaded server
+ * (docs/performance.md). nginx allows the same for these two routes.
+ */
+export const TRANSFER_TIMEOUT_MS = 300_000;
+
+/**
+ * Most data rows one import takes. iTop's bulk loader writes a ticket in
+ * ~0.13 s and a contact in ~0.03 s (docs/performance.md): past these, a file
+ * would outrun TRANSFER_TIMEOUT_MS on a busy server, and iTop goes on
+ * importing after the platform has reported a timeout -- half a file in,
+ * with an error on screen. Refused up front, at the preview, instead.
+ */
+export const MAX_IMPORT_ROWS = 5000;
+export const MAX_TICKET_IMPORT_ROWS = 1000;
+
 /** Most CSV text one import accepts; iTop's own default post limit is far above. */
 export const MAX_IMPORT_BYTES = 10 * 1024 * 1024;
 
@@ -71,7 +89,7 @@ export class TransferService {
       params["separator"] = ",";
     }
 
-    const response = await this.client.postScript("webservices/export-v2.php", params);
+    const response = await this.client.postScript("webservices/export-v2.php", params, { timeoutMs: TRANSFER_TIMEOUT_MS });
 
     // Success is a download; anything else (a login form, "Error: …") is a
     // page iTop rendered with HTTP 200.
@@ -118,6 +136,16 @@ export class TransferService {
 
     const separator = options.separator ?? ",";
     const qualifier = options.qualifier ?? '"';
+    const isTicket = info.name === "Ticket" || info.inherits.includes("Ticket");
+    const maxRows = isTicket ? MAX_TICKET_IMPORT_ROWS : MAX_IMPORT_ROWS;
+    const rows = parseCsv(options.csv, separator, qualifier).length - 1;
+    if (rows > maxRows) {
+      throw badRequest(
+        `This file has ${rows.toLocaleString("en")} rows; one import takes at most ` +
+          `${maxRows.toLocaleString("en")} ${isTicket ? "tickets" : "rows"}. Split it into smaller files.`,
+        { rows, max: maxRows },
+      );
+    }
     const csvdata = options.mapping
       ? this.applyMapping(info.name, options.csv, separator, qualifier, options.mapping)
       : options.csv;
@@ -137,7 +165,7 @@ export class TransferService {
     }
     if (options.comment) params["comment"] = options.comment;
 
-    const response = await this.client.postScript("webservices/import.php", params);
+    const response = await this.client.postScript("webservices/import.php", params, { timeoutMs: TRANSFER_TIMEOUT_MS });
     return parseImportReport(await response.text(), options.simulate);
   }
 

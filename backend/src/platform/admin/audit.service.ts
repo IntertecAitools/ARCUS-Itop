@@ -1,6 +1,6 @@
 import { AppError, badRequest, notFound } from "../../core/errors.js";
 import type { ItopClient } from "../../itop/client.js";
-import { normalizeObjects, type FlatObject } from "../../itop/normalize.js";
+import { normalizeObjects, parseFoundCount, type FlatObject } from "../../itop/normalize.js";
 import type { CmdbSchema } from "../../schema/load.js";
 import type { ClassInfo } from "../../schema/types.js";
 import { criterionKind, type Criterion } from "../objects/criteria.js";
@@ -307,6 +307,125 @@ export class AuditService {
   }
 
   private async runRules(category: CategoryRow, rules: RuleRow[]): Promise<CategoryResult> {
+    const setClass = selectedClass(category.definition);
+    if (!setClass || rules.some((r) => !this.sameRecords(setClass, selectedClass(r.query)))) {
+      return this.runRulesInMemory(category, rules);
+    }
+    return this.runRulesInItop(category, rules, setClass);
+  }
+
+  /**
+   * True when two classes share iTop's id space (one root table), so
+   * `id IN (…)` between them compares the same records.
+   */
+  private sameRecords(a: string, b: string | null): boolean {
+    if (!b) return false;
+    if (a === b) return true;
+    const generic = new Set(["cmdbAbstractObject", "CMDBObject", "DBObject"]);
+    const lineage = (c: string) => {
+      const info = this.schema.get(c);
+      return [...(info?.inherits ?? []), c].filter((n) => !generic.has(n));
+    };
+    const ofA = new Set(lineage(a));
+    return lineage(b).some((c) => ofA.has(c));
+  }
+
+  /**
+   * Runs rules inside iTop: it intersects the category's set with each rule
+   * and counts, and only the first MAX_RECORDS_PER_RULE failing records travel.
+   * Reading the whole set and every rule's whole result to compare them here
+   * took one unbounded download per rule -- every ticket, at 50,000 tickets.
+   */
+  private async runRulesInItop(category: CategoryRow, rules: RuleRow[], setClass: string): Promise<CategoryResult> {
+    const { dto } = category;
+    const base = { id: dto.id, name: dto.name, ranAt: new Date().toISOString() };
+    const count = async (oql: string) => {
+      const result = await this.client.call("core/get", { class: setClass, key: oql, output_fields: "id", limit: 1 });
+      return parseFoundCount(result.message) ?? 0;
+    };
+    let total: number;
+    try {
+      total = await count(category.definition);
+    } catch (error) {
+      if (!queryFailed(error)) throw error;
+      return {
+        ...base,
+        total: 0,
+        failing: 0,
+        percentOk: 100,
+        status: "bad",
+        rules: [],
+        error: "The records this category checks could not be read from iTop.",
+      };
+    }
+    const inSet = `SELECT ${setClass} WHERE id IN (${category.definition})`;
+    const failsRule = (rule: RuleRow) => `id ${rule.dto.lists === "faulty" ? "IN" : "NOT IN"} (${rule.query})`;
+
+    const ran: RuleRow[] = [];
+    // One rule at a time, as iTop's own audit page does: a category can hold many
+    // rules, and firing them all at once loads iTop for no gain an admin would see.
+    const runOne = async (row: RuleRow): Promise<RuleResult> => {
+      const head = { id: row.dto.id, name: row.dto.name };
+      if (total === 0) {
+        return { ...head, failing: 0, percentOk: 100, status: "good", records: [], truncated: false };
+      }
+      let result;
+      try {
+        result = await this.client.call("core/get", {
+          class: setClass,
+          key: `${inSet} AND ${failsRule(row)}`,
+          output_fields: "friendlyname",
+          limit: MAX_RECORDS_PER_RULE,
+        });
+      } catch (error) {
+        if (!queryFailed(error)) throw error;
+        return {
+          ...head,
+          failing: 0,
+          percentOk: 0,
+          status: "bad",
+          records: [],
+          truncated: false,
+          error: "This rule's check could not be run in iTop.",
+        };
+      }
+      ran.push(row);
+      const shown = normalizeObjects(result.objects).slice(0, MAX_RECORDS_PER_RULE);
+      const failing = parseFoundCount(result.message) ?? shown.length;
+      return {
+        ...head,
+        failing,
+        percentOk: percentOk(total, failing),
+        status: statusFor(total, failing, dto.tolerance),
+        records: shown.map((o) => ({ id: o.id, class: o.class, name: str(o.fields["friendlyname"]) || `${o.class} ${o.id}` })),
+        truncated: failing > shown.length,
+      };
+    };
+    const results: RuleResult[] = [];
+    for (const rule of rules) results.push(await runOne(rule));
+
+    // Records failing at least one rule, each counted once.
+    let failing = 0;
+    if (ran.length === 1) failing = results.find((r) => r.id === ran[0]!.dto.id)!.failing;
+    else if (ran.length > 1) failing = await count(`${inSet} AND (${ran.map(failsRule).join(" OR ")})`);
+
+    return {
+      ...base,
+      total,
+      failing,
+      percentOk: percentOk(total, failing),
+      status: statusFor(total, failing, dto.tolerance),
+      rules: results,
+    };
+  }
+
+  /**
+   * Runs rules by reading the category's whole set and each rule's whole
+   * result, and comparing them here. Only for rules whose query selects a
+   * class unrelated to the set's (ids could collide across them): it reads
+   * every record, so it is slow on big sets.
+   */
+  private async runRulesInMemory(category: CategoryRow, rules: RuleRow[]): Promise<CategoryResult> {
     const { dto } = category;
     const base = { id: dto.id, name: dto.name, ranAt: new Date().toISOString() };
     let set: FlatObject[];

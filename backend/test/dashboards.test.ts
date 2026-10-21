@@ -2,6 +2,9 @@ import assert from "node:assert/strict";
 import { after, describe, it } from "node:test";
 
 import { buildApp } from "../src/app.js";
+import type { ItopClient } from "../src/itop/client.js";
+import { Dashboards } from "../src/platform/dashboards/dashboards.service.js";
+import { ObjectsService } from "../src/platform/objects/objects.service.js";
 import {
   FakeItopClient,
   getResponse,
@@ -67,15 +70,9 @@ describe("Dashboards.compute", () => {
   });
 
   it("groups and counts, using iTop's enum labels", async () => {
-    // Three servers: two production, one stock. status has dictionary labels.
-    const fake = new FakeItopClient().on(
-      "core/get",
-      getResponse([
-        { class: "Server", id: 1, fields: { id: "1", status: "production" } },
-        { class: "Server", id: 2, fields: { id: "2", status: "production" } },
-        { class: "Server", id: 3, fields: { id: "3", status: "stock" } },
-      ]),
-    );
+    // Three servers: two production, one stock. status is an enum, so each
+    // value is counted by iTop ("Found: N") rather than by reading rows.
+    const fake = new FakeItopClient().on("core/get", countsByStatus({ production: 2, stock: 1 }));
 
     const data = await sampleDashboards(fake.asClient()).compute("Server:Overview", "2");
 
@@ -84,9 +81,12 @@ describe("Dashboards.compute", () => {
       const prod = data.groups.find((g) => g.key === "production");
       assert.equal(prod?.count, 2);
       assert.equal(data.groups.find((g) => g.key === "stock")?.count, 1);
+      assert.equal(data.total, 3);
       // sorted by count descending
       assert.equal(data.groups[0]?.key, "production");
     }
+    // One count per enum value plus the total, each asking for one row.
+    assert.ok(fake.calls.every((c) => c.params["limit"] === 1));
   });
 
   it("returns rows for a list, not the whole class", async () => {
@@ -158,25 +158,71 @@ describe("dashboard routes", () => {
   });
 });
 
-describe("Dashboards.compute over more than one page", () => {
-  it("counts every matching row, not just the first 500", async () => {
-    const page = (from: number, n: number, status: string) =>
-      Array.from({ length: n }, (_, i) => ({
-        class: "Server",
-        id: from + i,
-        fields: { id: String(from + i), status },
-      }));
-    const fake = new FakeItopClient().on("core/get", [
-      getResponse(page(1, 500, "production"), 650),
-      getResponse(page(501, 150, "stock"), 650),
-    ]);
+/** Answers core/get with a "Found: N" for the status the OQL asks about. */
+function countsByStatus(counts: Record<string, number>) {
+  return (params: Record<string, unknown>) => {
+    const key = String(params["key"]);
+    const status = /status = '([a-z_]+)'/.exec(key)?.[1];
+    const total = status ? (counts[status] ?? 0) : Object.values(counts).reduce((a, b) => a + b, 0);
+    return getResponse([], total);
+  };
+}
+
+describe("Dashboards.compute at volume", () => {
+  it("counts an enum exactly however many rows match, without reading them", async () => {
+    const fake = new FakeItopClient().on("core/get", countsByStatus({ production: 41_000, stock: 9_000 }));
 
     const data = await sampleDashboards(fake.asClient()).compute("Server:Overview", "2");
 
     assert.equal(data.kind, "pie");
     if (data.kind === "pie") {
+      assert.equal(data.total, 50_000);
+      assert.equal(data.groups.find((g) => g.key === "stock")?.count, 9_000);
+      assert.equal(data.truncated, undefined);
+    }
+  });
+});
+
+/** A pie grouped by an open-ended attribute (an external key), which is scanned. */
+function scanDashboards(client: ItopClient) {
+  const schema = sampleSchema();
+  return Dashboards.fromData(
+    {
+      dashboards: {
+        "Server:Overview": {
+          id: "Server:Overview",
+          title: "Server overview",
+          columns: 1,
+          dashlets: [{ id: "2", kind: "pie", title: "By org", class: "Server", oql: "SELECT Server", groupBy: "org_id" }],
+        },
+      },
+      skipped: [],
+    },
+    new ObjectsService(client, schema, "test"),
+    schema,
+  );
+}
+
+describe("Dashboards.compute over more than one page", () => {
+  it("counts every matching row, not just the first 500", async () => {
+    const page = (from: number, n: number, org: string) =>
+      Array.from({ length: n }, (_, i) => ({
+        class: "Server",
+        id: from + i,
+        fields: { id: String(from + i), org_id: org },
+      }));
+    const fake = new FakeItopClient().on("core/get", [
+      getResponse(page(1, 500, "1"), 650),
+      getResponse(page(501, 150, "2"), 650),
+    ]);
+
+    const data = await scanDashboards(fake.asClient()).compute("Server:Overview", "2");
+
+    assert.equal(data.kind, "pie");
+    if (data.kind === "pie") {
       assert.equal(data.total, 650);
-      assert.equal(data.groups.find((g) => g.key === "stock")?.count, 150);
+      assert.equal(data.groups.find((g) => g.key === "2")?.count, 150);
+      assert.equal(data.truncated, undefined);
     }
   });
 });

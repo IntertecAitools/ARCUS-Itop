@@ -70,6 +70,11 @@ const options = (values: readonly string[]) =>
  * (`status: "open"`, `action: "resolve"`) and get our DTOs back; iTop's
  * `assigned`, `ev_resolve` and numeric priorities never cross this boundary.
  */
+/** Most organisations, teams or services a form lists. */
+const FORM_OPTION_CAP = 1000;
+/** Most agents a form lists. */
+const AGENT_OPTION_CAP = 2000;
+
 export class IncidentsService {
   constructor(
     private readonly objects: ObjectsService,
@@ -340,14 +345,12 @@ export class IncidentsService {
    * roughly half a second per call.
    */
   async formOptions(): Promise<IncidentOptions> {
-    const pick = async (className: string, label = "friendlyname") => {
+    // Whole lists, not the first 200: at 2,000 people a 200-row cap left most
+    // agents unpickable. Paged in parallel by listAll.
+    const pick = async (className: string, oql = `SELECT ${className}`, cap = FORM_OPTION_CAP) => {
+      const label = "friendlyname";
       try {
-        const result = await this.objects.list(className, {
-          page: 1,
-          limit: 200,
-          oql: `SELECT ${className}`,
-          fields: `id,${label}`,
-        });
+        const result = await this.objects.listAll(className, { oql, fields: `id,${label}` }, cap);
         return result.items.map((item) => ({
           value: String(item.id),
           label: str(item.fields[label]) || item.label || `#${item.id}`,
@@ -361,7 +364,9 @@ export class IncidentsService {
 
     const [organizations, agents, teams, services] = await Promise.all([
       pick("Organization"),
-      pick("Person"),
+      // iTop accepts as agent only a member of the ticket's team, so the
+      // agents are the people in a team -- not every caller in the instance.
+      pick("Person", "SELECT Person AS p JOIN lnkPersonToTeam AS l ON l.person_id = p.id", AGENT_OPTION_CAP),
       pick("Team"),
       pick("Service"),
     ]);

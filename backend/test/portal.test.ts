@@ -187,3 +187,31 @@ describe("ObjectsService.applyStimulus and internal stimuli", () => {
     );
   });
 });
+
+describe("PortalService at volume", () => {
+  it("shows a busy caller's NEWEST requests, reading only the page asked for", async () => {
+    // 1,500 tickets in iTop's order (oldest first): ids 1..1500.
+    const fake = new FakeItopClient().on("core/get", (params) => {
+      const limit = Number(params["limit"]);
+      const page = Number(params["page"]);
+      const from = (page - 1) * limit + 1;
+      const rows = Array.from({ length: Math.max(0, Math.min(limit, 1500 - from + 1)) }, (_, i) => ({
+        class: "UserRequest",
+        id: from + i,
+        fields: { ref: `R-${from + i}`, title: "t", status: "assigned", operational_status: "ongoing" },
+      }));
+      return getResponse(rows, 1500);
+    });
+
+    const result = await service(fake).listTickets(jane, { closed: false, page: 1, limit: 20 });
+
+    assert.equal(result.total, 1500);
+    assert.equal(result.pages, 75);
+    assert.deepEqual(
+      result.items.map((t) => t.id),
+      Array.from({ length: 20 }, (_, i) => 1500 - i),
+    );
+    // A count, then iTop's last page: two calls whatever the volume.
+    assert.equal(fake.calls.length, 2);
+  });
+});

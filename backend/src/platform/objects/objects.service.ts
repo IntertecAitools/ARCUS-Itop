@@ -23,6 +23,88 @@ export const SORT_ROW_CAP = 2000;
 export const MAX_PAGE_SIZE = 500;
 export const DEFAULT_PAGE_SIZE = 50;
 
+/** Pages listAll() keeps in flight at once: enough to hide iTop's per-call
+ * overhead, few enough not to queue one screen's work ahead of everyone's. */
+const LIST_ALL_CONCURRENCY = 4;
+
+/** Largest page an internal scan (listAll) may ask iTop for. */
+export const SCAN_PAGE_SIZE = 2000;
+
+/** `fn` over `items`, at most `limit` at a time, results in input order. */
+export async function mapLimited<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < items.length) {
+      const i = next++;
+      results[i] = await fn(items[i]!);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return results;
+}
+
+/** The 400 for a sort over more rows than SORT_ROW_CAP. */
+function sortCapError(total: number): AppError {
+  return new AppError(
+    "bad_request",
+    `Sorting needs the full result set, but ${total} rows match and the cap is ` +
+      `${SORT_ROW_CAP}. iTop's REST API cannot sort server-side, so narrow the ` +
+      `query with q/filters, or drop the sort parameter.`,
+    { details: { total, cap: SORT_ROW_CAP } },
+  );
+}
+
+/**
+ * The `count` newest rows (highest id first), whichever way iTop orders the
+ * class: core/get applies the class's default order, and that differs --
+ * UserRequest, Incident, Change and every Event come newest first (`ref` /
+ * `date` descending), Ticket itself and most others ascending. So read page 1;
+ * when there is more than one page, also read the end of the set, and keep
+ * the highest ids of both. Two rounds at most, at any volume.
+ */
+export async function newestRows<T extends { id: number }>(
+  count: number,
+  fetch: (page: number, limit: number) => Promise<{ rows: T[]; total: number }>,
+): Promise<{ rows: T[]; total: number }> {
+  const first = await fetch(1, count);
+  let rows = first.rows;
+  if (first.total > count) {
+    const end = await pageFromEnd(first.total, 1, count, async (page) => (await fetch(page, count)).rows);
+    rows = [...rows, ...end];
+  }
+  const seen = new Set<number>();
+  const unique = rows.filter((r) => !seen.has(r.id) && seen.add(r.id));
+  return { rows: unique.sort((a, b) => b.id - a.id).slice(0, count), total: first.total };
+}
+
+/**
+ * The rows of page `page` (1-based, `limit` per page) counted from the END of
+ * a set iTop returns in its own order: the newest rows, for tickets.
+ *
+ * iTop cannot reverse its order, but pages are cheap to address: the wanted
+ * rows sit in at most two of iTop's pages of the same size. `fetch` reads one
+ * iTop page; `total` is the set's size. Rows come back newest first.
+ */
+export async function pageFromEnd<T>(
+  total: number,
+  page: number,
+  limit: number,
+  fetch: (itopPage: number) => Promise<T[]>,
+): Promise<T[]> {
+  // Positions (0-based, in iTop's order) of the rows wanted, end exclusive.
+  const end = total - (page - 1) * limit;
+  const start = Math.max(0, end - limit);
+  if (end <= 0) return [];
+  const firstPage = Math.floor(start / limit) + 1;
+  const lastPage = Math.floor((end - 1) / limit) + 1;
+  const pages = await Promise.all(
+    Array.from({ length: lastPage - firstPage + 1 }, (_, i) => fetch(firstPage + i)),
+  );
+  const offset = (firstPage - 1) * limit;
+  return pages.flat().slice(start - offset, end - offset).reverse();
+}
+
 export type FieldSet = "summary" | "full" | "all";
 
 export interface ListQuery {
@@ -263,12 +345,17 @@ export class ObjectsService {
   }
 
   async list(className: string, query: ListQuery): Promise<ListResult> {
+    return this.listPage(className, query, MAX_PAGE_SIZE);
+  }
+
+  /** list() with the page-size ceiling as a parameter: scans inside the BFF may read bigger pages. */
+  private async listPage(className: string, query: ListQuery, maxLimit: number): Promise<ListResult> {
     const info = this.schema.require(className);
     const oql = this.listOql(info, query);
     const outputFields = this.outputFields(info, query.fields, "summary");
 
     const page = Math.max(1, query.page);
-    const limit = Math.min(Math.max(1, query.limit), MAX_PAGE_SIZE);
+    const limit = Math.min(Math.max(1, query.limit), maxLimit);
 
     if (query.sort) {
       return this.listSorted(info, oql, outputFields, query, page, limit);
@@ -303,22 +390,32 @@ export class ObjectsService {
    * (grouping a dashlet, bucketing a trend) and simply asked for a big `limit`
    * would quietly get the first 500 rows and compute wrong numbers. `total` is
    * iTop's count of all matches, which exceeds `items.length` when truncated.
+   *
+   * `pageSize` (up to SCAN_PAGE_SIZE) suits scans that ask for a few fields:
+   * iTop's cost is mostly per call, so fewer, bigger pages finish sooner.
    */
   async listAll(
     className: string,
     query: Omit<ListQuery, "page" | "limit" | "sort" | "order">,
     cap: number,
+    pageSize: number = MAX_PAGE_SIZE,
   ): Promise<{ items: ObjectDto[]; total: number; truncated: boolean }> {
-    const items: ObjectDto[] = [];
-    let total = 0;
-    for (let page = 1; items.length < cap; page += 1) {
-      const result = await this.list(className, { ...query, page, limit: MAX_PAGE_SIZE });
-      items.push(...result.items);
-      total = result.total;
-      if (!result.hasMore || result.items.length === 0) break;
-    }
+    // Page 1 gives iTop's total; the remaining pages are then independent, so
+    // they go out a few at a time instead of one after another (each core/get
+    // costs iTop ~0.5 s however small). A cap under a page asks for no more.
+    const maxLimit = Math.min(Math.max(1, pageSize), SCAN_PAGE_SIZE);
+    const limit = Math.max(1, Math.min(cap, maxLimit));
+    const first = await this.listPage(className, { ...query, page: 1, limit }, maxLimit);
+    const items = [...first.items];
+    const pages = Math.min(first.pages, Math.ceil(cap / limit));
+    const rest = await mapLimited(
+      Array.from({ length: Math.max(0, pages - 1) }, (_, i) => i + 2),
+      LIST_ALL_CONCURRENCY,
+      (page) => this.listPage(className, { ...query, page, limit }, maxLimit),
+    );
+    for (const result of rest) items.push(...result.items);
     const kept = items.slice(0, cap);
-    return { items: kept, total: Math.max(total, kept.length), truncated: total > kept.length };
+    return { items: kept, total: Math.max(first.total, kept.length), truncated: first.total > kept.length };
   }
 
   /** Sorted listing: fetch the whole set (capped), order here, then slice. */
@@ -346,6 +443,19 @@ export class ObjectsService {
         ? "*"
         : [...new Set([...outputFields.split(","), sortCode])].join(",");
 
+    // Count first: over the cap the answer is a 400 anyway, and finding that
+    // out by downloading 2,000 rows cost seconds on every click of a column
+    // header of a big list (every ticket list, at production volume).
+    const counted = await this.client.call("core/get", {
+      class: info.name,
+      key: oql,
+      output_fields: "id",
+      limit: 1,
+      page: 1,
+    });
+    const matching = parseFoundCount(counted.message) ?? 0;
+    if (matching > SORT_ROW_CAP) throw sortCapError(matching);
+
     const result = await this.client.call("core/get", {
       class: info.name,
       key: oql,
@@ -356,15 +466,7 @@ export class ObjectsService {
 
     const all = normalizeObjects(result.objects).map((flat) => this.toDto(flat));
     const total = parseFoundCount(result.message) ?? all.length;
-    if (total > SORT_ROW_CAP) {
-      throw new AppError(
-        "bad_request",
-        `Sorting needs the full result set, but ${total} rows match and the cap is ` +
-          `${SORT_ROW_CAP}. iTop's REST API cannot sort server-side, so narrow the ` +
-          `query with q/filters, or drop the sort parameter.`,
-        { details: { total, cap: SORT_ROW_CAP } },
-      );
-    }
+    if (total > SORT_ROW_CAP) throw sortCapError(total);
 
     const descending = query.order === "desc";
     const sorted = [...all].sort((a, b) =>
