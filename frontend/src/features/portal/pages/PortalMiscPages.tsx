@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Plus, Search } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Plus, Search } from 'lucide-react';
 import { Button, buttonClasses, Card, CardBody, CardHeader, Input, Skeleton } from '@/components/ui';
 import { StatusPill } from '@/components/data-display';
+import { Eyebrow } from '@/components/public';
 import { ChangePasswordDialog } from '@/features/auth';
 import { useSessionStore } from '@/stores/session.store';
 import { useFaq, useFaqs, useMyRequests, useProfile, useUpdateProfile } from '../api/portal.api';
@@ -13,52 +14,64 @@ const stripHtml = (html: string) => html.replace(/<[^>]+>/g, ' ').replace(/&nbsp
 export function PortalHomePage() {
   const user = useSessionStore((s) => s.user);
   const { data: open, isLoading } = useMyRequests('open', 1, '');
+  const tile = 'group flex flex-col border-t border-line pt-6 pb-2 transition-colors hover:border-ink';
 
   return (
     <>
-      <h1 className="text-[22px] font-semibold text-ink">Hello{user?.name ? `, ${user.name.split(' ')[0]}` : ''}</h1>
-      <p className="mt-1 mb-6 text-[13px] text-ink-muted">How can we help today?</p>
+      <Eyebrow>Service portal</Eyebrow>
+      <h1 className="display mt-4 text-[40px] sm:text-[56px]">Hello{user?.name ? `, ${user.name.split(' ')[0]}` : ''}</h1>
+      <p className="mt-3 mb-12 text-[17px] text-ink-secondary">How can we help today?</p>
 
-      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Link to="/portal/new" className="rounded-card border border-line bg-surface-raised p-4 transition-colors hover:border-brand">
-          <Plus className="mb-2 size-5 text-brand-ink" />
-          <p className="text-[14px] font-medium text-ink">Raise a request</p>
-          <p className="text-[12px] text-ink-muted">Report a problem or ask for something.</p>
+      <div className="mb-16 grid grid-cols-1 gap-x-10 gap-y-8 sm:grid-cols-3">
+        <Link to="/portal/new" className={tile}>
+          <Plus className="mb-6 size-7 stroke-[1.25] text-ink" aria-hidden />
+          <p className="text-[20px] text-ink">Raise a request</p>
+          <p className="mt-1 mb-6 text-[14px] text-ink-secondary">Report a problem or ask for something.</p>
+          <ArrowRight className="mt-auto size-4 text-ink transition-transform group-hover:translate-x-1" aria-hidden />
         </Link>
-        <Link to="/portal/requests" className="rounded-card border border-line bg-surface-raised p-4 transition-colors hover:border-brand">
-          <p className="text-[24px] font-semibold text-ink tabular-nums">{isLoading ? '…' : (open?.total ?? 0)}</p>
-          <p className="text-[14px] font-medium text-ink">Open requests</p>
-          <p className="text-[12px] text-ink-muted">Follow what is in progress.</p>
+        <Link to="/portal/requests" className={tile}>
+          <p className="display mb-4 text-[44px] leading-none text-ink tabular-nums">{isLoading ? '…' : (open?.total ?? 0)}</p>
+          <p className="text-[20px] text-ink">Open requests</p>
+          <p className="mt-1 mb-6 text-[14px] text-ink-secondary">Follow what is in progress.</p>
+          <ArrowRight className="mt-auto size-4 text-ink transition-transform group-hover:translate-x-1" aria-hidden />
         </Link>
-        <Link to="/portal/help" className="rounded-card border border-line bg-surface-raised p-4 transition-colors hover:border-brand">
-          <Search className="mb-2 size-5 text-brand-ink" />
-          <p className="text-[14px] font-medium text-ink">Knowledge base</p>
-          <p className="text-[12px] text-ink-muted">Answers to common questions.</p>
+        <Link to="/portal/help" className={tile}>
+          <Search className="mb-6 size-7 stroke-[1.25] text-ink" aria-hidden />
+          <p className="text-[20px] text-ink">Knowledge base</p>
+          <p className="mt-1 mb-6 text-[14px] text-ink-secondary">Answers to common questions.</p>
+          <ArrowRight className="mt-auto size-4 text-ink transition-transform group-hover:translate-x-1" aria-hidden />
         </Link>
       </div>
 
-      <Card>
-        <CardHeader title="Your open requests" action={<Link to="/portal/requests" className="text-[13px] text-brand-ink hover:underline">See all</Link>} />
-        <CardBody>
-          {isLoading ? (
-            <Skeleton className="h-24" />
-          ) : !open || open.items.length === 0 ? (
-            <p className="text-[13px] text-ink-muted">Nothing open. Raise a request whenever you need help.</p>
-          ) : (
-            <ul className="divide-y divide-line">
-              {open.items.slice(0, 5).map((t) => (
-                <li key={t.id}>
-                  <Link to={`/portal/requests/${t.id}`} className="flex items-center gap-3 py-2.5 hover:bg-surface-hover">
-                    <span className="w-24 shrink-0 text-[12px] font-medium text-brand-ink">{t.ref}</span>
-                    <span className="flex-1 truncate text-[13px] text-ink">{t.title}</span>
-                    <StatusPill status={t.status} size="sm" />
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardBody>
-      </Card>
+      <section aria-labelledby="open-requests-heading">
+        <div className="flex items-end justify-between gap-4 border-b border-line pb-4">
+          <h2 id="open-requests-heading" className="display text-[28px] sm:text-[32px]">Your open requests</h2>
+          <Link to="/portal/requests" className="inline-flex items-center gap-2 text-[13px] font-semibold tracking-[0.14em] text-ink uppercase underline-offset-[6px] hover:underline">
+            See all
+            <ArrowRight className="size-4" aria-hidden />
+          </Link>
+        </div>
+        {isLoading ? (
+          <Skeleton className="mt-4 h-24" />
+        ) : !open || open.items.length === 0 ? (
+          <p className="py-8 text-[15px] text-ink-secondary">Nothing open. Raise a request whenever you need help.</p>
+        ) : (
+          <ul className="divide-y divide-line border-b border-line">
+            {open.items.slice(0, 5).map((t) => (
+              <li key={t.id}>
+                <Link
+                  to={`/portal/requests/${t.id}`}
+                  className="flex flex-wrap items-center gap-x-6 gap-y-1 px-1 py-5 transition-colors hover:bg-surface-hover sm:flex-nowrap"
+                >
+                  <span className="w-28 shrink-0 text-[13px] tracking-wide text-ink-secondary tabular-nums">{t.ref}</span>
+                  <span className="min-w-0 flex-1 basis-full truncate text-[16px] text-ink sm:basis-auto">{t.title}</span>
+                  <StatusPill status={t.status} size="sm" />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </>
   );
 }
