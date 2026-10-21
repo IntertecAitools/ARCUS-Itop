@@ -29,7 +29,9 @@ Bugs found and fixed (in this branch):
 - In RTL the impact graph's labels anchored from the wrong side; the graph is `dir="ltr"` (it is laid out in coordinates).
 - On phones the user menu button had no accessible name (its text was `display:none`); the text is now visually hidden instead.
 
-Not covered: the Playwright suite (`tests/e2e`, needs the stack on `:4000`/`:4173`); a screen-reader pass; real Arabic text.
+After merging `main` (PR #18 saved queries, PR #19 browser journeys): typecheck ✅, `npx vitest run` ✅ 25 files / 135 tests, build ✅, and the mock browser journeys (`npx playwright test`, the CI E2E job, on `E2E_MOCK_URL=http://localhost:5976`) ✅ 7 / 7 with no selector changes needed.
+
+Not covered: the live journeys (`npm run e2e:live`, needs the BFF and iTop); a screen-reader pass; real Arabic text.
 
 ### 2026-10-21 — Browser journeys (Playwright): mock suite in CI, live suite locally
 
