@@ -105,17 +105,36 @@ export async function readUpload(request: FastifyRequest): Promise<AttachmentUpl
   };
 }
 
+/**
+ * The Content-Type to serve. The stored type is whatever the uploader's
+ * browser declared, so anything a browser could run as a page or script
+ * (HTML, SVG, XML, JavaScript) -- or that is not a plain type at all -- goes
+ * out as opaque bytes. With `attachment` and nosniff that is belt and braces,
+ * but it keeps a future "open in a tab" from becoming stored XSS.
+ */
+export function servedMimeType(declared: string): string {
+  const type = declared.trim().toLowerCase();
+  if (!/^[a-z0-9][a-z0-9!#$&^_.+-]*\/[a-z0-9][a-z0-9!#$&^_.+-]*$/.test(type.split(";")[0]!.trim())) {
+    return "application/octet-stream";
+  }
+  if (/html|xml|svg|javascript|ecmascript|^text\/(css|x-component)/.test(type)) return "application/octet-stream";
+  return declared.trim();
+}
+
 /** Sends an attachment as a download, never rendered in our origin. */
 export function sendAttachment(reply: FastifyReply, file: AttachmentContent) {
   const filename = safeFilename(file.filename);
+  // filename= takes Latin-1 at most (Node refuses anything else in a
+  // header), so it gets an ASCII stand-in; filename* carries the real name.
+  const asciiName = filename.replace(/[^\x20-\x7e]/g, "_");
   reply
-    .header("Content-Type", file.mimeType)
+    .header("Content-Type", servedMimeType(file.mimeType))
     .header("Content-Length", String(file.content.byteLength))
     // `attachment` so the browser saves rather than renders: an uploaded
     // .html or .svg rendered inline would execute in our origin.
     .header(
       "Content-Disposition",
-      `attachment; filename="${filename}"; filename*=UTF-8''${rfc5987(filename)}`,
+      `attachment; filename="${asciiName}"; filename*=UTF-8''${rfc5987(filename)}`,
     )
     .header("X-Content-Type-Options", "nosniff");
 

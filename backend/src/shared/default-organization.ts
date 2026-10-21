@@ -2,7 +2,7 @@ import { badRequest } from "../core/errors.js";
 import type { ObjectsService } from "../platform/objects/objects.service.js";
 import type { CurrentContact } from "./current-contact.js";
 import { str } from "./ticket-mapping.js";
-import { currentCaller } from "../core/request-context.js";
+import { currentCaller, runAs, runAsServiceAccount } from "../core/request-context.js";
 
 /**
  * Resolves the organisation a record belongs to when the UI does not ask.
@@ -39,6 +39,11 @@ export class DefaultOrganization {
     // A signed-in user's records belong to their own organisation.
     const caller = currentCaller();
     if (caller && caller.orgId > 0) return String(caller.orgId);
+    // Anyone else gets the instance's default, worked out by the service
+    // account with nobody bound: worked out as the caller, it would follow
+    // their contact and their view of the organisations -- and the cache
+    // would hand that to every user after them.
+    if (caller) return runAs(undefined, () => runAsServiceAccount(() => this.resolve()));
     if (this.cached) return this.cached;
     // Collapse concurrent callers onto one lookup; the create path is hot and
     // iTop answers in seconds.

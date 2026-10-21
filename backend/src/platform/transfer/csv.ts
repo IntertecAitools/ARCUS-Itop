@@ -69,3 +69,16 @@ export function remapCsv(rows: string[][], mapping: (string | null)[]): string[]
   const [, ...body] = rows;
   return [keep.map((index) => mapping[index]!), ...body.map((cells) => keep.map((index) => cells[index] ?? ""))];
 }
+
+/**
+ * Defuses cells a spreadsheet would run as a formula (CSV injection): a cell
+ * starting with = + - @ or a tab/CR gets a leading apostrophe, which Excel
+ * and LibreOffice show as text. Ticket titles and descriptions come from end
+ * users, so an export must not carry `=HYPERLINK(...)` live into an agent's
+ * spreadsheet. Plain numbers ("-5", "+3.2") are left as they are.
+ */
+export function defuseFormulas(rows: string[][]): string[][] {
+  return rows.map((cells) =>
+    cells.map((cell) => (/^[=+\-@\t\r]/.test(cell) && !/^[+-]?\d+(\.\d+)?$/.test(cell) ? `'${cell}` : cell)),
+  );
+}

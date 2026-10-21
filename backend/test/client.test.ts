@@ -3,6 +3,7 @@ import { createServer, type Server } from "node:http";
 import { afterEach, describe, it } from "node:test";
 
 import { AppError } from "../src/core/errors.js";
+import { runAs, runAsServiceAccount, type Caller } from "../src/core/request-context.js";
 import { ItopClient } from "../src/itop/client.js";
 import { testConfig } from "./helpers.js";
 
@@ -279,6 +280,40 @@ describe("ItopClient transport", () => {
       async (client) => {
         assert.equal(await client.checkCredentials(), true);
       },
+    );
+  });
+});
+
+describe("ItopClient credentials with sign-in required", () => {
+  // Port 1 refuses connections: reaching the network at all means the
+  // credentials were accepted for the call.
+  const config = testConfig({
+    itop: { ...testConfig().itop, baseUrl: "http://127.0.0.1:1", endpoint: "http://127.0.0.1:1/webservices/rest.php" },
+    auth: { ...testConfig().auth, required: true },
+  });
+  const portalUser: Caller = {
+    userId: 5, login: "pat", contactId: 9, name: "Pat", email: "", kind: "portal",
+    profiles: ["Portal user"], isAdmin: false, allowedOrgIds: [], orgId: 3,
+  };
+  const code = (error: unknown) => (error instanceof AppError ? error.code : String(error));
+
+  it("refuses a call with nobody signed in, instead of using the service account", async () => {
+    await assert.rejects(new ItopClient(config).call("core/get", {}), (e) => code(e) === "unauthorized");
+  });
+
+  it("refuses a call for an end user, who has no iTop credentials", async () => {
+    await assert.rejects(
+      runAs(portalUser, () => new ItopClient(config).call("core/get", {})),
+      (e) => code(e) === "forbidden",
+    );
+  });
+
+  it("uses the service account when the call or the context asks for it", async () => {
+    const client = new ItopClient(config);
+    await assert.rejects(client.call("core/get", {}, { asService: true, retries: 0 }), (e) => code(e) === "upstream_unavailable");
+    await assert.rejects(
+      runAs(portalUser, () => runAsServiceAccount(() => client.call("core/get", {}, { retries: 0 }))),
+      (e) => code(e) === "upstream_unavailable",
     );
   });
 });
