@@ -26,6 +26,7 @@ Loading took ≈ 4 h 50 min. There were two BFFs on that iTop, `main` on :4801 a
 | Backend typecheck + unit tests | ✅ 499/499, clean | New: `volume.test.ts` (pageFromEnd, newestRows in both orders, parallel listAll, fail-fast sort, overview SLA counts), portal newest page, enum dashlet counts, audit counted in iTop with an unrelated-class fallback, form agents, transfer timeouts and import caps |
 | Frontend typecheck + unit tests + build | ✅ 130/130, clean, built | New: `Dashlet.test.tsx` ("Grouped from the first N of M" note). The first full run failed 11 AttachmentsPanel tests only because a local `.env.local` pointed `VITE_BFF_URL` at :4800 (the MSW handlers expect the default); they pass without it |
 | Backend build | ✅ | |
+| After merging main (saved queries, public look): backend + frontend typecheck and unit tests | ✅ 517/517, 137/137 | |
 | nginx template (`nginx -t` in nginx:1.28.0-alpine) | ✅ | New export/import location with 300 s |
 
 Bugs found and fixed (same branch):
