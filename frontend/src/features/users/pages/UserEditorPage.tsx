@@ -79,7 +79,7 @@ function NewUser() {
         description="The account is created in iTop and can sign in to this platform at once."
         actions={
           <Link to="/users" className={buttonClasses({ variant: 'secondary', size: 'sm' })}>
-            <ArrowLeft className="mr-1.5 size-4" />
+            <ArrowLeft className="me-1.5 size-4 rtl:-scale-x-100" />
             All users
           </Link>
         }
@@ -227,7 +227,7 @@ function EditUser({ id }: { id: string }) {
               {enabled ? 'Disable account' : 'Enable account'}
             </Button>
             <Link to="/users" className={buttonClasses({ variant: 'secondary', size: 'sm' })}>
-              <ArrowLeft className="mr-1.5 size-4" />
+              <ArrowLeft className="me-1.5 size-4 rtl:-scale-x-100" />
               All users
             </Link>
           </div>

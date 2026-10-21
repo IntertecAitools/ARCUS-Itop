@@ -94,7 +94,7 @@ function CategoryEditor({ id, category }: { id: string; category: AuditCategoryF
         description="A category is a set of records; its rules check each of them."
         actions={
           <Link to="/audit" className={buttonClasses({ variant: 'secondary', size: 'sm' })}>
-            <ArrowLeft className="mr-1.5 size-4" />
+            <ArrowLeft className="me-1.5 size-4 rtl:-scale-x-100" />
             Audit
           </Link>
         }

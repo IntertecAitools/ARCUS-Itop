@@ -158,7 +158,7 @@ export function IncidentListPage() {
         }
         actions={
           <Link to="/incidents/new" className={buttonClasses({ size: 'sm' })}>
-            <Plus className="mr-1.5 size-4" />
+            <Plus className="me-1.5 size-4" />
             New incident
           </Link>
         }

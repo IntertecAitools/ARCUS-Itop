@@ -85,12 +85,14 @@ export function DataTable<T>({
   }
 
   return (
-    <div className={cn('w-full overflow-x-auto', className)}>
+    // `relative`: the header cells' sr-only sort labels are absolutely positioned;
+    // without a positioned scroll box they escape it and widen the whole page.
+    <div className={cn('relative w-full overflow-x-auto', className)}>
       {/* `table-fixed` makes the declared column sizes authoritative, so a long
           summary truncates instead of shoving the trailing columns off the card. */}
       <table
         style={{ minWidth: `${minWidth}px` }}
-        className="w-full table-fixed border-collapse text-left"
+        className="w-full table-fixed border-collapse text-start"
       >
         <thead>
           {table.getHeaderGroups().map((headerGroup) => (

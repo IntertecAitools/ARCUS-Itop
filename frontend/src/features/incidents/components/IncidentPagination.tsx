@@ -32,7 +32,7 @@ export function IncidentPagination({ page, pages, total, limit, onPage }: Props)
           size="sm"
           disabled={page <= 1}
           onClick={() => onPage(page - 1)}
-          leadingIcon={<ChevronLeft className="size-4" />}
+          leadingIcon={<ChevronLeft className="size-4 rtl:-scale-x-100" />}
         >
           Previous
         </Button>
@@ -44,7 +44,7 @@ export function IncidentPagination({ page, pages, total, limit, onPage }: Props)
           size="sm"
           disabled={page >= pages}
           onClick={() => onPage(page + 1)}
-          trailingIcon={<ChevronRight className="size-4" />}
+          trailingIcon={<ChevronRight className="size-4 rtl:-scale-x-100" />}
         >
           Next
         </Button>

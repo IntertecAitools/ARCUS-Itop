@@ -29,7 +29,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
     >
       <select
         ref={ref}
-        className="h-full w-full appearance-none bg-transparent pr-8 pl-3 text-sm text-ink outline-none"
+        className="h-full w-full appearance-none bg-transparent pe-8 ps-3 text-sm text-ink outline-none"
         {...props}
       >
         {options.map((o) => (
@@ -39,7 +39,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
         ))}
       </select>
       <ChevronDown
-        className="pointer-events-none absolute right-2.5 size-4 text-ink-muted"
+        className="pointer-events-none absolute end-2.5 size-4 text-ink-muted"
         aria-hidden
       />
     </div>

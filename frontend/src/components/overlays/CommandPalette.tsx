@@ -116,7 +116,7 @@ export function CommandPalette() {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-[color:var(--arcus-ink)]/25 px-4 pt-[12vh] backdrop-blur-[2px]"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-[var(--arcus-scrim)] px-4 pt-[12vh] backdrop-blur-[2px]"
       onClick={() => setOpen(false)}
     >
       <div
@@ -157,7 +157,7 @@ export function CommandPalette() {
                     onMouseEnter={() => setHighlighted(i)}
                     onClick={() => go(m.path)}
                     className={cn(
-                      'flex w-full items-center gap-3 rounded-control px-3 py-2.5 text-left transition-colors',
+                      'flex w-full items-center gap-3 rounded-control px-3 py-2.5 text-start transition-colors',
                       active ? 'bg-brand-soft' : 'hover:bg-surface-hover',
                     )}
                   >

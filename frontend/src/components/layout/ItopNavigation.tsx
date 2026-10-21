@@ -61,7 +61,7 @@ function GroupSection({
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         className={cn(
-          'flex w-full items-center gap-2.5 rounded-control px-3 py-1.5 text-left',
+          'flex w-full items-center gap-2.5 rounded-control px-3 py-1.5 text-start',
           'text-[12px] font-semibold tracking-wide text-ink-muted uppercase',
           'transition-colors duration-150 hover:bg-surface-hover hover:text-ink-secondary',
         )}
@@ -69,13 +69,13 @@ function GroupSection({
         <Icon className="size-4 shrink-0" aria-hidden />
         <span className="flex-1 truncate normal-case">{group.label}</span>
         <ChevronRight
-          className={cn('size-3.5 shrink-0 transition-transform duration-150', open && 'rotate-90')}
+          className={cn('size-3.5 shrink-0 transition-transform duration-150 rtl:-scale-x-100', open && 'rotate-90 rtl:-rotate-90')}
           aria-hidden
         />
       </button>
 
       {open ? (
-        <ul className="mt-0.5 space-y-0.5 pl-3">
+        <ul className="mt-0.5 space-y-0.5 ps-3">
           {group.entries.map((entry) => (
             <li key={entry.id}>
               <NavLink
@@ -85,7 +85,7 @@ function GroupSection({
                 // alone would light up both.
                 className={({ isActive }) =>
                   cn(
-                    'flex items-center gap-2 rounded-control py-1.5 pr-2 pl-3 text-[13px]',
+                    'flex items-center gap-2 rounded-control py-1.5 pe-2 ps-3 text-[13px]',
                     'transition-colors duration-150',
                     isActive
                       ? 'bg-brand-soft text-brand-ink'

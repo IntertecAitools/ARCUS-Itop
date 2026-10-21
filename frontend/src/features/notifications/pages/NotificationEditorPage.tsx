@@ -242,7 +242,7 @@ function RuleEditor({ id, rule }: { id: string; rule: Rule | undefined }) {
         description={rule ? describeEvent(rule.event) : 'Email people when something happens.'}
         actions={
           <Link to="/notifications" className={buttonClasses({ variant: 'secondary', size: 'sm' })}>
-            <ArrowLeft className="mr-1.5 size-4" />
+            <ArrowLeft className="me-1.5 size-4 rtl:-scale-x-100" />
             All rules
           </Link>
         }

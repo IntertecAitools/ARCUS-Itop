@@ -4,6 +4,35 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-10-21 — Staff app in the public look (dashboard, records, admin screens)
+
+Branch `claude/staff-public-look` (PR #20). Frontend only. A BFF from this worktree on `:4900` (its `node_modules` a junction to the main checkout's, no new install) against the local iTop on `:8080`, signed in as the local `admin`; Vite on `:5973` (`VITE_API_MODE=live`). Screenshots from headless Chromium (Playwright 1.63), saved to `docs/design/staff-look/`.
+
+| What ran | Result | Notes |
+| --- | --- | --- |
+| `npx vitest run` | ✅ 25 files / 135 tests | |
+| `npm run typecheck` | ✅ | Also after each step |
+| `npm run build` | ✅ | |
+| Screenshots, desktop dark: dashboard, record list/detail/new/edit, history, bulk-selection bar, export menu, advanced search, import, transition dialog, impact graph, records index, modules, incidents list and new, an iTop dashboard, Users and user editor, Notifications list and editor, Audit, Queries list/editor/run, command palette, bell, user menu, change password | ✅ | No page errors |
+| Same set (most screens) in desktop light, phone (390px) and `dir="rtl"` | ✅ | |
+| Phone-width overflow script (document `scrollWidth` vs viewport) on 17 staff routes | ✅ | All fit; Audit reports 1px (subpixel, no element sticks out) |
+| Computed colours of the danger button in dark | ✅ | `rgb(31,10,10)` on `rgb(248,113,113)` (was white on light red, ~2.8:1) |
+
+Bugs found and fixed (in this branch):
+
+- Converting `text-left` to `text-start` centred every table header: a `<th>` is centred unless an ancestor sets a non-default alignment, and `start` is the default. `th { text-align: start }` in the base layer.
+- At phone width the dashboard was 575px wide. A sortable header's screen-reader-only label is absolutely positioned and escaped the table's scroll box; the box is `relative` now. `Card` (`min-w-0`) and `Tabs` (scroll) no longer let a wide table or tab row stretch the page.
+- The public focus rule was unlayered, so it beat every `outline-none` (the command palette input drew a box inside its field); it is in the base layer now.
+- Dialog and palette backdrops were ink at 25%, a grey wash once ink is white; they use the `--arcus-scrim` token.
+- White text on the light red of the dark look (danger button, count badges) failed AA; a new `--arcus-on-critical` token gives dark text there.
+- The change calendar's selected day was white text on the (white) brand colour; it uses `text-on-brand`.
+- In RTL the impact graph's labels anchored from the wrong side; the graph is `dir="ltr"` (it is laid out in coordinates).
+- On phones the user menu button had no accessible name (its text was `display:none`); the text is now visually hidden instead.
+
+After merging `main` (PR #18 saved queries, PR #19 browser journeys): typecheck ✅, `npx vitest run` ✅ 25 files / 135 tests, build ✅, and the mock browser journeys (`npx playwright test`, the CI E2E job, on `E2E_MOCK_URL=http://localhost:5976`) ✅ 7 / 7 with no selector changes needed.
+
+Not covered: the live journeys (`npm run e2e:live`, needs the BFF and iTop); a screen-reader pass; real Arabic text.
+
 ### 2026-10-21 — Browser journeys (Playwright): mock suite in CI, live suite locally
 
 Branch `claude/browser-tests-2dc497`, PR #19. Live runs used this session's own BFF on :4600 (same `.env`, `CORS_ORIGINS`/`APP_BASE_URL` → :5673) and frontend on :5673, against the shared local iTop and Mailpit. The machine was heavily loaded throughout by another session's perf stack (`arcus-perf-itop-1` at ~420% CPU), so iTop calls took 5–60 s.

@@ -130,7 +130,7 @@ export function RelatedTab({
                       aria-label={`Remove ${farLabel}`}
                       disabled={remove.isPending}
                       onClick={() => remove.mutate(row.id)}
-                      className="ml-auto rounded-control p-1 text-ink-muted transition-colors hover:bg-surface-hover hover:text-critical-ink"
+                      className="ms-auto rounded-control p-1 text-ink-muted transition-colors hover:bg-surface-hover hover:text-critical-ink"
                     >
                       <X className="size-4" />
                     </button>

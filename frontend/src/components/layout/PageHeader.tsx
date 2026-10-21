@@ -23,14 +23,14 @@ export function PageHeader({
   className,
 }: PageHeaderProps) {
   return (
-    <div className={cn('mb-6', className)}>
+    <div className={cn('mb-8', className)}>
       {breadcrumbs?.length ? <Breadcrumbs items={breadcrumbs} /> : null}
 
-      <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="mt-4 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
-          <h1 className="text-[28px] leading-9 font-semibold tracking-tight text-ink">{title}</h1>
+          <h1 className="display text-[32px] break-words text-ink sm:text-[40px]">{title}</h1>
           {description ? (
-            <p className="mt-1 text-sm text-ink-secondary">{description}</p>
+            <p className="mt-2 max-w-3xl text-[15px] leading-6 text-ink-secondary">{description}</p>
           ) : null}
         </div>
 

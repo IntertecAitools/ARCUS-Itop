@@ -43,7 +43,7 @@ export function HistoryTab({ className, id }: { className: string; id: string })
       <CardBody>
         <ol className="space-y-4">
           {data.items.map((entry) => (
-            <li key={entry.id} className="border-l-2 border-line pl-3">
+            <li key={entry.id} className="border-s-2 border-line ps-3">
               <div className="text-[12px] text-ink-muted">
                 {dateTimeText(entry.date)} · {entry.user || 'Unknown user'}
                 {entry.comment && entry.comment !== entry.user ? <span> — {entry.comment}</span> : null}

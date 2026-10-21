@@ -32,7 +32,7 @@ export function Breadcrumbs({ items }: { items: Crumb[] }) {
               </li>
               {!isLast ? (
                 <li aria-hidden>
-                  <ChevronRight className="size-3.5 text-ink-muted" />
+                  <ChevronRight className="size-3.5 text-ink-muted rtl:-scale-x-100" />
                 </li>
               ) : null}
             </Fragment>
