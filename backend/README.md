@@ -310,6 +310,41 @@ unless `keepCondition: false`) and `valueLabels` (names of the records key
 conditions point at). Conditions on dates are refused, since a fixed date
 cannot be read back as a condition.
 
+## Saved queries
+
+iTop's query phrasebook (`QueryOQL`) and its "Run queries" page, from
+**Queries** in the frontend, for all staff (`platform/queries/`):
+
+- `GET /api/queries` (every saved query), `GET /api/queries/:id`,
+  `GET /api/queries/options` (record types), `POST /api/queries`,
+  `PUT /api/queries/:id`, `DELETE /api/queries/:id`. A query is
+  `{ name, description, recordType, conditions, columns }` (conditions are the
+  advanced-search criteria, written and read back by
+  `platform/admin/conditions.ts` as for notifications and the audit; no dates)
+  or, **administrators only**, `{ name, description, oql, columns }`.
+- `GET /api/queries/:id/results?page&limit&fields&sort&order` answers in the
+  records list shape (plus `recordType`, `columns`);
+  `POST /api/queries/run` (`{ query, page, limit, fields }`) runs one without
+  saving it; `GET /api/queries/:id/export?format=csv|xlsx|pdf&fields=` is the
+  records export, through iTop's exporter.
+- **Runs and exports are always made as the caller**, so iTop applies their
+  profiles and organisations; `:current_contact_id` / `:current_user_id` are
+  bound to them. Never as the service account.
+- iTop gives only administrators rights on `QueryOQL`, so the phrasebook is
+  **read with the service account**; OQL is sent to administrators only (the
+  DTO says `mode: "conditions" | "oql"`). Administrators write as
+  themselves. Other staff may save condition queries and change or delete only
+  their own (`owner_id` is their contact); those writes go through the service
+  account with the BFF as the access control, and the OQL written is built by
+  the BFF.
+- Administrator OQL is run by iTop (one row, as the administrator) before it
+  is saved or run; a refusal is a 400 with iTop's own reason ("Unknown filter
+  code - found 'x' at 20 …"). A query must list a class the platform has
+  screens for. Queries that need values from a notification
+  (`:this->agent_id`, iTop's predefined ones) are listed with
+  `runnable: false`.
+- iTop requires a description: the name stands in when none is given.
+
 ## What this layer is actually for
 
 Five upstream behaviours make a direct browser-to-iTop integration painful.

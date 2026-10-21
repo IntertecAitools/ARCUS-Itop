@@ -17,6 +17,28 @@ export interface ListCell {
 
 const EMPTY = '—';
 
+/** The handful of columns worth showing for an arbitrary class. */
+const MAX_COLUMNS = 6;
+
+/**
+ * Which columns a list of this class shows.
+ *
+ * iTop declares this per class in <presentation><list>, and using it is what
+ * makes a list look like iTop's list: `title, org_id, start_date, status,
+ * service_id, priority` for a Problem, rather than whatever the first few
+ * attributes happen to be. The heuristic below is the fallback for the
+ * classes that declare none.
+ */
+export function defaultColumns(info: ClassInfo): string[] {
+  const declared = (info.presentation?.list ?? []).filter((a) => info.fields[a]);
+  if (declared.length > 0) return declared.slice(0, MAX_COLUMNS);
+
+  const preferred = ['name', 'friendlyname', 'ref', 'title', 'status', 'org_name'];
+  const scalars = info.writable.filter((a) => info.fields[a]?.ui === 'scalar');
+  const ordered = [...preferred.filter((a) => info.fields[a]), ...scalars.filter((a) => !preferred.includes(a))];
+  return [...new Set(ordered)].slice(0, MAX_COLUMNS);
+}
+
 /** True when the column is a reference to another record. */
 export function isPickerColumn(info: ClassInfo, attcode: string): boolean {
   const spec = info.fields[attcode];

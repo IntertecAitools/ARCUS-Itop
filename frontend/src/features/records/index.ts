@@ -7,5 +7,12 @@ export { RecordImportPage } from './pages/RecordImportPage';
 export type { ClassInfo, ClassSummary, FieldSpec, RecordDto } from './types';
 // Shared with notification rules ("only when…" conditions).
 export { ConditionRows, isComplete } from './components/AdvancedSearch';
-export { useClassInfo } from './api/useRecords';
+export { useClassInfo, saveBlob } from './api/useRecords';
 export type { Criterion } from './types';
+// Shared with saved queries, whose results are a records list.
+export { ExportMenu } from './components/ExportMenu';
+export { recordColumns } from './components/RecordColumns';
+export { defaultColumns, listFields } from './lib/list-cells';
+export { exportableColumns } from './lib/export-columns';
+export { humaniseAttcode } from './components/FieldControls';
+export type { ExportFormat, RecordList } from './types';

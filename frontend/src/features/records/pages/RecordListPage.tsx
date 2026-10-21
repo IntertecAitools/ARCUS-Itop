@@ -1,25 +1,22 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Database, Download, Plus, Search, SlidersHorizontal, Upload } from 'lucide-react';
+import { ArrowLeft, Database, Plus, Search, SlidersHorizontal, Upload } from 'lucide-react';
 import { PageHeader } from '@/components/layout';
 import { Button, buttonClasses, Card, Input, Skeleton } from '@/components/ui';
 import { DataTable, type Column } from '@/components/data-display';
 import { EmptyState } from '@/components/feedback';
 import { useNavigation } from '@/features/navigation';
 import { useBulk, useClassInfo, useExport, useRecords } from '../api/useRecords';
-import { humaniseAttcode } from '../components/FieldControls';
 import { BulkDeleteDialog, BulkEditDialog, BulkResultBanner } from '../components/BulkDialogs';
 import { TransitionDialog } from '../components/TransitionDialog';
 import { AdvancedSearch } from '../components/AdvancedSearch';
-import { listCell, listFields } from '../lib/list-cells';
-import { exportableColumns, exportFields, loadExportColumns, saveExportColumns } from '../lib/export-columns';
+import { ExportMenu } from '../components/ExportMenu';
+import { recordColumns } from '../components/RecordColumns';
+import { defaultColumns, listFields } from '../lib/list-cells';
 import { requiredForTransition, transitionPrompts } from '../lib/transitions';
-import type { BulkRequest, BulkResult, ClassInfo, Criterion, RecordDto } from '../types';
+import type { BulkRequest, BulkResult, Criterion, RecordDto } from '../types';
 
 type BulkDialog = { kind: 'edit' } | { kind: 'delete' } | { kind: 'action'; action: string };
-
-/** The handful of columns worth showing for an arbitrary class. */
-const MAX_COLUMNS = 6;
 
 export function RecordListPage() {
   const { className = '' } = useParams();
@@ -61,28 +58,8 @@ export function RecordListPage() {
     return undefined;
   }, [view, navigation]);
 
-  /**
-   * Which columns to show.
-   *
-   * iTop declares this per class in <presentation><list>, and using it is what
-   * makes a list look like iTop's list: `title, org_id, start_date, status,
-   * service_id, priority` for a Problem, rather than whatever the first few
-   * attributes happen to be. The heuristic below is the fallback for the 17
-   * classes that declare none.
-   */
-  const columns = useMemo(() => {
-    if (!info) return [];
-    const declared = (info.presentation?.list ?? []).filter((a) => info.fields[a]);
-    if (declared.length > 0) return declared.slice(0, MAX_COLUMNS);
-
-    const preferred = ['name', 'friendlyname', 'ref', 'title', 'status', 'org_name'];
-    const scalars = info.writable.filter((a) => info.fields[a]?.ui === 'scalar');
-    const ordered = [
-      ...preferred.filter((a) => info.fields[a]),
-      ...scalars.filter((a) => !preferred.includes(a)),
-    ];
-    return [...new Set(ordered)].slice(0, MAX_COLUMNS);
-  }, [info]);
+  /** Which columns to show: the class's own list columns (see defaultColumns). */
+  const columns = useMemo(() => (info ? defaultColumns(info) : []), [info]);
 
   // The lifecycle state is fetched even when it is not a column: bulk actions
   // are offered per state.
@@ -112,6 +89,7 @@ export function RecordListPage() {
   const [dialog, setDialog] = useState<BulkDialog | null>(null);
   const [outcome, setOutcome] = useState<{ verb: string; result: BulkResult } | null>(null);
   const bulk = useBulk(className);
+  const exporter = useExport(className);
 
   // A different class or view is a different list; its selection is not this one's.
   useEffect(() => {
@@ -214,53 +192,12 @@ export function RecordListPage() {
     [allOnPage, pageRows, selected],
   );
 
-  const tableColumns = useMemo<Column<RecordDto>[]>(() => {
-    const cells: Column<RecordDto>[] = columns.map((attcode) => ({
-      id: attcode,
-      header: info?.labels?.fields?.[attcode] ?? humaniseAttcode(attcode),
-      enableSorting: false,
-      cell: ({ row }) => {
-        if (!info) return null;
-        const { text, to } = listCell(info, attcode, row.original.fields);
-        return to ? (
-          <Link
-            to={to}
-            onClick={(e) => e.stopPropagation()}
-            className="block truncate text-ink transition-colors hover:text-brand-ink hover:underline"
-            title={text}
-          >
-            {text}
-          </Link>
-        ) : (
-          <span className="block truncate text-ink" title={text}>
-            {text}
-          </span>
-        );
-      },
-    }));
-
-    return [
-      selectColumn,
-      {
-        id: 'id',
-        header: 'ID',
-        size: 80,
-        enableSorting: false,
-        cell: ({ row }) => (
-          <Link
-            to={`/records/${className}/${row.original.id}`}
-            onClick={(e) => e.stopPropagation()}
-            className="font-medium whitespace-nowrap text-brand-ink transition-colors hover:underline"
-          >
-            #{row.original.id}
-          </Link>
-        ),
-      },
-      ...cells,
-    ];
-    // `info` carries the labels the headers and cells read, so it belongs in
-    // the dependencies — without it the first render's wording would stick.
-  }, [columns, className, info, selectColumn]);
+  // `info` carries the labels the headers and cells read, so it belongs in
+  // the dependencies — without it the first render's wording would stick.
+  const tableColumns = useMemo<Column<RecordDto>[]>(
+    () => [selectColumn, ...recordColumns(className, info, columns)],
+    [columns, className, info, selectColumn],
+  );
 
   const update = (patch: Record<string, string | undefined>) => {
     const next = new URLSearchParams(params);
@@ -326,7 +263,21 @@ export function RecordListPage() {
               </Link>
             ) : null}
             {info ? (
-              <ExportMenu info={info} listColumns={columns} q={q || undefined} view={view} criteria={criteria} />
+              <ExportMenu
+                info={info}
+                listColumns={columns}
+                pending={exporter.isPending}
+                error={exporter.isError ? (exporter.error instanceof Error ? exporter.error.message : 'The export failed.') : undefined}
+                onExport={(format, exportedFields) =>
+                  exporter.mutate({
+                    format,
+                    q: q || undefined,
+                    view,
+                    fields: exportedFields,
+                    ...(criteria.length ? { criteria } : {}),
+                  })
+                }
+              />
             ) : null}
             {info && !info.abstract ? (
               <Link
@@ -511,135 +462,5 @@ export function RecordListPage() {
         )}
       </Card>
     </>
-  );
-}
-
-const EXPORT_LABELS = { csv: 'CSV', xlsx: 'Excel', pdf: 'PDF' } as const;
-
-/**
- * Export the list as shown — same view and search, every page — in a format
- * iTop renders itself, with the columns the user picks. They start as the
- * list's own columns; the last choice per class is remembered.
- */
-function ExportMenu({
-  info,
-  listColumns,
-  q,
-  view,
-  criteria,
-}: {
-  info: ClassInfo;
-  listColumns: string[];
-  q?: string;
-  view?: string;
-  criteria?: Criterion[];
-}) {
-  const [open, setOpen] = useState(false);
-  const [picking, setPicking] = useState(false);
-  const exporter = useExport(info.name);
-
-  const defaults = useMemo(() => ['id', ...listColumns.filter((c) => c !== 'id')], [listColumns]);
-  const available = useMemo(() => exportableColumns(info), [info]);
-  const [chosen, setChosen] = useState<string[]>(() => loadExportColumns(info) ?? defaults);
-  // Another class, or its schema arriving: start again from what is stored.
-  useEffect(() => setChosen(loadExportColumns(info) ?? defaults), [info, defaults]);
-
-  const label = (code: string) => (code === 'id' ? 'ID' : (info.labels?.fields?.[code] ?? humaniseAttcode(code)));
-  const choose = (next: string[]) => {
-    setChosen(next);
-    saveExportColumns(info.name, next);
-  };
-  const toggle = (code: string) =>
-    choose(chosen.includes(code) ? chosen.filter((c) => c !== code) : [...chosen, code]);
-
-  return (
-    <div className="relative">
-      <Button
-        variant="secondary"
-        size="sm"
-        leadingIcon={<Download className="size-4" />}
-        loading={exporter.isPending}
-        onClick={() => setOpen((o) => !o)}
-        aria-haspopup="dialog"
-        aria-expanded={open}
-      >
-        Export
-      </Button>
-      {open ? (
-        <div
-          role="dialog"
-          aria-label="Export"
-          className="absolute right-0 z-20 mt-1 w-72 rounded-card border border-line bg-surface-raised py-1 shadow-overlay"
-        >
-          {(Object.keys(EXPORT_LABELS) as Array<keyof typeof EXPORT_LABELS>).map((format) => (
-            <button
-              key={format}
-              type="button"
-              disabled={chosen.length === 0}
-              className="block w-full px-3 py-1.5 text-left text-[13px] text-ink hover:bg-surface-hover disabled:text-ink-muted"
-              onClick={() => {
-                setOpen(false);
-                setPicking(false);
-                exporter.mutate({
-                  format,
-                  q,
-                  view,
-                  fields: exportFields(info, chosen),
-                  ...(criteria?.length ? { criteria } : {}),
-                });
-              }}
-            >
-              {EXPORT_LABELS[format]}
-            </button>
-          ))}
-          <div className="mt-1 border-t border-line px-3 pt-2 pb-1">
-            <button
-              type="button"
-              className="flex w-full items-center justify-between text-left text-[12px] text-ink-secondary hover:text-ink"
-              aria-expanded={picking}
-              onClick={() => setPicking((p) => !p)}
-            >
-              <span>
-                Columns: {chosen.length} of {available.length}
-              </span>
-              <span className="text-brand-ink">{picking ? 'Done' : 'Choose…'}</span>
-            </button>
-            {picking ? (
-              <>
-                <div className="mt-2 flex gap-3 text-[12px]">
-                  <button type="button" className="text-brand-ink hover:underline" onClick={() => choose(defaults)}>
-                    List columns
-                  </button>
-                  <button type="button" className="text-brand-ink hover:underline" onClick={() => choose(available)}>
-                    All
-                  </button>
-                  <button type="button" className="text-brand-ink hover:underline" onClick={() => choose([])}>
-                    None
-                  </button>
-                </div>
-                <div className="mt-2 max-h-64 space-y-1 overflow-y-auto pr-1">
-                  {available.map((code) => (
-                    <label key={code} className="flex items-center gap-2 text-[13px] text-ink">
-                      <input type="checkbox" checked={chosen.includes(code)} onChange={() => toggle(code)} />
-                      <span className="truncate" title={code}>
-                        {label(code)}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-                {chosen.length === 0 ? (
-                  <p className="mt-1 text-[12px] text-critical-ink">Pick at least one column.</p>
-                ) : null}
-              </>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
-      {exporter.isError ? (
-        <p role="alert" className="absolute right-0 mt-1 w-72 text-right text-[12px] text-critical-ink">
-          {exporter.error instanceof Error ? exporter.error.message : 'The export failed.'}
-        </p>
-      ) : null}
-    </div>
   );
 }
