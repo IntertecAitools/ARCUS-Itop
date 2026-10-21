@@ -4,6 +4,29 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-10-21 — Editing the audit: categories, rules and domains
+
+Branch `claude/audit-editing-021ce6`.
+
+| What ran | Result | Notes |
+| --- | --- | --- |
+| New backend tests (`backend/test/audit-editing.test.ts`, in-memory iTop) | ✅ 14/14 | Category and rule read back as record type + conditions (no OQL), key names for conditions, create with tolerances and domains, no conditions = every record, refusals before any write (name, unknown type, tolerances, unknown domain, dates, rule without conditions), domain links moved, a JOIN definition kept whole / refused with conditions / dropped, record type locked while rules exist, kept part of a rule ANDed back, delete answers 409 naming the rules then deletes rules before the category, domains CRUD, options |
+| Extra criteria / condition tests | ✅ | "not empty" written without `NOT` for every kind; the old `NOT (…)` form read back and rewritten; bare `SELECT Class` read as no conditions |
+| Backend `npm test` + typecheck | ✅ 450/450, clean | Run again after the NOT fix |
+| New frontend tests (`features/audit/lib/editing.test.ts`) | ✅ 5/5 | `?run=` parameter, tolerance checks, delete question naming the rules |
+| Frontend vitest + typecheck + build | ✅ 119/119, clean, built | |
+| Live check, own BFF on :4400 against local iTop (script, signed in as the local admin) | ✅ 20/20 after the fix | Domain, category (`status IN ('production')`, tolerances 10/40, domain) and rule (serial number empty, faulty) created; iTop rows checked by REST; category and rule runs match direct iTop counts; rule switched to "valid / serial not empty" gives the same failures; category edited (two statuses, domain removed, link gone in iTop); record-type change refused; delete without `withRules` → 409 naming the rule; with it → category and rule gone in iTop; domain deleted. The existing "Servers" category and its 3 rules read back (one keeps a part set up in iTop) |
+
+Bugs found and fixed (same commit):
+
+- **"Is not empty" never worked in iTop.** `criterionToOql` wrote it as `NOT (…)`, but iTop's OQL has no `NOT` ("Unexpected token PAR_OPEN"), so a "not empty" condition failed in advanced search and notification conditions too, and here a "valid" rule could not run. It is now `x != 0` (pickers), `x != ''` (text, lists) and `ISNULL(x) = 0` (numbers, dates), checked against iTop (complementary counts). The old form is still read, so a rule saved with it is rewritten correctly on its next save.
+- The first live run's run call sent a JSON content type without a body (script bug, not the BFF).
+
+Not covered:
+
+- The editors were not looked at in a browser: typing the local admin password into the sign-in page was not allowed in this session. The live check went through the same API the screens call.
+- Conditions on dates are refused for audit rules (as for notifications): a fixed date cannot be read back as a condition.
+
 ### 2026-10-20 — Export column picker, import column mapping, class labels on lists
 
 Branch `feature/export-columns-import-mapping`.
