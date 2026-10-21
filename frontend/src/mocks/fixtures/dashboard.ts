@@ -66,6 +66,7 @@ export const emptyOverview: DashboardOverview = {
     incidents: { items: [], total: 0 },
     requests: { items: [], total: 0 },
     problems: { items: [], total: 0 },
+    changes: { items: [], total: 0 },
   },
   catalogShortcuts: [],
   changeCalendar: [],
@@ -242,6 +243,20 @@ export const seededOverview: DashboardOverview = {
           status: 'open',
           priority: 'high',
           createdAt: atOffset(-4, 14, 10),
+        },
+      ],
+    },
+    changes: {
+      total: 1,
+      items: [
+        {
+          id: '31',
+          class: 'NormalChange',
+          ref: 'C-000031',
+          title: 'Patch the VPN concentrators',
+          status: 'plannedscheduled',
+          statusLabel: 'Planned and scheduled',
+          startDate: atOffset(2, 22, 0),
         },
       ],
     },

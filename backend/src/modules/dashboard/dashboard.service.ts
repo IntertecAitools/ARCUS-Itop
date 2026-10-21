@@ -1,5 +1,6 @@
 import type { Navigation } from "../../platform/navigation/navigation.service.js";
 import type { ObjectsService, ObjectDto } from "../../platform/objects/objects.service.js";
+import type { CmdbSchema } from "../../schema/load.js";
 import type { CurrentContact } from "../../shared/current-contact.js";
 import {
   OPEN_STATES,
@@ -68,6 +69,29 @@ export interface AssignmentQueue {
 }
 
 /**
+ * A change in the caller's queue. Changes have their own lifecycle (approved,
+ * planned and scheduled, implemented...), not the ticket one, so the status
+ * travels as iTop's code plus iTop's own label for it rather than being
+ * squeezed into TicketDto's vocabulary.
+ */
+export interface ChangeAssignment {
+  id: string;
+  /** The real class (NormalChange, EmergencyChange...); records open under it. */
+  class: string;
+  ref: string;
+  title: string;
+  status: string;
+  statusLabel: string;
+  /** ISO instant the change is planned to start, "" when not planned. */
+  startDate: string;
+}
+
+export interface ChangeQueue {
+  items: ChangeAssignment[];
+  total: number;
+}
+
+/**
  * Open work assigned to the signed-in agent, per ticket type. Each queue is
  * iTop's own "assigned to me" menu (Incident:MyIncidents and friends), so it
  * matches what iTop's back office would list.
@@ -76,6 +100,7 @@ export interface MyAssignments {
   incidents: AssignmentQueue;
   requests: AssignmentQueue;
   problems: AssignmentQueue;
+  changes: ChangeQueue;
 }
 
 /** The navigation views behind each queue. */
@@ -83,7 +108,11 @@ const ASSIGNMENT_VIEWS = {
   incidents: { class: "Incident", view: "Incident:MyIncidents" },
   requests: { class: "UserRequest", view: "UserRequest:MyRequests" },
   problems: { class: "Problem", view: "Problem:MyProblems" },
+  // iTop names this menu without the class prefix the others carry.
+  changes: { class: "Change", view: "MyChanges" },
 } as const;
+
+const CHANGE_FIELDS = "id,ref,title,status,start_date,finalclass";
 
 /** Rows per queue. The tab count uses the real total, so nothing is hidden. */
 const ASSIGNMENT_ROWS = 50;
@@ -107,6 +136,7 @@ export class DashboardService {
     private readonly objects: ObjectsService,
     private readonly navigation?: Navigation,
     private readonly currentContact?: CurrentContact,
+    private readonly schema?: CmdbSchema,
   ) {}
 
   /**
@@ -116,30 +146,30 @@ export class DashboardService {
    */
   async myAssignments(): Promise<MyAssignments> {
     const contactId = await this.currentContact?.tryResolve();
-    const queue = async (key: keyof typeof ASSIGNMENT_VIEWS): Promise<AssignmentQueue> => {
+    /** The view's rows, or null when this caller has no such queue. */
+    const rows = async (key: keyof typeof ASSIGNMENT_VIEWS, fields: string) => {
       const { class: className, view } = ASSIGNMENT_VIEWS[key];
-      if (!contactId || !this.navigation) return EMPTY_QUEUE;
+      if (!contactId || !this.navigation) return null;
       let oql: string;
       try {
         const resolved = this.navigation.resolveView(view);
-        if (resolved.class !== className) return EMPTY_QUEUE;
+        if (resolved.class !== className) return null;
         oql = resolved.oql.split(":current_contact_id").join(contactId);
       } catch {
-        return EMPTY_QUEUE;
+        return null;
       }
-      let result;
       try {
-        result = await this.objects.list(className, {
-          page: 1,
-          limit: ASSIGNMENT_ROWS,
-          oql,
-          fields: TICKET_FIELDS,
-        });
+        return await this.objects.list(className, { page: 1, limit: ASSIGNMENT_ROWS, oql, fields });
       } catch {
         // E.g. an agent whose profile cannot read Problem: that queue is
         // empty for them, and the rest of the dashboard still loads.
-        return EMPTY_QUEUE;
+        return null;
       }
+    };
+
+    const queue = async (key: "incidents" | "requests" | "problems"): Promise<AssignmentQueue> => {
+      const result = await rows(key, TICKET_FIELDS);
+      if (!result) return EMPTY_QUEUE;
       // Most urgent first, then newest -- the order an agent works a queue in.
       const items = result.items
         .map((item) => toTicket(item))
@@ -150,12 +180,44 @@ export class DashboardService {
       return { items, total: result.total };
     };
 
-    const [incidents, requests, problems] = await Promise.all([
+    const changes = async (): Promise<ChangeQueue> => {
+      const result = await rows("changes", CHANGE_FIELDS);
+      if (!result) return { items: [], total: 0 };
+      const items = result.items
+        .map((item) => this.toChange(item))
+        // Soonest planned first; unplanned after, newest first.
+        .sort(
+          (a, b) =>
+            (a.startDate ? 0 : 1) - (b.startDate ? 0 : 1) ||
+            a.startDate.localeCompare(b.startDate) ||
+            Number(b.id) - Number(a.id),
+        );
+      return { items, total: result.total };
+    };
+
+    const [incidents, requests, problems, changeQueue] = await Promise.all([
       queue("incidents"),
       queue("requests"),
       queue("problems"),
+      changes(),
     ]);
-    return { incidents, requests, problems };
+    return { incidents, requests, problems, changes: changeQueue };
+  }
+
+  /** A Change row, its status labelled as iTop labels it for that class. */
+  private toChange(item: ObjectDto): ChangeAssignment {
+    const className = str(item.fields["finalclass"]) || item.class;
+    const status = str(item.fields["status"]);
+    const labels = (this.schema?.get(className) ?? this.schema?.get("Change"))?.labels.values["status"];
+    return {
+      id: String(item.id),
+      class: className,
+      ref: str(item.fields["ref"]) || `#${item.id}`,
+      title: str(item.fields["title"]),
+      status,
+      statusLabel: labels?.[status] ?? status,
+      startDate: str(item.fields["start_date"]),
+    };
   }
 
   /** Cheap count: ask for one row and read the "Found: N" total. */

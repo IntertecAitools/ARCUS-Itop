@@ -106,9 +106,18 @@ export function registerPortalRoutes(app: FastifyInstance, services: Services): 
 
   app.post("/api/portal/requests/:id/attachments", async (request, reply) => {
     const { id } = parse(idParams, request.params, "path parameters");
-    const host = await portal.attachmentHost(caller(), id);
+    const who = caller();
+    const host = await portal.attachmentHost(who, id);
     const upload = await readUpload(request);
-    const created = await runAsServiceAccount(() => attachments.upload(host, String(id), upload));
+    // Written with the service account (end users cannot reach iTop), but
+    // recorded under the end user.
+    const created = await runAsServiceAccount(() =>
+      attachments.upload(host, String(id), upload, {
+        userId: who.userId,
+        contactId: who.contactId,
+        login: who.login,
+      }),
+    );
     reply.code(201);
     return created;
   });
