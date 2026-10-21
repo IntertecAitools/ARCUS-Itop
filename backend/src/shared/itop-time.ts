@@ -11,18 +11,34 @@ export const DEFAULT_ITOP_TIMEZONE = "Europe/Paris";
 
 const ITOP_DATETIME = /^(\d{4})-(\d{2})-(\d{2})(?: (\d{2}):(\d{2})(?::(\d{2}))?)?$/;
 
+const formatters = new Map<string, Intl.DateTimeFormat>();
+
+/**
+ * One formatter per time zone, reused. Building an Intl.DateTimeFormat costs
+ * far more than using one: made afresh for every date, it took 1.3 s to turn
+ * a 2,000-row page into DTOs (docs/performance.md).
+ */
+function formatterFor(timeZone: string): Intl.DateTimeFormat {
+  let formatter = formatters.get(timeZone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      hourCycle: "h23",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
+    formatters.set(timeZone, formatter);
+  }
+  return formatter;
+}
+
 /** Offset of `timeZone` from UTC at `instant`, in minutes. */
 function offsetMinutes(instant: number, timeZone: string): number {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    hourCycle: "h23",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  }).formatToParts(new Date(instant));
+  const parts = formatterFor(timeZone).formatToParts(new Date(instant));
   const get = (type: string) => Number(parts.find((p) => p.type === type)?.value);
   const asUtc = Date.UTC(get("year"), get("month") - 1, get("day"), get("hour"), get("minute"), get("second"));
   return Math.round((asUtc - instant) / 60_000);
@@ -43,16 +59,7 @@ export function itopTimeToIso(text: string, timeZone: string): string {
 
 /** An instant as iTop's "YYYY-MM-DD HH:MM:SS" in `timeZone`, for writing dates iTop will read. */
 export function toItopTime(instant: Date, timeZone: string): string {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    hourCycle: "h23",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  }).formatToParts(instant);
+  const parts = formatterFor(timeZone).formatToParts(instant);
   const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "00";
   return `${get("year")}-${get("month")}-${get("day")} ${get("hour")}:${get("minute")}:${get("second")}`;
 }

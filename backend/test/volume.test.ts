@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import { AppError } from "../src/core/errors.js";
 import { mapLimited, newestRows, ObjectsService, pageFromEnd, SORT_ROW_CAP } from "../src/platform/objects/objects.service.js";
+import { DashboardService } from "../src/modules/dashboard/dashboard.service.js";
 import { FakeItopClient, getResponse, sampleSchema } from "./helpers.js";
 
 /**
@@ -164,5 +165,29 @@ describe("sorting a big list", () => {
     });
     assert.deepEqual(result.items.map((i) => i.id), [3, 2, 1]);
     assert.ok(SORT_ROW_CAP >= 2000);
+  });
+});
+
+describe("DashboardService.overview at volume", () => {
+  it("counts the SLA split in iTop and reads the window without the stopwatch flags", async () => {
+    const scans: Array<{ oql: string; fields: string }> = [];
+    const total = (oql: string) =>
+      /sla_tto_passed = 1 AND sla_ttr_passed = 0/.test(oql) ? 50 : /start_date >= .* AND sla_ttr_passed = 1/.test(oql) ? 100 : 6000;
+    const objects = {
+      timeZone: "Europe/Paris",
+      async list(_className: string, query: { oql: string }) {
+        return { items: [], total: total(query.oql), page: 1, limit: 1, pages: 1, hasMore: false, sortedInBff: false };
+      },
+      async listAll(_className: string, query: { oql: string; fields: string }) {
+        scans.push(query);
+        return { items: [], total: 0, truncated: false };
+      },
+    } as unknown as ObjectsService;
+
+    const overview = await new DashboardService(objects).overview("90d");
+
+    assert.deepEqual(overview.sla, { compliance: 5850 / 6000, onTime: 5850, atRisk: 50, breached: 100 });
+    const window = scans.find((s) => s.oql.startsWith("SELECT Incident WHERE start_date >="))!;
+    assert.ok(!/sla_/.test(window.fields), window.fields);
   });
 });

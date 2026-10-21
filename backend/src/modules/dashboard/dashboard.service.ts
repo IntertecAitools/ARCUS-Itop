@@ -4,7 +4,6 @@ import type { CmdbSchema } from "../../schema/load.js";
 import type { CurrentContact } from "../../shared/current-contact.js";
 import {
   OPEN_STATES,
-  isTrue,
   str,
   TICKET_FIELDS,
   toTicket,
@@ -290,7 +289,9 @@ export class DashboardService {
     // clock, whatever zone the BFF host runs in.
     const timeZone = this.objects.timeZone;
     const today = itopDay(new Date(), timeZone);
-    const sinceOql = `start_date >= '${addDays(today, -days)} 00:00:00'`;
+    // The window is the `days` days the trend shows, today included; the
+    // KPI and the SLA split count the same days (they counted one more).
+    const sinceOql = `start_date >= '${addDays(today, -(days - 1))} 00:00:00'`;
 
     const weekStart = addDays(today, -weekday(today));
     const weekEnd = addDays(weekStart, 7);
@@ -301,6 +302,8 @@ export class DashboardService {
       totalIncidents,
       openIncidents,
       slaBreached,
+      breachedInRange,
+      atRiskInRange,
       inRange,
       recent,
       subcategories,
@@ -311,15 +314,18 @@ export class DashboardService {
       this.count("Incident", sinceOql),
       this.count("Incident", `status IN (${OPEN_STATES})`),
       this.count("Incident", `sla_ttr_passed = 1`),
-      // The trend, the category split and the SLA breakdown are three views of
-      // the same rows, so they share a single fetch.
-      // Every incident in the window, not the first 2,000: at a few hundred
-      // a day a 90-day window holds thousands, and a capped scan dropped the
-      // newest days. Only the fields the three views use, in big pages.
+      // The SLA split is counted by iTop: the passed flags are computed per
+      // row from the stopwatches, ~3 ms each, which made reading them for a
+      // 90-day window of 6,000 incidents take 20 s.
+      this.count("Incident", `${sinceOql} AND sla_ttr_passed = 1`),
+      this.count("Incident", `${sinceOql} AND sla_tto_passed = 1 AND sla_ttr_passed = 0`),
+      // The trend and the category split read the window's rows: every
+      // incident in it, not the first 2,000 (a capped scan dropped the newest
+      // days), with only the fields they use, in big pages.
       this.fetch(
         "Incident",
         sinceOql,
-        "id,start_date,resolution_date,service_name,servicesubcategory_name,sla_ttr_passed,sla_tto_passed",
+        "id,start_date,resolution_date,service_name,servicesubcategory_name",
         IN_RANGE_CAP,
         SCAN_PAGE_SIZE,
       ),
@@ -381,14 +387,9 @@ export class DashboardService {
     }
 
     // ── SLA breakdown ──────────────────────────────────────────────────────
-    let onTime = 0;
-    let atRisk = 0;
-    let breached = 0;
-    for (const item of inRange) {
-      if (isTrue(item.fields["sla_ttr_passed"])) breached += 1;
-      else if (isTrue(item.fields["sla_tto_passed"])) atRisk += 1;
-      else onTime += 1;
-    }
+    const breached = breachedInRange;
+    const atRisk = atRiskInRange;
+    const onTime = Math.max(0, totalIncidents - breached - atRisk);
     const underSla = onTime + atRisk + breached;
     // null, not 0 — "nothing measured" is not "0% compliant".
     const compliance = underSla === 0 ? null : onTime / underSla;

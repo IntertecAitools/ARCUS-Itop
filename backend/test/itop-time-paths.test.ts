@@ -301,7 +301,7 @@ describe("DashboardService dates", () => {
 
     const overview = await new DashboardService(objects).overview("7d");
 
-    assert.ok(oql.includes("SELECT Incident WHERE start_date >= '2026-10-14 00:00:00'"));
+    assert.ok(oql.includes("SELECT Incident WHERE start_date >= '2026-10-15 00:00:00'"));
     // The week (Sunday to Sunday) holding Wed 21 Oct.
     assert.ok(
       oql.includes("SELECT Change WHERE start_date >= '2026-10-18 00:00:00' AND start_date < '2026-10-25 00:00:00'"),
