@@ -6,9 +6,9 @@
    under `[data-public-theme]`, so every shared component (Button, Input,
    Card, Badge…) picks the look up with no per-component branching.
 
-   Only the public layouts set the attribute (see components/public/
-   PublicTheme.tsx), so the staff app is untouched. `dark` is the default;
-   `light` is the reading/forms variant a visitor can switch to.
+   The public layouts set it to `dark` (the default) or `light` (the reading/forms
+   variant a visitor can switch to). The staff shell sets `follow`, which takes
+   dark or light from the staff theme preference on `<html data-theme>`.
 
    Direction: everything here is written with logical properties (ms-/me-,
    ps-/pe-, border-s, start/end) and arrows flip under `rtl:`, so setting
@@ -42,7 +42,8 @@
   color: var(--arcus-ink);
 }
 
-[data-public-theme='dark'] {
+[data-public-theme='dark'],
+:root[data-theme='dark'] [data-public-theme='follow'] {
   color-scheme: dark;
 
   --arcus-canvas: #121a15;
@@ -99,7 +100,8 @@
   --arcus-mark-fg: #18201a;
 }
 
-[data-public-theme='light'] {
+[data-public-theme='light'],
+:root:not([data-theme='dark']) [data-public-theme='follow'] {
   color-scheme: light;
 
   --arcus-canvas: #f5f5f1;

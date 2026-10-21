@@ -113,7 +113,7 @@ function RuleEditor({
         description="A rule checks every record of its category: the ones it finds are either the faulty or the valid ones."
         actions={
           <Link to="/audit" className={buttonClasses({ variant: 'secondary', size: 'sm' })}>
-            <ArrowLeft className="mr-1.5 size-4" />
+            <ArrowLeft className="me-1.5 size-4 rtl:-scale-x-100" />
             Audit
           </Link>
         }

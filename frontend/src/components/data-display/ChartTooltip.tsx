@@ -23,7 +23,7 @@ export function ChartTooltip({ active, payload, label }: TooltipProps<number, st
               aria-hidden
             />
             <span className="text-ink-secondary">{entry.name}</span>
-            <span className="ml-auto pl-3 font-semibold text-ink tabular-nums">{entry.value}</span>
+            <span className="ms-auto ps-3 font-semibold text-ink tabular-nums">{entry.value}</span>
           </li>
         ))}
       </ul>
@@ -79,7 +79,7 @@ export function ChartLegend({
             />
             <span className="min-w-0 truncate text-ink-secondary">{item.label}</span>
             {item.value !== undefined ? (
-              <span className="ml-auto shrink-0 pl-3 font-semibold text-ink tabular-nums">
+              <span className="ms-auto shrink-0 ps-3 font-semibold text-ink tabular-nums">
                 {item.value}
               </span>
             ) : null}

@@ -135,7 +135,7 @@ export function TransitionDialog({
         <div key={attcode}>
           <label htmlFor={`field-${attcode}`} className="mb-1.5 block text-[13px] font-medium text-ink">
             {fieldLabel(info, attcode)}
-            {required.has(attcode) ? <span className="ml-0.5 text-critical-ink">*</span> : null}
+            {required.has(attcode) ? <span className="ms-0.5 text-critical-ink">*</span> : null}
           </label>
           <FieldInput
             className={info.name}

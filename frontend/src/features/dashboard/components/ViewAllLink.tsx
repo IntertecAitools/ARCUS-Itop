@@ -18,7 +18,7 @@ export function ViewAllLink({ to, label = 'View all' }: { to: string; label?: st
       className="inline-flex items-center gap-1 rounded text-[13px] font-medium text-brand-ink transition-colors hover:text-brand-hover"
     >
       {label}
-      <ArrowRight className="size-3.5" aria-hidden />
+      <ArrowRight className="size-3.5 rtl:-scale-x-100" aria-hidden />
     </Link>
   );
 }

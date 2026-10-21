@@ -83,7 +83,7 @@ export function AuditPage() {
               Domains
             </Button>
             <Link to="/audit/categories/new" className={buttonClasses({ variant: 'secondary', size: 'sm' })}>
-              <Plus className="mr-1.5 size-4" aria-hidden />
+              <Plus className="me-1.5 size-4" aria-hidden />
               New category
             </Link>
             {categories.length ? (
@@ -185,11 +185,11 @@ function CategoryCard({ category, run, isRunning, onRun }: CategoryCardProps) {
         action={
           <div className="flex gap-2">
             <Link to={`/audit/categories/${category.id}`} className={buttonClasses({ variant: 'ghost', size: 'sm' })}>
-              <Pencil className="mr-1.5 size-4" aria-hidden />
+              <Pencil className="me-1.5 size-4" aria-hidden />
               Edit
             </Link>
             <Link to={`/audit/rules/new?category=${category.id}`} className={buttonClasses({ variant: 'ghost', size: 'sm' })}>
-              <Plus className="mr-1.5 size-4" aria-hidden />
+              <Plus className="me-1.5 size-4" aria-hidden />
               Add rule
             </Link>
             <Button
@@ -215,10 +215,10 @@ function CategoryCard({ category, run, isRunning, onRun }: CategoryCardProps) {
       ) : (
         <table className="w-full border-t border-line text-[13px]">
           <thead>
-            <tr className="text-left text-[12px] text-ink-muted">
+            <tr className="text-start text-[12px] text-ink-muted">
               <th className="px-5 py-2 font-medium">Rule</th>
-              <th className="w-28 px-3 py-2 text-right font-medium">Failing</th>
-              <th className="w-24 px-3 py-2 text-right font-medium">OK</th>
+              <th className="w-28 px-3 py-2 text-end font-medium">Failing</th>
+              <th className="w-24 px-3 py-2 text-end font-medium">OK</th>
               <th className="w-32 px-3 py-2 font-medium">Status</th>
               <th className="w-32 px-5 py-2" />
             </tr>
@@ -262,7 +262,7 @@ function RuleRows({ rule, recordTypeLabel, result, open, onToggle, running, onRu
           <div className="font-medium text-ink">{rule.name}</div>
           <div className="text-[12px] text-ink-muted">{rule.description || describeRule(rule, recordTypeLabel)}</div>
         </td>
-        <td className="px-3 py-2.5 text-right tabular-nums">
+        <td className="px-3 py-2.5 text-end tabular-nums">
           {!result ? (
             <span className="text-ink-muted">—</span>
           ) : result.error ? (
@@ -274,14 +274,14 @@ function RuleRows({ rule, recordTypeLabel, result, open, onToggle, running, onRu
               aria-expanded={open}
               onClick={onToggle}
             >
-              {open ? <ChevronDown className="size-3.5" aria-hidden /> : <ChevronRight className="size-3.5" aria-hidden />}
+              {open ? <ChevronDown className="size-3.5" aria-hidden /> : <ChevronRight className="size-3.5 rtl:-scale-x-100" aria-hidden />}
               {result.failing.toLocaleString()}
             </button>
           ) : (
             '0'
           )}
         </td>
-        <td className="px-3 py-2.5 text-right tabular-nums">
+        <td className="px-3 py-2.5 text-end tabular-nums">
           {result && !result.error ? formatPercent(result.percentOk) : <span className="text-ink-muted">—</span>}
         </td>
         <td className="px-3 py-2.5">
@@ -295,7 +295,7 @@ function RuleRows({ rule, recordTypeLabel, result, open, onToggle, running, onRu
             )
           ) : null}
         </td>
-        <td className="px-5 py-2 text-right whitespace-nowrap">
+        <td className="px-5 py-2 text-end whitespace-nowrap">
           <Link
             to={`/audit/rules/${rule.id}`}
             className={buttonClasses({ variant: 'ghost', size: 'sm' })}

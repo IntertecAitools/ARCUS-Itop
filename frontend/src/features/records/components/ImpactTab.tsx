@@ -114,7 +114,7 @@ export function ImpactTab({ className, id }: { className: string; id: string }) 
             </Button>
           ) : null}
           {layout && layout.nodes.length > 1 ? (
-            <div className="ml-auto flex gap-2">
+            <div className="ms-auto flex gap-2">
               {(['png', 'pdf'] as const).map((format) => (
                 <Button
                   key={format}

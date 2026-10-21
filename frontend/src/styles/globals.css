@@ -289,6 +289,14 @@
     border-radius: var(--arcus-radius-control);
   }
 
+  /* Header cells read from the start edge (left, or right in RTL). Browsers
+     centre a <th> unless an ancestor sets a non-default alignment, and
+     `text-start` IS the default, so it has to be said on the cell itself. A
+     utility on the cell (text-end, text-center) still wins: this is a base rule. */
+  th {
+    text-align: start;
+  }
+
   /* Columns of numbers must line up; standalone figures stay proportional. */
   th,
   td,

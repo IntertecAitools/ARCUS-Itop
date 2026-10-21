@@ -42,14 +42,14 @@ export function ChangeCalendarCard({
           <IconButton
             size="sm"
             label="Previous week"
-            icon={<ChevronLeft className="size-4" />}
+            icon={<ChevronLeft className="size-4 rtl:-scale-x-100" />}
             onClick={() => setWeekStart((d) => addDays(d, -7))}
           />
           <p className="text-[13px] font-medium text-ink">{format(weekStart, 'MMMM yyyy')}</p>
           <IconButton
             size="sm"
             label="Next week"
-            icon={<ChevronRight className="size-4" />}
+            icon={<ChevronRight className="size-4 rtl:-scale-x-100" />}
             onClick={() => setWeekStart((d) => addDays(d, 7))}
           />
         </div>

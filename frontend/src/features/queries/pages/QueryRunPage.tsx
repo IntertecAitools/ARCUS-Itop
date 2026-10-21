@@ -51,12 +51,12 @@ export function QueryRunPage() {
             ) : null}
             {query ? (
               <Link to={`/queries/${query.id}`} className={buttonClasses({ variant: 'secondary', size: 'sm' })}>
-                <Pencil className="mr-1.5 size-4" aria-hidden />
+                <Pencil className="me-1.5 size-4" aria-hidden />
                 {query.canEdit ? 'Edit' : 'Details'}
               </Link>
             ) : null}
             <Link to="/queries" className={buttonClasses({ variant: 'secondary', size: 'sm' })}>
-              <ArrowLeft className="mr-1.5 size-4" />
+              <ArrowLeft className="me-1.5 size-4 rtl:-scale-x-100" />
               Queries
             </Link>
           </div>

@@ -253,7 +253,7 @@ export function RecordListPage() {
               : 'A record type.'
         }
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {view ? (
               <Link
                 to={`/records/${className}`}
@@ -284,7 +284,7 @@ export function RecordListPage() {
                 to={`/records/${className}/import`}
                 className={buttonClasses({ variant: 'secondary', size: 'sm' })}
               >
-                <Upload className="mr-1.5 size-4" />
+                <Upload className="me-1.5 size-4" />
                 Import
               </Link>
             ) : null}
@@ -293,12 +293,12 @@ export function RecordListPage() {
                 to={`/records/${className}/new`}
                 className={buttonClasses({ variant: 'primary', size: 'sm' })}
               >
-                <Plus className="mr-1.5 size-4" />
+                <Plus className="me-1.5 size-4" />
                 New
               </Link>
             ) : null}
             <Link to="/records" className={buttonClasses({ variant: 'secondary', size: 'sm' })}>
-              <ArrowLeft className="mr-1.5 size-4" />
+              <ArrowLeft className="me-1.5 size-4 rtl:-scale-x-100" />
               All classes
             </Link>
           </div>
@@ -317,7 +317,7 @@ export function RecordListPage() {
 
       {selected.size > 0 && info ? (
         <div className="mb-4 flex flex-wrap items-center gap-2 rounded-card border border-line bg-surface-raised px-3 py-2">
-          <span className="mr-2 text-[13px] font-medium text-ink">{selected.size} selected</span>
+          <span className="me-2 text-[13px] font-medium text-ink">{selected.size} selected</span>
           {commonActions.map((action) => (
             <Button
               key={action}

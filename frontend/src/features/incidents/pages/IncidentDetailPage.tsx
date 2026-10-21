@@ -17,7 +17,7 @@ function Field({ label, children }: { label: string; children?: ReactNode }) {
   return (
     <div className="flex items-start justify-between gap-4 py-2">
       <dt className="shrink-0 text-[12.5px] text-ink-muted">{label}</dt>
-      <dd className="min-w-0 text-right text-[13px] text-ink">{children}</dd>
+      <dd className="min-w-0 text-end text-[13px] text-ink">{children}</dd>
     </div>
   );
 }
@@ -102,7 +102,7 @@ export function IncidentDetailPage() {
         to="/incidents"
         className={buttonClasses({ variant: 'secondary', size: 'sm' })}
       >
-        <ArrowLeft className="mr-1.5 size-4" />
+        <ArrowLeft className="me-1.5 size-4 rtl:-scale-x-100" />
         All incidents
       </Link>
     </>

@@ -11,10 +11,22 @@ import { useUiStore } from '@/stores/ui.store';
  * — turns deep green, square and light-weight, while the staff app, which never
  * renders this, keeps its own look.
  */
-export function PublicTheme({ children, className }: { children?: ReactNode; className?: string }) {
+export function PublicTheme({
+  children,
+  className,
+  follow = false,
+}: {
+  children?: ReactNode;
+  className?: string;
+  /**
+   * The staff shell: take dark or light from the staff theme preference
+   * (`<html data-theme>`, kept by ThemeProvider) instead of the public switch.
+   */
+  follow?: boolean;
+}) {
   const theme = useUiStore((s) => s.publicTheme);
   return (
-    <div data-public-theme={theme} className={cn('min-h-screen bg-canvas text-ink', className)}>
+    <div data-public-theme={follow ? 'follow' : theme} className={cn('min-h-screen bg-canvas text-ink', className)}>
       {children}
     </div>
   );

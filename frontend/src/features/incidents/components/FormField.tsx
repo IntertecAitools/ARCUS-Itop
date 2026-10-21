@@ -48,7 +48,7 @@ export function Field({
       <label htmlFor={htmlFor} className="mb-1.5 block text-[13px] font-medium text-ink">
         {label}
         {required ? (
-          <span className="ml-0.5 text-critical" aria-hidden>
+          <span className="ms-0.5 text-critical" aria-hidden>
             *
           </span>
         ) : null}
@@ -77,7 +77,7 @@ export function Select({
 }) {
   return (
     <div className="relative">
-      <select id={id} disabled={disabled} className={cn(CONTROL, 'appearance-none pr-9')} {...props}>
+      <select id={id} disabled={disabled} className={cn(CONTROL, 'appearance-none pe-9')} {...props}>
         {placeholder !== undefined ? <option value="">{placeholder}</option> : null}
         {options.map((o) => (
           <option key={o.value} value={o.value}>
@@ -88,7 +88,7 @@ export function Select({
       <svg
         aria-hidden
         viewBox="0 0 20 20"
-        className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-ink-muted"
+        className="pointer-events-none absolute top-1/2 end-3 size-4 -translate-y-1/2 text-ink-muted"
       >
         <path d="M6 8l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       </svg>

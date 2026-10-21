@@ -194,7 +194,7 @@ export function RecordNewPage() {
             to={`/records/${className}`}
             className={buttonClasses({ variant: 'secondary', size: 'sm' })}
           >
-            <ArrowLeft className="mr-1.5 size-4" />
+            <ArrowLeft className="me-1.5 size-4 rtl:-scale-x-100" />
             All {className}
           </Link>
         }

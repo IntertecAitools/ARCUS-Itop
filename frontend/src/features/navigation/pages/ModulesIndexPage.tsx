@@ -144,7 +144,7 @@ export function ModulesIndexPage() {
                       admin
                     </span>
                   ) : null}
-                  <span className="ml-auto text-[12px] font-normal text-ink-muted tabular-nums">
+                  <span className="ms-auto text-[12px] font-normal text-ink-muted tabular-nums">
                     {group.entries.length}
                   </span>
                 </p>
