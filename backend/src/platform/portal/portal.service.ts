@@ -4,7 +4,7 @@ import type { ItopClient } from "../../itop/client.js";
 import { normalizeObjects, parseFoundCount, type FlatObject } from "../../itop/normalize.js";
 import { likeContains } from "../../itop/oql.js";
 import type { CmdbSchema } from "../../schema/load.js";
-import type { ObjectsService } from "../objects/objects.service.js";
+import { pageFromEnd, type ObjectsService } from "../objects/objects.service.js";
 import {
   PRIORITY_MAP,
   STATUS_MAP,
@@ -29,9 +29,6 @@ const LIST_FIELDS =
 const DETAIL_FIELDS =
   `${LIST_FIELDS},description,solution,public_log,urgency,impact,resolution_date,close_date,` +
   "caller_id_friendlyname,agent_id_friendlyname,team_id_friendlyname";
-
-/** Most of one user's own tickets the portal loads in order to sort them. */
-const MAX_TICKETS = 500;
 
 export interface PortalTicket {
   id: number;
@@ -135,36 +132,31 @@ export class PortalService {
     const term = query.q?.trim();
     if (term) conditions.push(`(ref LIKE ${likeContains(term)} OR title LIKE ${likeContains(term)})`);
 
-    // A person's own tickets are few; load them (bounded), newest first.
-    const rows: FlatObject[] = [];
-    let total = 0;
-    for (let page = 1; rows.length < MAX_TICKETS; page += 1) {
-      const result = await this.client.call(
+    // Newest first, whatever the user's volume: one count, then only the
+    // requested page read from the end of iTop's order (ref, i.e. filing
+    // order). Loading every ticket to sort it here kept the OLDEST 500 for a
+    // busy caller and cost one sequential call per 100 tickets.
+    const get = async (page: number, limit: number) =>
+      this.client.call(
         "core/get",
         {
           class: "Ticket",
           key: `SELECT Ticket WHERE ${conditions.join(" AND ")}`,
           output_fields: this.fieldSpec(LIST_FIELDS),
-          limit: 100,
+          limit,
           page,
         },
         { asService: true },
       );
-      const batch = normalizeObjects(result.objects);
-      rows.push(...batch);
-      total = parseFoundCount(result.message) ?? rows.length;
-      if (batch.length < 100 || rows.length >= total) break;
-    }
-
-    const tickets = rows
-      .map((r) => this.toTicket(r))
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id - a.id);
-    const start = (query.page - 1) * query.limit;
+    const total = parseFoundCount((await get(1, 1)).message) ?? 0;
+    const rows = await pageFromEnd(total, query.page, query.limit, async (page) =>
+      normalizeObjects((await get(page, query.limit)).objects),
+    );
     return {
-      items: tickets.slice(start, start + query.limit),
+      items: rows.map((r) => this.toTicket(r)),
       total,
       page: query.page,
-      pages: Math.max(1, Math.ceil(tickets.length / query.limit)),
+      pages: Math.max(1, Math.ceil(total / query.limit)),
     };
   }
 

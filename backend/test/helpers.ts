@@ -51,21 +51,25 @@ export interface RecordedCall {
  * Stand-in for ItopClient that records calls and replays canned results, so the
  * services and routes can be exercised without a running iTop.
  */
+type Responder = (params: Record<string, unknown>) => ItopResult;
+
 export class FakeItopClient {
   readonly calls: RecordedCall[] = [];
-  private readonly responses: Partial<Record<ItopVerb, ItopResult | ItopResult[]>> = {};
+  private readonly responses: Partial<Record<ItopVerb, ItopResult | ItopResult[] | Responder>> = {};
   private readonly cursors = new Map<ItopVerb, number>();
 
-  on(verb: ItopVerb, result: ItopResult | ItopResult[]): this {
+  /** A fixed result, a queue of results, or a function of the call's params. */
+  on(verb: ItopVerb, result: ItopResult | ItopResult[] | Responder): this {
     this.responses[verb] = result;
     return this;
   }
 
-  private next(verb: ItopVerb): ItopResult {
+  private next(verb: ItopVerb, params: Record<string, unknown>): ItopResult {
     const configured = this.responses[verb];
     if (configured === undefined) {
       throw new Error(`FakeItopClient has no response configured for "${verb}"`);
     }
+    if (typeof configured === "function") return configured(params);
     if (!Array.isArray(configured)) return configured;
     const index = this.cursors.get(verb) ?? 0;
     this.cursors.set(verb, index + 1);
@@ -84,7 +88,7 @@ export class FakeItopClient {
   ): Promise<T> {
     const caller = options.asService ? undefined : currentCaller();
     this.calls.push({ verb, params, as: caller?.credentials?.user ?? "service" });
-    return this.next(verb) as T;
+    return this.next(verb, params) as T;
   }
 
   async call<T extends ItopResult = ItopResult>(

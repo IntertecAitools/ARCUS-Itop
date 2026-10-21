@@ -6,6 +6,7 @@ import type { ClassInfo } from "../../schema/types.js";
 import { str } from "../../shared/ticket-mapping.js";
 import { DEFAULT_ITOP_TIMEZONE, itopValueToIso } from "../../shared/itop-time.js";
 import { criterionKind, type Criterion } from "../objects/criteria.js";
+import { newestRows } from "../objects/objects.service.js";
 import { conditionsToFilter, filterToConditions } from "./conditions.js";
 
 /**
@@ -954,39 +955,32 @@ export class NotificationsService {
   /** The most recent notification emails iTop sent (or failed to), newest first. */
   async sent(limit = 50): Promise<SentEmail[]> {
     const fields = "id,date,to,subject,message,action_id_friendlyname,object_class,object_id";
-    const page = async (n: number) =>
+    const page = async (n: number, size: number) =>
       this.client.call("core/get", {
         class: "EventNotificationEmail",
         key: "SELECT EventNotificationEmail",
         output_fields: fields,
-        limit,
+        limit: size,
         page: n,
       });
-    // iTop lists oldest first and cannot be told otherwise: read the last
-    // page (found from the total), topped up from the one before.
-    const first = await page(1);
-    const total = parseFoundCount(first.message) ?? 0;
-    const last = Math.max(1, Math.ceil(total / limit));
-    let rows = normalizeObjects(first.objects);
-    if (last > 1) {
-      rows = normalizeObjects((await page(last)).objects);
-      if (rows.length < limit) rows = [...normalizeObjects((await page(last - 1)).objects), ...rows];
-    }
-    return rows
-      .sort((a, b) => b.id - a.id)
-      .slice(0, limit)
-      .map((r) => {
-        const f = r.fields;
-        const objectId = Number(f["object_id"]);
-        return {
-          id: r.id,
-          date: str(itopValueToIso(f["date"], this.timeZone)),
-          to: str(f["to"]),
-          subject: str(f["subject"]),
-          result: str(f["message"]),
-          rule: str(f["action_id_friendlyname"]),
-          record: objectId > 0 ? { type: str(f["object_class"]), id: objectId } : null,
-        };
-      });
+    // Events come newest first (date descending); newestRows() finds the
+    // newest whichever the order, in two rounds at most.
+    const { rows } = await newestRows(limit, async (n, size) => {
+      const result = await page(n, size);
+      return { rows: normalizeObjects(result.objects), total: parseFoundCount(result.message) ?? 0 };
+    });
+    return rows.map((r) => {
+      const f = r.fields;
+      const objectId = Number(f["object_id"]);
+      return {
+        id: r.id,
+        date: str(itopValueToIso(f["date"], this.timeZone)),
+        to: str(f["to"]),
+        subject: str(f["subject"]),
+        result: str(f["message"]),
+        rule: str(f["action_id_friendlyname"]),
+        record: objectId > 0 ? { type: str(f["object_class"]), id: objectId } : null,
+      };
+    });
   }
 }

@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 
 import { notFound } from "../../core/errors.js";
+import { quoteString } from "../../itop/oql.js";
 import type { CmdbSchema } from "../../schema/load.js";
 import type { ObjectsService } from "../objects/objects.service.js";
 import { itopDay } from "../../shared/itop-time.js";
@@ -67,12 +68,22 @@ export interface PublicDashboard {
 export type DashletData =
   | { kind: "badge"; count: number; class: string }
   | { kind: "text" | "header"; title: string; text?: string }
-  | { kind: "pie" | "bars" | "table" | "header-dynamic"; class: string; total: number; groups: { key: string; label: string; count: number }[] }
+  | {
+      kind: "pie" | "bars" | "table" | "header-dynamic";
+      class: string;
+      total: number;
+      groups: { key: string; label: string; count: number }[];
+      /** Set when only the first GROUP_SCAN_LIMIT rows could be grouped. */
+      truncated?: boolean;
+    }
   | { kind: "list"; class: string; total: number; items: { id: number; label: string; fields: Record<string, unknown> }[] };
 
 /** How many rows to pull when grouping in memory. Dashlets filter hard
  * (open-only, last 14 days), so this ceiling is generous, not a guess. */
 const GROUP_SCAN_LIMIT = 5000;
+
+/** Most values countByValue() counts one by one before scanning instead. */
+const MAX_COUNTED_VALUES = 25;
 
 export class Dashboards {
   private constructor(
@@ -179,19 +190,28 @@ export class Dashboards {
 
     // pie / bars / table / header-dynamic: group rows by an attribute and count.
     const groupBy = d.groupBy ?? "finalclass";
-    // Paged: a single list() call is clamped to 500 rows, which made every
-    // dashlet over 500 matches report partial counts as if they were whole.
-    const result = await this.objects.listAll(
-      className,
-      { oql, fields: ["id", groupBy].join(",") },
-      GROUP_SCAN_LIMIT,
-    );
-
-    const counts = new Map<string, number>();
-    for (const row of result.items) {
-      const raw = row.fields[groupBy];
-      const key = this.bucket(raw, d.groupFn);
-      counts.set(key, (counts.get(key) ?? 0) + 1);
+    const exact = d.groupFn ? null : await this.countByValue(className, oql, groupBy);
+    let counts: Map<string, number>;
+    let total: number;
+    let truncated = false;
+    if (exact) {
+      ({ counts, total } = exact);
+    } else {
+      // Paged: a single list() call is clamped to 500 rows, which made every
+      // dashlet over 500 matches report partial counts as if they were whole.
+      const result = await this.objects.listAll(
+        className,
+        { oql, fields: ["id", groupBy].join(",") },
+        GROUP_SCAN_LIMIT,
+      );
+      counts = new Map<string, number>();
+      for (const row of result.items) {
+        const raw = row.fields[groupBy];
+        const key = this.bucket(raw, d.groupFn);
+        counts.set(key, (counts.get(key) ?? 0) + 1);
+      }
+      total = result.total;
+      truncated = result.truncated;
     }
 
     let groups = [...counts.entries()].map(([key, count]) => ({
@@ -212,7 +232,50 @@ export class Dashboards {
       groups.sort((a, b) => b.count - a.count);
     }
 
-    return { kind: d.kind, class: className, total: result.items.length, groups };
+    return { kind: d.kind, class: className, total, groups, ...(truncated ? { truncated } : {}) };
+  }
+
+  /**
+   * Exact counts per value when the attribute has a short, known set of
+   * values (an enum, or the concrete classes for finalclass): one cheap count
+   * per value, in parallel, instead of reading every row. At 50,000 tickets a
+   * scan reads 100 pages; this reads a handful of "Found: N" totals.
+   * Null when the values are open-ended (external keys, dates).
+   */
+  private async countByValue(
+    className: string,
+    oql: string,
+    groupBy: string,
+  ): Promise<{ counts: Map<string, number>; total: number } | null> {
+    const values = this.knownValues(className, groupBy);
+    if (!values || values.length === 0 || values.length > MAX_COUNTED_VALUES) return null;
+    const count = async (where: string | null) => {
+      const scoped = where ? `SELECT ${className} WHERE ${where} AND id IN (${oql})` : oql;
+      return (await this.objects.list(className, { page: 1, limit: 1, oql: scoped, fields: "id" })).total;
+    };
+    const [total, ...perValue] = await Promise.all([
+      count(null),
+      ...values.map((v) => count(`${groupBy} = ${quoteString(v)}`)),
+    ]);
+    const counts = new Map<string, number>();
+    values.forEach((v, i) => {
+      if (perValue[i]! > 0) counts.set(v, perValue[i]!);
+    });
+    // Rows with no value (or one the schema does not list) still count.
+    const rest = total! - perValue.reduce((sum, n) => sum + n, 0);
+    if (rest > 0) counts.set("—", rest);
+    return { counts, total: total! };
+  }
+
+  private knownValues(className: string, groupBy: string): string[] | null {
+    if (groupBy === "finalclass") {
+      return this.schema
+        .list()
+        .filter((c) => !c.abstract && (c.name === className || c.inherits.includes(className)))
+        .map((c) => c.name);
+    }
+    const field = this.schema.get(className)?.fields[groupBy] as { values?: string[] } | undefined;
+    return field?.values ?? null;
   }
 
   /** Reduces a raw value to its group key, applying a date function if any. */
