@@ -61,14 +61,14 @@ export function ExportMenu({
         <div
           role="dialog"
           aria-label="Export"
-          className="absolute right-0 z-20 mt-1 w-72 rounded-card border border-line bg-surface-raised py-1 shadow-overlay"
+          className="absolute end-0 z-20 mt-1 w-72 rounded-card border border-line bg-surface-raised py-1 shadow-overlay"
         >
           {(Object.keys(EXPORT_LABELS) as Array<keyof typeof EXPORT_LABELS>).map((format) => (
             <button
               key={format}
               type="button"
               disabled={chosen.length === 0}
-              className="block w-full px-3 py-1.5 text-left text-[13px] text-ink hover:bg-surface-hover disabled:text-ink-muted"
+              className="block w-full px-3 py-1.5 text-start text-[13px] text-ink hover:bg-surface-hover disabled:text-ink-muted"
               onClick={() => {
                 setOpen(false);
                 setPicking(false);
@@ -81,7 +81,7 @@ export function ExportMenu({
           <div className="mt-1 border-t border-line px-3 pt-2 pb-1">
             <button
               type="button"
-              className="flex w-full items-center justify-between text-left text-[12px] text-ink-secondary hover:text-ink"
+              className="flex w-full items-center justify-between text-start text-[12px] text-ink-secondary hover:text-ink"
               aria-expanded={picking}
               onClick={() => setPicking((p) => !p)}
             >
@@ -103,7 +103,7 @@ export function ExportMenu({
                     None
                   </button>
                 </div>
-                <div className="mt-2 max-h-64 space-y-1 overflow-y-auto pr-1">
+                <div className="mt-2 max-h-64 space-y-1 overflow-y-auto pe-1">
                   {available.map((code) => (
                     <label key={code} className="flex items-center gap-2 text-[13px] text-ink">
                       <input type="checkbox" checked={chosen.includes(code)} onChange={() => toggle(code)} />
@@ -122,7 +122,7 @@ export function ExportMenu({
         </div>
       ) : null}
       {error ? (
-        <p role="alert" className="absolute right-0 mt-1 w-72 text-right text-[12px] text-critical-ink">
+        <p role="alert" className="absolute end-0 mt-1 w-72 text-end text-[12px] text-critical-ink">
           {error}
         </p>
       ) : null}

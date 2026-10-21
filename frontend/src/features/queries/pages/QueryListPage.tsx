@@ -62,7 +62,7 @@ export function QueryListPage() {
             onClick={(e) => e.stopPropagation()}
             className={buttonClasses({ variant: 'secondary', size: 'sm' })}
           >
-            <Play className="mr-1 size-3.5" aria-hidden />
+            <Play className="me-1 size-3.5" aria-hidden />
             Run
           </Link>
         ) : null,
@@ -77,7 +77,7 @@ export function QueryListPage() {
         description="Saved searches over any kind of record. Results show only what you are allowed to see."
         actions={
           <Link to="/queries/new" className={buttonClasses({ variant: 'primary', size: 'sm' })}>
-            <Plus className="mr-1.5 size-4" />
+            <Plus className="me-1.5 size-4" />
             New query
           </Link>
         }

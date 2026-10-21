@@ -68,7 +68,7 @@ export function DomainsPanel({ domains, onClose }: { domains: AuditDomain[]; onC
             <div key={d.id} className="flex items-center gap-2 text-[13px] text-ink">
               <span className="min-w-0 flex-1 truncate">
                 {d.name}
-                <span className="ml-2 text-ink-muted">
+                <span className="ms-2 text-ink-muted">
                   {d.categories.length} {d.categories.length === 1 ? 'category' : 'categories'}
                 </span>
               </span>

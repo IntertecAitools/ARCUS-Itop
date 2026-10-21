@@ -13,7 +13,8 @@
     "typecheck": "tsc -b --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "e2e:live": "node tests/journeys/support/run-live.mjs"
   },
   "dependencies": {
     "@fontsource-variable/hanken-grotesk": "5.2.8",
@@ -37,7 +38,7 @@
     "zustand": "^5.0.3"
   },
   "devDependencies": {
-    "@playwright/test": "^1.49.1",
+    "@playwright/test": "1.63.0",
     "@tailwindcss/vite": "^4.0.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.1.0",

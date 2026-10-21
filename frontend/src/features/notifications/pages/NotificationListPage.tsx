@@ -114,7 +114,7 @@ export function NotificationListPage() {
         description="Who gets an email when something happens. iTop sends them; links in them open this platform."
         actions={
           <Link to="/notifications/new" className={buttonClasses({ variant: 'primary', size: 'sm' })}>
-            <Plus className="mr-1.5 size-4" />
+            <Plus className="me-1.5 size-4" />
             New rule
           </Link>
         }

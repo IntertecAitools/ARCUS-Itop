@@ -6,7 +6,7 @@ Start with `README.md` (layout, the module rules) and `backend/README.md` (the B
 
 Every test run must leave a record in `docs/testing/TEST_LOG.md`.
 
-- **Automatic:** `.claude/hooks/record-test-run.mjs` (a PostToolUse hook in `.claude/settings.json`) appends one entry per run of unit tests, vitest, typecheck, build, `npm run smoke`, `api:check` and `e2e*.mjs` scripts — time, branch@commit, counts, failing test names. Never delete or rewrite these entries; the section must stay last in the file, since the hook appends to the end.
+- **Automatic:** `.claude/hooks/record-test-run.mjs` (a PostToolUse hook in `.claude/settings.json`) appends one entry per run of unit tests, vitest, typecheck, build, `npm run smoke`, `api:check`, `e2e*.mjs` scripts and the Playwright browser journeys (`npm run e2e`, `npm run e2e:live`) — time, branch@commit, counts, failing test names. Never delete or rewrite these entries; the section must stay last in the file, since the hook appends to the end.
 - **By hand, at the end of any session that tested something:** add a dated `###` entry under `## Sessions` (newest first) with a short table of what ran and the result, the bugs found and how they were fixed (with the commit), and anything not covered. Do this even when everything passed.
 - When a test runs outside Claude (CI, a person), add it by hand too.
 

@@ -127,7 +127,7 @@ export function RecordImportPage() {
               Template
             </Button>
             <Link to={`/records/${className}`} className={buttonClasses({ variant: 'secondary', size: 'sm' })}>
-              <ArrowLeft className="mr-1.5 size-4" />
+              <ArrowLeft className="me-1.5 size-4 rtl:-scale-x-100" />
               All {info.labels.class}
             </Link>
           </div>
@@ -313,11 +313,11 @@ function MappingCard({
         }
       />
       <CardBody>
-        <table className="w-full text-left text-[13px]">
+        <table className="w-full text-start text-[13px]">
           <thead className="text-[12px] text-ink-muted">
             <tr>
-              <th className="py-1 pr-3 font-medium">Column in file</th>
-              <th className="py-1 pr-3 font-medium">Field</th>
+              <th className="py-1 pe-3 font-medium">Column in file</th>
+              <th className="py-1 pe-3 font-medium">Field</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-line">
@@ -327,10 +327,10 @@ function MappingCard({
               const extra = target !== null && !targets.some((t) => t.value === target);
               return (
                 <tr key={index}>
-                  <td className="py-1.5 pr-3 font-mono text-[12px] text-ink">
+                  <td className="py-1.5 pe-3 font-mono text-[12px] text-ink">
                     {heading || <span className="text-ink-muted italic">(no heading)</span>}
                   </td>
-                  <td className="py-1.5 pr-3">
+                  <td className="py-1.5 pe-3">
                     <select
                       aria-label={`Field for column ${heading || index + 1}`}
                       className={cn(CONTROL, 'max-w-sm py-1.5', target === null && 'text-ink-muted')}
@@ -387,14 +387,14 @@ function ImportReportView({ className, report }: { className: string; report: Im
           </ul>
         ) : null}
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-[13px]">
+          <table className="w-full text-start text-[13px]">
             <thead className="text-[12px] text-ink-muted">
               <tr>
-                <th className="py-1 pr-3 font-medium">Line</th>
-                <th className="py-1 pr-3 font-medium">Status</th>
-                <th className="py-1 pr-3 font-medium">Record</th>
+                <th className="py-1 pe-3 font-medium">Line</th>
+                <th className="py-1 pe-3 font-medium">Status</th>
+                <th className="py-1 pe-3 font-medium">Record</th>
                 {report.columns.map((c) => (
-                  <th key={c} className="py-1 pr-3 font-medium">
+                  <th key={c} className="py-1 pe-3 font-medium">
                     {c}
                   </th>
                 ))}
@@ -403,9 +403,9 @@ function ImportReportView({ className, report }: { className: string; report: Im
             <tbody className="divide-y divide-line">
               {report.rows.map((row) => (
                 <tr key={row.line}>
-                  <td className="py-1 pr-3 tabular-nums">{row.line}</td>
-                  <td className={cn('py-1 pr-3', KIND_STYLE[row.kind])}>{row.status}</td>
-                  <td className="py-1 pr-3">
+                  <td className="py-1 pe-3 tabular-nums">{row.line}</td>
+                  <td className={cn('py-1 pe-3', KIND_STYLE[row.kind])}>{row.status}</td>
+                  <td className="py-1 pe-3">
                     {/^\d+$/.test(row.id) ? (
                       <Link to={`/records/${row.class || className}/${row.id}`} className="text-brand-ink hover:underline">
                         #{row.id}
@@ -415,7 +415,7 @@ function ImportReportView({ className, report }: { className: string; report: Im
                     )}
                   </td>
                   {row.cells.map((cell, i) => (
-                    <td key={i} className="py-1 pr-3 text-ink-secondary">
+                    <td key={i} className="py-1 pe-3 text-ink-secondary">
                       {cell}
                     </td>
                   ))}

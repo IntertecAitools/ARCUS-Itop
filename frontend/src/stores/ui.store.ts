@@ -10,11 +10,14 @@ interface UiState {
   theme: ThemePreference;
   publicTheme: PublicTheme;
   commandPaletteOpen: boolean;
+  /** Phones and tablets: the sidebar slides in over the page. Never persisted. */
+  mobileNavOpen: boolean;
   toggleSidebar: () => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
   setTheme: (theme: ThemePreference) => void;
   setPublicTheme: (publicTheme: PublicTheme) => void;
   setCommandPaletteOpen: (open: boolean) => void;
+  setMobileNavOpen: (open: boolean) => void;
 }
 
 export const useUiStore = create<UiState>()(
@@ -24,11 +27,13 @@ export const useUiStore = create<UiState>()(
       theme: 'light',
       publicTheme: 'dark',
       commandPaletteOpen: false,
+      mobileNavOpen: false,
       toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
       setSidebarCollapsed: (sidebarCollapsed) => set({ sidebarCollapsed }),
       setTheme: (theme) => set({ theme }),
       setPublicTheme: (publicTheme) => set({ publicTheme }),
       setCommandPaletteOpen: (commandPaletteOpen) => set({ commandPaletteOpen }),
+      setMobileNavOpen: (mobileNavOpen) => set({ mobileNavOpen }),
     }),
     {
       name: 'arcus.ui',

@@ -21,7 +21,7 @@ export function RecordDialog({
 }) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[color:var(--arcus-ink)]/25 px-4 py-10 backdrop-blur-[2px]"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[var(--arcus-scrim)] px-4 py-10 backdrop-blur-[2px]"
       onClick={onClose}
     >
       <form
@@ -135,7 +135,7 @@ export function TransitionDialog({
         <div key={attcode}>
           <label htmlFor={`field-${attcode}`} className="mb-1.5 block text-[13px] font-medium text-ink">
             {fieldLabel(info, attcode)}
-            {required.has(attcode) ? <span className="ml-0.5 text-critical-ink">*</span> : null}
+            {required.has(attcode) ? <span className="ms-0.5 text-critical-ink">*</span> : null}
           </label>
           <FieldInput
             className={info.name}

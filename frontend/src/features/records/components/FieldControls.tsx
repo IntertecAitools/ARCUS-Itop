@@ -66,7 +66,7 @@ export function FieldValue({
     return (
       <ul className="space-y-2">
         {entries.map((entry, i) => (
-          <li key={`${entry.date ?? i}-${i}`} className="border-l-2 border-line pl-2.5">
+          <li key={`${entry.date ?? i}-${i}`} className="border-s-2 border-line ps-2.5">
             <p className="text-[11.5px] text-ink-muted">
               {[entry.user_login, entry.date ? dateTimeText(entry.date) : ''].filter(Boolean).join(' · ')}
             </p>
@@ -94,7 +94,7 @@ export function FieldValue({
     return (
       <span className="text-ink">
         {file.filename || 'file'}
-        <span className="ml-1.5 text-ink-muted">
+        <span className="ms-1.5 text-ink-muted">
           {[file.mimetype, bytes > 0 ? `${bytes} B` : null].filter(Boolean).join(' · ')}
         </span>
       </span>

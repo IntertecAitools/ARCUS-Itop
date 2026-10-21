@@ -90,7 +90,7 @@ export function RecordsIndexPage() {
                   <p className="mb-3 flex items-center gap-2 text-[13px] font-semibold text-ink">
                     <Icon className="size-4 text-brand" aria-hidden />
                     {group.label}
-                    <span className="ml-auto text-[12px] font-normal text-ink-muted tabular-nums">
+                    <span className="ms-auto text-[12px] font-normal text-ink-muted tabular-nums">
                       {group.items.length}
                     </span>
                   </p>

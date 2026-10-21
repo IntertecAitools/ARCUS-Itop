@@ -1,56 +1,65 @@
 import { defineConfig, devices } from '@playwright/test';
+import { BFF_URL, FRONTEND_URL, MOCK_URL, TARGET } from './tests/journeys/support/target';
 
 /**
- * End-to-end against the REAL stack: frontend -> backend -> iTop.
+ * Browser tests of the main user journeys, against one of two targets
+ * (`E2E_TARGET`, see tests/journeys/support/target.ts):
  *
- * No mocks. Playwright starts the backend and a production build of the
- * frontend; iTop itself must already be up (`cd docker && docker compose up -d`),
- * because these tests read and write real tickets through it.
+ * - `mock` (the default, and what CI runs): a production build in
+ *   `VITE_API_MODE=mock`, every API call answered by the MSW handlers in
+ *   src/mocks. Fast and deterministic; no BFF, no iTop.
+ * - `live`: the same specs against a running BFF and the local iTop, plus the
+ *   journeys only the real stack can prove (real sign-in, a ticket created and
+ *   resolved in iTop, the notification email arriving in Mailpit). Playwright
+ *   starts the frontend; the BFF must already be running (globalSetup checks).
  *
- * Consequence worth knowing: the specs CREATE incidents in iTop and leave them
- * there. That is deliberate — exercising the write path against the real
- * datamodel is the only way to catch what a mock would paper over (iTop
- * deriving priority, rejecting a stimulus, or demanding a field).
+ * Specs tagged `@live` run only live, `@mock` only in mock mode; untagged
+ * specs run in both.
  */
+const live = TARGET === 'live';
+
 export default defineConfig({
-  testDir: './tests/e2e',
+  testDir: './tests/journeys',
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  // Serial, deliberately. iTop is the bottleneck and does not parallelise: two
-  // workers simply queue behind it, and the extra wait pushes the slowest page
-  // (the dashboard, which aggregates several queries) past its timeout. That
-  // reads as a product bug when it is only contention. One worker is slower in
-  // total but deterministic, which is what a suite is for.
-  workers: 1,
-  fullyParallel: false,
-  reporter: 'list',
-  // Measured against this instance, iTop answers a single REST call in 6-8
-  // SECONDS, and a page makes several. Playwright's 5s default would fail
-  // every assertion on a healthy stack, so these are sized to the real thing
-  // rather than to what feels fast.
-  expect: { timeout: 45_000 },
-  timeout: 240_000,
+  retries: process.env.CI ? 1 : 0,
+  // Live journeys share one iTop and sign in as the same accounts: one at a
+  // time. The mock build has no shared state between tabs, so it parallelises.
+  workers: live ? 1 : 2,
+  fullyParallel: !live,
+  grepInvert: live ? /@mock\b/ : /@live\b/,
+  reporter: process.env.CI
+    ? [['list'], ['html', { open: 'never', outputFolder: 'playwright-report' }]]
+    : [['list'], ['html', { open: 'never', outputFolder: `playwright-report/${TARGET}` }]],
+  outputDir: `test-results/${TARGET}`,
+  // iTop answers a REST call in about a second on the local instance and a
+  // page makes several; the mock answers at once.
+  expect: { timeout: live ? 30_000 : 10_000 },
+  timeout: live ? 240_000 : 30_000,
   use: {
-    baseURL: 'http://localhost:4173',
-    trace: 'on-first-retry',
+    baseURL: live ? FRONTEND_URL : MOCK_URL,
+    trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
-  // Only the frontend is started here. The backend is NOT managed by Playwright
-  // on purpose: `npm run dev` runs it under `node --watch`, and the watcher
-  // keeps the process in a state Playwright's readiness probe does not settle
-  // on, which shows up as a 2-minute timeout against a server that is actually
-  // healthy. Start it yourself before running the suite:
-  //
-  //   cd backend && npm run dev          # needs iTop up on :8080
-  //
-  // `globalSetup` fails fast with that instruction rather than letting every
-  // test time out one by one.
-  globalSetup: './tests/e2e/global-setup.ts',
-  webServer: {
-    command: 'npm run build && npx vite preview --port 4173 --strictPort',
-    env: { VITE_API_MODE: 'live' },
-    url: 'http://localhost:4173',
-    reuseExistingServer: !process.env.CI,
-    timeout: 180_000,
-  },
+  globalSetup: live ? './tests/journeys/support/live-setup.ts' : undefined,
+  webServer: live
+    ? {
+        // The dev server: no build to wait for, and its proxy is not used —
+        // VITE_BFF_URL points the app straight at the BFF.
+        command: `npx vite --port ${new URL(FRONTEND_URL).port} --strictPort`,
+        env: { VITE_API_MODE: 'live', VITE_BFF_URL: BFF_URL },
+        url: FRONTEND_URL,
+        reuseExistingServer: true,
+        timeout: 120_000,
+      }
+    : {
+        // A production build, so CI tests what ships (minus the mode). The BFF
+        // URL deliberately points at nothing: a call the mocks do not answer
+        // fails loudly instead of reaching someone's running BFF.
+        command: `npx vite build --outDir dist-e2e --emptyOutDir && npx vite preview --outDir dist-e2e --port ${new URL(MOCK_URL).port} --strictPort`,
+        env: { VITE_API_MODE: 'mock', VITE_BFF_URL: 'http://127.0.0.1:4999/api' },
+        url: MOCK_URL,
+        reuseExistingServer: !process.env.CI,
+        timeout: 360_000,
+      },
 });

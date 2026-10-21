@@ -12,7 +12,7 @@ const variantClasses: Record<ButtonVariant, string> = {
     'bg-surface text-ink border border-line-strong shadow-xs hover:bg-surface-hover active:bg-surface-sunken',
   ghost: 'text-ink-secondary hover:bg-surface-hover hover:text-ink',
   subtle: 'bg-brand-soft text-brand-ink hover:bg-brand-soft-hover',
-  danger: 'bg-critical text-white shadow-xs hover:brightness-95 active:brightness-90',
+  danger: 'bg-critical text-on-critical shadow-xs hover:brightness-95 active:brightness-90',
   link: 'text-brand-ink underline-offset-4 hover:underline',
 };
 

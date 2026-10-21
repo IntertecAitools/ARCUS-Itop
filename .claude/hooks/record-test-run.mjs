@@ -18,6 +18,8 @@ const KINDS = [
   { re: /api-check\.mjs|api:check/, label: 'Live API check (BFF → iTop)' },
   { re: /scripts\/smoke|npm run smoke/, label: 'Live smoke test (BFF → iTop)' },
   { re: /\be2e[\w-]*\.mjs\b/, label: 'Live end-to-end script' },
+  { re: /\bnpm run e2e:live\b|E2E_TARGET=live[^|;&]*playwright test/, label: 'Browser journeys, live (Playwright)' },
+  { re: /\bnpm run e2e\b|\bplaywright test\b/, label: 'Browser journeys, mock API (Playwright)' },
   { re: /\bvitest\b/, label: 'Frontend unit tests (vitest)' },
   { re: /--import tsx --test|\bnpm (run )?test\b/, label: 'Unit tests' },
   { re: /\bnpm run typecheck\b|\btsc\b[^|;&]*--noEmit/, label: 'Typecheck' },
@@ -66,6 +68,11 @@ function summarise(out) {
   const vitest = /Tests\s+(?:(\d+) failed\s*\|\s*)?(\d+) passed/.exec(out);
   if (vitest) return { passed: Number(vitest[2]), failed: Number(vitest[1] ?? 0) };
 
+  // Playwright: "  7 passed (1.6m)", with "  2 failed" above it when some did.
+  const pwPassed = /^\s*(\d+) passed \(/m.exec(out);
+  const pwFailed = /^\s*(\d+) failed$/m.exec(out);
+  if (pwPassed || pwFailed) return { passed: Number(pwPassed?.[1] ?? 0), failed: Number(pwFailed?.[1] ?? 0) };
+
   const script = [...out.matchAll(/(\d+) passed, (\d+) failed/g)].pop();
   if (script) return { passed: Number(script[1]), failed: Number(script[2]) };
 
@@ -75,7 +82,10 @@ function summarise(out) {
 function failingNames(out) {
   const names = [];
   for (const line of out.split(/\r?\n/)) {
-    const m = /^\s*(?:✖|FAIL|×)\s+(.+?)\s*(?:\(\d[\d.]*m?s\))?\s*$/.exec(line);
+    const m =
+      /^\s*(?:✖|FAIL|×)\s+(.+?)\s*(?:\(\d[\d.]*m?s\))?\s*$/.exec(line) ??
+      // Playwright's closing list: "    [chromium] › tests/x.spec.ts:7:1 › title ───"
+      /^\s{4}\[\w+\] › (.+?)\s*─*\s*$/.exec(line);
     if (m && !/failing tests:|^test at /.test(m[1]) && !names.includes(m[1])) names.push(m[1].slice(0, 160));
   }
   return names.slice(0, 15);

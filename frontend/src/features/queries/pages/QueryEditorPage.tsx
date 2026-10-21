@@ -132,12 +132,12 @@ function QueryEditor({ id, query }: { id: string; query: SavedQuery | undefined 
           <div className="flex items-center gap-2">
             {query?.runnable ? (
               <Link to={`/queries/${query.id}/run`} className={buttonClasses({ variant: 'secondary', size: 'sm' })}>
-                <Play className="mr-1.5 size-4" aria-hidden />
+                <Play className="me-1.5 size-4" aria-hidden />
                 Results
               </Link>
             ) : null}
             <Link to="/queries" className={buttonClasses({ variant: 'secondary', size: 'sm' })}>
-              <ArrowLeft className="mr-1.5 size-4" />
+              <ArrowLeft className="me-1.5 size-4 rtl:-scale-x-100" />
               Queries
             </Link>
           </div>

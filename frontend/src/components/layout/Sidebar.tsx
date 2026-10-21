@@ -1,5 +1,6 @@
+import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSessionStore } from '@/stores/session.store';
 import { modulesInGroup, navGroups, type ModuleDefinition } from '@/config/modules';
@@ -46,7 +47,7 @@ function NavItem({
           <span
             aria-hidden
             className={cn(
-              'absolute top-1/2 left-0 h-5 w-1 -translate-y-1/2 rounded-r-full bg-brand transition-opacity duration-150',
+              'absolute top-1/2 start-0 h-5 w-0.5 -translate-y-1/2 bg-brand transition-opacity duration-150',
               isActive ? 'opacity-100' : 'opacity-0',
             )}
           />
@@ -55,9 +56,9 @@ function NavItem({
           {count ? (
             <span
               className={cn(
-                'shrink-0 rounded-full text-[11px] font-semibold tabular-nums',
+                'shrink-0 rounded-pill text-[11px] font-semibold tabular-nums',
                 collapsed
-                  ? 'absolute top-0.5 right-3 flex min-w-4 items-center justify-center px-1 leading-4 ring-2 ring-[color:var(--arcus-surface)] bg-critical text-white'
+                  ? 'absolute top-0.5 end-3 flex min-w-4 items-center justify-center px-1 leading-4 ring-2 ring-[color:var(--arcus-surface)] bg-critical text-on-critical'
                   : 'bg-critical-soft px-1.5 py-0.5 text-critical-ink',
               )}
             >
@@ -70,26 +71,56 @@ function NavItem({
   );
 }
 
+/** The rail only collapses on wide screens; below `lg` it is a full-width drawer. */
+const WIDE = '(min-width: 1024px)';
+
+function useIsWide() {
+  const [wide, setWide] = useState(() => window.matchMedia(WIDE).matches);
+  useEffect(() => {
+    const media = window.matchMedia(WIDE);
+    const update = () => setWide(media.matches);
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
+  return wide;
+}
+
 export function Sidebar({ counts = {} }: SidebarProps) {
   const isAdmin = useSessionStore((s) => s.user?.isAdmin ?? false);
-  const collapsed = useUiStore((s) => s.sidebarCollapsed);
+  const wide = useIsWide();
+  const collapsed = useUiStore((s) => s.sidebarCollapsed) && wide;
   const toggleSidebar = useUiStore((s) => s.toggleSidebar);
+  const mobileNavOpen = useUiStore((s) => s.mobileNavOpen);
+  const setMobileNavOpen = useUiStore((s) => s.setMobileNavOpen);
 
   return (
     <aside
+      id="app-sidebar"
       className={cn(
-        'fixed inset-y-0 left-0 z-30 flex flex-col border-r border-line bg-surface',
-        'transition-[width] duration-200 ease-out',
-        collapsed ? 'w-sidebar-collapsed' : 'w-sidebar',
+        'fixed inset-y-0 start-0 z-30 flex w-sidebar flex-col border-e border-line bg-surface',
+        'transition-[width,translate,visibility] duration-200 ease-out',
+        collapsed ? 'lg:w-sidebar-collapsed' : 'lg:w-sidebar',
+        // Phones and tablets: off-canvas until the topbar's menu button opens it.
+        !wide && !mobileNavOpen && 'invisible -translate-x-full rtl:translate-x-full',
       )}
     >
       <div
         className={cn(
-          'flex h-topbar shrink-0 items-center border-b border-line',
+          'flex h-topbar shrink-0 items-center justify-between border-b border-line',
           collapsed ? 'justify-center px-2' : 'px-4',
         )}
       >
         <Logo collapsed={collapsed} />
+        {!wide ? (
+          <button
+            type="button"
+            onClick={() => setMobileNavOpen(false)}
+            aria-label="Close menu"
+            className="inline-flex size-9 items-center justify-center text-ink-secondary hover:bg-surface-hover hover:text-ink"
+          >
+            <X className="size-5" aria-hidden />
+          </button>
+        ) : null}
       </div>
 
       {/* The label belongs on the <nav> landmark, not the <aside> — on the
@@ -129,7 +160,7 @@ export function Sidebar({ counts = {} }: SidebarProps) {
         <ItopNavigation collapsed={collapsed} />
       </nav>
 
-      <div className="shrink-0 border-t border-line p-2.5">
+      <div className="hidden shrink-0 border-t border-line p-2.5 lg:block">
         <button
           type="button"
           onClick={toggleSidebar}
@@ -141,7 +172,7 @@ export function Sidebar({ counts = {} }: SidebarProps) {
           )}
         >
           <ChevronLeft
-            className={cn('size-[18px] shrink-0 transition-transform duration-200', collapsed && 'rotate-180')}
+            className={cn('size-[18px] shrink-0 transition-transform duration-200 rtl:-scale-x-100', collapsed && 'rotate-180')}
             aria-hidden
           />
           {!collapsed ? <span>Collapse</span> : null}

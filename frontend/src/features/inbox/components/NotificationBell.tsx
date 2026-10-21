@@ -72,7 +72,7 @@ export function NotificationBell({
       />
       {unread > 0 ? (
         <span
-          className="pointer-events-none absolute -top-0.5 -end-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-critical px-1 text-[10px] leading-none font-semibold text-white ring-2 ring-[color:var(--arcus-surface)]"
+          className="pointer-events-none absolute -top-0.5 -end-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-critical px-1 text-[10px] leading-none font-semibold text-on-critical ring-2 ring-[color:var(--arcus-surface)]"
           aria-hidden
         >
           {badgeText(unread)}

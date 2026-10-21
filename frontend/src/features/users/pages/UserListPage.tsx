@@ -57,7 +57,7 @@ export function UserListPage() {
         description={data ? `${data.total} account${data.total === 1 ? '' : 's'}` : 'Accounts that can sign in.'}
         actions={
           <Link to="/users/new" className={buttonClasses({ variant: 'primary', size: 'sm' })}>
-            <Plus className="mr-1.5 size-4" />
+            <Plus className="me-1.5 size-4" />
             New user
           </Link>
         }

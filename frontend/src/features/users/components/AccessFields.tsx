@@ -87,7 +87,7 @@ export function RecordPicker({
                     <li key={o.id}>
                       <button
                         type="button"
-                        className="block w-full px-2 py-1.5 text-left text-[13px] text-ink hover:bg-surface-hover"
+                        className="block w-full px-2 py-1.5 text-start text-[13px] text-ink hover:bg-surface-hover"
                         onClick={() => {
                           onChange(single ? [o] : [...value, o]);
                           setQ('');

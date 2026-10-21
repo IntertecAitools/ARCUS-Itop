@@ -201,7 +201,7 @@ export function Dashlet({ dashboardId, dashlet }: { dashboardId: string; dashlet
             {groups.map((g) => (
               <tr key={g.key} className="border-b border-line last:border-0">
                 <td className="py-1.5 text-ink-secondary">{g.label}</td>
-                <td className="py-1.5 text-right font-medium text-ink tabular-nums">{g.count}</td>
+                <td className="py-1.5 text-end font-medium text-ink tabular-nums">{g.count}</td>
               </tr>
             ))}
           </tbody>

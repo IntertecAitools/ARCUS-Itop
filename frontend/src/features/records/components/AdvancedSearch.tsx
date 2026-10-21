@@ -56,7 +56,7 @@ export function AdvancedSearch({
 
   return (
     <Card className="mb-4">
-      <CardBody className="space-y-3">
+      <CardBody className="space-y-3 pt-5">
         <ConditionRows
           info={info}
           value={rows}
@@ -307,7 +307,7 @@ function KeyPicker({
               <li key={o.id}>
                 <button
                   type="button"
-                  className="block w-full px-2 py-1 text-left text-[13px] text-ink hover:bg-surface-hover"
+                  className="block w-full px-2 py-1 text-start text-[13px] text-ink hover:bg-surface-hover"
                   onClick={() => {
                     setLabels((l) => ({ ...l, [String(o.id)]: o.label }));
                     onChange({ values: [...selected, String(o.id)] });

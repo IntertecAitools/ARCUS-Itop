@@ -127,7 +127,7 @@ function FieldRow({
     <div className="grid grid-cols-1 gap-1 py-2 sm:grid-cols-[minmax(0,11rem)_1fr] sm:gap-3">
       <dt className="text-[12.5px] text-ink-muted">
         <label htmlFor={`field-${attcode}`}>{fieldLabel(info, attcode)}</label>
-        {spec && mustSupply(spec) ? <span className="ml-0.5 text-critical">*</span> : null}
+        {spec && mustSupply(spec) ? <span className="ms-0.5 text-critical">*</span> : null}
       </dt>
       {/* `data-field` so a test can address one field's value without relying
           on label text, which repeats across fieldsets and tabs. */}

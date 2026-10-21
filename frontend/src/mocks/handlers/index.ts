@@ -4,6 +4,7 @@ import { inboxHandlers } from './inbox';
 import { incidentHandlers } from './incidents';
 import { notificationHandlers } from './notifications';
 import { portalHandlers } from './portal';
+import { recordHandlers } from './records';
 
 /** Every mock handler in the app. Append a module's handlers as it lands. */
-export const handlers = [...authHandlers, ...dashboardHandlers, ...inboxHandlers, ...incidentHandlers, ...notificationHandlers, ...portalHandlers];
+export const handlers = [...authHandlers, ...dashboardHandlers, ...inboxHandlers, ...incidentHandlers, ...notificationHandlers, ...portalHandlers, ...recordHandlers];
