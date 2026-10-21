@@ -62,7 +62,7 @@ export function AuthCard({
         </div>
 
         <Link to="/" className="inline-flex items-center gap-1.5 self-start text-[13px] text-ink-secondary hover:text-ink">
-          <ArrowLeft className="size-4" aria-hidden />
+          <ArrowLeft className="size-4 rtl:-scale-x-100" aria-hidden />
           Back to the home page
         </Link>
       </div>

@@ -24,7 +24,7 @@ export function ArrowLink({ children, className, ...props }: LinkProps) {
       )}
     >
       {children}
-      <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
+      <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5 rtl:-scale-x-100 rtl:group-hover:-translate-x-0.5" aria-hidden />
     </Link>
   );
 }
@@ -49,5 +49,17 @@ export function PublicImage({ src, className }: { src: string; className?: strin
     <div className={cn('overflow-hidden bg-surface-sunken', className)}>
       <img src={src} alt="" className="size-full object-cover" loading="lazy" decoding="async" />
     </div>
+  );
+}
+
+/** First stop for keyboard users: jump past the header to the page's <main id="main">. */
+export function SkipLink() {
+  return (
+    <a
+      href="#main"
+      className="sr-only focus:not-sr-only focus:absolute focus:start-4 focus:top-4 focus:z-50 focus:bg-brand focus:px-4 focus:py-2 focus:text-[14px] focus:text-on-brand"
+    >
+      Skip to content
+    </a>
   );
 }

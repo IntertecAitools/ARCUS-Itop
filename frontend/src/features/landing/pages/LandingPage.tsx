@@ -10,6 +10,7 @@ import {
   PublicImage,
   PublicTheme,
   PublicThemeToggle,
+  SkipLink,
 } from '@/components/public';
 import { publicImagery } from '@/assets/images/public';
 import { useSession } from '@/features/auth';
@@ -89,7 +90,7 @@ function LandingHeader() {
   return (
     <header className="border-b border-line">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-6 px-5 sm:px-8">
-        <Link to="/" aria-label={`${env.appName} ${env.platformName}, home`} className="mr-auto">
+        <Link to="/" aria-label={`${env.appName} ${env.platformName}, home`} className="me-auto">
           <Logo />
         </Link>
         <nav aria-label="Main" className="hidden items-center gap-8 md:flex">
@@ -164,8 +165,9 @@ export function LandingPage() {
 
   return (
     <PublicTheme>
+      <SkipLink />
       <LandingHeader />
-      <main>
+      <main id="main" tabIndex={-1} className="outline-none">
         {/* Hero */}
         <section className="mx-auto max-w-7xl px-5 pt-16 pb-20 sm:px-8 md:pt-28">
           <div className="mx-auto max-w-4xl text-center">

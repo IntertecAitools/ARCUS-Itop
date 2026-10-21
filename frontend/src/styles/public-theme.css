@@ -10,14 +10,23 @@
    PublicTheme.tsx), so the staff app is untouched. `dark` is the default;
    `light` is the reading/forms variant a visitor can switch to.
 
+   Direction: everything here is written with logical properties (ms-/me-,
+   ps-/pe-, border-s, start/end) and arrows flip under `rtl:`, so setting
+   dir="rtl" on <html> mirrors the layout with no other change.
+
    Contrast: every ink step below is ≥ 4.5:1 on canvas, surface and raised
    surface in its own mode, and line-strong (input borders) is ≥ 3:1.
    ========================================================================== */
 
 @import '@fontsource-variable/hanken-grotesk';
+/* Arabic: Hanken has no Arabic glyphs, so the browser takes them from Noto
+   Sans Arabic. Its @font-face rules carry an Arabic unicode-range, so the
+   files only download when Arabic text is on the page. */
+@import '@fontsource-variable/noto-sans-arabic';
 
 [data-public-theme] {
-  --arcus-font-sans: 'Hanken Grotesk Variable', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --arcus-font-sans:
+    'Hanken Grotesk Variable', 'Noto Sans Arabic Variable', 'Segoe UI', system-ui, -apple-system, sans-serif;
 
   --arcus-radius-control: 0;
   --arcus-radius-card: 0;
@@ -161,4 +170,13 @@
    the bare <input> inside it would draw a box within a box. */
 [data-public-theme] .group:focus-within > input:focus-visible {
   outline: none;
+}
+
+/* Arabic is cursive: letter-spacing breaks the joins between letters, and it
+   has no capitals. In right-to-left pages (and any Arabic run), the tracked
+   uppercase labels and tight display tracking fall back to normal. */
+[dir='rtl'] [data-public-theme] .display,
+[dir='rtl'] [data-public-theme] [class*='tracking-'],
+[data-public-theme] :lang(ar) {
+  letter-spacing: normal;
 }

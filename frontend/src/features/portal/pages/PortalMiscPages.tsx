@@ -6,6 +6,7 @@ import { StatusPill } from '@/components/data-display';
 import { Eyebrow } from '@/components/public';
 import { ChangePasswordDialog } from '@/features/auth';
 import { useSessionStore } from '@/stores/session.store';
+import { compactNumber } from '@/lib/utils';
 import { useFaq, useFaqs, useMyRequests, useProfile, useUpdateProfile } from '../api/portal.api';
 
 const stripHtml = (html: string) => html.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
@@ -27,19 +28,19 @@ export function PortalHomePage() {
           <Plus className="mb-6 size-7 stroke-[1.25] text-ink" aria-hidden />
           <p className="text-[20px] text-ink">Raise a request</p>
           <p className="mt-1 mb-6 text-[14px] text-ink-secondary">Report a problem or ask for something.</p>
-          <ArrowRight className="mt-auto size-4 text-ink transition-transform group-hover:translate-x-1" aria-hidden />
+          <ArrowRight className="mt-auto size-4 text-ink transition-transform group-hover:translate-x-1 rtl:-scale-x-100 rtl:group-hover:-translate-x-1" aria-hidden />
         </Link>
         <Link to="/portal/requests" className={tile}>
-          <p className="display mb-4 text-[44px] leading-none text-ink tabular-nums">{isLoading ? '…' : (open?.total ?? 0)}</p>
+          <p className="display mb-4 text-[44px] leading-none text-ink tabular-nums">{isLoading ? '…' : compactNumber(open?.total ?? 0)}</p>
           <p className="text-[20px] text-ink">Open requests</p>
           <p className="mt-1 mb-6 text-[14px] text-ink-secondary">Follow what is in progress.</p>
-          <ArrowRight className="mt-auto size-4 text-ink transition-transform group-hover:translate-x-1" aria-hidden />
+          <ArrowRight className="mt-auto size-4 text-ink transition-transform group-hover:translate-x-1 rtl:-scale-x-100 rtl:group-hover:-translate-x-1" aria-hidden />
         </Link>
         <Link to="/portal/help" className={tile}>
           <Search className="mb-6 size-7 stroke-[1.25] text-ink" aria-hidden />
           <p className="text-[20px] text-ink">Knowledge base</p>
           <p className="mt-1 mb-6 text-[14px] text-ink-secondary">Answers to common questions.</p>
-          <ArrowRight className="mt-auto size-4 text-ink transition-transform group-hover:translate-x-1" aria-hidden />
+          <ArrowRight className="mt-auto size-4 text-ink transition-transform group-hover:translate-x-1 rtl:-scale-x-100 rtl:group-hover:-translate-x-1" aria-hidden />
         </Link>
       </div>
 
@@ -48,7 +49,7 @@ export function PortalHomePage() {
           <h2 id="open-requests-heading" className="display text-[28px] sm:text-[32px]">Your open requests</h2>
           <Link to="/portal/requests" className="inline-flex items-center gap-2 text-[13px] font-semibold tracking-[0.14em] text-ink uppercase underline-offset-[6px] hover:underline">
             See all
-            <ArrowRight className="size-4" aria-hidden />
+            <ArrowRight className="size-4 rtl:-scale-x-100" aria-hidden />
           </Link>
         </div>
         {isLoading ? (
@@ -127,7 +128,7 @@ export function PortalFaqPage() {
   return (
     <>
       <Link to="/portal/help" className="mb-3 inline-flex items-center gap-1 text-[13px] text-ink-secondary hover:text-ink">
-        <ArrowLeft className="size-4" />
+        <ArrowLeft className="size-4 rtl:-scale-x-100" aria-hidden />
         Knowledge base
       </Link>
       {isLoading ? (
