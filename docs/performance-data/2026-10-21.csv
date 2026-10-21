@@ -1,0 +1,132 @@
+date,set,tickets,host_load,bff,commit,call,runs,median_ms,worst_ms,result
+2026-10-21,checkpoint-12k,12242,busy,before,05a3c24,sign-in,3,3880,5200,0 KB
+2026-10-21,checkpoint-12k,12242,busy,before,05a3c24,auth/me,3,71,113,0 KB
+2026-10-21,checkpoint-12k,12242,busy,before,05a3c24,dashboard overview (7d),3,9630,13000,"incidents in range 0, trend sum 0"
+2026-10-21,checkpoint-12k,12242,busy,before,05a3c24,dashboard overview (90d),3,6470,8250,"incidents in range 0, trend sum 0"
+2026-10-21,checkpoint-12k,12242,busy,before,05a3c24,nav counts,3,761,1240,0 KB
+2026-10-21,checkpoint-12k,12242,busy,before,05a3c24,navigation menu,3,42,63,10 KB
+2026-10-21,checkpoint-12k,12242,busy,before,05a3c24,"list UserRequest, page 1",3,1040,1400,25 of 4897
+2026-10-21,checkpoint-12k,12242,busy,before,05a3c24,"list UserRequest, last page (196)",3,1170,1180,22 of 4897
+2026-10-21,checkpoint-12k,12242,busy,before,05a3c24,"list UserRequest, sorted by start_date desc",3,10700,14800,"HTTP 400: Sorting needs the full result set, but 4897 rows match and the cap is 2000. iTop's REST API cannot sort server-side, so"
+2026-10-21,checkpoint-12k,12242,busy,before,05a3c24,"list Incident, view Open incidents",3,852,895,25 of 466
+2026-10-21,checkpoint-12k,12242,busy,before,05a3c24,"list Incident, filtered status=assigned",3,798,831,25 of 142
+2026-10-21,checkpoint-12k,12242,busy,before,05a3c24,"list Incident, search ""VPN""",3,1290,1620,25 of 305
+2026-10-21,checkpoint-12k,12242,busy,before,05a3c24,"list Incident, advanced search",3,698,702,0 of 0
+2026-10-21,checkpoint-12k,12242,busy,before,05a3c24,list FunctionalCI page 1,3,2310,3400,25 of 10000
+2026-10-21,checkpoint-12k,12242,busy,before,05a3c24,list Person page 1,3,951,1480,25 of 2001
+2026-10-21,checkpoint-12k,12242,busy,before,05a3c24,record detail UserRequest,3,881,1070,2 KB
+2026-10-21,checkpoint-12k,12242,busy,before,05a3c24,record History,3,1670,9120,1 of 1
+2026-10-21,checkpoint-12k,12242,busy,before,05a3c24,picker: caller_id options,3,28,805,0 of 88
+2026-10-21,checkpoint-12k,12242,busy,before,05a3c24,export 4897 user requests (csv),3,13300,13700,"489 KB file, 4897 lines"
+2026-10-21,checkpoint-12k,12242,busy,before,05a3c24,export 4897 user requests (xlsx),3,12900,14100,"219 KB file, 974 lines"
+2026-10-21,checkpoint-12k,12242,busy,before,05a3c24,"import 1,000 Person rows (simulate)",3,17700,20200,"{""issues"":0,""warnings"":0,""created"":1000,""updated"":0,""unchanged"":0}"
+2026-10-21,checkpoint-12k,12242,busy,before,05a3c24,notification rules,3,1090,1170,2 KB
+2026-10-21,checkpoint-12k,12242,busy,before,05a3c24,notifications sent,3,941,1080,0 KB
+2026-10-21,checkpoint-12k,12242,busy,before,05a3c24,audit overview,3,1720,1860,1 KB
+2026-10-21,checkpoint-12k,12242,busy,before,05a3c24,audit run: all user requests,3,6090,7180,0 of 4897 failing
+2026-10-21,checkpoint-12k,12242,busy,before,05a3c24,audit run: all CIs,3,7440,8540,2444 of 10000 failing
+2026-10-21,checkpoint-12k,12242,busy,before,05a3c24,bell: unread count,3,687,705,"items, 0 unread"
+2026-10-21,checkpoint-12k,12242,busy,before,05a3c24,bell: list,3,1400,1520,"0 items, 0 unread"
+2026-10-21,checkpoint-12k,12242,busy,before,05a3c24,portal: my open requests,3,1880,2390,20 of 30
+2026-10-21,checkpoint-12k,12242,busy,before,05a3c24,portal: my closed requests,3,15100,15900,20 of 357
+2026-10-21,checkpoint-12k,12242,busy,before,05a3c24,portal: catalog,3,762,780,18 KB
+2026-10-21,checkpoint-12k,12242,busy,after,07ba9be,sign-in,3,2930,2970,0 KB
+2026-10-21,checkpoint-12k,12242,busy,after,07ba9be,auth/me,3,5,5,0 KB
+2026-10-21,checkpoint-12k,12242,busy,after,07ba9be,dashboard overview (7d),3,3220,3320,"incidents in range 0, trend sum 0"
+2026-10-21,checkpoint-12k,12242,busy,after,07ba9be,dashboard overview (90d),3,3930,4300,"incidents in range 0, trend sum 0"
+2026-10-21,checkpoint-12k,12242,busy,after,07ba9be,nav counts,3,783,1050,0 KB
+2026-10-21,checkpoint-12k,12242,busy,after,07ba9be,navigation menu,3,5,8,10 KB
+2026-10-21,checkpoint-12k,12242,busy,after,07ba9be,"list UserRequest, page 1",3,987,1060,25 of 4897
+2026-10-21,checkpoint-12k,12242,busy,after,07ba9be,"list UserRequest, last page (196)",3,1080,1220,22 of 4897
+2026-10-21,checkpoint-12k,12242,busy,after,07ba9be,"list UserRequest, sorted by start_date desc",3,770,794,"HTTP 400: Sorting needs the full result set, but 4897 rows match and the cap is 2000. iTop's REST API cannot sort server-side, so"
+2026-10-21,checkpoint-12k,12242,busy,after,07ba9be,"list Incident, view Open incidents",3,659,819,25 of 466
+2026-10-21,checkpoint-12k,12242,busy,after,07ba9be,"list Incident, filtered status=assigned",3,497,721,25 of 142
+2026-10-21,checkpoint-12k,12242,busy,after,07ba9be,"list Incident, search ""VPN""",3,1100,1190,25 of 305
+2026-10-21,checkpoint-12k,12242,busy,after,07ba9be,"list Incident, advanced search",3,705,749,0 of 0
+2026-10-21,checkpoint-12k,12242,busy,after,07ba9be,list FunctionalCI page 1,3,2140,2280,25 of 10000
+2026-10-21,checkpoint-12k,12242,busy,after,07ba9be,list Person page 1,3,885,1120,25 of 2001
+2026-10-21,checkpoint-12k,12242,busy,after,07ba9be,record detail UserRequest,3,691,839,2 KB
+2026-10-21,checkpoint-12k,12242,busy,after,07ba9be,record History,3,1730,1830,1 of 1
+2026-10-21,checkpoint-12k,12242,busy,after,07ba9be,picker: caller_id options,3,161,823,0 of 88
+2026-10-21,checkpoint-12k,12242,busy,after,07ba9be,export 4897 user requests (csv),3,10900,12000,"489 KB file, 4897 lines"
+2026-10-21,checkpoint-12k,12242,busy,after,07ba9be,export 4897 user requests (xlsx),3,11900,12400,"219 KB file, 971 lines"
+2026-10-21,checkpoint-12k,12242,busy,after,07ba9be,"import 1,000 Person rows (simulate)",3,17200,18800,"{""issues"":0,""warnings"":0,""created"":1000,""updated"":0,""unchanged"":0}"
+2026-10-21,checkpoint-12k,12242,busy,after,07ba9be,notification rules,3,993,1510,2 KB
+2026-10-21,checkpoint-12k,12242,busy,after,07ba9be,notifications sent,3,496,623,0 KB
+2026-10-21,checkpoint-12k,12242,busy,after,07ba9be,audit overview,3,1350,1670,1 KB
+2026-10-21,checkpoint-12k,12242,busy,after,07ba9be,audit run: all user requests,3,3320,4390,0 of 4897 failing
+2026-10-21,checkpoint-12k,12242,busy,after,07ba9be,audit run: all CIs,3,3750,4300,2444 of 10000 failing
+2026-10-21,checkpoint-12k,12242,busy,after,07ba9be,bell: unread count,3,500,681,"items, 0 unread"
+2026-10-21,checkpoint-12k,12242,busy,after,07ba9be,bell: list,3,941,1030,"0 items, 0 unread"
+2026-10-21,checkpoint-12k,12242,busy,after,07ba9be,portal: my open requests,3,1670,1690,20 of 30
+2026-10-21,checkpoint-12k,12242,busy,after,07ba9be,portal: my closed requests,3,4610,4980,20 of 357
+2026-10-21,checkpoint-12k,12242,busy,after,07ba9be,portal: catalog,3,1650,1690,18 KB
+2026-10-21,final-50k,50000,quiet,before,05a3c24,sign-in,3,532,542,0 KB
+2026-10-21,final-50k,50000,quiet,before,05a3c24,auth/me,3,2,3,0 KB
+2026-10-21,final-50k,50000,quiet,before,05a3c24,dashboard overview (7d),3,4180,4390,"incidents in range 861, trend sum 764"
+2026-10-21,final-50k,50000,quiet,before,05a3c24,dashboard overview (90d),3,9290,11500,"incidents in range 6132, trend sum 2000"
+2026-10-21,final-50k,50000,quiet,before,05a3c24,nav counts,3,194,221,0 KB
+2026-10-21,final-50k,50000,quiet,before,05a3c24,navigation menu,3,2,2,10 KB
+2026-10-21,final-50k,50000,quiet,before,05a3c24,"list UserRequest, page 1",3,418,432,25 of 20000
+2026-10-21,final-50k,50000,quiet,before,05a3c24,"list UserRequest, last page (800)",3,401,466,25 of 20000
+2026-10-21,final-50k,50000,quiet,before,05a3c24,"list UserRequest, sorted by start_date desc",3,1610,2110,"HTTP 400: Sorting needs the full result set, but 20000 rows match and the cap is 2000. iTop's REST API cannot sort server-side, so"
+2026-10-21,final-50k,50000,quiet,before,05a3c24,"list Incident, view Open incidents",3,234,287,25 of 3352
+2026-10-21,final-50k,50000,quiet,before,05a3c24,"list Incident, filtered status=assigned",3,169,192,25 of 1135
+2026-10-21,final-50k,50000,quiet,before,05a3c24,"list Incident, search ""VPN""",3,394,535,25 of 1293
+2026-10-21,final-50k,50000,quiet,before,05a3c24,"list Incident, advanced search",3,184,187,25 of 1106
+2026-10-21,final-50k,50000,quiet,before,05a3c24,list FunctionalCI page 1,3,307,317,25 of 10000
+2026-10-21,final-50k,50000,quiet,before,05a3c24,list Person page 1,3,140,140,25 of 2001
+2026-10-21,final-50k,50000,quiet,before,05a3c24,record detail UserRequest,3,133,141,2 KB
+2026-10-21,final-50k,50000,quiet,before,05a3c24,record History,3,349,415,1 of 1
+2026-10-21,final-50k,50000,quiet,before,05a3c24,picker: caller_id options,3,3,187,0 of 88
+2026-10-21,final-50k,50000,quiet,before,05a3c24,export 10014 user requests (csv),3,5740,7410,"1006 KB file, 10014 lines"
+2026-10-21,final-50k,50000,quiet,before,05a3c24,export 10014 user requests (xlsx),3,5540,5820,"438 KB file, 2093 lines"
+2026-10-21,final-50k,50000,quiet,before,05a3c24,"import 1,000 Person rows (simulate)",3,3380,3400,"{""issues"":0,""warnings"":0,""created"":1000,""updated"":0,""unchanged"":0}"
+2026-10-21,final-50k,50000,quiet,before,05a3c24,notification rules,3,158,162,2 KB
+2026-10-21,final-50k,50000,quiet,before,05a3c24,notifications sent,3,125,128,0 KB
+2026-10-21,final-50k,50000,quiet,before,05a3c24,audit overview,3,252,300,1 KB
+2026-10-21,final-50k,50000,quiet,before,05a3c24,audit run: all user requests,3,2090,2340,0 of 20000 failing
+2026-10-21,final-50k,50000,quiet,before,05a3c24,audit run: all CIs,3,1200,1390,2444 of 10000 failing
+2026-10-21,final-50k,50000,quiet,before,05a3c24,bell: unread count,3,125,128,"items, 94 unread"
+2026-10-21,final-50k,50000,quiet,before,05a3c24,bell: list,3,392,414,"30 items, 94 unread"
+2026-10-21,final-50k,50000,quiet,before,05a3c24,portal: my open requests,3,1560,1570,20 of 276
+2026-10-21,final-50k,50000,quiet,before,05a3c24,portal: my closed requests,3,3150,3220,20 of 1294
+2026-10-21,final-50k,50000,quiet,before,05a3c24,portal: catalog,3,126,126,18 KB
+2026-10-21,final-50k,50000,quiet,after,b17c3de,sign-in,3,937,1880,0 KB
+2026-10-21,final-50k,50000,quiet,after,b17c3de,auth/me,3,2,2,0 KB
+2026-10-21,final-50k,50000,quiet,after,b17c3de,dashboard overview (7d),3,1140,2280,"incidents in range 764, trend sum 764"
+2026-10-21,final-50k,50000,quiet,after,b17c3de,dashboard overview (90d),3,2320,4280,"incidents in range 6078, trend sum 6078"
+2026-10-21,final-50k,50000,quiet,after,b17c3de,nav counts,3,136,138,0 KB
+2026-10-21,final-50k,50000,quiet,after,b17c3de,navigation menu,3,1,1,10 KB
+2026-10-21,final-50k,50000,quiet,after,b17c3de,"list UserRequest, page 1",3,304,393,25 of 20000
+2026-10-21,final-50k,50000,quiet,after,b17c3de,"list UserRequest, last page (800)",3,385,391,25 of 20000
+2026-10-21,final-50k,50000,quiet,after,b17c3de,"list UserRequest, sorted by start_date desc",3,186,188,"HTTP 400: Sorting needs the full result set, but 20000 rows match and the cap is 2000. iTop's REST API cannot sort server-side, so"
+2026-10-21,final-50k,50000,quiet,after,b17c3de,"list Incident, view Open incidents",3,176,185,25 of 3352
+2026-10-21,final-50k,50000,quiet,after,b17c3de,"list Incident, filtered status=assigned",3,153,155,25 of 1135
+2026-10-21,final-50k,50000,quiet,after,b17c3de,"list Incident, search ""VPN""",3,334,1730,25 of 1293
+2026-10-21,final-50k,50000,quiet,after,b17c3de,"list Incident, advanced search",3,235,244,25 of 1106
+2026-10-21,final-50k,50000,quiet,after,b17c3de,list FunctionalCI page 1,3,356,369,25 of 10000
+2026-10-21,final-50k,50000,quiet,after,b17c3de,list Person page 1,3,101,149,25 of 2001
+2026-10-21,final-50k,50000,quiet,after,b17c3de,record detail UserRequest,3,98,120,2 KB
+2026-10-21,final-50k,50000,quiet,after,b17c3de,record History,3,266,310,1 of 1
+2026-10-21,final-50k,50000,quiet,after,b17c3de,picker: caller_id options,3,1,97,0 of 88
+2026-10-21,final-50k,50000,quiet,after,b17c3de,export 10014 user requests (csv),3,4200,5420,"1006 KB file, 10014 lines"
+2026-10-21,final-50k,50000,quiet,after,b17c3de,export 10014 user requests (xlsx),3,4880,5180,"438 KB file, 2093 lines"
+2026-10-21,final-50k,50000,quiet,after,b17c3de,"import 1,000 Person rows (simulate)",3,3030,4820,"{""issues"":0,""warnings"":0,""created"":1000,""updated"":0,""unchanged"":0}"
+2026-10-21,final-50k,50000,quiet,after,b17c3de,notification rules,3,168,171,2 KB
+2026-10-21,final-50k,50000,quiet,after,b17c3de,notifications sent,3,115,126,0 KB
+2026-10-21,final-50k,50000,quiet,after,b17c3de,audit overview,3,237,295,1 KB
+2026-10-21,final-50k,50000,quiet,after,b17c3de,audit run: all user requests,3,873,1090,0 of 20000 failing
+2026-10-21,final-50k,50000,quiet,after,b17c3de,audit run: all CIs,3,576,606,2444 of 10000 failing
+2026-10-21,final-50k,50000,quiet,after,b17c3de,bell: unread count,3,107,112,"items, 94 unread"
+2026-10-21,final-50k,50000,quiet,after,b17c3de,bell: list,3,310,313,"30 items, 94 unread"
+2026-10-21,final-50k,50000,quiet,after,b17c3de,portal: my open requests,3,303,317,20 of 276
+2026-10-21,final-50k,50000,quiet,after,b17c3de,portal: my closed requests,3,440,451,20 of 1294
+2026-10-21,final-50k,50000,quiet,after,b17c3de,portal: catalog,3,126,133,18 KB
+2026-10-21,final-50k-single,50000,quiet,before,05a3c24,export all 20000 user requests (csv),1,14141,14141,"1.3 MB, 20001 lines"
+2026-10-21,final-50k-single,50000,quiet,before,05a3c24,export all 50000 tickets (csv),1,17292,17292,"3.3 MB, 50001 lines"
+2026-10-21,final-50k-single,50000,quiet,after,b17c3de,export all 20000 user requests (csv),1,12449,12449,"1.3 MB, 20001 lines"
+2026-10-21,final-50k-single,50000,quiet,after,b17c3de,export all 50000 tickets (csv),1,17285,17285,"3.3 MB, 50001 lines"
+2026-10-21,final-50k-single,50000,quiet,after,b17c3de,import 1000 Person rows (simulate),1,3518,3518,1000 to create
+2026-10-21,final-50k-single,50000,quiet,after,b17c3de,import 1000 Person rows (real),1,33919,33919,1000 created
+2026-10-21,final-50k-single,50000,quiet,after,b17c3de,import 200 UserRequest rows (real),1,26470,26470,200 created

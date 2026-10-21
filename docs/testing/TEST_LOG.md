@@ -13,7 +13,11 @@ Branch `claude/data-volume-601f54`. A separate iTop: the production stack as its
 - 50,000 tickets over 12 months, with case logs;
 - 300 bell items.
 
-Loading took ≈ 4 h 50 min. There were two BFFs on that iTop, `main` on :4801 and this branch on :4800, plus the frontend on :5873. Full results are in `docs/performance.md`.
+Loading took ≈ 4 h 50 min. There were two BFFs on that iTop, `main` on :4801 and this branch on :4800, plus the frontend on :5873.
+
+- Full report: `docs/performance.md`.
+- Raw numbers: `docs/performance-data/2026-10-21.csv`.
+- The case-log counts per class come from an offline replay of the seeded generator, which matches iTop's live counts.
 
 | What ran | Result | Notes |
 | --- | --- | --- |

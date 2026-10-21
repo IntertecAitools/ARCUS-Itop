@@ -1,21 +1,28 @@
 #!/usr/bin/env node
 /**
  * Times the BFF's screens against an iTop filled by perf-seed.mjs and prints
- * a Markdown table (median and worst of --runs), for docs/performance.md.
+ * a Markdown table (median, p95 and worst of --runs), for docs/performance.md.
+ * With --csv, also writes every run (time, status, size) to that file, the
+ * format of docs/performance-data/ for comparing with a later run.
  *
  *   PERF_LOGIN=perf.admin PERF_PORTAL_LOGIN=perf.user001 PERF_PASSWORD=... \
- *   node scripts/perf-measure.mjs [http://127.0.0.1:4800] [--runs 5] [--only name,name]
+ *   node scripts/perf-measure.mjs [http://127.0.0.1:4800] [--runs 5] [--only name,name] \
+ *     [--csv out.csv] [--label after]
  *
  * Read-only apart from the session: the import is simulated, nothing is written.
  */
 
-const BASE = (process.argv.find((a) => a.startsWith('http')) ?? 'http://127.0.0.1:4800').replace(/\/+$/, '');
+import { writeFileSync } from 'node:fs';
+
+const BASE =(process.argv.find((a) => a.startsWith('http')) ?? 'http://127.0.0.1:4800').replace(/\/+$/, '');
 const arg = (name, fallback) => {
   const i = process.argv.indexOf(`--${name}`);
   return i > 0 && process.argv[i + 1] ? process.argv[i + 1] : fallback;
 };
 const RUNS = Number(arg('runs', '5'));
 const ONLY = arg('only', '').split(',').filter(Boolean);
+const CSV = arg('csv', '');
+const LABEL = arg('label', BASE);
 const LOGIN = process.env.PERF_LOGIN ?? 'perf.admin';
 const PORTAL_LOGIN = process.env.PERF_PORTAL_LOGIN ?? 'perf.user001';
 const PASSWORD = process.env.PERF_PASSWORD;
@@ -57,6 +64,8 @@ const median = (xs) => {
   const s = [...xs].sort((a, b) => a - b);
   return s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2;
 };
+/** Nearest-rank percentile; with few runs, p95 is the worst. */
+const percentile = (xs, p) => [...xs].sort((a, b) => a - b)[Math.max(0, Math.ceil((p / 100) * xs.length) - 1)];
 const fmt = (ms) => (ms >= 10_000 ? `${(ms / 1000).toFixed(1)} s` : ms >= 1000 ? `${(ms / 1000).toFixed(2)} s` : `${Math.round(ms)} ms`);
 
 async function main() {
@@ -129,17 +138,24 @@ async function main() {
   ].filter(([name]) => ONLY.length === 0 || ONLY.some((o) => name.includes(o)));
 
   console.log(`BFF ${BASE}, ${RUNS} runs each, as ${LOGIN} / ${PORTAL_LOGIN}\n`);
-  console.log('| Screen / call | Median | Worst | Result |');
-  console.log('| --- | ---: | ---: | --- |');
+  console.log('| Screen / call | Median | p95 | Worst | Result |');
+  console.log('| --- | ---: | ---: | ---: | --- |');
+  const rows = ['date,bff,call,run,status,ms,bytes'];
+  const date = new Date().toISOString().slice(0, 10);
+  const quote = (v) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
   for (const [name, cookie, method, path, body] of cases) {
     const times = [];
     let last;
     for (let r = 0; r < RUNS; r++) {
       last = await call(cookie, method, path, body);
       times.push(last.ms);
+      rows.push([date, quote(LABEL), quote(name), r + 1, last.status, Math.round(last.ms), last.bytes].join(','));
     }
-    console.log(`| ${name} | ${fmt(median(times))} | ${fmt(Math.max(...times))} | ${describe(last)} |`);
+    console.log(
+      `| ${name} | ${fmt(median(times))} | ${fmt(percentile(times, 95))} | ${fmt(Math.max(...times))} | ${describe(last)} |`,
+    );
   }
+  if (CSV) writeFileSync(CSV, rows.join('\n') + '\n');
 }
 
 function describe(res) {
