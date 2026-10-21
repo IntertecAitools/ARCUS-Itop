@@ -42,6 +42,14 @@ export interface ImportReport {
   rows: { line: number; kind: ImportRowKind; status: string; class: string; id: string; cells: string[] }[];
 }
 
+/**
+ * How long an export or import may run. iTop's own ceiling is PHP's
+ * max_execution_time (300 s, docker/php.ini); the default 120 s cut off
+ * exports past ~40,000 rows and imports past a few thousand on a loaded server
+ * (docs/performance.md). nginx allows the same for these two routes.
+ */
+export const TRANSFER_TIMEOUT_MS = 300_000;
+
 /** Most CSV text one import accepts; iTop's own default post limit is far above. */
 export const MAX_IMPORT_BYTES = 10 * 1024 * 1024;
 
@@ -71,7 +79,7 @@ export class TransferService {
       params["separator"] = ",";
     }
 
-    const response = await this.client.postScript("webservices/export-v2.php", params);
+    const response = await this.client.postScript("webservices/export-v2.php", params, { timeoutMs: TRANSFER_TIMEOUT_MS });
 
     // Success is a download; anything else (a login form, "Error: …") is a
     // page iTop rendered with HTTP 200.
@@ -137,7 +145,7 @@ export class TransferService {
     }
     if (options.comment) params["comment"] = options.comment;
 
-    const response = await this.client.postScript("webservices/import.php", params);
+    const response = await this.client.postScript("webservices/import.php", params, { timeoutMs: TRANSFER_TIMEOUT_MS });
     return parseImportReport(await response.text(), options.simulate);
   }
 

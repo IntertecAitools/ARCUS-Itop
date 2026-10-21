@@ -4,7 +4,7 @@ import { describe, it } from "node:test";
 import { AppError } from "../src/core/errors.js";
 import type { ItopClient } from "../src/itop/client.js";
 import { parseCsv, remapCsv, writeCsv } from "../src/platform/transfer/csv.js";
-import { parseImportReport, TransferService } from "../src/platform/transfer/transfer.service.js";
+import { parseImportReport, TRANSFER_TIMEOUT_MS, TransferService } from "../src/platform/transfer/transfer.service.js";
 import { sampleSchema } from "./helpers.js";
 
 /** import.php's output=details answer, as CSVPage writes it. */
@@ -192,4 +192,23 @@ describe("TransferService.import with a mapping", () => {
       assert.equal(sent.length, 0);
     });
   }
+});
+
+describe("TransferService at volume", () => {
+  it("gives exports and imports iTop's own 300 s, not the 120 s default", async () => {
+    const budgets: Array<number | undefined> = [];
+    const client = {
+      postScript: async (script: string, _params: Record<string, string>, options: { timeoutMs?: number } = {}) => {
+        budgets.push(options.timeoutMs);
+        return script.includes("export")
+          ? new Response("id\n1\n", { headers: { "content-disposition": "attachment; filename=x.csv" } })
+          : new Response("#Issues: 0\n#Warnings: 0\n#Created: 0\n#Updated: 0\n#Unchanged: 0\n");
+      },
+    } as unknown as ItopClient;
+    const service = new TransferService(client, sampleSchema());
+    await service.export("Server", "SELECT Server", "csv");
+    await service.import("Server", { csv: "name\nweb-01\n", simulate: true });
+    assert.deepEqual(budgets, [TRANSFER_TIMEOUT_MS, TRANSFER_TIMEOUT_MS]);
+    assert.equal(TRANSFER_TIMEOUT_MS, 300_000);
+  });
 });
