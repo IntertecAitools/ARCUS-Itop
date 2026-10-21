@@ -4,6 +4,24 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-10-21 — Saved queries (iTop's query phrasebook and "Run queries")
+
+Branch `claude/saved-queries-d195ca`. Own BFF on :4700 (worktree `.env`, MySQL sessions) and Vite on :3100 over the local iTop :8080.
+
+| What | Result | Notes |
+| --- | --- | --- |
+| Backend `npm test` | ✅ 495/495 | New `test/queries.test.ts` (17): phrasebook read with the service account, OQL only for administrators, runs/exports as the caller, staff writes only their own condition queries (through the service account), iTop checks admin OQL first and its reason is returned, date conditions and unknown columns refused, parameters bound/refused; `cleanMessage` case for OQL errors |
+| Backend `npm run typecheck`, `npm run build` | ✅ | |
+| Frontend `npx vitest run`, `npm run typecheck`, `npm run build` | ✅ | New `features/queries/lib/queries.test.ts`; `config/modules.test.ts` updated for the new visible module |
+| Live API (`/api/queries`, script, 32 checks) | ✅ 32/32 | Admin: list 13 predefined queries (notification ones marked not runnable), create/run/edit a condition query, CSV and Excel export, save and run a JOIN as OQL, bad OQL → 400 with iTop's reason, class without screens → 400, draft run. Disposable Service Desk Agent account: lists without OQL, runs saved and OQL queries as itself, 403 on raw OQL (save and run), 403 on others' queries, saves/edits/runs/deletes its own. Everything created was deleted and the account disabled |
+| Browser (staff account) | ✅ | Queries list, new query → Run (11 User Requests in the records table, links to `/records/…`), save → results page with Export (CSV/Excel/PDF, column picker); records list (refactored Export menu and columns) unchanged |
+
+Bugs found live and fixed (same branch):
+- iTop refuses a query with an empty description ("Null not allowed"): the name stands in for it, and is not shown back as a description.
+- iTop's OQL errors came back as `Query failed to execute: query = …, exception_class = …, exception_message = …`; `cleanMessage` now keeps only the reason.
+
+Not covered: PDF export of a query (CSV and Excel checked live; PDF goes through the same exporter); a query over a class whose records the staff account's organisations hide (the run is made with the caller's credentials, checked in unit tests, so iTop filters it); conditions on dates (refused by design, as in the audit).
+
 ### 2026-10-21 — Production iTop in the prod stack: install, cron, lock-down, backup/restore
 
 Branch `claude/great-williams-dba424`. The whole production stack (`docker/docker-compose.prod.yml` + `docker-compose.prod.localtest.yml` for Mailpit) on Docker Desktop, compose project `arcus-itoptest`, web on `:8098`, Mailpit on `:8026`, test env files in the session's scratchpad (not in the repo). The shared `itop-local`, `itop-mailpit` and `itop_prod` were not touched. Only `itop-local-cron` was added to `docker-compose.local.yml`; it was not started (it would run cron against the shared `itop_prod`).

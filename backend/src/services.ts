@@ -26,6 +26,7 @@ import {
 import { UsersService } from "./platform/admin/users.service.js";
 import { NotificationsService } from "./platform/admin/notifications.service.js";
 import { AuditService } from "./platform/admin/audit.service.js";
+import { QueriesService } from "./platform/queries/queries.service.js";
 import { InboxService } from "./platform/inbox/inbox.service.js";
 import { PortalService } from "./platform/portal/portal.service.js";
 import { DefaultOrganization } from "./shared/default-organization.js";
@@ -49,6 +50,7 @@ export interface Services {
   users: UsersService;
   notifications: NotificationsService;
   audit: AuditService;
+  queries: QueriesService;
   inbox: InboxService;
   portal: PortalService;
   dashboard: DashboardService;
@@ -117,6 +119,7 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
   const mailer = options.mailer ?? (reset ? new SmtpMailer(reset) : undefined);
   const dashboards =
     options.dashboards ?? Dashboards.fromFile(config.dashboardsPath, objects, schema);
+  const transfer = new TransferService(client, schema);
 
   return {
     config,
@@ -129,7 +132,8 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     lookups: new LookupsService(client, schema, config.lookupCacheTtlMs),
     relations: new RelationsService(client, schema),
     history: new HistoryService(client, schema, config.itop.timezone),
-    transfer: new TransferService(client, schema),
+    transfer,
+    queries: new QueriesService(client, schema, objects, transfer),
     auth,
     sessions,
     passwordReset: new PasswordResetService(client, auth, resetTokens, sessions, mailer, reset),

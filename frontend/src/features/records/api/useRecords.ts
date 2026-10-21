@@ -218,21 +218,25 @@ export function useExport(className: string) {
       /** iTop's `fields`: the columns to export, comma-separated. */
       fields?: string;
     }) => {
-      const blob = await exportRecords(className, format, filters);
-      const url = URL.createObjectURL(blob);
-      try {
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `${className}-${new Date().toISOString().slice(0, 10)}.${format}`;
-        document.body.append(link);
-        link.click();
-        link.remove();
-      } finally {
-        // Revoking at once can cancel the download in some browsers.
-        setTimeout(() => URL.revokeObjectURL(url), 10_000);
-      }
+      saveBlob(await exportRecords(className, format, filters), `${className}-${new Date().toISOString().slice(0, 10)}.${format}`);
     },
   });
+}
+
+/** Hands a downloaded file to the browser's save flow. */
+export function saveBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  try {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.append(link);
+    link.click();
+    link.remove();
+  } finally {
+    // Revoking at once can cancel the download in some browsers.
+    setTimeout(() => URL.revokeObjectURL(url), 10_000);
+  }
 }
 
 export function useImport(className: string) {
