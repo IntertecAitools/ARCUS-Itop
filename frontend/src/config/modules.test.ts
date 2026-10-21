@@ -54,7 +54,7 @@ describe('hidden modules', () => {
   it('keeps hidden modules out of the chrome', () => {
     const navigable = navigableModules().map((m) => m.id);
 
-    expect(navigable).toEqual(['dashboard']);
+    expect(navigable).toEqual(['dashboard', 'queries']);
     for (const id of ['incidents', 'records', 'modules']) {
       expect(navigable).not.toContain(id);
     }
@@ -88,7 +88,8 @@ describe('hidden modules', () => {
         expect(m.hidden).toBeFalsy();
       }
     }
-    expect(modulesInGroup('resources')).toEqual([]);
+    // Records, dashboards and the modules index are hidden; Queries is offered.
+    expect(modulesInGroup('resources').map((m) => m.id)).toEqual(['queries']);
   });
 });
 

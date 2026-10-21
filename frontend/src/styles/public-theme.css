@@ -1,0 +1,184 @@
+/* ============================================================================
+   The public look — landing page, sign-in / password reset, end-user portal
+   ----------------------------------------------------------------------------
+   Near-black deep green, white type, almost no colour, square corners and a
+   light-weight grotesque. It is the SAME token set as globals.css, re-pointed
+   under `[data-public-theme]`, so every shared component (Button, Input,
+   Card, Badge…) picks the look up with no per-component branching.
+
+   Only the public layouts set the attribute (see components/public/
+   PublicTheme.tsx), so the staff app is untouched. `dark` is the default;
+   `light` is the reading/forms variant a visitor can switch to.
+
+   Direction: everything here is written with logical properties (ms-/me-,
+   ps-/pe-, border-s, start/end) and arrows flip under `rtl:`, so setting
+   dir="rtl" on <html> mirrors the layout with no other change.
+
+   Contrast: every ink step below is ≥ 4.5:1 on canvas, surface and raised
+   surface in its own mode, and line-strong (input borders) is ≥ 3:1.
+   ========================================================================== */
+
+@import '@fontsource-variable/hanken-grotesk';
+/* Arabic: Hanken has no Arabic glyphs, so the browser takes them from Noto
+   Sans Arabic. Its @font-face rules carry an Arabic unicode-range, so the
+   files only download when Arabic text is on the page. */
+@import '@fontsource-variable/noto-sans-arabic';
+
+[data-public-theme] {
+  --arcus-font-sans:
+    'Hanken Grotesk Variable', 'Noto Sans Arabic Variable', 'Segoe UI', system-ui, -apple-system, sans-serif;
+
+  --arcus-radius-control: 0;
+  --arcus-radius-card: 0;
+  --arcus-radius-panel: 0;
+  --arcus-radius-pill: 0;
+
+  --arcus-shadow-xs: none;
+  --arcus-shadow-sm: none;
+
+  font-family: var(--arcus-font-sans), sans-serif;
+  font-feature-settings: normal;
+  background-color: var(--arcus-canvas);
+  color: var(--arcus-ink);
+}
+
+[data-public-theme='dark'] {
+  color-scheme: dark;
+
+  --arcus-canvas: #121a15;
+  --arcus-surface: #18201a;
+  --arcus-surface-raised: #1e2820;
+  --arcus-surface-sunken: #141c16;
+  --arcus-surface-hover: #253128;
+
+  --arcus-ink: #ffffff;
+  --arcus-ink-secondary: #cdd5cf;
+  --arcus-ink-muted: #9eaaa2;
+  --arcus-ink-inverse: #121a15;
+
+  --arcus-line: #2e3a32;
+  --arcus-line-strong: #75827a;
+  --arcus-grid: #222c25;
+
+  /* "Brand" here is white: a white button with black type is the accent. */
+  --arcus-brand: #ffffff;
+  --arcus-brand-hover: #dfe6e1;
+  --arcus-brand-active: #c4cec7;
+  --arcus-brand-soft: #253128;
+  --arcus-brand-soft-hover: #2e3b31;
+  --arcus-brand-ink: #ffffff;
+  --arcus-on-brand: #0d130f;
+  --arcus-ring: #ffffff;
+  --arcus-scrim: rgb(0 0 0 / 0.6);
+
+  --arcus-good: #4ade80;
+  --arcus-good-soft: #15291c;
+  --arcus-good-ink: #86efac;
+  --arcus-warning: #fbbf24;
+  --arcus-warning-soft: #2a2410;
+  --arcus-warning-ink: #fcd34d;
+  --arcus-serious: #fb923c;
+  --arcus-serious-soft: #2e1e12;
+  --arcus-serious-ink: #fdba74;
+  --arcus-critical: #f87171;
+  --arcus-critical-soft: #2f1717;
+  --arcus-critical-ink: #fca5a5;
+  --arcus-neutral: #9eaaa2;
+  --arcus-neutral-soft: #222c25;
+  --arcus-neutral-ink: #cdd5cf;
+  --arcus-info: #93c5fd;
+  --arcus-info-soft: #172331;
+  --arcus-info-ink: #bfdbfe;
+
+  --arcus-shadow-md: 0 2px 4px rgb(0 0 0 / 0.35), 0 4px 12px rgb(0 0 0 / 0.45);
+  --arcus-shadow-lg: 0 8px 24px rgb(0 0 0 / 0.55), 0 2px 6px rgb(0 0 0 / 0.4);
+
+  /* The Logo mark, inverted: a white tile with the brackets in deep green. */
+  --arcus-mark-from: #ffffff;
+  --arcus-mark-to: #dfe6e1;
+  --arcus-mark-fg: #18201a;
+}
+
+[data-public-theme='light'] {
+  color-scheme: light;
+
+  --arcus-canvas: #f5f5f1;
+  --arcus-surface: #ffffff;
+  --arcus-surface-raised: #ffffff;
+  --arcus-surface-sunken: #f0f0eb;
+  --arcus-surface-hover: #ebebe5;
+
+  --arcus-ink: #101712;
+  --arcus-ink-secondary: #3b4540;
+  --arcus-ink-muted: #5c6660;
+  --arcus-ink-inverse: #ffffff;
+
+  --arcus-line: #e0e0d9;
+  --arcus-line-strong: #868e89;
+  --arcus-grid: #ebebe5;
+
+  /* Deep green does the job white does in the dark variant. */
+  --arcus-brand: #18201a;
+  --arcus-brand-hover: #2b372f;
+  --arcus-brand-active: #000000;
+  --arcus-brand-soft: #e9ece7;
+  --arcus-brand-soft-hover: #dde2dc;
+  --arcus-brand-ink: #18201a;
+  --arcus-on-brand: #ffffff;
+  --arcus-ring: #18201a;
+  --arcus-scrim: rgb(16 23 18 / 0.35);
+
+  --arcus-good: #15803d;
+  --arcus-good-soft: #e3f4e8;
+  --arcus-good-ink: #166534;
+  --arcus-warning: #b45309;
+  --arcus-warning-soft: #fbf0d9;
+  --arcus-warning-ink: #92400e;
+  --arcus-serious: #c2410c;
+  --arcus-serious-soft: #fde9dc;
+  --arcus-serious-ink: #9a3412;
+  --arcus-critical: #b91c1c;
+  --arcus-critical-soft: #fbe5e5;
+  --arcus-critical-ink: #991b1b;
+  --arcus-neutral: #5c6660;
+  --arcus-neutral-soft: #ebebe5;
+  --arcus-neutral-ink: #3b4540;
+  --arcus-info: #1d4ed8;
+  --arcus-info-soft: #e5edfb;
+  --arcus-info-ink: #1e40af;
+
+  --arcus-shadow-md: 0 2px 4px rgb(16 23 18 / 0.05), 0 4px 12px rgb(16 23 18 / 0.08);
+  --arcus-shadow-lg: 0 8px 24px rgb(16 23 18 / 0.1), 0 2px 6px rgb(16 23 18 / 0.06);
+
+  --arcus-mark-from: #18201a;
+  --arcus-mark-to: #000000;
+  --arcus-mark-fg: #ffffff;
+}
+
+/* Square focus ring, offset so it reads on the white button too. */
+[data-public-theme] :focus-visible {
+  outline: 2px solid var(--arcus-ring);
+  outline-offset: 3px;
+}
+
+/* Display type: large, light, tightly tracked. */
+[data-public-theme] .display {
+  font-weight: 300;
+  letter-spacing: -0.035em;
+  line-height: 1.04;
+}
+
+/* The Input wrapper already shows focus (border + ring); a second outline on
+   the bare <input> inside it would draw a box within a box. */
+[data-public-theme] .group:focus-within > input:focus-visible {
+  outline: none;
+}
+
+/* Arabic is cursive: letter-spacing breaks the joins between letters, and it
+   has no capitals. In right-to-left pages (and any Arabic run), the tracked
+   uppercase labels and tight display tracking fall back to normal. */
+[dir='rtl'] [data-public-theme] .display,
+[dir='rtl'] [data-public-theme] [class*='tracking-'],
+[data-public-theme] :lang(ar) {
+  letter-spacing: normal;
+}

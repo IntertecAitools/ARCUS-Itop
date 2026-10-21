@@ -41,19 +41,20 @@ export function ForgotPasswordPage() {
           </label>
           <Input
             id="identifier"
+        className="h-11"
             autoComplete="username"
             autoFocus
             value={identifier}
             onChange={(e) => setIdentifier(e.target.value)}
           />
-          <Button type="submit" className="mt-6 w-full" loading={request.isPending}>
+          <Button type="submit" className="mt-8 h-12 w-full text-[14px]" loading={request.isPending}>
             Send reset link
           </Button>
         </>
       )}
 
-      <p className="mt-5 text-center text-[13px]">
-        <Link to="/login" className="font-medium text-brand-ink hover:underline">
+      <p className="mt-6 text-[14px]">
+        <Link to="/login" className="text-ink-secondary underline underline-offset-4 hover:text-ink">
           Back to sign in
         </Link>
       </p>

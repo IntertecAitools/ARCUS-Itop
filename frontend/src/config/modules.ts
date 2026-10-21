@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   LayoutGrid,
   LifeBuoy,
+  ListFilter,
   ShieldCheck,
   UsersRound,
   type LucideIcon,
@@ -225,6 +226,28 @@ export const modules: ModuleDefinition[] = [
     component: lazy(() =>
       import('@/features/navigation').then((m) => ({ default: m.ModulesIndexPage })),
     ),
+  },
+  {
+    id: 'queries',
+    label: 'Queries',
+    path: 'queries',
+    icon: ListFilter,
+    group: 'resources',
+    description: 'Saved searches over any kind of record: run, export, share.',
+    component: lazy(() => import('@/features/queries').then((m) => ({ default: m.QueryListPage }))),
+    children: [
+      // `:id/run` before `:id`, so the results are not read as an editor.
+      {
+        path: ':id/run',
+        label: 'Results',
+        component: lazy(() => import('@/features/queries').then((m) => ({ default: m.QueryRunPage }))),
+      },
+      {
+        path: ':id',
+        label: 'Query',
+        component: lazy(() => import('@/features/queries').then((m) => ({ default: m.QueryEditorPage }))),
+      },
+    ],
   },
   {
     id: 'users',

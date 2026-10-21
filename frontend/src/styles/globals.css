@@ -1,4 +1,7 @@
 @import 'tailwindcss';
+/* The public look (landing, sign-in, portal): re-points these same tokens
+   under [data-public-theme]. The staff app never sets that attribute. */
+@import './public-theme.css';
 
 /* ============================================================================
    Intertec — design tokens
@@ -44,6 +47,8 @@
   --arcus-brand-soft-hover: #dbeafe;
   --arcus-brand-ink: #1d4ed8; /* brand-coloured text on a soft background */
   --arcus-ring: #93c5fd; /* focus ring */
+  --arcus-on-brand: #ffffff; /* text on a filled brand surface (primary button) */
+  --arcus-scrim: rgb(15 23 42 / 0.25); /* behind a modal dialog */
 
   /* --- Status (RESERVED) -------------------------------------------------
      These four roles are never reused as a chart series colour, and never
@@ -91,6 +96,15 @@
   --arcus-shadow-sm: 0 1px 2px rgb(16 24 40 / 0.04), 0 1px 3px rgb(16 24 40 / 0.06);
   --arcus-shadow-md: 0 2px 4px rgb(16 24 40 / 0.04), 0 4px 12px rgb(16 24 40 / 0.08);
   --arcus-shadow-lg: 0 8px 24px rgb(16 24 40 / 0.10), 0 2px 6px rgb(16 24 40 / 0.06);
+
+  /* --- Shape and type ------------------------------------------------------
+     Variables (not literal @theme values) so a scoped look can re-point them. */
+  --arcus-radius-control: 0.625rem; /* 10px — buttons, inputs, chips */
+  --arcus-radius-card: 0.875rem; /* 14px — cards, panels */
+  --arcus-radius-panel: 1rem; /* 16px — modals, drawers */
+  --arcus-radius-pill: 9999px; /* status badges */
+  --arcus-font-sans:
+    'Inter var', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 
 :root[data-theme='dark'] {
@@ -118,6 +132,7 @@
   --arcus-brand-soft-hover: #1c2d4d;
   --arcus-brand-ink: #93c5fd;
   --arcus-ring: #3b82f6;
+  --arcus-scrim: rgb(241 245 249 / 0.25);
 
   --arcus-good: #22c55e;
   --arcus-good-soft: #10291b;
@@ -197,6 +212,7 @@
   --color-brand-soft-hover: var(--arcus-brand-soft-hover);
   --color-brand-ink: var(--arcus-brand-ink);
   --color-ring: var(--arcus-ring);
+  --color-on-brand: var(--arcus-on-brand);
 
   --color-good: var(--arcus-good);
   --color-good-soft: var(--arcus-good-soft);
@@ -226,17 +242,17 @@
   --color-series-7: var(--arcus-series-7);
   --color-series-8: var(--arcus-series-8);
 
-  --radius-control: 0.625rem; /* 10px — buttons, inputs, chips */
-  --radius-card: 0.875rem; /* 14px — cards, panels */
-  --radius-panel: 1rem; /* 16px — modals, drawers */
+  --radius-control: var(--arcus-radius-control);
+  --radius-card: var(--arcus-radius-card);
+  --radius-panel: var(--arcus-radius-panel);
+  --radius-pill: var(--arcus-radius-pill);
 
   --shadow-xs: var(--arcus-shadow-xs);
   --shadow-card: var(--arcus-shadow-sm);
   --shadow-raised: var(--arcus-shadow-md);
   --shadow-overlay: var(--arcus-shadow-lg);
 
-  --font-sans:
-    'Inter var', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: var(--arcus-font-sans);
 
   --spacing-sidebar: 15rem; /* 240px expanded rail */
   --spacing-sidebar-collapsed: 4.5rem; /* 72px icon-only rail */
@@ -260,7 +276,7 @@
     color: var(--arcus-ink);
     /* Trailing generic keeps text readable if the custom property fails to
        resolve (and satisfies the "no generic family" lint). */
-    font-family: var(--font-sans), sans-serif;
+    font-family: var(--arcus-font-sans), sans-serif;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
@@ -270,7 +286,7 @@
   :focus-visible {
     outline: 2px solid var(--arcus-ring);
     outline-offset: 2px;
-    border-radius: var(--radius-control);
+    border-radius: var(--arcus-radius-control);
   }
 
   /* Columns of numbers must line up; standalone figures stay proportional. */

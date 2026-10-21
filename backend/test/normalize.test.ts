@@ -134,6 +134,16 @@ describe("cleanMessage", () => {
   it("handles null", () => {
     assert.equal(cleanMessage(null), "");
   });
+
+  it("keeps only the reason of a query iTop could not run", () => {
+    assert.equal(
+      cleanMessage(
+        "Error: Query failed to execute: query = SELECT Server WHERE nope = 1, exception_class = OqlNormalizeException, " +
+          "exception_message = Unknown filter code - found 'nope' at 20 in 'SELECT Server WHERE nope = 1'",
+      ),
+      "Unknown filter code - found 'nope' at 20 in 'SELECT Server WHERE nope = 1'",
+    );
+  });
 });
 
 describe("cleanMessage on SQL failures", () => {
