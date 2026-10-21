@@ -117,6 +117,11 @@ export function cleanMessage(message: string | null | undefined): string {
     const reason = /mysql_error\s*=\s*(.+?)\s*$/s.exec(text)?.[1];
     text = `${text.slice(0, stack).replace(/[\s:,]+$/, "")}${reason ? ` (${reason.trim()})` : ""}`;
   }
+  // A query iTop cannot parse or resolve comes back as "Query failed to
+  // execute: query = <the OQL>, exception_class = OqlNormalizeException,
+  // exception_message = Unknown filter code …": the last part is the reason.
+  const oqlReason = /^Query failed to execute:.*?\bexception_message\s*=\s*(.+)$/s.exec(text)?.[1];
+  if (oqlReason) text = oqlReason.trim();
   return text;
 }
 
