@@ -2,10 +2,17 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import { AppError } from "../src/core/errors.js";
+import { CmdbSchema } from "../src/schema/load.js";
 import type { ItopClient } from "../src/itop/client.js";
 import { parseCsv, remapCsv, writeCsv } from "../src/platform/transfer/csv.js";
-import { parseImportReport, TRANSFER_TIMEOUT_MS, TransferService } from "../src/platform/transfer/transfer.service.js";
-import { sampleSchema } from "./helpers.js";
+import {
+  MAX_IMPORT_ROWS,
+  MAX_TICKET_IMPORT_ROWS,
+  parseImportReport,
+  TRANSFER_TIMEOUT_MS,
+  TransferService,
+} from "../src/platform/transfer/transfer.service.js";
+import { SAMPLE_RAW_SCHEMA, sampleSchema } from "./helpers.js";
 
 /** import.php's output=details answer, as CSVPage writes it. */
 const REPORT = [
@@ -210,5 +217,56 @@ describe("TransferService at volume", () => {
     await service.import("Server", { csv: "name\nweb-01\n", simulate: true });
     assert.deepEqual(budgets, [TRANSFER_TIMEOUT_MS, TRANSFER_TIMEOUT_MS]);
     assert.equal(TRANSFER_TIMEOUT_MS, 300_000);
+  });
+});
+
+describe("TransferService import size", () => {
+  const service = () => {
+    const sent: string[] = [];
+    const client = {
+      postScript: async (script: string) => {
+        sent.push(script);
+        return new Response("#Issues: 0\n#Warnings: 0\n#Created: 0\n#Updated: 0\n#Unchanged: 0\n");
+      },
+    } as unknown as ItopClient;
+    return { sent, transfer: new TransferService(client, sampleSchema()) };
+  };
+  const csv = (rows: number) => ["name", ...Array.from({ length: rows }, (_, i) => `srv-${i}`)].join("\n") + "\n\n";
+
+  it("takes a file up to the limit, blank lines not counted", async () => {
+    const { sent, transfer } = service();
+    await transfer.import("Server", { csv: csv(MAX_IMPORT_ROWS), simulate: true });
+    assert.equal(sent.length, 1);
+  });
+
+  it("refuses a bigger file before iTop sees it, at the preview already", async () => {
+    const { sent, transfer } = service();
+    await assert.rejects(
+      () => transfer.import("Server", { csv: csv(MAX_IMPORT_ROWS + 1), simulate: true }),
+      (error: unknown) => error instanceof AppError && error.status === 400 && /Split it into smaller files/.test(error.message),
+    );
+    assert.equal(sent.length, 0);
+  });
+
+  it("allows fewer rows for tickets, which iTop writes far more slowly", async () => {
+    const schema = CmdbSchema.fromRaw({
+      ...SAMPLE_RAW_SCHEMA,
+      UserRequest: {
+        is_ci: false,
+        abstract: false,
+        inherits: ["cmdbAbstractObject", "Ticket"],
+        lifecycle: null,
+        writable: ["title"],
+        readonly: [],
+        fields: { title: { type: "String", ui: "scalar", owner: "Ticket", required: true } },
+      },
+    });
+    const client = { postScript: async () => new Response("#Issues: 0\n#Created: 0\n") } as unknown as ItopClient;
+    const rows = (n: number) => ["title", ...Array.from({ length: n }, (_, i) => `t${i}`)].join("\n");
+    await assert.rejects(
+      () => new TransferService(client, schema).import("UserRequest", { csv: rows(MAX_TICKET_IMPORT_ROWS + 1), simulate: true }),
+      /at most 1,000 tickets/,
+    );
+    assert.ok(MAX_TICKET_IMPORT_ROWS < MAX_IMPORT_ROWS);
   });
 });
