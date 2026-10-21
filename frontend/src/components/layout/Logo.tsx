@@ -1,6 +1,9 @@
 import { cn } from '@/lib/utils';
 import { env } from '@/config/env';
 
+/** The brackets' colour; the public look inverts the tile (see public-theme.css). */
+const MARK_FG = 'var(--arcus-mark-fg, white)';
+
 /**
  * The Intertec mark.
  *
@@ -14,8 +17,8 @@ function Mark({ className }: { className?: string }) {
     <svg viewBox="0 0 32 32" className={className} role="img" aria-hidden focusable="false">
       <defs>
         <linearGradient id="arcus-mark" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="var(--arcus-brand)" />
-          <stop offset="100%" stopColor="var(--arcus-brand-active)" />
+          <stop offset="0%" style={{ stopColor: 'var(--arcus-mark-from, var(--arcus-brand))' }} />
+          <stop offset="100%" style={{ stopColor: 'var(--arcus-mark-to, var(--arcus-brand-active))' }} />
         </linearGradient>
       </defs>
       <rect width="32" height="32" rx="9" fill="url(#arcus-mark)" />
@@ -23,7 +26,7 @@ function Mark({ className }: { className?: string }) {
       <path
         d="M13 8.5 A8.5 8.5 0 0 0 13 23.5"
         fill="none"
-        stroke="white"
+        style={{ stroke: MARK_FG }}
         strokeWidth="2.6"
         strokeLinecap="round"
         opacity="0.95"
@@ -32,13 +35,13 @@ function Mark({ className }: { className?: string }) {
       <path
         d="M19 8.5 A8.5 8.5 0 0 1 19 23.5"
         fill="none"
-        stroke="white"
+        style={{ stroke: MARK_FG }}
         strokeWidth="2.6"
         strokeLinecap="round"
         opacity="0.6"
       />
       {/* The core being held */}
-      <circle cx="16" cy="16" r="3.1" fill="white" />
+      <circle cx="16" cy="16" r="3.1" style={{ fill: MARK_FG }} />
     </svg>
   );
 }
