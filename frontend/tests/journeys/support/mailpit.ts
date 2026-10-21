@@ -31,5 +31,5 @@ export async function waitForEmail(query: string, { since, timeout = 60_000 }: {
     .toBeGreaterThan(0);
   const response = await fetch(`${MAILPIT_URL}/api/v1/message/${found!.ID}`);
   const message = (await response.json()) as { Text: string; HTML: string };
-  return { ...found!, text: message.Text || message.HTML };
+  return { ...found!, text: message.Text, html: message.HTML };
 }

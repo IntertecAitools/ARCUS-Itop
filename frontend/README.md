@@ -98,7 +98,7 @@ The main user journeys, end to end in Chromium:
 | `bell.spec.ts` | the bell: unread count, open an item (marks it read) |
 | `portal.spec.ts` | end user signs in → raises a request → finds it in their list → comments |
 | `forgot-password.spec.ts` | forgot password from sign-in, neutral answer |
-| `live.spec.ts` | live only: a portal request resolved by staff emails the caller (read from Mailpit) and rings their bell; a reset email's link sets a new password that signs in |
+| `live.spec.ts` | live only: a portal request resolved by staff emails the caller (read from Mailpit), who then sees it resolved; a reset email's link sets a new password that signs in |
 
 `E2E_TARGET` picks the stack (`tests/journeys/support/target.ts`). Specs
 tagged `@mock` run only against the mocks, `@live` only live; the rest run

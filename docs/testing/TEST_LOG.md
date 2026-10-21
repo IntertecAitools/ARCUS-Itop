@@ -4,6 +4,36 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-10-21 — Browser journeys (Playwright): mock suite in CI, live suite locally
+
+Branch `claude/browser-tests-2dc497`, PR #19. Live runs used this session's own BFF on :4600 (same `.env`, `CORS_ORIGINS`/`APP_BASE_URL` → :5673) and frontend on :5673, against the shared local iTop and Mailpit. The machine was heavily loaded throughout by another session's perf stack (`arcus-perf-itop-1` at ~420% CPU), so iTop calls took 5–60 s.
+
+| What ran | Result | Notes |
+| --- | --- | --- |
+| Frontend vitest after extending the mocks | ✅ 128/128 | The handlers are shared with the unit tests; nothing changed for them (no session stored = signed-in admin, as before) |
+| Typecheck (`tsc -b`, and `tsconfig.node.json` now covering `playwright.config.ts` + `tests/journeys`) | ✅ clean | |
+| Mock suite, `npm run e2e` (7 journeys, mock build on :5674, 2 workers) | ✅ 7/7 | After fixes below. With 4 workers on this loaded machine tests hit the 30 s timeout; 2 workers is the setting now |
+| Mock suite again after merging `origin/main`, fresh build | ✅ 7/7 (5.8 min, mostly the build on this loaded machine) | One earlier attempt hit the 6-minute webServer limit while the live suite and the perf stack were also running |
+| CI, PR #19 first push | ✅ all 4 jobs | New **E2E** job 1m01s (cold Chromium cache), Frontend 1m13s, Backend 31s, Deployment files 11s |
+| Live suite, `npm run e2e:live`, first full run | 4 ✅, composite ❌ | Sign-in → dashboard, records advanced search (org "My Company/Department"), portal raise/list/comment, forgot password all green against iTop |
+| Live: forgot password with the real email | ✅ | Reset email to `e2e.portal@example.test` in Mailpit, link opened, new password set, signed in with it |
+| Live: composite (rule in UI → portal request → staff assign + resolve → Mailpit → portal shows it resolved) | ✅ after fixes (4.9m) | Earlier attempts each got further: R-000025 to R-000029 created; iTop resolved them and emailed `e2e.portal@example.test` with subject `E2E <stamp>: R-0000NN is resolved` and the `/records/UserRequest/NN` link (in the HTML part; the text part has none). Final run: R-000030+ |
+| Live: full suite after merging `origin/main` (`npm run e2e:live`, 6 tests, 32.7 min) | 5 ✅, composite ❌ at the bell step | All four shared journeys and the reset email green; then `live.spec.ts` alone after the bell step became a `fixme`: composite ✅, reset email ✅, 1 skipped (9.0 min) |
+| Live: in-app notice for the portal caller | ❌ found, kept as `test.fixme` | The rule's `ActionNewsroom` is created, enabled and linked to the same trigger as the email (checked in `priv_action`, `priv_link_action_trigger`), but iTop wrote no `priv_event_newsroom` row for the portal caller, so their bell stays empty. Not fixed here: a product follow-up |
+
+Bugs found and fixed (in the tests and mocks, same branch):
+
+- Mocks had no `/meta/*`, `/objects/*` or `/lookups/*` handlers (records screens and the rule editor showed "Could not reach the server"), no rule create, a portal create that returned an existing ticket, and a session that could not start signed out or as an end user. Added; the mock build points the API at a dead port so any unmocked call now fails the test.
+- Organization picker cells showed `#1` instead of the parent's name: the mock lacked `parent_id_friendlyname`, which the BFF sends.
+- Locator collisions only the live data showed: the admin's avatar is labelled "My first name My last name", so `getByLabel('Name')` matched it; "Field" also matched "Insert a field". Now by id / exact.
+- A live rule save took over 30 s and finished after the test had failed, leaving rule 14 behind (deleted by hand; so were rule 22, left when a 15-minute run hit its time limit mid-cleanup, and probe rule 24 made to inspect the in-app action). Cleanup now waits for the save's own response and deletes whatever it created.
+- Under load the BFF gave up on iTop ("iTop took too long to answer") while iTop still resolved R-000026 and sent the email. The live action step now reloads and checks iTop finished, as a person would.
+
+Not covered:
+
+- The mock suite cannot prove what iTop does; that is what the live suite is for, and it is not in CI (no iTop there).
+- Test data left in local iTop: portal account `e2e.portal` (person "E2E Portal user", enabled, kept for future runs; password changes every run), User Requests titled `Printer jams on floor 3 …` and `E2E … badge reader at reception` (R-000024 to R-000026 and later). Notification rules created by runs were deleted.
+
 ### 2026-10-21 — Production iTop in the prod stack: install, cron, lock-down, backup/restore
 
 Branch `claude/great-williams-dba424`. The whole production stack (`docker/docker-compose.prod.yml` + `docker-compose.prod.localtest.yml` for Mailpit) on Docker Desktop, compose project `arcus-itoptest`, web on `:8098`, Mailpit on `:8026`, test env files in the session's scratchpad (not in the repo). The shared `itop-local`, `itop-mailpit` and `itop_prod` were not touched. Only `itop-local-cron` was added to `docker-compose.local.yml`; it was not started (it would run cron against the shared `itop_prod`).

@@ -2,7 +2,8 @@ import { accounts, expect, signIn, test } from './support/fixtures';
 
 /**
  * The bell: an unread count on the badge, the list, and reading an item.
- * Live, live.spec.ts checks a real notification reaches the end user's bell.
+ * Mock only: live, a rule's in-app notice does not reach a portal caller yet
+ * (the `fixme` in live.spec.ts).
  */
 test('the bell: unread count, open, mark read', { tag: '@mock' }, async ({ page }) => {
   await signIn(page, accounts.staff());
