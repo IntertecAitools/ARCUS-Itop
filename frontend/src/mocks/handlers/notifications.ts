@@ -1,10 +1,12 @@
 import { http, HttpResponse } from 'msw';
 import { env } from '@/config/env';
+import type { RecipientInput, Rule, RuleInput } from '@/features/notifications/types';
+import { records } from '../fixtures/records';
 
 const url = (path: string) => `${env.bffUrl}${path}`;
 
 /** One sample rule, so the notifications screens can be worked on without the BFF. */
-let rules = [
+let rules: Rule[] = [
   {
     id: 1,
     name: 'Request resolved: tell the caller',
@@ -61,7 +63,75 @@ const options = {
   ],
 };
 
+const label = (list: { code: string; label: string }[], code?: string) =>
+  list.find((x) => x.code === code)?.label ?? code;
+
+/** What the BFF answers after a save: the input, read back with display names. */
+function toRule(id: number, input: RuleInput): Rule {
+  const recipients = (list: RecipientInput[]) =>
+    list.map((r) =>
+      r.kind === 'people'
+        ? {
+            kind: 'people' as const,
+            people: r.ids.map((pid) => ({ id: pid, name: records.Person?.find((p) => p.id === pid)?.label ?? `#${pid}` })),
+          }
+        : r,
+    );
+  const recordType = options.recordTypes.find((t) => t.name === input.event.recordType)?.label ?? input.event.recordType;
+  const state = label(options.states, input.event.state);
+  return {
+    id,
+    name: input.name,
+    event: {
+      ...input.event,
+      conditions: input.event.conditions ?? [],
+      hasCondition: (input.event.conditions?.length ?? 0) > 0,
+      keptCondition: false,
+      valueLabels: {},
+      firesFromPlatform: true,
+      labels: { recordType, ...(state ? { state } : {}) },
+    },
+    email: {
+      to: recipients(input.email.to),
+      cc: recipients(input.email.cc),
+      subject: input.email.subject,
+      body: input.email.body,
+      status: input.email.status,
+      testRecipient: input.email.testRecipient ?? '',
+      sharedWith: 0,
+    },
+    inApp: input.inApp ?? { on: false, message: '' },
+  };
+}
+
+const refused = (message: string) =>
+  HttpResponse.json({ error: { code: 'validation_failed', message } }, { status: 422 });
+
+/** The BFF's own checks, so the editor's error path can be seen without it. */
+function invalid(input: RuleInput) {
+  if (!input.name.trim()) return 'Give the rule a name.';
+  if (!input.email.subject.trim()) return 'The email needs a subject.';
+  if (input.email.to.length === 0) return 'Choose who the email goes to.';
+  return null;
+}
+
 export const notificationHandlers = [
+  http.post(url('/admin/notifications/rules'), async ({ request }) => {
+    const input = (await request.json()) as RuleInput;
+    const problem = invalid(input);
+    if (problem) return refused(problem);
+    const rule = toRule(Math.max(0, ...rules.map((r) => r.id)) + 1, input);
+    rules = [...rules, rule];
+    return HttpResponse.json(rule, { status: 201 });
+  }),
+  http.put(url('/admin/notifications/rules/:id'), async ({ params, request }) => {
+    const input = (await request.json()) as RuleInput;
+    const problem = invalid(input);
+    if (problem) return refused(problem);
+    const rule = toRule(Number(params['id']), input);
+    rules = rules.map((r) => (r.id === rule.id ? rule : r));
+    return HttpResponse.json(rule);
+  }),
   http.get(url('/admin/notifications/rules'), () => HttpResponse.json({ rules })),
   http.get(url('/admin/notifications/rules/:id'), ({ params }) => {
     const rule = rules.find((r) => r.id === Number(params['id']));
@@ -72,7 +142,7 @@ export const notificationHandlers = [
   http.get(url('/admin/notifications/options'), () => HttpResponse.json(options)),
   http.get(url('/admin/notifications/sent'), () => HttpResponse.json({ sent: [] })),
   http.patch(url('/admin/notifications/rules/:id/status'), async ({ params, request }) => {
-    const { status } = (await request.json()) as { status: string };
+    const { status } = (await request.json()) as { status: Rule['email']['status'] };
     rules = rules.map((r) => (r.id === Number(params['id']) ? { ...r, email: { ...r.email, status } } : r));
     return HttpResponse.json(rules.find((r) => r.id === Number(params['id'])));
   }),

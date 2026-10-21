@@ -1,6 +1,7 @@
 import { http, HttpResponse } from 'msw';
 import { env } from '@/config/env';
 import type { IncidentDetail, TransitionAction } from '@/features/incidents';
+import { mockFlag } from '../storage';
 
 const url = (path: string) => `${env.bffUrl}${path}`;
 
@@ -9,7 +10,7 @@ const url = (path: string) => `${env.bffUrl}${path}`;
  *
  * Empty by default, matching an iTop instance with no tickets — the state the
  * empty views are designed against. Flip SEEDED for a populated queue to style
- * or demo against.
+ * or demo against; the browser tests turn it on per tab with the `seeded` flag.
  *
  * The store is mutable so creates, transitions and log entries behave like the
  * real thing: a mock that accepts a write and forgets it hides bugs in the
@@ -99,7 +100,7 @@ function load(): IncidentDetail[] {
   } catch {
     // A quota error or disabled storage must not break the mock.
   }
-  return SEEDED ? [...seeded] : [];
+  return SEEDED || mockFlag('seeded') ? structuredClone(seeded) : [];
 }
 
 let store: IncidentDetail[] = load();
@@ -114,6 +115,14 @@ function persist() {
 
 /** Ids must not collide with anything already stored across a reload. */
 let nextId = Math.max(2000, ...store.map((i) => Number(i.id) || 0)) + 1;
+
+/** The signed-in agent's open incidents, as the dashboard's My Assignments lists them. */
+export function myOpenIncidents() {
+  const items = store
+    .filter((i) => i.assignee?.id === '1' && !['resolved', 'closed'].includes(i.status))
+    .map(({ id, ref, summary, status, priority, createdAt }) => ({ id, ref, summary, status, priority, createdAt }));
+  return { items, total: items.length };
+}
 
 const find = (id: unknown) => store.find((i) => i.id === String(id));
 

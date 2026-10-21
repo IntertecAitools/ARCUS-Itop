@@ -1,5 +1,8 @@
 import { http, HttpResponse } from 'msw';
 import { env } from '@/config/env';
+import type { CatalogService, NewRequest, PortalTicket, PortalTicketDetail } from '@/features/portal/types';
+import { readStored, writeStored } from '../storage';
+import { currentMockUser } from './auth';
 
 const url = (path: string) => `${env.bffUrl}${path}`;
 
@@ -8,7 +11,21 @@ const url = (path: string) => `${env.bffUrl}${path}`;
  * articles. Enough to build and style every portal screen without the BFF;
  * the scoping rules themselves live in the BFF and are tested there.
  */
-const tickets = [
+const catalog: CatalogService[] = [
+  {
+    id: 1,
+    name: 'Network access',
+    description: 'Wi-Fi, VPN and remote access.',
+    family: 'IT services',
+    subcategories: [
+      { id: 11, name: 'VPN', description: '' },
+      { id: 12, name: 'Wi-Fi', description: '' },
+    ],
+  },
+  { id: 2, name: 'Hardware', description: 'Laptops, screens and peripherals.', family: 'IT services', subcategories: [] },
+];
+
+const seeded: PortalTicket[] = [
   {
     id: 101,
     ref: 'R-000101',
@@ -37,57 +54,103 @@ const tickets = [
   },
 ];
 
-const detail = (id: number) => {
-  const t = tickets.find((x) => x.id === id) ?? tickets[0]!;
-  return {
-    ...t,
-    description: 'Describe the problem here.',
-    solution: t.status === 'resolved' ? 'A 27" monitor was delivered and installed.' : '',
-    caller: 'Mock Administrator',
-    agent: 'Sam Agent',
-    team: 'Service desk',
-    resolvedAt: t.status === 'resolved' ? t.updatedAt : '',
-    closedAt: '',
-    urgency: '3',
-    impact: '3',
-    satisfaction: '',
-    userComment: '',
-    log: [{ date: t.updatedAt, author: 'Sam Agent', message: 'We are looking into it.' }],
-    actions: t.status === 'resolved' ? ['close', 'reopen'] : [],
-  };
-};
+const seededDetail = (t: PortalTicket): PortalTicketDetail => ({
+  ...t,
+  description: 'Describe the problem here.',
+  solution: t.status === 'resolved' ? 'A 27" monitor was delivered and installed.' : '',
+  caller: 'Mock Administrator',
+  agent: 'Sam Agent',
+  team: 'Service desk',
+  resolvedAt: t.status === 'resolved' ? t.updatedAt : '',
+  closedAt: '',
+  urgency: '3',
+  impact: '3',
+  satisfaction: '',
+  userComment: '',
+  log: [{ date: t.updatedAt, author: 'Sam Agent', message: 'We are looking into it.' }],
+  actions: t.status === 'resolved' ? ['close', 'reopen'] : [],
+});
+
+/**
+ * Mutable, and kept across reloads, so raising a request and commenting on it
+ * behave like the real thing: the new request is in the list afterwards.
+ */
+let tickets: PortalTicketDetail[] = readStored('portal', seeded.map(seededDetail));
+const save = () => writeStored('portal', tickets);
+
+const summary = ({ id, ref, kind, title, status, priority, closed, createdAt, updatedAt, service, subcategory }: PortalTicketDetail): PortalTicket =>
+  ({ id, ref, kind, title, status, priority, closed, createdAt, updatedAt, service, subcategory });
+
+const notFound = () =>
+  HttpResponse.json({ error: { code: 'not_found', message: 'No such request.' } }, { status: 404 });
+
+const PRIORITY: Record<string, PortalTicket['priority']> = { '1': 'critical', '2': 'high', '3': 'medium', '4': 'low' };
 
 export const portalHandlers = [
   http.get(url('/portal/requests'), ({ request }) => {
     const closed = new URL(request.url).searchParams.get('state') === 'closed';
-    const items = tickets.filter((t) => t.closed === closed);
+    const items = tickets.filter((t) => t.closed === closed).map(summary);
     return HttpResponse.json({ items, total: items.length, page: 1, pages: 1 });
   }),
-  http.get(url('/portal/requests/:id'), ({ params }) => HttpResponse.json(detail(Number(params.id)))),
-  http.post(url('/portal/requests'), () => HttpResponse.json(detail(101), { status: 201 })),
-  http.post(url('/portal/requests/:id/comments'), ({ params }) => HttpResponse.json(detail(Number(params.id)))),
-  http.post(url('/portal/requests/:id/close'), ({ params }) => HttpResponse.json(detail(Number(params.id)))),
-  http.post(url('/portal/requests/:id/reopen'), ({ params }) => HttpResponse.json(detail(Number(params.id)))),
+  http.get(url('/portal/requests/:id'), ({ params }) => {
+    const ticket = tickets.find((t) => t.id === Number(params.id));
+    return ticket ? HttpResponse.json(ticket) : notFound();
+  }),
+  http.post(url('/portal/requests'), async ({ request }) => {
+    const input = (await request.json()) as NewRequest;
+    const service = catalog.find((s) => s.id === input.serviceId);
+    const id = Math.max(100, ...tickets.map((t) => t.id)) + 1;
+    const now = new Date().toISOString();
+    const created: PortalTicketDetail = {
+      id,
+      ref: `R-000${id}`,
+      kind: 'request',
+      title: input.title,
+      status: 'new',
+      priority: PRIORITY[input.urgency ?? '4'] ?? 'low',
+      closed: false,
+      createdAt: now,
+      updatedAt: now,
+      service: service?.name ?? '',
+      subcategory: service?.subcategories.find((sc) => sc.id === input.subcategoryId)?.name ?? '',
+      description: input.description,
+      solution: '',
+      caller: currentMockUser().name,
+      agent: '',
+      team: '',
+      resolvedAt: '',
+      closedAt: '',
+      urgency: input.urgency ?? '4',
+      impact: '3',
+      satisfaction: '',
+      userComment: '',
+      log: [],
+      actions: [],
+    };
+    tickets = [created, ...tickets];
+    save();
+    return HttpResponse.json(created, { status: 201 });
+  }),
+  http.post(url('/portal/requests/:id/comments'), async ({ params, request }) => {
+    const ticket = tickets.find((t) => t.id === Number(params.id));
+    if (!ticket) return notFound();
+    const { message } = (await request.json()) as { message: string };
+    ticket.log = [{ date: new Date().toISOString(), author: currentMockUser().name, message }, ...ticket.log];
+    save();
+    return HttpResponse.json(ticket);
+  }),
+  http.post(url('/portal/requests/:id/close'), ({ params }) => {
+    const ticket = tickets.find((t) => t.id === Number(params.id));
+    return ticket ? HttpResponse.json(ticket) : notFound();
+  }),
+  http.post(url('/portal/requests/:id/reopen'), ({ params }) => {
+    const ticket = tickets.find((t) => t.id === Number(params.id));
+    return ticket ? HttpResponse.json(ticket) : notFound();
+  }),
   http.get(url('/portal/requests/:id/attachments'), ({ params }) =>
     HttpResponse.json({ items: [], total: 0, item: { class: 'UserRequest', id: String(params.id) } }),
   ),
-  http.get(url('/portal/catalog'), () =>
-    HttpResponse.json({
-      services: [
-        {
-          id: 1,
-          name: 'Network access',
-          description: 'Wi-Fi, VPN and remote access.',
-          family: 'IT services',
-          subcategories: [
-            { id: 11, name: 'VPN', description: '' },
-            { id: 12, name: 'Wi-Fi', description: '' },
-          ],
-        },
-        { id: 2, name: 'Hardware', description: 'Laptops, screens and peripherals.', family: 'IT services', subcategories: [] },
-      ],
-    }),
-  ),
+  http.get(url('/portal/catalog'), () => HttpResponse.json({ services: catalog })),
   http.get(url('/portal/faqs'), () =>
     HttpResponse.json({
       items: [
