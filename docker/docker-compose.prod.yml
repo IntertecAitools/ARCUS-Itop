@@ -26,7 +26,11 @@ services:
       # Fixed by the image layout and this file; not meant to be overridden.
       HOST: 0.0.0.0
       PORT: "4000"
-      TRUST_PROXY: "true"
+      # Two proxies stand in front of the BFF: nginx (web) and your TLS proxy.
+      # Trusting exactly those two hops reads the address the TLS proxy saw,
+      # whatever X-Forwarded-For the client sent. Change it (in prod.env) only
+      # if the chain differs; see docs/deployment.md.
+      TRUST_PROXY: "${TRUST_PROXY:-2}"
     extra_hosts:
       # Lets ITOP_BASE_URL / SESSION_DB_HOST say host.docker.internal on Linux too.
       - "host.docker.internal:host-gateway"

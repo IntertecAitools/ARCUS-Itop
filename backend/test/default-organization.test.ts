@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
+import { runAs, type Caller } from "../src/core/request-context.js";
 import { CurrentContact } from "../src/shared/current-contact.js";
 import { DefaultOrganization } from "../src/shared/default-organization.js";
 import { ObjectsService } from "../src/platform/objects/objects.service.js";
@@ -55,5 +56,21 @@ describe("DefaultOrganization", () => {
       getResponse([{ class: "Organization", id: 3, fields: { name: "Acme" } }], 1),
     ]);
     assert.equal(await build(fake).resolve(), "3");
+  });
+
+  it("works out the default as the service account for a user without an organisation", async () => {
+    // Worked out as Ann, it would follow her contact (99) and be cached for
+    // everyone after her.
+    const ann: Caller = {
+      userId: 5, login: "ann", contactId: 99, name: "Ann", email: "", kind: "staff", profiles: [],
+      isAdmin: false, allowedOrgIds: [], orgId: 0, credentials: { user: "ann", password: "pw" },
+    };
+    const fake = new FakeItopClient().on("core/get", [
+      getResponse([{ class: "UserLocal", id: 1, fields: { contactid: "42" } }]),
+      getResponse([{ class: "Person", id: 42, fields: { org_id: "7" } }]),
+    ]);
+    assert.equal(await runAs(ann, () => build(fake).resolve()), "7");
+    assert.ok(fake.calls.every((c) => c.as === "service"));
+    assert.match(String(fake.calls[1]?.params["key"]), /id = 42/);
   });
 });

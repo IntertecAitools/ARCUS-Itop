@@ -97,4 +97,21 @@ describe("UsersService.update", () => {
     await runAs(admin, () => service.update(20, { status: "disabled" }));
     assert.equal(await sessions.get(sid), undefined);
   });
+
+  it("signs the user out when their linked person changes", async () => {
+    const fake = new FakeItopClient()
+      .on("core/get", [USER(20), getResponse([]), getResponse([]), USER(20), getResponse([]), getResponse([])])
+      .on("core/update", getResponse([{ class: "UserLocal", id: 20, fields: {} }]));
+    const sessions = new MemorySessionStore(3_600_000, 3_600_000);
+    const sid = await sessions.create({ ...admin, userId: 20, login: "bob", isAdmin: false });
+    const service = new UsersService(
+      fake.asClient(),
+      new ObjectsService(fake.asClient(), sampleSchema(), "test"),
+      new AuthService(fake.asClient()),
+      sessions,
+    );
+    // The inbox and the portal are scoped by the contact held in the session.
+    await runAs(admin, () => service.update(20, { contactId: 77 }));
+    assert.equal(await sessions.get(sid), undefined);
+  });
 });

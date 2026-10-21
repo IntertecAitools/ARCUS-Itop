@@ -112,10 +112,13 @@ export function criterionToOql(
   }
   const label = `"${code}"`;
 
+  // iTop's OQL has no NOT: "not empty" is written as the opposite test.
   if (op === "empty" || op === "not_empty") {
-    const empty =
-      kind === "key" ? `${code} = 0` : kind === "string" || kind === "enum" ? `(${code} = '' OR ISNULL(${code}))` : `ISNULL(${code})`;
-    return op === "empty" ? empty : `NOT (${empty})`;
+    const empty = op === "empty";
+    if (kind === "key") return empty ? `${code} = 0` : `${code} != 0`;
+    // `!= ''` is false for NULL too, as in SQL.
+    if (kind === "string" || kind === "enum") return empty ? `(${code} = '' OR ISNULL(${code}))` : `${code} != ''`;
+    return empty ? `ISNULL(${code})` : `ISNULL(${code}) = 0`;
   }
 
   if (kind === "string") {

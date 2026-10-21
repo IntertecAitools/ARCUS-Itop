@@ -388,6 +388,29 @@ describe("attachment routes", () => {
     assert.equal(response.body, "bytes");
   });
 
+  it("serves page-like uploads as opaque bytes, and survives a non-Latin name", async () => {
+    for (const [mimetype, served] of [
+      ["text/html", "application/octet-stream"],
+      ["image/svg+xml", "application/octet-stream"],
+      ["application/xhtml+xml", "application/octet-stream"],
+      ["text/javascript", "application/octet-stream"],
+      ["not a type", "application/octet-stream"],
+      ["application/pdf", "application/pdf"],
+    ] as const) {
+      const fake = new FakeItopClient().on(
+        "core/get",
+        getResponse([attachmentRow(9, "<b>x</b>", { contents: blob("<b>x</b>", "文件.pdf", mimetype) })]),
+      );
+      const response = await app(fake).inject({ method: "GET", url: "/api/objects/Incident/7/attachments/9" });
+      assert.equal(response.statusCode, 200, mimetype);
+      assert.equal(response.headers["content-type"], served, mimetype);
+      assert.equal(
+        response.headers["content-disposition"],
+        `attachment; filename="__.pdf"; filename*=UTF-8''${encodeURIComponent("文件.pdf")}`,
+      );
+    }
+  });
+
   it("404s an unknown attachment", async () => {
     const fake = new FakeItopClient().on("core/get", getResponse([]));
 

@@ -24,7 +24,8 @@ export function registerTransferRoutes(app: FastifyInstance, services: Services)
         format: z.enum(EXPORT_FORMATS),
         q: z.string().max(200).optional(),
         view: z.string().max(120).regex(/^[A-Za-z0-9_:-]+$/).optional(),
-        oql: z.string().max(4_000).optional(),
+        // No raw OQL, as on the list (objects.routes.ts).
+        oql: z.undefined({ message: "Raw OQL is not accepted; export through a `view` id instead." }).optional(),
         fields: z.string().max(2_000).optional(),
         criteria: z.string().max(8_000).optional(),
       }),
@@ -32,7 +33,7 @@ export function registerTransferRoutes(app: FastifyInstance, services: Services)
       "query parameters",
     );
 
-    const viewOql = await resolveViewOql(services, className, query.view, query.oql);
+    const viewOql = await resolveViewOql(services, className, query.view);
     const oql = services.objects.queryFor(className, {
       ...(query.q !== undefined ? { q: query.q } : {}),
       ...(viewOql !== undefined ? { oql: viewOql } : {}),
