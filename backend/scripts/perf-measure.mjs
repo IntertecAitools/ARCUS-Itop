@@ -33,13 +33,14 @@ async function call(cookie, method, path, body) {
   });
   const buf = await res.arrayBuffer();
   const ms = performance.now() - start;
+  const text = new TextDecoder().decode(buf);
   let json;
   try {
-    json = JSON.parse(new TextDecoder().decode(buf));
+    json = JSON.parse(text);
   } catch {
     json = null;
   }
-  return { status: res.status, ms, bytes: buf.byteLength, json, headers: res.headers };
+  return { status: res.status, ms, bytes: buf.byteLength, json, lines: text.split(/\r?\n/).filter(Boolean).length };
 }
 
 async function signIn(login) {
@@ -65,21 +66,38 @@ async function main() {
   // Facts the cases need: the last page, a ticket with history, a CSV to import.
   const first = await call(staff, 'GET', '/api/objects/UserRequest?limit=25&fields=id,ref,title');
   const lastPage = first.json?.pages ?? 1;
+  // A request with several case-log entries and history: the newest one.
   const someId = first.json?.items?.[0]?.id;
   const people = await call(staff, 'GET', '/api/objects/Person?limit=500&fields=name,first_name,email,org_id');
   const csvRows = (people.json?.items ?? []).slice(0, 500);
   const csv = ['name,first_name,email,org_id', ...[...csvRows, ...csvRows].slice(0, 1000).map((p, i) => `${p.fields.name},${p.fields.first_name},imp${i}-${p.fields.email},${p.fields.org_id}`)].join('\n');
+  // An export of ~10,000 rows: the oldest requests, up to the day that makes 10,000.
+  const countUpTo = async (day) => {
+    const c = encodeURIComponent(JSON.stringify([{ field: 'start_date', op: 'lte', value: `${day} 23:59:59` }]));
+    return (await call(staff, 'GET', `/api/objects/UserRequest?limit=1&fields=id&criteria=${c}`)).json?.total ?? 0;
+  };
+  let lo = Date.UTC(2025, 9, 1);
+  let hi = Date.now();
+  for (let i = 0; i < 9; i++) {
+    const mid = (lo + hi) / 2;
+    if ((await countUpTo(new Date(mid).toISOString().slice(0, 10))) < 10_000) lo = mid;
+    else hi = mid;
+  }
+  const exportDay = new Date(hi).toISOString().slice(0, 10);
+  const exportRows = await countUpTo(exportDay);
+  const exportFields = 'ref,title,status,priority,start_date,caller_id_friendlyname,team_id_friendlyname';
+  const exportCriteria = encodeURIComponent(JSON.stringify([{ field: 'start_date', op: 'lte', value: `${exportDay} 23:59:59` }]));
   const criteria = encodeURIComponent(JSON.stringify([
-    { field: 'status', op: 'in', value: ['assigned', 'pending'] },
-    { field: 'start_date', op: 'after', value: '2026-07-01' },
+    { field: 'status', op: 'in', values: ['assigned', 'pending'] },
+    { field: 'start_date', op: 'gte', value: '2026-07-01' },
   ]));
 
   const cases = [
     ['sign-in', null, 'POST', '/api/auth/login', { login: LOGIN, password: PASSWORD }],
     ['auth/me', staff, 'GET', '/api/auth/me'],
+    // The overview includes My Assignments (the agent's four queues).
     ['dashboard overview (7d)', staff, 'GET', '/api/dashboard/overview?range=7d'],
     ['dashboard overview (90d)', staff, 'GET', '/api/dashboard/overview?range=90d'],
-    ['My Assignments', staff, 'GET', '/api/dashboard/my-assignments'],
     ['nav counts', staff, 'GET', '/api/nav/counts'],
     ['navigation menu', staff, 'GET', '/api/meta/navigation'],
     ['list UserRequest, page 1', staff, 'GET', '/api/objects/UserRequest?limit=25'],
@@ -94,11 +112,15 @@ async function main() {
     ['record detail UserRequest', staff, 'GET', `/api/objects/UserRequest/${someId}`],
     ['record History', staff, 'GET', `/api/objects/UserRequest/${someId}/history`],
     ['picker: caller_id options', staff, 'GET', '/api/meta/classes/UserRequest/fields/caller_id/options?q=Sh'],
-    ['export UserRequest 10,000 rows (csv)', staff, 'GET', '/api/objects/UserRequest/export?format=csv&fields=ref,title,status,start_date,caller_id_friendlyname&criteria=' + encodeURIComponent(JSON.stringify([{ field: 'id', op: 'lte', value: firstIdPlus(first, 0) }]))],
+    [`export ${exportRows} user requests (csv)`, staff, 'GET', `/api/objects/UserRequest/export?format=csv&fields=${exportFields}&criteria=${exportCriteria}`],
+    [`export ${exportRows} user requests (xlsx)`, staff, 'GET', `/api/objects/UserRequest/export?format=xlsx&fields=${exportFields}&criteria=${exportCriteria}`],
     ['import 1,000 Person rows (simulate)', staff, 'POST', '/api/objects/Person/import', { csv, simulate: true, reconciliationKeys: ['email'] }],
     ['notification rules', staff, 'GET', '/api/admin/notifications/rules'],
     ['notifications sent', staff, 'GET', '/api/admin/notifications/sent'],
     ['audit overview', staff, 'GET', '/api/admin/audit'],
+    // Categories made for this check: every UserRequest (2 rules), every CI (1 rule).
+    ['audit run: all user requests', staff, 'POST', '/api/admin/audit/categories/1/run'],
+    ['audit run: all CIs', staff, 'POST', '/api/admin/audit/categories/2/run'],
     ['bell: unread count', staff, 'GET', '/api/me/notifications/count'],
     ['bell: list', staff, 'GET', '/api/me/notifications'],
     ['portal: my open requests', portal, 'GET', '/api/portal/requests?state=open&page=1&limit=20'],
@@ -120,26 +142,17 @@ async function main() {
   }
 }
 
-/** The 10,000th-oldest request's id bound, from page 1 (ids are dense in perf data). */
-function firstIdPlus(first) {
-  const id = Number(first.json?.items?.[0]?.id ?? 1);
-  return id + 9_999;
-}
-
 function describe(res) {
   if (res.status !== 200) return `HTTP ${res.status}: ${String(res.json?.error?.message ?? res.json?.message ?? '').slice(0, 120)}`;
   const j = res.json;
-  if (!j) return `${(res.bytes / 1024).toFixed(0)} KB file, ${Math.max(0, countLines(res) - 1)} rows`;
+  if (!j) return `${(res.bytes / 1024).toFixed(0)} KB file${res.bytes < 2_000_000 && res.lines > 1 ? `, ${res.lines - 1} lines` : ''}`;
+  if (typeof j.failing === 'number') return `${j.failing} of ${j.total} failing`;
   if (typeof j.total === 'number') return `${j.items?.length ?? 0} of ${j.total}`;
   if (j.kpis) return `incidents in range ${j.kpis.totalIncidents}, trend sum ${j.trend.reduce((s, d) => s + d.created, 0)}`;
   if (j.incidents && j.requests) return `inc ${j.incidents.total}, req ${j.requests.total}, prob ${j.problems.total}, chg ${j.changes.total}`;
   if (typeof j.unread === 'number') return `${j.items?.length ?? ''} items, ${j.unread} unread`;
   if (j.summary) return JSON.stringify(j.summary).slice(0, 120);
   return `${(res.bytes / 1024).toFixed(0)} KB`;
-}
-
-function countLines(res) {
-  return res.lines ?? 0;
 }
 
 main().catch((error) => {
