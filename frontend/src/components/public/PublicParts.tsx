@@ -52,6 +52,46 @@ export function PublicImage({ src, className }: { src: string; className?: strin
   );
 }
 
+/** A portal page's heading block: eyebrow, large light title, optional intro and action. */
+export function PageIntro({
+  eyebrow = 'Service portal',
+  title,
+  intro,
+  action,
+  className,
+}: {
+  eyebrow?: ReactNode;
+  title: ReactNode;
+  intro?: ReactNode;
+  action?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn('mb-10 flex flex-wrap items-end justify-between gap-x-8 gap-y-5', className)}>
+      <div className="min-w-0">
+        <Eyebrow>{eyebrow}</Eyebrow>
+        <h1 className="display mt-4 text-[36px] break-words sm:text-[48px]">{title}</h1>
+        {intro ? <p className="mt-3 max-w-2xl text-[16px] leading-7 text-ink-secondary">{intro}</p> : null}
+      </div>
+      {action ? <div className="flex shrink-0 flex-wrap items-center gap-3">{action}</div> : null}
+    </div>
+  );
+}
+
+/** A form control's shared look on the public pages (textarea, native select). */
+export const publicControl =
+  'w-full rounded-control border border-line-strong bg-surface px-3 py-2.5 text-[14px] text-ink placeholder:text-ink-muted focus:border-brand';
+
+/** A quiet section heading inside a page: light, with a rule beneath. */
+export function SectionTitle({ children, action, id }: { children: ReactNode; action?: ReactNode; id?: string }) {
+  return (
+    <div className="mb-5 flex items-end justify-between gap-4 border-b border-line pb-3">
+      <h2 id={id} className="display text-[24px] sm:text-[28px]">{children}</h2>
+      {action}
+    </div>
+  );
+}
+
 /** First stop for keyboard users: jump past the header to the page's <main id="main">. */
 export function SkipLink() {
   return (

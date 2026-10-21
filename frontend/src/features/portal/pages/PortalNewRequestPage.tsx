@@ -2,10 +2,10 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Card, CardBody, CardHeader, Input, Skeleton } from '@/components/ui';
 import { cn } from '@/lib/utils';
+import { PageIntro, publicControl } from '@/components/public';
 import { useCatalog, useCreateRequest } from '../api/portal.api';
 
-const CONTROL =
-  'w-full rounded-control border border-line bg-surface px-3 py-2 text-[13px] text-ink placeholder:text-ink-muted focus:border-brand focus:outline-none';
+const CONTROL = publicControl;
 
 const URGENCY = [
   { value: '4', label: 'Low — whenever possible' },
@@ -53,14 +53,14 @@ export function PortalNewRequestPage() {
 
   return (
     <>
-      <h1 className="mb-4 text-[20px] font-semibold text-ink">New request</h1>
+      <PageIntro title="New request" intro="Tell the support team what you need. You can add files once the request is raised." />
       {create.isError ? (
         <div role="alert" className="mb-4 rounded-card border border-critical/30 bg-critical-soft px-4 py-3 text-[13px] text-critical-ink">
           {(create.error as Error).message}
         </div>
       ) : null}
 
-      <Card className="mb-4">
+      <Card className="mb-6">
         <CardHeader title="1. What is it about?" subtitle="Choose a service, or skip this if none fits." />
         <CardBody>
           {isLoading ? (
@@ -71,7 +71,7 @@ export function PortalNewRequestPage() {
             <div className="space-y-4">
               {families.map(([family, items]) => (
                 <div key={family}>
-                  <p className="mb-2 text-[12px] font-medium tracking-wide text-ink-muted uppercase">{family}</p>
+                  <p className="mb-3 text-[12px] font-medium tracking-[0.14em] text-ink-secondary uppercase">{family}</p>
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
                     {items.map((s) => (
                       <button
@@ -83,12 +83,12 @@ export function PortalNewRequestPage() {
                           setSubcategoryId(null);
                         }}
                         className={cn(
-                          'rounded-card border px-3 py-2.5 text-left transition-colors',
-                          serviceId === s.id ? 'border-brand bg-brand-soft' : 'border-line hover:bg-surface-hover',
+                          'h-full rounded-card border px-4 py-3.5 text-start transition-colors',
+                          serviceId === s.id ? 'border-ink bg-brand-soft ring-1 ring-ink' : 'border-line-strong hover:bg-surface-hover',
                         )}
                       >
-                        <span className="block text-[13px] font-medium text-ink">{s.name}</span>
-                        {s.description ? <span className="mt-0.5 block text-[12px] text-ink-muted line-clamp-2">{s.description}</span> : null}
+                        <span className="block text-[14px] font-medium text-ink">{s.name}</span>
+                        {s.description ? <span className="mt-1 block text-[13px] text-ink-secondary line-clamp-2">{s.description}</span> : null}
                       </button>
                     ))}
                   </div>
@@ -106,7 +106,7 @@ export function PortalNewRequestPage() {
                         onClick={() => setSubcategoryId(subcategoryId === sc.id ? null : sc.id)}
                         className={cn(
                           'rounded-control border px-3 py-1.5 text-[13px]',
-                          subcategoryId === sc.id ? 'border-brand bg-brand-soft text-brand-ink' : 'border-line text-ink hover:bg-surface-hover',
+                          subcategoryId === sc.id ? 'border-ink bg-brand-soft text-ink ring-1 ring-ink' : 'border-line-strong text-ink hover:bg-surface-hover',
                         )}
                       >
                         {sc.name}
@@ -120,12 +120,12 @@ export function PortalNewRequestPage() {
         </CardBody>
       </Card>
 
-      <Card className="mb-4">
+      <Card className="mb-6">
         <CardHeader title="2. Describe it" />
         <CardBody className="space-y-4">
           <div>
             <label htmlFor="title" className="mb-1.5 block text-[13px] font-medium text-ink">Title</label>
-            <Input id="title" placeholder="A short summary" value={title} onChange={(e) => setTitle(e.target.value)} />
+            <Input id="title" className="h-11" placeholder="A short summary" value={title} onChange={(e) => setTitle(e.target.value)} />
           </div>
           <div>
             <label htmlFor="description" className="mb-1.5 block text-[13px] font-medium text-ink">Description</label>
@@ -133,7 +133,7 @@ export function PortalNewRequestPage() {
           </div>
           <div>
             <label htmlFor="urgency" className="mb-1.5 block text-[13px] font-medium text-ink">How urgent is it?</label>
-            <select id="urgency" className={cn(CONTROL, 'appearance-none sm:w-80')} value={urgency} onChange={(e) => setUrgency(e.target.value)}>
+            <select id="urgency" className={cn(CONTROL, 'h-11 sm:w-80')} value={urgency} onChange={(e) => setUrgency(e.target.value)}>
               {URGENCY.map((u) => (
                 <option key={u.value} value={u.value}>{u.label}</option>
               ))}
@@ -142,8 +142,8 @@ export function PortalNewRequestPage() {
         </CardBody>
       </Card>
 
-      <div className="flex justify-end">
-        <Button onClick={submit} disabled={!title.trim() || !description.trim()} loading={create.isPending}>
+      <div className="flex justify-end border-t border-line pt-6">
+        <Button size="lg" className="h-12 px-8 text-[14px]" onClick={submit} disabled={!title.trim() || !description.trim()} loading={create.isPending}>
           Submit request
         </Button>
       </div>

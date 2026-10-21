@@ -4,6 +4,30 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-10-21 — Public look: landing page, sign-in and password reset, end-user portal
+
+Branch `claude/portal-design-1845da` (PR #17). Frontend only. Vite on `:5973` in mock mode (`VITE_API_MODE=mock`); screenshots from headless Chromium (Playwright 1.63) driven by a script in the session's scratchpad, saved to `docs/design/public-look/`.
+
+| What ran | Result | Notes |
+| --- | --- | --- |
+| `npx vitest run` (full, 24 files / 128 tests) | ⚠️ 126 / 128 | The 2 failures were `AttachmentsPanel.test.tsx` `findByText` timeouts: the machine was heavily loaded (run took 12.5 min, setup 924 s), and this PR does not change that component |
+| `npx vitest run src/features/attachments` (re-run alone) | ✅ 11 / 11 | Same tests pass once the machine is less busy |
+| `npm run typecheck` | ✅ | Also after each step of the change |
+| `npm run build` | ✅ | 8 self-hosted `.woff2` files (Hanken Grotesk + Noto Sans Arabic subsets, 308 KB); no font CDN in the CSS |
+| Screenshots, phase 1: landing, sign-in, portal home × desktop/phone × dark/light | ✅ | Reviewed by eye; user approved the look |
+| Screenshots, phase 2: my requests, request detail, new request, knowledge base, article, profile, change-password dialog, bell, forgot password (form and "sent"), reset password, desktop dark/light, phone dark | ✅ | No page errors in the console |
+| `dir="rtl"` screenshots: landing, sign-in, portal home, the portal pages | ✅ | Layout, nav order, check lists and arrows mirror |
+| WCAG AA contrast of every public token pair (script) | ✅ | Text ≥ 4.98:1 in light, ≥ 5.63:1 in dark; buttons ≥ 16:1; input borders ≥ 3:1 |
+
+Bugs found and fixed (in this branch):
+
+- The bare `<input>` inside the `Input` wrapper drew its own focus outline inside the wrapper's ring (a box in a box) in the public look; the inner outline is off there.
+- The change-password dialog's backdrop was the ink colour at 25%, which turns a washed-out grey once ink is white; dialogs now use a `--arcus-scrim` token (same values as before for staff).
+- On phones the My requests table clipped its status and date columns; phones get a stacked list instead.
+- Textareas and the urgency select had a `border-line` edge (about 1.3:1, below the 3:1 AA asks for); they use `border-line-strong` now.
+
+Not covered: Playwright journeys against the real BFF and iTop (the browser-tests session owns them); a screen-reader pass; real Arabic text (only `dir="rtl"` with English copy).
+
 ### 2026-10-21 — Production iTop in the prod stack: install, cron, lock-down, backup/restore
 
 Branch `claude/great-williams-dba424`. The whole production stack (`docker/docker-compose.prod.yml` + `docker-compose.prod.localtest.yml` for Mailpit) on Docker Desktop, compose project `arcus-itoptest`, web on `:8098`, Mailpit on `:8026`, test env files in the session's scratchpad (not in the repo). The shared `itop-local`, `itop-mailpit` and `itop_prod` were not touched. Only `itop-local-cron` was added to `docker-compose.local.yml`; it was not started (it would run cron against the shared `itop_prod`).

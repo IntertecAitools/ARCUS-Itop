@@ -69,6 +69,7 @@
   --arcus-brand-ink: #ffffff;
   --arcus-on-brand: #0d130f;
   --arcus-ring: #ffffff;
+  --arcus-scrim: rgb(0 0 0 / 0.6);
 
   --arcus-good: #4ade80;
   --arcus-good-soft: #15291c;
@@ -125,6 +126,7 @@
   --arcus-brand-ink: #18201a;
   --arcus-on-brand: #ffffff;
   --arcus-ring: #18201a;
+  --arcus-scrim: rgb(16 23 18 / 0.35);
 
   --arcus-good: #15803d;
   --arcus-good-soft: #e3f4e8;

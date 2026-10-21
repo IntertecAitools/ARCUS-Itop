@@ -37,11 +37,11 @@ export function ResetPasswordPage() {
   if (!token) {
     return (
       <AuthCard label="Reset password" intro="This link is not complete.">
-        <p className="text-[13px] text-ink-secondary">
+        <p className="text-[15px] leading-6 text-ink-secondary">
           Open the link from the email again, or ask for a new one.
         </p>
-        <p className="mt-5 text-center text-[13px]">
-          <Link to="/forgot-password" className="font-medium text-brand-ink hover:underline">
+        <p className="mt-6 text-[14px]">
+          <Link to="/forgot-password" className="text-ink-secondary underline underline-offset-4 hover:text-ink">
             Ask for a new link
           </Link>
         </p>
@@ -55,7 +55,7 @@ export function ResetPasswordPage() {
         <AuthNotice>You were signed out everywhere. Sign in with your new password.</AuthNotice>
         <Link
           to="/login"
-          className={buttonClasses({ fullWidth: true, className: 'mt-6' })}
+          className={buttonClasses({ fullWidth: true, className: 'mt-8 h-12 text-[14px]' })}
         >
           Sign in
         </Link>
@@ -70,6 +70,7 @@ export function ResetPasswordPage() {
       </label>
       <Input
         id="new-password"
+        className="h-11"
         type="password"
         autoComplete="new-password"
         autoFocus
@@ -77,24 +78,25 @@ export function ResetPasswordPage() {
         onChange={(e) => setPassword(e.target.value)}
       />
 
-      <label htmlFor="confirm-password" className="mt-4 mb-1.5 block text-[13px] font-medium text-ink">
+      <label htmlFor="confirm-password" className="mt-5 mb-1.5 block text-[13px] font-medium text-ink">
         Type it again
       </label>
       <Input
         id="confirm-password"
+        className="h-11"
         type="password"
         autoComplete="new-password"
         value={confirm}
         onChange={(e) => setConfirm(e.target.value)}
       />
 
-      <Button type="submit" className="mt-6 w-full" loading={reset.isPending}>
+      <Button type="submit" className="mt-8 h-12 w-full text-[14px]" loading={reset.isPending}>
         Set new password
       </Button>
 
       {reset.error ? (
-        <p className="mt-5 text-center text-[13px]">
-          <Link to="/forgot-password" className="font-medium text-brand-ink hover:underline">
+        <p className="mt-6 text-[14px]">
+          <Link to="/forgot-password" className="text-ink-secondary underline underline-offset-4 hover:text-ink">
             Ask for a new link
           </Link>
         </p>

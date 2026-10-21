@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Plus, Search } from 'lucide-react';
 import { Button, buttonClasses, Card, CardBody, CardHeader, Input, Skeleton } from '@/components/ui';
 import { StatusPill } from '@/components/data-display';
-import { Eyebrow } from '@/components/public';
+import { Eyebrow, PageIntro, SectionTitle } from '@/components/public';
 import { ChangePasswordDialog } from '@/features/auth';
 import { useSessionStore } from '@/stores/session.store';
 import { compactNumber } from '@/lib/utils';
@@ -86,35 +86,33 @@ export function PortalFaqsPage() {
 
   return (
     <>
-      <h1 className="mb-4 text-[20px] font-semibold text-ink">Knowledge base</h1>
+      <PageIntro title="Knowledge base" intro="Answers from the support team to common questions. Search, or browse by topic." />
       <Input
         value={q}
         onChange={(e) => setQ(e.target.value)}
         placeholder="Search the knowledge base…"
         aria-label="Search the knowledge base"
         leadingIcon={<Search className="size-4" />}
-        className="mb-4 w-full sm:w-96"
+        className="mb-12 h-12 w-full sm:max-w-xl"
       />
       {isLoading ? (
         <Skeleton className="h-40" />
       ) : byCategory.size === 0 ? (
-        <p className="text-[13px] text-ink-muted">{q ? 'Nothing matches that search.' : 'No articles yet.'}</p>
+        <p className="text-[15px] text-ink-secondary">{q ? 'Nothing matches that search.' : 'No articles yet.'}</p>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-14">
           {[...byCategory.entries()].map(([category, items]) => (
-            <Card key={category}>
-              <CardHeader title={category} />
-              <CardBody>
-                <ul className="divide-y divide-line">
-                  {items.map((f) => (
-                    <li key={f.id} className="py-2.5">
-                      <Link to={`/portal/help/${f.id}`} className="text-[13px] font-medium text-brand-ink hover:underline">{f.title}</Link>
-                      {f.summary ? <p className="mt-0.5 text-[12px] text-ink-muted">{stripHtml(f.summary)}</p> : null}
-                    </li>
-                  ))}
-                </ul>
-              </CardBody>
-            </Card>
+            <section key={category}>
+              <SectionTitle>{category}</SectionTitle>
+              <ul className="divide-y divide-line">
+                {items.map((f) => (
+                  <li key={f.id} className="py-4">
+                    <Link to={`/portal/help/${f.id}`} className="text-[17px] text-ink underline-offset-4 hover:underline">{f.title}</Link>
+                    {f.summary ? <p className="mt-1 max-w-3xl text-[14px] leading-6 text-ink-secondary">{stripHtml(f.summary)}</p> : null}
+                  </li>
+                ))}
+              </ul>
+            </section>
           ))}
         </div>
       )}
@@ -127,7 +125,7 @@ export function PortalFaqPage() {
   const { data: faq, isLoading, error } = useFaq(id);
   return (
     <>
-      <Link to="/portal/help" className="mb-3 inline-flex items-center gap-1 text-[13px] text-ink-secondary hover:text-ink">
+      <Link to="/portal/help" className="mb-8 inline-flex items-center gap-1.5 text-[14px] text-ink-secondary hover:text-ink">
         <ArrowLeft className="size-4 rtl:-scale-x-100" aria-hidden />
         Knowledge base
       </Link>
@@ -136,13 +134,11 @@ export function PortalFaqPage() {
       ) : !faq ? (
         <p role="alert" className="text-[13px] text-critical-ink">{error instanceof Error ? error.message : 'Article not found.'}</p>
       ) : (
-        <Card>
-          <CardHeader title={faq.title} subtitle={faq.category} />
-          <CardBody>
-            {faq.summary ? <p className="mb-3 text-[13px] font-medium text-ink">{stripHtml(faq.summary)}</p> : null}
-            <p className="text-[13px] whitespace-pre-wrap text-ink">{stripHtml(faq.description ?? '') || '—'}</p>
-          </CardBody>
-        </Card>
+        <article className="max-w-3xl">
+          <PageIntro eyebrow={faq.category || 'Knowledge base'} title={faq.title} className="mb-8" />
+          {faq.summary ? <p className="mb-6 text-[19px] leading-8 text-ink">{stripHtml(faq.summary)}</p> : null}
+          <p className="text-[16px] leading-8 whitespace-pre-wrap text-ink-secondary">{stripHtml(faq.description ?? '') || '—'}</p>
+        </article>
       )}
     </>
   );
@@ -166,34 +162,34 @@ export function PortalProfilePage() {
 
   return (
     <>
-      <h1 className="mb-4 text-[20px] font-semibold text-ink">My profile</h1>
-      <Card className="mb-4">
+      <PageIntro title="My profile" />
+      <Card className="mb-6 max-w-3xl">
         <CardHeader title={`${profile.firstName} ${profile.lastName}`.trim()} subtitle={[profile.function, profile.organization].filter(Boolean).join(' · ')} />
-        <CardBody className="space-y-4">
-          <p className="text-[13px] text-ink">{profile.email || 'No email on file'}</p>
+        <CardBody className="space-y-5">
+          <p className="text-[15px] text-ink">{profile.email || 'No email on file'}</p>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label htmlFor="phone" className="mb-1.5 block text-[13px] font-medium text-ink">Phone</label>
-              <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
+              <Input id="phone" className="h-11" value={phone} onChange={(e) => setPhone(e.target.value)} />
             </div>
             <div>
               <label htmlFor="mobile" className="mb-1.5 block text-[13px] font-medium text-ink">Mobile</label>
-              <Input id="mobile" value={mobile} onChange={(e) => setMobile(e.target.value)} />
+              <Input id="mobile" className="h-11" value={mobile} onChange={(e) => setMobile(e.target.value)} />
             </div>
           </div>
           {update.isError ? <p role="alert" className="text-[12px] text-critical-ink">{(update.error as Error).message}</p> : null}
           {update.isSuccess ? <p role="status" className="text-[12px] text-good-ink">Saved.</p> : null}
           <div className="flex flex-wrap justify-between gap-2">
-            <button type="button" className={buttonClasses({ variant: 'secondary', size: 'sm' })} onClick={() => setChangingPassword(true)}>
+            <button type="button" className={buttonClasses({ variant: 'secondary', size: 'lg', className: 'h-11 px-5' })} onClick={() => setChangingPassword(true)}>
               Change password
             </button>
-            <Button size="sm" loading={update.isPending} onClick={() => update.mutate({ phone, mobilePhone: mobile })}>
+            <Button size="lg" className="h-11 px-6" loading={update.isPending} onClick={() => update.mutate({ phone, mobilePhone: mobile })}>
               Save
             </Button>
           </div>
         </CardBody>
       </Card>
-      <p className="text-[12px] text-ink-muted">Other details are kept by your organisation. Ask the support team to change them.</p>
+      <p className="text-[13px] text-ink-secondary">Other details are kept by your organisation. Ask the support team to change them.</p>
       {changingPassword ? <ChangePasswordDialog onClose={() => setChangingPassword(false)} /> : null}
     </>
   );

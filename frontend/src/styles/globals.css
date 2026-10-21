@@ -48,6 +48,7 @@
   --arcus-brand-ink: #1d4ed8; /* brand-coloured text on a soft background */
   --arcus-ring: #93c5fd; /* focus ring */
   --arcus-on-brand: #ffffff; /* text on a filled brand surface (primary button) */
+  --arcus-scrim: rgb(15 23 42 / 0.25); /* behind a modal dialog */
 
   /* --- Status (RESERVED) -------------------------------------------------
      These four roles are never reused as a chart series colour, and never
@@ -131,6 +132,7 @@
   --arcus-brand-soft-hover: #1c2d4d;
   --arcus-brand-ink: #93c5fd;
   --arcus-ring: #3b82f6;
+  --arcus-scrim: rgb(241 245 249 / 0.25);
 
   --arcus-good: #22c55e;
   --arcus-good-soft: #10291b;
