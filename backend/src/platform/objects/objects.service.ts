@@ -59,6 +59,9 @@ export interface ListResult {
   sortedInBff: boolean;
 }
 
+/** iTop's base classes, which every datamodel class extends. */
+const FRAMEWORK_ROOTS = new Set(["DBObject", "cmdbAbstractObject"]);
+
 export class ObjectsService {
   constructor(
     private readonly client: ItopClient,
@@ -81,6 +84,18 @@ export class ObjectsService {
     if (field.targetAvailable === false) return false;
     if (field.viaKey && info.fields[field.viaKey]?.targetAvailable === false) return false;
     return true;
+  }
+
+  /**
+   * Whether iTop gives `info` a `finalclass` attribute: it does for a class in
+   * a hierarchy (it has a parent below iTop's framework roots, or children),
+   * not for a standalone class.
+   */
+  private hasFinalclass(info: ClassInfo): boolean {
+    return (
+      info.inherits.some((c) => !FRAMEWORK_ROOTS.has(c)) ||
+      this.schema.list().some((other) => other.parent === info.name)
+    );
   }
 
   /** Resolves a `fields` query parameter into an iTop output_fields string. */
@@ -122,10 +137,12 @@ export class ObjectsService {
       throw badRequest("`fields` must name at least one attribute.");
     }
 
-    // `finalclass` is implicit on every iTop object (the real subclass of a
-    // row) and is what dashboards group an abstract class by; like id and
-    // friendlyname it is always available but absent from the field map.
-    const out = new Set<string>(["id", "friendlyname", "finalclass"]);
+    // `finalclass` (the real subclass of a row) is what dashboards group an
+    // abstract class by. iTop defines it on every class of a hierarchy, but
+    // NOT on a standalone one (Attachment, say), where asking for it fails
+    // the whole request with "invalid attribute code".
+    const out = new Set<string>(["id", "friendlyname"]);
+    if (this.hasFinalclass(info)) out.add("finalclass");
     for (const code of requestedCodes) {
       if (code === "id" || code === "friendlyname" || code === "finalclass") continue;
       assertIdentifier(code, "attribute code");

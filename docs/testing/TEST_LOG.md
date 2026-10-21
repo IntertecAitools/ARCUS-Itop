@@ -4,6 +4,30 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-10-21 — Impact graph export and grouping, "My changes", portal uploads under the end user
+
+Branch `claude/small-items-42d376`.
+
+| What ran | Result | Notes |
+| --- | --- | --- |
+| Backend unit tests + typecheck + build | ✅ 437/437, clean, built | New: Changes queue from iTop's `MyChanges` view with iTop's status labels (per class, falling back to Change's), soonest first, empty without the view; portal upload sends the end user's `user_id`/`contact_id` and names them; no `contact_id` without a person; no `finalclass` asked of Attachment |
+| Frontend unit tests + typecheck + build | ✅ 123/123, clean, built | New: `graph-layout` grouping (fold ≥5 of a class at a depth, one arrow per pair of boxes, expand, threshold off, root never folded), `graph-export` (standalone SVG, backdrop, page orientation), `MyAssignmentsCard` Changes tab (label, link to `/records/NormalChange/31`, View all, empty state). jsPDF 4.2.1 is loaded on demand (own chunk); `npm audit --omit=dev`: 0 |
+| Live, BFF on :4500 against local iTop: dashboard | ✅ | Test change C-000021 (NormalChange) walked new → validated → assigned (agent admin) → planned; `myAssignments.changes` listed it as "Assigned", then "Planned and scheduled"; `/api/objects/Change?view=MyChanges` lists it |
+| Live: portal upload | ✅ | Throwaway portal user raised R-000023 and uploaded a file; iTop's Attachment row has `user_id` 7 / `contact_id` 9 (the portal user and their person), not the service account; the portal list shows "Pia Portaltest". Both throwaway accounts disabled afterwards |
+| Live: impact graph in the browser (frontend :5573) | ✅ | srv-432887 with six test OtherSoftware instances: drawn as "6 × OtherSoftware"; click expands to 7 boxes and "Fold groups again" appears; Download PNG gave a 128 KB PNG, Download PDF a PDF (2.1 MB before turning on jsPDF's compression, 17 KB after, folded graph) |
+
+Bugs found and fixed (same branch):
+
+- iTop's Change menu is `MyChanges`, not `Change:MyChanges` like the ticket menus: the queue was empty until the live check showed it.
+- Every attachment upload and list failed with "invalid attribute code 'finalclass' for class 'Attachment'": since 1234db8 the BFF adds `finalclass` to every explicit field list, but iTop only defines it on classes in a hierarchy. It is now added only there.
+- PDFs were ~10x larger than needed (jsPDF stored the pixels raw); now deflated.
+
+Not covered / found:
+
+- The dashboard's Changes tab was not looked at in the browser: the hidden browser pane would not finish rendering the dashboard. The BFF response and the component test cover it.
+- Test data left in local iTop: NormalChange C-000021, OtherSoftware `zz-small-items-sw-1..6` on srv-432887, UserRequest R-000023 with one attachment, disabled users `pia1097`/`pia56005`.
+- The ticket tables' ID link always points at `/incidents/<id>`, also on the Requests and Problems tabs (pre-existing).
+
 ### 2026-10-20 — Export column picker, import column mapping, class labels on lists
 
 Branch `feature/export-columns-import-mapping`.

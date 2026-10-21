@@ -6,6 +6,13 @@ const COLUMN_GAP = 80;
 const ROW_GAP = 14;
 const PADDING = 16;
 
+/**
+ * How many records of one class, at one depth, before they fold into a single
+ * box. iTop's impact view does the same ("group similar items") so a server
+ * with forty virtual machines stays readable.
+ */
+export const GROUP_THRESHOLD = 5;
+
 export interface PlacedNode {
   key: string;
   class: string;
@@ -16,7 +23,22 @@ export interface PlacedNode {
   x: number;
   y: number;
   isRoot: boolean;
+  /**
+   * Set on a folded box standing for several records of the same class at the
+   * same depth: their keys. Its `id` is 0; it opens nothing, it expands.
+   */
+  members?: string[];
 }
+
+export interface LayoutOptions {
+  /** Fold a class at a depth once it has this many records. 0 never folds. */
+  groupThreshold?: number;
+  /** Groups (by key) the viewer opened, which are drawn record by record. */
+  expanded?: ReadonlySet<string>;
+}
+
+/** The key of the box folding `className` records at `level`. */
+export const groupKey = (level: number, className: string) => `group:${level}:${className}`;
 
 export interface GraphLayout {
   nodes: PlacedNode[];
@@ -34,9 +56,11 @@ export interface GraphLayout {
  * the same way as "impacts"; the arrows still show the real direction.
  *
  * Within a column, nodes are ordered by class, then label, so related kinds
- * of CI sit together.
+ * of CI sit together. A class with `groupThreshold` or more records in one
+ * column folds into one box with a count, unless its group is `expanded`.
  */
-export function layoutGraph(graph: RelationGraph): GraphLayout {
+export function layoutGraph(graph: RelationGraph, options: LayoutOptions = {}): GraphLayout {
+  const threshold = options.groupThreshold ?? GROUP_THRESHOLD;
   const byKey = new Map(graph.nodes.map((n) => [n.key, n]));
 
   // The record itself: iTop reports it under its real class, which can be a
@@ -75,10 +99,37 @@ export function layoutGraph(graph: RelationGraph): GraphLayout {
   const maxLevel = Math.max(0, ...level.values());
   for (const key of byKey.keys()) if (!level.has(key)) level.set(key, maxLevel + 1);
 
-  const columns = new Map<number, string[]>();
+  // Fold: each record's box is its own, or its class-at-this-depth group's.
+  const buckets = new Map<string, string[]>();
   for (const [key, l] of level) {
+    if (key === rootKey) continue;
+    const group = groupKey(l, byKey.get(key)!.class);
+    if (!buckets.has(group)) buckets.set(group, []);
+    buckets.get(group)!.push(key);
+  }
+  const boxOf = new Map<string, string>();
+  for (const [group, keys] of buckets) {
+    const fold = threshold > 0 && keys.length >= threshold && !options.expanded?.has(group);
+    for (const key of keys) boxOf.set(key, fold ? group : key);
+    if (fold) {
+      const cls = byKey.get(keys[0]!)!.class;
+      byKey.set(group, { key: group, class: cls, id: 0, label: `${keys.length} × ${cls}` });
+      level.set(group, level.get(keys[0]!)!);
+    }
+  }
+  boxOf.set(rootKey, rootKey);
+  const members = new Map<string, string[]>();
+  for (const [key, box] of boxOf) {
+    if (box === key) continue;
+    if (!members.has(box)) members.set(box, []);
+    members.get(box)!.push(key);
+  }
+
+  const columns = new Map<number, string[]>();
+  for (const box of new Set(boxOf.values())) {
+    const l = level.get(box)!;
     if (!columns.has(l)) columns.set(l, []);
-    columns.get(l)!.push(key);
+    columns.get(l)!.push(box);
   }
 
   const placed = new Map<string, PlacedNode>();
@@ -98,16 +149,29 @@ export function layoutGraph(graph: RelationGraph): GraphLayout {
         x: PADDING + l * (NODE_WIDTH + COLUMN_GAP),
         y: PADDING + row * (NODE_HEIGHT + ROW_GAP),
         isRoot: key === rootKey,
+        ...(members.has(key) ? { members: members.get(key)! } : {}),
       });
     });
+  }
+
+  // Edges between boxes: folded records share one arrow, and an edge inside a
+  // group (two VMs of one host, say) has nowhere to go.
+  const seen = new Set<string>();
+  const edges: GraphLayout['edges'] = [];
+  for (const e of graph.edges) {
+    const from = boxOf.get(e.from);
+    const to = boxOf.get(e.to);
+    if (!from || !to || from === to || seen.has(`${from}
+${to}`)) continue;
+    seen.add(`${from}
+${to}`);
+    edges.push({ from: placed.get(from)!, to: placed.get(to)! });
   }
 
   const levels = columns.size;
   return {
     nodes: [...placed.values()],
-    edges: graph.edges
-      .filter((e) => placed.has(e.from) && placed.has(e.to))
-      .map((e) => ({ from: placed.get(e.from)!, to: placed.get(e.to)! })),
+    edges,
     width: PADDING * 2 + levels * NODE_WIDTH + Math.max(0, levels - 1) * COLUMN_GAP,
     height: PADDING * 2 + tallest * NODE_HEIGHT + Math.max(0, tallest - 1) * ROW_GAP,
     levels,

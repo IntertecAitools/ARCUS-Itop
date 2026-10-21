@@ -51,7 +51,7 @@ function attachmentSchema() {
       abstract: false,
       inherits: ["DBObject"],
       lifecycle: null,
-      writable: ["item_class", "item_id", "contents", "expire"],
+      writable: ["item_class", "item_id", "contents", "expire", "user_id", "contact_id"],
       readonly: [],
       fields: {
         item_class: { type: "String", ui: "scalar", owner: "Attachment" },
@@ -59,6 +59,7 @@ function attachmentSchema() {
         contents: { type: "Blob", ui: "scalar", owner: "Attachment" },
         creation_date: { type: "DateTime", ui: "scalar", owner: "Attachment" },
         user_id: { type: "ExternalKey", ui: "picker", owner: "Attachment", target: "Organization" },
+        contact_id: { type: "ExternalKey", ui: "picker", owner: "Attachment", target: "Organization" },
         // NOT NULL with a default: iTop fills it, so it must not be demanded.
         expire: {
           type: "DateTime",
@@ -184,6 +185,9 @@ describe("AttachmentsService.upload", () => {
     assert.equal(contents["mimetype"], "text/plain");
     assert.equal(sent["item_class"], "Incident");
     assert.equal(sent["item_id"], "7");
+    // Attachment is a standalone class: iTop has no finalclass on it and
+    // fails the whole request if asked for one.
+    assert.doesNotMatch(String(fake.lastCall().params["output_fields"]), /finalclass/);
   });
 
   it("never sends expire, creation_date or user_id", async () => {
@@ -203,6 +207,47 @@ describe("AttachmentsService.upload", () => {
     assert.ok(!("expire" in sent));
     assert.ok(!("creation_date" in sent));
     assert.ok(!("user_id" in sent));
+    assert.ok(!("contact_id" in sent));
+  });
+
+  it("records an upload made for someone else under their user and contact", async () => {
+    // The portal writes through the service account; iTop only fills user_id
+    // and contact_id when they are empty, so sending them names the end user.
+    const fake = new FakeItopClient()
+      .on("core/get", getResponse([{ class: "Incident", id: 7, fields: { id: "7" } }]))
+      .on(
+        "core/create",
+        getResponse([attachmentRow(9, "payload", { user_id: "12", contact_id: "34", contact_id_friendlyname: "Jane Doe" })]),
+      );
+
+    const dto = await service(fake).upload(
+      "Incident",
+      "7",
+      { filename: "a.txt", mimeType: "text/plain", content: Buffer.from("payload") },
+      { userId: 12, contactId: 34, login: "jdoe" },
+    );
+
+    const call = fake.lastCall();
+    const sent = call.params["fields"] as Record<string, unknown>;
+    assert.equal(sent["user_id"], 12);
+    assert.equal(sent["contact_id"], 34);
+    assert.match(String(call.params["comment"]), /for jdoe in the self-service portal/);
+    assert.deepEqual(dto.uploadedBy, { id: "12", name: "Jane Doe" });
+  });
+
+  it("leaves contact_id to iTop when the end user has no person", async () => {
+    const fake = new FakeItopClient()
+      .on("core/get", getResponse([{ class: "Incident", id: 7, fields: { id: "7" } }]))
+      .on("core/create", getResponse([attachmentRow(9, "payload")]));
+    await service(fake).upload(
+      "Incident",
+      "7",
+      { filename: "a.txt", mimeType: "text/plain", content: Buffer.from("payload") },
+      { userId: 12, contactId: 0, login: "svc" },
+    );
+    const sent = fake.lastCall().params["fields"] as Record<string, unknown>;
+    assert.equal(sent["user_id"], 12);
+    assert.ok(!("contact_id" in sent));
   });
 
   it("refuses an empty file", async () => {

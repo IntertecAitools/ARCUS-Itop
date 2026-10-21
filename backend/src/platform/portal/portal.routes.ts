@@ -105,8 +105,14 @@ export function registerPortalRoutes(app: FastifyInstance, services: Services): 
 
   app.post("/api/portal/requests/:id/attachments", async (request, reply) => {
     const { id } = parse(idParams, request.params, "path parameters");
-    const host = await portal.attachmentHost(caller(), id);
-    const created = await attachments.upload(host, String(id), await readUpload(request));
+    const who = caller();
+    const host = await portal.attachmentHost(who, id);
+    // Recorded under the end user, not the service account that writes it.
+    const created = await attachments.upload(host, String(id), await readUpload(request), {
+      userId: who.userId,
+      contactId: who.contactId,
+      login: who.login,
+    });
     reply.code(201);
     return created;
   });
