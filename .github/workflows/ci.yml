@@ -1,6 +1,7 @@
 # Checks every pull request and every push to main: the same unit tests,
-# typechecks and builds that are run by hand before each PR. Tests that need
-# a running iTop (npm run smoke, api-check) are not here: CI has no iTop.
+# typechecks and builds that are run by hand before each PR, plus the browser
+# journeys against the mock API. Tests that need a running iTop (npm run
+# smoke, api-check, npm run e2e:live) are not here: CI has no iTop.
 name: CI
 
 on:
@@ -60,3 +61,47 @@ jobs:
         run: npm test
       - name: Build
         run: npm run build
+
+  e2e:
+    name: E2E (browser journeys, mock API)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      # The browser build is tied to the Playwright version, which is pinned
+      # exactly in package.json; the cache key follows it.
+      - name: Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('./package-lock.json').packages['node_modules/@playwright/test'].version")" >> "$GITHUB_OUTPUT"
+      - name: Cache Playwright's Chromium
+        id: browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - name: Install Chromium
+        if: steps.browsers.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+      - name: Install Chromium's system libraries
+        if: steps.browsers.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+      - name: Journeys (mock API)
+        run: npm run e2e
+      - name: Upload the report and traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            frontend/playwright-report/
+            frontend/test-results/
+          retention-days: 14

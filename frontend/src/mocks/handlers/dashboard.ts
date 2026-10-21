@@ -6,6 +6,8 @@ import {
   seededNavCounts,
   seededOverview,
 } from '../fixtures/dashboard';
+import { mockFlag } from '../storage';
+import { myOpenIncidents } from './incidents';
 
 const url = (path: string) => `${env.bffUrl}${path}`;
 
@@ -27,7 +29,16 @@ export const dashboardHandlers = [
     HttpResponse.json(SEEDED ? seededNavCounts : emptyNavCounts),
   ),
 
-  http.get(url('/dashboard/overview'), () =>
-    HttpResponse.json(SEEDED ? seededOverview : emptyOverview),
-  ),
+  http.get(url('/dashboard/overview'), () => {
+    if (SEEDED) return HttpResponse.json(seededOverview);
+    // The browser tests' `seeded` flag: an otherwise empty dashboard whose My
+    // Assignments are the mock incidents, so a journey can click through.
+    if (mockFlag('seeded')) {
+      return HttpResponse.json({
+        ...emptyOverview,
+        myAssignments: { ...emptyOverview.myAssignments, incidents: myOpenIncidents() },
+      });
+    }
+    return HttpResponse.json(emptyOverview);
+  }),
 ];

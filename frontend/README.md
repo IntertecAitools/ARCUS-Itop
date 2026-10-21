@@ -39,7 +39,8 @@ npm run dev              # http://localhost:5173
 | `npm run build`     | Typecheck + production build                         |
 | `npm run typecheck` | Types only                                           |
 | `npm test`          | Vitest unit tests (`src/**/*.test.ts(x)`)            |
-| `npm run e2e`       | Playwright shell smoke tests against the real build  |
+| `npm run e2e`       | Browser journeys against the mock API (what CI runs) |
+| `npm run e2e:live`  | The same journeys, plus live-only ones, against BFF + iTop |
 
 ## Data comes from the backend
 
@@ -80,17 +81,66 @@ uses them by default.
 ## Tests
 
 ```bash
-npm test        # Vitest units — no servers needed
-npm run e2e     # Playwright against the REAL stack
+npm test             # Vitest units — no servers needed
+npm run e2e          # browser journeys, mock API — no servers needed (CI runs this)
+npm run e2e:live     # the same journeys against the BFF + local iTop + Mailpit
 ```
 
-The e2e suite runs with **no mocks**: it drives the live backend and creates
-real incidents in iTop, which is the only way to catch what a mock papers over
-(iTop deriving priority, rejecting a stimulus, or demanding a field). A global
-setup fails fast with instructions if the backend or iTop is not reachable.
+### Browser journeys (Playwright, `tests/journeys/`)
 
-Those incidents are left in iTop deliberately, and each run uses unique titles
-so reruns never collide.
+The main user journeys, end to end in Chromium:
+
+| Spec | Journey |
+| --- | --- |
+| `staff.spec.ts` | sign in (back to the page asked for) → dashboard; My Assignments → open an incident → resolve it |
+| `records.spec.ts` | records → a class → advanced search → open a record |
+| `notifications.spec.ts` | notification rules list → create a rule |
+| `bell.spec.ts` | the bell: unread count, open an item (marks it read) |
+| `portal.spec.ts` | end user signs in → raises a request → finds it in their list → comments |
+| `forgot-password.spec.ts` | forgot password from sign-in, neutral answer |
+| `live.spec.ts` | live only: a portal request resolved by staff emails the caller (read from Mailpit) and rings their bell; a reset email's link sets a new password that signs in |
+
+`E2E_TARGET` picks the stack (`tests/journeys/support/target.ts`). Specs
+tagged `@mock` run only against the mocks, `@live` only live; the rest run
+in both.
+
+**Mock (`npm run e2e`, the default).** Playwright builds the app with
+`VITE_API_MODE=mock` into `dist-e2e/` and serves it on :5674; every API call
+is answered by the MSW handlers in `src/mocks`. The build points the API at a
+port nothing listens on, and a test fails if the page makes a call the mocks
+do not answer, or throws. Each test starts signed out with the seeded mock
+data (`sessionStorage` keys `arcus.mock.*`, see `src/mocks/storage.ts`); any
+login works, and a login starting with `portal` is the end user. When a
+journey needs data the mocks do not serve yet, extend the handlers rather
+than stubbing in the spec. CI runs this on every pull request (job **E2E**;
+the HTML report and traces are uploaded when it fails). Locally it reuses a
+server already on :5674, so after changing app code stop it or let
+Playwright start its own.
+
+**Live (`npm run e2e:live`).** Needs the local iTop and Mailpit
+(`docker/docker-compose.local.yml`, see `../backend/README.md`, "Local iTop")
+and a BFF of its own, on ports no other session uses:
+
+```bash
+cd backend
+PORT=4600 CORS_ORIGINS=http://localhost:5673 APP_BASE_URL=http://localhost:5673 npm run dev
+cd frontend && npm run e2e:live     # starts the frontend on :5673 itself
+```
+
+A global setup checks the BFF, iTop and Mailpit, signs in as the staff account
+(`E2E_STAFF_LOGIN`/`E2E_STAFF_PASSWORD`, default: the admin of the
+unattended install, `docker/itop-install-params.xml`) and keeps a portal
+account for the end-user journeys (`E2E_PORTAL_LOGIN`, default `e2e.portal`,
+email `e2e.portal@example.test`), created on the first run and given a new
+random password on every run. Other ports: `E2E_BFF_URL`,
+`E2E_FRONTEND_URL`, `E2E_MAILPIT_URL`.
+
+Each live run leaves its tickets in iTop (titled with the run's stamp, like
+`E2E lx3k9a1234 …`, or `Printer jams on floor 3 …`) and deletes the
+notification rule it creates. Tests run one at a time: they share one iTop.
+
+Reports: `playwright-report/<target>/` locally (`npx playwright show-report
+playwright-report/mock`), traces of failed tests in `test-results/`.
 
 ## Adding a module
 
