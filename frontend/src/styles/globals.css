@@ -49,6 +49,7 @@
   --arcus-ring: #93c5fd; /* focus ring */
   --arcus-on-brand: #ffffff; /* text on a filled brand surface (primary button) */
   --arcus-scrim: rgb(15 23 42 / 0.25); /* behind a modal dialog */
+  --arcus-on-critical: #ffffff; /* text on a filled critical surface (danger button, count badge) */
 
   /* --- Status (RESERVED) -------------------------------------------------
      These four roles are never reused as a chart series colour, and never
@@ -213,6 +214,7 @@
   --color-brand-ink: var(--arcus-brand-ink);
   --color-ring: var(--arcus-ring);
   --color-on-brand: var(--arcus-on-brand);
+  --color-on-critical: var(--arcus-on-critical);
 
   --color-good: var(--arcus-good);
   --color-good-soft: var(--arcus-good-soft);

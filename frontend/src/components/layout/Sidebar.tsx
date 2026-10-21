@@ -58,7 +58,7 @@ function NavItem({
               className={cn(
                 'shrink-0 rounded-pill text-[11px] font-semibold tabular-nums',
                 collapsed
-                  ? 'absolute top-0.5 end-3 flex min-w-4 items-center justify-center px-1 leading-4 ring-2 ring-[color:var(--arcus-surface)] bg-critical text-white'
+                  ? 'absolute top-0.5 end-3 flex min-w-4 items-center justify-center px-1 leading-4 ring-2 ring-[color:var(--arcus-surface)] bg-critical text-on-critical'
                   : 'bg-critical-soft px-1.5 py-0.5 text-critical-ink',
               )}
             >

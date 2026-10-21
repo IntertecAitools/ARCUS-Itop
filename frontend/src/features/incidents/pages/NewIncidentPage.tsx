@@ -71,7 +71,7 @@ export function NewIncidentPage() {
           <p className="text-[11px] font-semibold tracking-wider text-brand-ink uppercase">
             New incident
           </p>
-          <h1 className="mt-1 text-[22px] leading-7 font-semibold tracking-tight text-ink">
+          <h1 className="display mt-3 text-[32px] text-ink sm:text-[40px]">
             Create a new incident
           </h1>
           <p className="mt-1 text-[13px] text-ink-secondary">

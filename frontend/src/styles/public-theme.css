@@ -71,6 +71,8 @@
   --arcus-on-brand: #0d130f;
   --arcus-ring: #ffffff;
   --arcus-scrim: rgb(0 0 0 / 0.6);
+  /* Critical is a light red here, so the text on it is dark. */
+  --arcus-on-critical: #1f0a0a;
 
   --arcus-good: #4ade80;
   --arcus-good-soft: #15291c;
@@ -157,12 +159,36 @@
   --arcus-mark-fg: #ffffff;
 }
 
-/* Square focus ring, offset so it reads on the white button too. */
-[data-public-theme] :focus-visible {
-  outline: 2px solid var(--arcus-ring);
-  outline-offset: 3px;
-}
+/* Square focus ring, offset so it reads on the white button too. In the base
+   layer, so a component that draws its own focus (outline-none plus a ring or
+   a border, like the Input wrapper or the command palette) still wins. */
+@layer base {
+  [data-public-theme] :focus-visible {
+    outline: 2px solid var(--arcus-ring);
+    outline-offset: 3px;
+  }
 
+  /* The native file picker's button, in the same square, outlined style. */
+  [data-public-theme] input[type='file']::file-selector-button {
+    margin-inline-end: 0.75rem;
+    border: 1px solid var(--arcus-line-strong);
+    background: transparent;
+    color: var(--arcus-ink);
+    padding: 0.4rem 0.9rem;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  [data-public-theme] input[type='file']::file-selector-button:hover {
+    background: var(--arcus-surface-hover);
+  }
+
+  /* Native checkboxes and radios take the look's accent (white in dark). */
+  [data-public-theme] {
+    accent-color: var(--arcus-brand);
+  }
+}
 /* Display type: large, light, tightly tracked. */
 [data-public-theme] .display {
   font-weight: 300;

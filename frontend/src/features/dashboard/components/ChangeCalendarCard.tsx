@@ -67,7 +67,7 @@ export function ChangeCalendarCard({
                 className={cn(
                   'relative flex flex-col items-center rounded-control py-2 transition-colors',
                   isSelected
-                    ? 'bg-brand text-white'
+                    ? 'bg-brand text-on-brand'
                     : 'text-ink-secondary hover:bg-surface-hover',
                 )}
               >
@@ -77,7 +77,7 @@ export function ChangeCalendarCard({
                 <span
                   className={cn(
                     'text-[11px] leading-4',
-                    isSelected ? 'text-white/80' : 'text-ink-muted',
+                    isSelected ? 'text-on-brand/80' : 'text-ink-muted',
                   )}
                 >
                   {format(day, 'EEE')}

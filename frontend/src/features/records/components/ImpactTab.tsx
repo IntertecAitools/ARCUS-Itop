@@ -156,7 +156,9 @@ export function ImpactTab({ className, id }: { className: string; id: string }) 
             }
           />
         ) : (
-          <div className="overflow-auto rounded-card border border-line bg-surface">
+          // The graph is laid out in coordinates, left to right; in an RTL
+          // page its text would otherwise anchor from the other side.
+          <div dir="ltr" className="overflow-auto rounded-card border border-line bg-surface">
             <svg
               ref={svgRef}
               xmlns="http://www.w3.org/2000/svg"

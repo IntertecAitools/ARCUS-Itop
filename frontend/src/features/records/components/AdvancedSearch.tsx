@@ -56,7 +56,7 @@ export function AdvancedSearch({
 
   return (
     <Card className="mb-4">
-      <CardBody className="space-y-3">
+      <CardBody className="space-y-3 pt-5">
         <ConditionRows
           info={info}
           value={rows}

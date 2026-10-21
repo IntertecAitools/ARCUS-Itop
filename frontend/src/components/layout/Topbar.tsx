@@ -68,7 +68,8 @@ function UserMenu() {
         className="flex items-center gap-2.5 rounded-control py-1 pe-2 ps-1 transition-colors hover:bg-surface-hover"
       >
         <Avatar name={user.name} src={user.avatarUrl} size="md" />
-        <span className="hidden min-w-0 text-start sm:block">
+        {/* Visually hidden on phones, but always the button's accessible name. */}
+        <span className="sr-only min-w-0 text-start sm:not-sr-only sm:block">
           <span className="block truncate text-[13px] leading-4 font-semibold text-ink">
             {user.name}
           </span>

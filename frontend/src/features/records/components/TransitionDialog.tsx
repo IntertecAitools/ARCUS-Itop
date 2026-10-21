@@ -21,7 +21,7 @@ export function RecordDialog({
 }) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[color:var(--arcus-ink)]/25 px-4 py-10 backdrop-blur-[2px]"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[var(--arcus-scrim)] px-4 py-10 backdrop-blur-[2px]"
       onClick={onClose}
     >
       <form
