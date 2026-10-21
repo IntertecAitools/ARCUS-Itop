@@ -434,13 +434,16 @@ defaults are in `backend/.env.example`. In production, set these in
       redirect HTTP to HTTPS.
 - [ ] **`COOKIE_SECURE=true`.** The session cookie is then sent only over
       HTTPS. Leave it `false` only for a plain-HTTP test on localhost.
-- [ ] **`TRUST_PROXY=true`.** Set by the compose file: the BFF is always behind
-      nginx. Client addresses (used to rate-limit password-reset requests) are
-      then read from `X-Forwarded-For`. Your TLS proxy must **replace**
-      `X-Forwarded-For` with the client address (nginx:
-      `proxy_set_header X-Forwarded-For $remote_addr;`), not pass through what
-      the client sent, or a client can choose its own address. It should also
-      set `X-Forwarded-Proto https`.
+- [ ] **`TRUST_PROXY`** (the compose file sets `2`): the BFF is always behind
+      nginx and your TLS proxy, so it trusts exactly those two hops and reads
+      the client address the TLS proxy saw from `X-Forwarded-For`. Client
+      addresses rate-limit sign-ins and password-reset requests. With a
+      different chain set it in `prod.env`: the number of proxies in front of
+      the BFF, or their addresses/CIDRs (`10.0.0.0/8,172.16.0.0/12`). `true`
+      trusts every hop and takes the left-most address, which the client
+      chooses unless your TLS proxy **replaces** `X-Forwarded-For` (nginx:
+      `proxy_set_header X-Forwarded-For $remote_addr;`); avoid it. The TLS
+      proxy should also set `X-Forwarded-Proto https`.
 - [ ] **`SESSION_STORE=mysql`** with:
   - `SESSION_SECRET`: at least 32 characters, `openssl rand -base64 48`. It
     encrypts each session (which carries the user's iTop password). Keep it

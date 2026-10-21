@@ -270,9 +270,21 @@ export const modules: ModuleDefinition[] = [
     path: 'audit',
     icon: ShieldCheck,
     group: 'administration',
-    description: 'Data-quality checks on the CMDB, and the records that fail them.',
+    description: 'Data-quality checks on the CMDB: the records that fail them, and the checks themselves.',
     adminOnly: true,
     component: lazy(() => import('@/features/audit').then((m) => ({ default: m.AuditPage }))),
+    children: [
+      {
+        path: 'categories/:id',
+        label: 'Category',
+        component: lazy(() => import('@/features/audit').then((m) => ({ default: m.CategoryEditorPage }))),
+      },
+      {
+        path: 'rules/:id',
+        label: 'Rule',
+        component: lazy(() => import('@/features/audit').then((m) => ({ default: m.RuleEditorPage }))),
+      },
+    ],
   },
 ];
 

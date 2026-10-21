@@ -1,3 +1,5 @@
+import type { Criterion } from '@/features/records';
+
 /** iTop's data-quality audit, as the BFF presents it (no queries). */
 
 export type AuditStatus = 'good' | 'warning' | 'bad';
@@ -73,3 +75,47 @@ export interface CategoryRun {
 }
 
 export type AuditRuns = Record<number, CategoryRun>;
+
+// --- Editing -----------------------------------------------------------------
+
+/** A category or rule's check as the editor shows it: conditions, never a query. */
+export interface EditableConditions {
+  conditions: Criterion[];
+  /** Part of the check was set up in iTop and cannot be shown; it is kept unless removed. */
+  keptCondition: boolean;
+  /** Names of the records key conditions point at, keyed "field:id". */
+  valueLabels: Record<string, string>;
+}
+
+export type AuditCategoryForm = AuditCategory & EditableConditions;
+
+export type AuditRuleForm = AuditRule &
+  EditableConditions & { categoryId: number; recordType: string; recordTypeLabel: string };
+
+export interface CategoryInput {
+  name: string;
+  description: string;
+  recordType: string;
+  conditions: Criterion[];
+  keepCondition: boolean;
+  tolerance: { good: number; warning: number };
+  domains: number[];
+}
+
+export interface RuleInput {
+  categoryId: number;
+  name: string;
+  description: string;
+  lists: 'faulty' | 'valid';
+  conditions: Criterion[];
+  keepCondition: boolean;
+}
+
+export interface DomainInput {
+  name: string;
+  description: string;
+}
+
+export interface AuditOptions {
+  recordTypes: Array<{ name: string; label: string; ci: boolean }>;
+}

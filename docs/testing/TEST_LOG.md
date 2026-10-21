@@ -4,6 +4,74 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-10-21 — Impact graph export and grouping, "My changes", portal uploads under the end user
+
+Branch `claude/small-items-42d376`.
+
+| What ran | Result | Notes |
+| --- | --- | --- |
+| Backend unit tests + typecheck + build | ✅ 437/437, clean, built | New: Changes queue from iTop's `MyChanges` view with iTop's status labels (per class, falling back to Change's), soonest first, empty without the view; portal upload sends the end user's `user_id`/`contact_id` and names them; no `contact_id` without a person; no `finalclass` asked of Attachment |
+| Frontend unit tests + typecheck + build | ✅ 123/123, clean, built | New: `graph-layout` grouping (fold ≥5 of a class at a depth, one arrow per pair of boxes, expand, threshold off, root never folded), `graph-export` (standalone SVG, backdrop, page orientation), `MyAssignmentsCard` Changes tab (label, link to `/records/NormalChange/31`, View all, empty state). jsPDF 4.2.1 is loaded on demand (own chunk); `npm audit --omit=dev`: 0 |
+| Live, BFF on :4500 against local iTop: dashboard | ✅ | Test change C-000021 (NormalChange) walked new → validated → assigned (agent admin) → planned; `myAssignments.changes` listed it as "Assigned", then "Planned and scheduled"; `/api/objects/Change?view=MyChanges` lists it |
+| Live: portal upload | ✅ | Throwaway portal user raised R-000023 and uploaded a file; iTop's Attachment row has `user_id` 7 / `contact_id` 9 (the portal user and their person), not the service account; the portal list shows "Pia Portaltest". Both throwaway accounts disabled afterwards |
+| Live: impact graph in the browser (frontend :5573) | ✅ | srv-432887 with six test OtherSoftware instances: drawn as "6 × OtherSoftware"; click expands to 7 boxes and "Fold groups again" appears; Download PNG gave a 128 KB PNG, Download PDF a PDF (2.1 MB before turning on jsPDF's compression, 17 KB after, folded graph) |
+
+Bugs found and fixed (same branch):
+
+- iTop's Change menu is `MyChanges`, not `Change:MyChanges` like the ticket menus: the queue was empty until the live check showed it.
+- Every attachment upload and list failed with "invalid attribute code 'finalclass' for class 'Attachment'": since 1234db8 the BFF adds `finalclass` to every explicit field list, but iTop only defines it on classes in a hierarchy. It is now added only there.
+- PDFs were ~10x larger than needed (jsPDF stored the pixels raw); now deflated.
+
+Not covered / found:
+
+- The dashboard's Changes tab was not looked at in the browser: the hidden browser pane would not finish rendering the dashboard. The BFF response and the component test cover it.
+- Test data left in local iTop: NormalChange C-000021, OtherSoftware `zz-small-items-sw-1..6` on srv-432887, UserRequest R-000023 with one attachment, disabled users `pia1097`/`pia56005`.
+- The ticket tables' ID link always points at `/incidents/<id>`, also on the Requests and Problems tabs (pre-existing).
+### 2026-10-21 — Editing the audit: categories, rules and domains
+
+Branch `claude/audit-editing-021ce6`.
+
+| What ran | Result | Notes |
+| --- | --- | --- |
+| New backend tests (`backend/test/audit-editing.test.ts`, in-memory iTop) | ✅ 14/14 | Category and rule read back as record type + conditions (no OQL), key names for conditions, create with tolerances and domains, no conditions = every record, refusals before any write (name, unknown type, tolerances, unknown domain, dates, rule without conditions), domain links moved, a JOIN definition kept whole / refused with conditions / dropped, record type locked while rules exist, kept part of a rule ANDed back, delete answers 409 naming the rules then deletes rules before the category, domains CRUD, options |
+| Extra criteria / condition tests | ✅ | "not empty" written without `NOT` for every kind; the old `NOT (…)` form read back and rewritten; bare `SELECT Class` read as no conditions |
+| Backend `npm test` + typecheck | ✅ 450/450, clean | Run again after the NOT fix |
+| New frontend tests (`features/audit/lib/editing.test.ts`) | ✅ 5/5 | `?run=` parameter, tolerance checks, delete question naming the rules |
+| Frontend vitest + typecheck + build | ✅ 119/119, clean, built | |
+| Live check, own BFF on :4400 against local iTop (script, signed in as the local admin) | ✅ 20/20 after the fix | Domain, category (`status IN ('production')`, tolerances 10/40, domain) and rule (serial number empty, faulty) created; iTop rows checked by REST; category and rule runs match direct iTop counts; rule switched to "valid / serial not empty" gives the same failures; category edited (two statuses, domain removed, link gone in iTop); record-type change refused; delete without `withRules` → 409 naming the rule; with it → category and rule gone in iTop; domain deleted. The existing "Servers" category and its 3 rules read back (one keeps a part set up in iTop) |
+
+| Follow-up: rules on a parent class (idea from another session's unfinished copy) | ✅ backend 451/451 + typecheck; audit vitest 12/12; build | New test on the real schema: a rule `SELECT FunctionalCI WHERE business_criticity IN ('high')` under a Server category reads back as a condition and is edited in place |
+
+Bugs found and fixed (same commit):
+
+- **"Is not empty" never worked in iTop.** `criterionToOql` wrote it as `NOT (…)`, but iTop's OQL has no `NOT` ("Unexpected token PAR_OPEN"), so a "not empty" condition failed in advanced search and notification conditions too, and here a "valid" rule could not run. It is now `x != 0` (pickers), `x != ''` (text, lists) and `ISNULL(x) = 0` (numbers, dates), checked against iTop (complementary counts). The old form is still read, so a rule saved with it is rewritten correctly on its next save.
+- The first live run's run call sent a JSON content type without a body (script bug, not the BFF).
+
+Not covered:
+
+- The editors were not looked at in a browser: typing the local admin password into the sign-in page was not allowed in this session. The live check went through the same API the screens call.
+- Conditions on dates are refused for audit rules (as for notifications): a fixed date cannot be read back as a condition.
+### 2026-10-21 — Security pass before go-live: sign-in rate limiting and review fixes
+
+Branch `claude/security-hardening-1b379d`. Findings and reasoning: `docs/security-review.md`.
+
+| What ran | Result | Notes |
+| --- | --- | --- |
+| Probe of the guard with encoded paths (`app.inject`, before the fix) | ❌ found | `/api/%61dmin/users` 200 for a non-admin; `/%61pi/admin/users` 200 with no session, run as the service account |
+| New/changed backend tests: auth (encoded paths, rate limiting, origin with `*`, change-password limit), rate-limiter, trust-proxy, client credentials, raw OQL refusal, CSV formulas, 5xx answers, security headers, prototype keys, attachment types/names, default organisation, user relink | ✅ all pass | |
+| Backend `npm test` + `npm run typecheck` + `npm run build` | ✅ 455/455, clean, built | The first typecheck caught two of my own errors (Fastify's `trustProxy` type has no number; a stray `asService` on `applyStimulus`), both fixed before commit |
+| Frontend `npx vitest run` + `npm run typecheck` + `npm run build` | ✅ 114/114, clean, built | Built `index.html` has no inline script left (theme bootstrap moved to `/theme-init.js` for the CSP) |
+| `npm audit` | backend 0; frontend 6 (dev tooling only) | vitest/vite/esbuild/tinypool; fix is vitest 5, left for a separate change |
+| Live: own BFF on :4300 (worktree `.env`, MySQL sessions) over local iTop :8080 | ✅ | Good sign-in 200; 5 bad for one login 401 then 429 with `Retry-After: 887`; 10 bad from one address then 429 for every login; after restart 4 bad + good → 200 and the count cleared (5 more bad = 401, then 429); encoded paths 401; API headers present |
+
+Bugs found and fixed (same commit): the encoded-path guard bypass (critical), the silent fallback to the service account, no sign-in limits, `TRUST_PROXY=true` letting clients choose their address, raw `?oql=`, CSV formula injection, internals in 5xx answers, missing security headers/CSP, page-like attachment types and non-Latin file names (500), cross-origin writes unchecked with `CORS_ORIGINS=*`, the default-organisation cache following the first caller, sessions kept after a contact relink, `constructor`-style keys giving 500s.
+
+Not covered:
+
+- The CSP was checked against the built `index.html` (no inline scripts), not in a browser behind the real nginx image; no Docker build was run in this session.
+- The rate limits were not tested across several BFF instances (they are per instance by design).
+- The frontend dev-tooling advisories are not fixed (vitest 5 upgrade).
+
 ### 2026-10-20 — Export column picker, import column mapping, class labels on lists
 
 Branch `feature/export-columns-import-mapping`.

@@ -59,6 +59,20 @@ export interface ListResult {
   sortedInBff: boolean;
 }
 
+/** iTop's base classes, which every datamodel class extends. */
+const FRAMEWORK_ROOTS = new Set(["DBObject", "cmdbAbstractObject"]);
+
+export interface WriteOptions {
+  comment?: string;
+  fields?: string;
+  strict?: boolean;
+  /**
+   * Write with the service account. Only for callers that are themselves the
+   * access control, like the self-service portal (iTop refuses end users).
+   */
+  asService?: boolean;
+}
+
 export class ObjectsService {
   constructor(
     private readonly client: ItopClient,
@@ -81,6 +95,18 @@ export class ObjectsService {
     if (field.targetAvailable === false) return false;
     if (field.viaKey && info.fields[field.viaKey]?.targetAvailable === false) return false;
     return true;
+  }
+
+  /**
+   * Whether iTop gives `info` a `finalclass` attribute: it does for a class in
+   * a hierarchy (it has a parent below iTop's framework roots, or children),
+   * not for a standalone class.
+   */
+  private hasFinalclass(info: ClassInfo): boolean {
+    return (
+      info.inherits.some((c) => !FRAMEWORK_ROOTS.has(c)) ||
+      this.schema.list().some((other) => other.parent === info.name)
+    );
   }
 
   /** Resolves a `fields` query parameter into an iTop output_fields string. */
@@ -122,10 +148,12 @@ export class ObjectsService {
       throw badRequest("`fields` must name at least one attribute.");
     }
 
-    // `finalclass` is implicit on every iTop object (the real subclass of a
-    // row) and is what dashboards group an abstract class by; like id and
-    // friendlyname it is always available but absent from the field map.
-    const out = new Set<string>(["id", "friendlyname", "finalclass"]);
+    // `finalclass` (the real subclass of a row) is what dashboards group an
+    // abstract class by. iTop defines it on every class of a hierarchy, but
+    // NOT on a standalone one (Attachment, say), where asking for it fails
+    // the whole request with "invalid attribute code".
+    const out = new Set<string>(["id", "friendlyname"]);
+    if (this.hasFinalclass(info)) out.add("finalclass");
     for (const code of requestedCodes) {
       if (code === "id" || code === "friendlyname" || code === "finalclass") continue;
       assertIdentifier(code, "attribute code");
@@ -376,7 +404,7 @@ export class ObjectsService {
   async create(
     className: string,
     rawFields: unknown,
-    options: { comment?: string; fields?: string; strict?: boolean } = {},
+    options: WriteOptions = {},
   ): Promise<{ object: ObjectDto; rejected: { field: string; reason: string }[] }> {
     const info = this.schema.require(className);
     if (info.abstract) {
@@ -398,7 +426,7 @@ export class ObjectsService {
       // Mandatory: RestUtils::InitTrackingComment calls GetMandatoryParam, so
       // omitting it fails the whole call.
       comment: options.comment?.trim() || this.defaultComment,
-    });
+    }, { asService: options.asService ?? false });
 
     const created = normalizeObjects(result.objects)[0];
     if (!created) {
@@ -411,7 +439,7 @@ export class ObjectsService {
     className: string,
     id: number,
     rawFields: unknown,
-    options: { comment?: string; fields?: string; strict?: boolean } = {},
+    options: WriteOptions = {},
   ): Promise<{ object: ObjectDto; rejected: { field: string; reason: string }[] }> {
     const info = this.schema.require(className);
     const validated = validateWrite(info, rawFields, {
@@ -426,7 +454,7 @@ export class ObjectsService {
       fields: validated.fields,
       output_fields: this.outputFields(info, options.fields, "full"),
       comment: options.comment?.trim() || this.defaultComment,
-    });
+    }, { asService: options.asService ?? false });
 
     const updated = normalizeObjects(result.objects)[0];
     if (!updated) {
@@ -608,7 +636,12 @@ export class ObjectsService {
     // Ticket/User are not exported), so fall back to iTop's own full field list.
     const outputFields = linkedInfo
       ? this.outputFields(linkedInfo, query.fields, "summary")
-      : (query.fields ?? "*");
+      : query.fields === undefined || query.fields === "*"
+        ? "*"
+        : query.fields
+            .split(",")
+            .map((code) => assertIdentifier(code.trim(), "attribute code"))
+            .join(",");
 
     const result = await this.client.call("core/get", {
       class: field.linked,

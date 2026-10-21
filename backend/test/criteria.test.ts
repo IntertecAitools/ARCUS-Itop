@@ -32,6 +32,19 @@ describe("criterionToOql", () => {
     rejects400(() => oql({ field: "org_id", op: "in", values: ["1) OR (1=1"] }));
   });
 
+  it("writes empty and not empty without NOT, which iTop's OQL lacks", () => {
+    assert.equal(oql({ field: "org_id", op: "not_empty" }), "org_id != 0");
+    assert.equal(oql({ field: "name", op: "empty" }), "(name = '' OR ISNULL(name))");
+    assert.equal(oql({ field: "name", op: "not_empty" }), "name != ''");
+    assert.equal(oql({ field: "status", op: "not_empty" }), "status != ''");
+    assert.equal(oql({ field: "nb_u", op: "empty" }), "ISNULL(nb_u)");
+    assert.equal(oql({ field: "nb_u", op: "not_empty" }), "ISNULL(nb_u) = 0");
+    assert.equal(oql({ field: "purchase_date", op: "not_empty" }), "ISNULL(purchase_date) = 0");
+    for (const field of ["org_id", "name", "status", "nb_u", "purchase_date"]) {
+      assert.doesNotMatch(oql({ field, op: "not_empty" }), /NOT/);
+    }
+  });
+
   it("widens a bare day to the whole day", () => {
     assert.equal(
       oql({ field: "purchase_date", op: "between", value: "2026-01-01", value2: "2026-01-31" }),

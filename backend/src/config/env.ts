@@ -90,9 +90,12 @@ export interface Config {
     logLevel: string;
     /**
      * Read the client address from X-Forwarded-For. On only behind a reverse
-     * proxy you control, or a client could pick its own address.
+     * proxy you control, or a client could pick its own address. `true`
+     * trusts every hop (the left-most address wins), a number trusts that
+     * many hops in front of the BFF, a list trusts those proxy addresses or
+     * CIDR ranges. Fastify's `trustProxy`, as is.
      */
-    trustProxy: boolean;
+    trustProxy: boolean | number | string[];
   };
   corsOrigins: string[] | "*";
   schemaPath: string;
@@ -153,6 +156,23 @@ export interface PasswordResetConfig {
   appBaseUrl: string;
   /** How long a reset link works. */
   tokenTtlMs: number;
+}
+
+/** TRUST_PROXY: true/false, a hop count, or a comma-separated list of addresses / CIDRs. */
+export function trustProxy(raw: string): boolean | number | string[] {
+  const value = raw.trim().toLowerCase();
+  if (value === "" || value === "false") return false;
+  if (value === "true") return true;
+  if (/^\d+$/.test(value)) {
+    const hops = Number(value);
+    if (hops < 1 || hops > 10) throw new Error(`TRUST_PROXY as a hop count must be 1 to 10, got "${raw}".`);
+    return hops;
+  }
+  const list = value.split(",").map((part) => part.trim()).filter(Boolean);
+  if (!list.every((part) => /^[0-9a-f.:]+(\/\d{1,3})?$/.test(part))) {
+    throw new Error(`TRUST_PROXY must be true, false, a hop count or a list of addresses/CIDRs, got "${raw}".`);
+  }
+  return list;
 }
 
 function itopTimezone(): string {
@@ -297,7 +317,7 @@ export function loadConfig(envFile = resolve(PACKAGE_ROOT, ".env")): Config {
       // and test harnesses rely on.
       port: integer("PORT", 4000, 0, 65_535),
       logLevel: optional("LOG_LEVEL", "info"),
-      trustProxy: optional("TRUST_PROXY", "false").toLowerCase() === "true",
+      trustProxy: trustProxy(optional("TRUST_PROXY", "false")),
     },
     corsOrigins,
     schemaPath: resolve(

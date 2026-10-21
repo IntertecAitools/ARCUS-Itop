@@ -5,6 +5,7 @@ import { DashboardService } from "../src/modules/dashboard/dashboard.service.js"
 import { incidentListQuerySchema } from "../src/modules/incidents/incidents.schemas.js";
 import type { Navigation } from "../src/platform/navigation/navigation.service.js";
 import type { ObjectsService } from "../src/platform/objects/objects.service.js";
+import type { CmdbSchema } from "../src/schema/load.js";
 import type { CurrentContact } from "../src/shared/current-contact.js";
 
 /** iTop's own "assigned to me" menus, as cmdb-navigation.json carries them. */
@@ -22,6 +23,12 @@ const VIEWS: Record<string, { class: string; oql: string; needsContact: boolean 
   "Problem:MyProblems": {
     class: "Problem",
     oql: 'SELECT Problem WHERE agent_id = :current_contact_id AND status NOT IN ("closed", "resolved")',
+    needsContact: true,
+  },
+  // iTop names this one without a class prefix.
+  MyChanges: {
+    class: "Change",
+    oql: 'SELECT Change WHERE agent_id = :current_contact_id AND status NOT IN ("closed", "resolved")',
     needsContact: true,
   },
 };
@@ -48,7 +55,9 @@ function ticket(className: string, id: number, priority: string) {
   };
 }
 
-function objectsStub(rows: Record<string, ReturnType<typeof ticket>[]>, totals: Record<string, number> = {}) {
+type Row = { class: string; id: number; label: string; fields: Record<string, unknown> };
+
+function objectsStub(rows: Record<string, Row[]>, totals: Record<string, number> = {}) {
   const calls: Array<{ className: string; oql: string }> = [];
   const objects = {
     async list(className: string, query: { oql: string }) {
@@ -73,7 +82,7 @@ describe("DashboardService.myAssignments", () => {
 
     assert.deepEqual(
       calls.map((c) => c.className).sort(),
-      ["Incident", "Problem", "UserRequest"],
+      ["Change", "Incident", "Problem", "UserRequest"],
     );
     for (const call of calls) {
       assert.match(call.oql, /agent_id = 42 AND/);
@@ -123,5 +132,57 @@ describe("DashboardService.myAssignments when iTop refuses a queue", () => {
     assert.deepEqual(result.problems, { items: [], total: 0 });
     assert.equal(result.incidents.total, 1);
     assert.equal(result.requests.total, 1);
+  });
+});
+
+describe("DashboardService.myAssignments changes", () => {
+  const change = (id: number, className: string, status: string, start: string) => ({
+    class: className,
+    id,
+    label: `C-${id}`,
+    fields: { ref: `C-${id}`, title: `change ${id}`, status, start_date: start, finalclass: className },
+  });
+  // iTop's own labels, as cmdb-schema.json carries them per class.
+  const schema = {
+    get(name: string) {
+      const values: Record<string, Record<string, Record<string, string>>> = {
+        Change: { status: { plannedscheduled: "Planned and scheduled", approved: "Approved" } },
+        NormalChange: { status: { plannedscheduled: "Planned and scheduled", approved: "Approved" } },
+      };
+      return values[name] ? { labels: { values: values[name] } } : undefined;
+    },
+  } as unknown as CmdbSchema;
+
+  it("lists the caller's changes with iTop's status labels, soonest first", async () => {
+    const { objects, calls } = objectsStub(
+      {
+        Change: [
+          change(4, "NormalChange", "approved", ""),
+          change(2, "NormalChange", "plannedscheduled", "2026-10-30T09:00:00Z"),
+          change(3, "EmergencyChange", "plannedscheduled", "2026-10-22T18:00:00Z"),
+        ],
+      },
+      { Change: 3 },
+    );
+    const result = await new DashboardService(objects, navigation(), contact("42"), schema).myAssignments();
+    const call = calls.find((c) => c.className === "Change");
+    assert.match(call!.oql, /SELECT Change WHERE agent_id = 42 AND/);
+    assert.equal(result.changes.total, 3);
+    assert.deepEqual(
+      result.changes.items.map((c) => [c.id, c.class, c.status, c.statusLabel]),
+      [
+        // EmergencyChange has no labels of its own here: Change's are used.
+        ["3", "EmergencyChange", "plannedscheduled", "Planned and scheduled"],
+        ["2", "NormalChange", "plannedscheduled", "Planned and scheduled"],
+        ["4", "NormalChange", "approved", "Approved"],
+      ],
+    );
+  });
+
+  it("is empty when this iTop has no MyChanges view", async () => {
+    const { MyChanges: _missing, ...withoutChanges } = VIEWS;
+    const { objects } = objectsStub({ Change: [change(1, "Change", "new", "")] });
+    const result = await new DashboardService(objects, navigation(withoutChanges), contact("7"), schema).myAssignments();
+    assert.deepEqual(result.changes, { items: [], total: 0 });
   });
 });

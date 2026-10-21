@@ -219,15 +219,21 @@ describe("listing through a view", () => {
     assert.match(response.body, /lists Server, not Organization/);
   });
 
-  it("refuses view and oql together rather than picking one", async () => {
+  it("refuses raw OQL, with or without a view", async () => {
     const fake = new FakeItopClient();
-    const response = await app(fake).inject({
-      method: "GET",
-      url: "/api/objects/Server?view=Servers&oql=SELECT%20Server",
-    });
-
-    assert.equal(response.statusCode, 400);
-    assert.match(response.body, /not both/);
+    // A raw query could select any class (past the schema allowlist), or
+    // break out of the narrowing filters with an unbalanced parenthesis.
+    for (const url of [
+      "/api/objects/Server?view=Servers&oql=SELECT%20Server",
+      "/api/objects/Person?oql=SELECT%20URP_UserProfile",
+      "/api/objects/Person?q=x&oql=SELECT%20Person)%20OR%20(1%3D1",
+      "/api/objects/Person/export?format=csv&oql=SELECT%20URP_UserProfile",
+    ]) {
+      const response = await app(fake).inject({ method: "GET", url });
+      assert.equal(response.statusCode, 400, url);
+      assert.match(response.body, /Raw OQL is not accepted/, url);
+    }
+    assert.equal(fake.calls.length, 0);
   });
 
   it("404s an unknown view", async () => {

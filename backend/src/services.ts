@@ -144,7 +144,7 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     audit: new AuditService(client, schema),
     users: new UsersService(client, objects, auth, sessions),
     portal: new PortalService(client, schema, objects),
-    dashboard: new DashboardService(objects, navigation, currentContact),
+    dashboard: new DashboardService(objects, navigation, currentContact, schema),
     defaultOrganization,
     currentContact,
     incidents: new IncidentsService(objects, schema, defaultOrganization),

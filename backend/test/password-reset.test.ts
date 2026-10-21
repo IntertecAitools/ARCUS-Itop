@@ -7,7 +7,7 @@ import { badRequest } from "../src/core/errors.js";
 import type { ItopClient } from "../src/itop/client.js";
 import { AuthService } from "../src/platform/auth/auth.service.js";
 import type { Mail, Mailer } from "../src/platform/auth/mailer.js";
-import { PasswordResetService, RateLimiter } from "../src/platform/auth/password-reset.service.js";
+import { PasswordResetService } from "../src/platform/auth/password-reset.service.js";
 import { MemoryResetTokenStore } from "../src/platform/auth/reset-token.store.js";
 import { MemorySessionStore } from "../src/platform/auth/session.store.js";
 import { buildApp } from "../src/app.js";
@@ -189,18 +189,6 @@ describe("password reset", () => {
     );
     assert.equal(service.enabled, false);
     assert.throws(() => service.request("paul", "1.2.3.4"), /not set up/);
-  });
-});
-
-describe("RateLimiter", () => {
-  it("lets attempts through again once the window has passed", () => {
-    const clock = { t: 0 };
-    const limiter = new RateLimiter(2, 1000, () => clock.t);
-    assert.equal(limiter.allow("k"), true);
-    assert.equal(limiter.allow("k"), true);
-    assert.equal(limiter.allow("k"), false);
-    clock.t = 1001;
-    assert.equal(limiter.allow("k"), true);
   });
 });
 

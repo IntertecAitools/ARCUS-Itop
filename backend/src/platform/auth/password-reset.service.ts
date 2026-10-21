@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 
 import type { PasswordResetConfig } from "../../config/env.js";
 import { AppError, badRequest } from "../../core/errors.js";
+import { RateLimiter } from "../../core/rate-limiter.js";
 import type { ItopClient } from "../../itop/client.js";
 import { normalizeObjects } from "../../itop/normalize.js";
 import { quoteString } from "../../itop/oql.js";
@@ -26,37 +27,6 @@ interface Account {
   login: string;
   name: string;
   email: string;
-}
-
-/** Counts events per key over a sliding window. In memory: per BFF instance. */
-export class RateLimiter {
-  private readonly hits = new Map<string, number[]>();
-
-  constructor(
-    private readonly limit: number,
-    private readonly windowMs: number,
-    private readonly now: () => number = Date.now,
-  ) {}
-
-  /** Records an attempt; false when the key is over its limit. */
-  allow(key: string): boolean {
-    const at = this.now();
-    const recent = (this.hits.get(key) ?? []).filter((t) => at - t < this.windowMs);
-    if (recent.length >= this.limit) {
-      this.hits.set(key, recent);
-      return false;
-    }
-    recent.push(at);
-    this.hits.set(key, recent);
-    if (this.hits.size > 10_000) this.prune(at);
-    return true;
-  }
-
-  private prune(at: number): void {
-    for (const [key, times] of this.hits) {
-      if (times.every((t) => at - t >= this.windowMs)) this.hits.delete(key);
-    }
-  }
 }
 
 /**

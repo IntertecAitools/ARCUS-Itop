@@ -68,6 +68,16 @@ user list.
   (local, LDAP and external accounts alike), reads the account's profiles and
   allowed organisations, and sets an `HttpOnly`, `SameSite=Lax` session cookie.
   `GET /api/auth/me`, `POST /api/auth/logout`, `POST /api/auth/password`.
+- **Failed sign-ins are limited**: 10 per client address and 5 per login in
+  15 minutes; past that the answer is `429 rate_limited` with `Retry-After`,
+  checked before iTop is asked. A successful sign-in clears its login's count;
+  a wrong current password on `POST /api/auth/password` counts against the
+  login too. The counters live in memory, so they are **per BFF instance**
+  and reset on restart. The client address is `request.ip`, which follows
+  `TRUST_PROXY` (see `docs/deployment.md`).
+- **The guard decides on the matched route**, not the raw URL (the router
+  decodes `%61` to `a`), and the iTop client refuses a call that has no staff
+  user behind it unless it is explicitly made as the service account.
 - **Staff call iTop as themselves.** The session holds their credentials
   (iTop's REST API needs them on every call and no token module is
   installed), never in readable form outside the BFF's memory, so iTop enforces their profiles and organisations and
@@ -267,7 +277,38 @@ Counting mirrors `pages/audit.php`: a rule listing faulty records fails
 those that are also in the category's set; a rule listing valid records
 fails every record of the set it does not return. Queries are read with the
 administrator's own rights and never leave the BFF. Rules run one at a time.
-Creating and editing categories and rules is not here yet (still in iTop).
+
+Categories, rules and domains are also created, edited and deleted from
+there, in the same vocabulary as notification conditions (no OQL either way):
+
+- `GET /api/admin/audit/options` lists the record types a category may check.
+- `GET /api/admin/audit/categories/:id`, `POST /api/admin/audit/categories`,
+  `PUT /api/admin/audit/categories/:id`: a category is `{ name, description,
+  recordType, conditions, keepCondition, tolerance: { good, warning },
+  domains: [domainId] }`. Its set is "every `recordType` where all
+  conditions hold" (`SELECT Server` when there are none). `domains` is the
+  full list: links to other domains are removed. The record type cannot
+  change while the category has rules.
+- `DELETE /api/admin/audit/categories/:id` answers **409** naming the rules
+  that would go with it (`details.rules`); `?withRules=true` deletes those
+  rules, then the category (iTop refuses to delete a category that still has
+  rules). Its domain links go with it.
+- `GET /api/admin/audit/rules/:id`, `POST /api/admin/audit/rules`,
+  `PUT /api/admin/audit/rules/:id`, `DELETE /api/admin/audit/rules/:id`: a
+  rule is `{ categoryId, name, description, lists: "faulty" | "valid",
+  conditions, keepCondition }`, its conditions on the category's record type
+  (at least one). It may move only to a category of the same record type.
+- `POST /api/admin/audit/domains`, `PUT /api/admin/audit/domains/:id`,
+  `DELETE /api/admin/audit/domains/:id` (`{ name, description }`). Deleting a
+  domain keeps its categories.
+
+Conditions are the advanced-search criteria, translated by
+`platform/admin/conditions.ts` as for notification rules. The editors read
+back `conditions`, `keptCondition` (part of the query was set up in iTop and
+cannot be shown: it is written back unchanged, ANDed with the conditions,
+unless `keepCondition: false`) and `valueLabels` (names of the records key
+conditions point at). Conditions on dates are refused, since a fixed date
+cannot be read back as a condition.
 
 ## What this layer is actually for
 

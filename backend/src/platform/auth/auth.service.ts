@@ -1,4 +1,5 @@
 import { AppError, badRequest } from "../../core/errors.js";
+import { RateLimiter } from "../../core/rate-limiter.js";
 import { runAs, type Caller } from "../../core/request-context.js";
 import type { ItopClient } from "../../itop/client.js";
 import { normalizeObjects } from "../../itop/normalize.js";
@@ -36,6 +37,13 @@ export function publicUser(caller: Caller): PublicUser {
   };
 }
 
+/**
+ * Failed sign-ins allowed per window: per client address (one source trying
+ * many logins) and per login (many sources trying one). A successful sign-in
+ * clears its login's count. Per BFF instance, like every RateLimiter.
+ */
+export const SIGN_IN_LIMITS = { perAddress: 10, perLogin: 5, windowMs: 15 * 60_000 } as const;
+
 const str = (v: unknown) => (v === null || v === undefined ? "" : String(v));
 
 /**
@@ -48,16 +56,34 @@ const str = (v: unknown) => (v === null || v === undefined ? "" : String(v));
  * an end user (iTop's REST API refuses them; they get the self-service API).
  */
 export class AuthService {
-  constructor(private readonly client: ItopClient) {}
+  private readonly failuresByAddress: RateLimiter;
+  private readonly failuresByLogin: RateLimiter;
 
-  async signIn(login: string, password: string): Promise<Caller> {
+  constructor(
+    private readonly client: ItopClient,
+    now: () => number = Date.now,
+  ) {
+    this.failuresByAddress = new RateLimiter(SIGN_IN_LIMITS.perAddress, SIGN_IN_LIMITS.windowMs, now);
+    this.failuresByLogin = new RateLimiter(SIGN_IN_LIMITS.perLogin, SIGN_IN_LIMITS.windowMs, now);
+  }
+
+  /** `address` is the client's, as the request saw it (TRUST_PROXY decides how). */
+  async signIn(login: string, password: string, address: string): Promise<Caller> {
     const trimmed = login.trim();
     if (!trimmed || !password) throw badRequest("Enter your login and password.");
 
+    // Checked before the password, so a blocked guess never reaches iTop. The
+    // same answer whether or not the login exists.
+    const loginKey = trimmed.toLowerCase();
+    this.assertNotThrottled(loginKey, address);
+
     if (!(await this.client.verifyCredentials(trimmed, password))) {
+      this.failuresByAddress.record(address);
+      this.failuresByLogin.record(loginKey);
       // One message for both cases, so the form does not reveal which logins exist.
       throw new AppError("unauthorized", "Wrong login or password.");
     }
+    this.failuresByLogin.clear(loginKey);
 
     const caller = await this.loadCaller(trimmed);
     if (caller.kind === "staff") {
@@ -65,6 +91,21 @@ export class AuthService {
       await this.assertRestAccess(caller);
     }
     return caller;
+  }
+
+  private assertNotThrottled(loginKey: string, address?: string): void {
+    const waitMs = Math.max(
+      address === undefined ? 0 : this.failuresByAddress.retryAfterMs(address),
+      this.failuresByLogin.retryAfterMs(loginKey),
+    );
+    if (waitMs > 0) {
+      const minutes = Math.max(1, Math.ceil(waitMs / 60_000));
+      throw new AppError(
+        "rate_limited",
+        `Too many failed sign-in attempts. Try again in ${minutes} minute${minutes === 1 ? "" : "s"}.`,
+        { details: { retryAfterSeconds: Math.ceil(waitMs / 1000) } },
+      );
+    }
   }
 
   /** Reads the account behind a login, with the service account. */
@@ -156,7 +197,12 @@ export class AuthService {
    * in the directory.
    */
   async changeOwnPassword(caller: Caller, current: string, next: string): Promise<void> {
+    // A wrong current password counts against the login like a failed
+    // sign-in, so a borrowed session cannot be used to guess it.
+    const loginKey = caller.login.toLowerCase();
+    this.assertNotThrottled(loginKey);
     if (!(await this.client.verifyCredentials(caller.login, current))) {
+      this.failuresByLogin.record(loginKey);
       throw badRequest("Your current password is not correct.");
     }
     if (next.length < 8) throw badRequest("Choose a password of at least 8 characters.");

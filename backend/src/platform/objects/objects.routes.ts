@@ -36,7 +36,12 @@ const listQuerySchema = z.object({
   sort: identifierParam.optional(),
   order: z.enum(["asc", "desc"]).optional(),
   fields: z.string().max(2_000).optional(),
-  oql: z.string().max(4_000).optional(),
+  /**
+   * Refused (see rejectRawOql); still listed so it never becomes a filter.
+   * Raw OQL would let a caller select any class, past the schema allowlist,
+   * and escape the narrowing filters with an unbalanced parenthesis.
+   */
+  oql: z.undefined({ message: "Raw OQL is not accepted; list through a `view` id instead." }).optional(),
   /** Advanced-search criteria as a JSON array; see criteria.ts. */
   criteria: z.string().max(8_000).optional(),
   /**
@@ -78,23 +83,19 @@ export function extractFilters(query: unknown, reserved: ReadonlySet<string>): R
 }
 
 /**
- * The OQL behind `?view=` (or a raw `?oql=`). Resolving it here keeps iTop's
- * query language on this side of the boundary; a view id is all the frontend
- * ever sends.
+ * The OQL behind `?view=`. Resolving it here keeps iTop's query language on
+ * this side of the boundary; a view id is all the frontend ever sends, and
+ * the API takes no raw OQL.
  */
 export async function resolveViewOql(
   services: Services,
   className: string,
   viewId: string | undefined,
-  rawOql: string | undefined,
 ): Promise<string | undefined> {
-  if (viewId === undefined) return rawOql;
+  if (viewId === undefined) return undefined;
   const view = services.navigation.resolveView(viewId);
   if (view.class !== className) {
     throw badRequest(`View "${viewId}" lists ${view.class}, not ${className}.`);
-  }
-  if (rawOql !== undefined) {
-    throw badRequest("Pass either `view` or `oql`, not both.");
   }
   // "My incidents"-style views filter on :current_contact_id. Binding it here
   // keeps the parameter server-side: the frontend only ever sends the view id,
@@ -117,7 +118,7 @@ export function registerObjectRoutes(app: FastifyInstance, services: Services): 
     );
     const query = parse(listQuerySchema, request.query, "query parameters");
     const filters = extractFilters(request.query, RESERVED_QUERY_KEYS);
-    const oql = await resolveViewOql(services, className, query.view, query.oql);
+    const oql = await resolveViewOql(services, className, query.view);
 
     return objects.list(className, {
       page: query.page,

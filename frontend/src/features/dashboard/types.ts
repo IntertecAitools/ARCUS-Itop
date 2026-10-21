@@ -105,11 +105,29 @@ export interface AssignmentQueue {
   total: number;
 }
 
+/**
+ * A change assigned to the viewer. Changes follow their own lifecycle, so the
+ * status is iTop's code (for colour) and iTop's label for it (for the words),
+ * not a TicketStatus.
+ */
+export interface DashboardChange {
+  id: string;
+  /** The real class, NormalChange or EmergencyChange say: the record opens under it. */
+  class: string;
+  ref: string;
+  title: string;
+  status: string;
+  statusLabel: string;
+  /** ISO datetime the change is planned to start; "" when not planned. */
+  startDate: string;
+}
+
 /** Open work assigned to the signed-in agent, per ticket type. */
 export interface MyAssignments {
   incidents: AssignmentQueue;
   requests: AssignmentQueue;
   problems: AssignmentQueue;
+  changes: { items: DashboardChange[]; total: number };
 }
 
 export interface DashboardOverview {

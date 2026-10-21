@@ -26,8 +26,12 @@ import type {
  *    (sources/Core/AttributeDefinition/AttributeBlob.php). There is no
  *    multipart endpoint on iTop's REST API, so the BFF accepts multipart from
  *    the browser -- the efficient, standard thing there -- and converts.
- *  - iTop sets `creation_date`, `expire` and `user_id` itself on create, the
- *    last from the authenticated REST account. We never send them.
+ *  - iTop sets `creation_date`, `expire`, `user_id` and `contact_id` itself
+ *    on create, the last two from the authenticated REST account -- but only
+ *    when they are empty (Attachment::DBInsertNoReload uses SetIfNull). So an
+ *    upload made through the service account for someone else (the portal)
+ *    sends that person's user and contact, and iTop records them as the
+ *    uploader; its own attachment list shows `contact_id`.
  */
 
 /** iTop's `itop-attachments/allowed_classes`, verified in config-itop.php. */
@@ -52,7 +56,15 @@ export const MAX_UPLOAD_BYTES = 32 * 1024 * 1024;
  * it the uploader renders as a bare numeric id dressed up as a name.
  */
 const METADATA_FIELDS =
-  "id,item_class,item_id,creation_date,user_id,user_id_friendlyname,contents";
+  "id,item_class,item_id,creation_date,user_id,user_id_friendlyname,contact_id,contact_id_friendlyname,contents";
+
+/** Who an upload is recorded under, when it is not the account calling iTop. */
+export interface Uploader {
+  userId: number;
+  /** Their Person; 0 when the account has none. */
+  contactId: number;
+  login: string;
+}
 
 export class AttachmentsService {
   constructor(
@@ -114,6 +126,8 @@ export class AttachmentsService {
     const base64 = typeof contents?.data === "string" ? contents.data : "";
     const content = Buffer.from(base64, "base64");
     const userId = str(row.fields["user_id"]);
+    // iTop's own list names the contact; a user without one names the account.
+    const name = str(row.fields["contact_id_friendlyname"]) || str(row.fields["user_id_friendlyname"]);
 
     const dto: AttachmentDto = {
       id: String(row.id),
@@ -124,9 +138,7 @@ export class AttachmentsService {
       downloads: Number(contents?.downloads_count ?? 0),
       // Only claim an uploader when iTop resolved a name for it. Falling back
       // to the id would present "1" as a person's name.
-      ...(userId && userId !== "0" && str(row.fields["user_id_friendlyname"])
-        ? { uploadedBy: { id: userId, name: str(row.fields["user_id_friendlyname"]) } }
-        : {}),
+      ...(userId && userId !== "0" && name ? { uploadedBy: { id: userId, name } } : {}),
     };
 
     return options.withContent ? { ...dto, content } : dto;
@@ -160,6 +172,7 @@ export class AttachmentsService {
     itemClass: string,
     itemId: string,
     file: AttachmentUpload,
+    onBehalfOf?: Uploader,
   ): Promise<AttachmentDto> {
     this.assertValidId(itemId);
     this.assertAttachable(itemClass);
@@ -188,8 +201,15 @@ export class AttachmentsService {
           filename: file.filename,
           downloads_count: 0,
         },
+        ...(onBehalfOf && onBehalfOf.userId > 0 ? { user_id: onBehalfOf.userId } : {}),
+        ...(onBehalfOf && onBehalfOf.contactId > 0 ? { contact_id: onBehalfOf.contactId } : {}),
       },
-      { fields: METADATA_FIELDS, comment: `Attached ${file.filename}` },
+      {
+        fields: METADATA_FIELDS,
+        comment: onBehalfOf
+          ? `Attached ${file.filename} for ${onBehalfOf.login} in the self-service portal`
+          : `Attached ${file.filename}`,
+      },
     );
 
     return this.toDto(created.object) as AttachmentDto;
