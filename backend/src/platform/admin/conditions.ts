@@ -3,7 +3,8 @@ import type { ClassInfo } from "../../schema/types.js";
 import { criterionKind, criterionToOql, type Criterion } from "../objects/criteria.js";
 
 /**
- * A notification rule's "only when…" conditions, as iTop's trigger `filter`.
+ * A notification rule's "only when…" conditions, as iTop's trigger `filter`;
+ * also an audit category's set and an audit rule's check.
  *
  * Writing reuses the advanced-search translation (criterionToOql), so the
  * conditions mean exactly what they mean in a record list. Reading parses
@@ -119,6 +120,14 @@ function parsePart(info: ClassInfo, raw: string): Criterion | undefined {
   m = /^ISNULL\(([a-z0-9_]+)\)$/.exec(part);
   if (m && fieldOf(m[1]!) === "number") return { field: m[1]!, op: negated ? "not_empty" : "empty" };
   if (negated) return undefined;
+  // "not empty" as written now (`NOT (…)` above is the form of earlier
+  // versions, which iTop's OQL cannot parse; it is rewritten on save).
+  m = /^([a-z0-9_]+) != 0$/.exec(part);
+  if (m && fieldOf(m[1]!) === "key") return { field: m[1]!, op: "not_empty" };
+  m = /^([a-z0-9_]+) != ''$/.exec(part);
+  if (m && ["string", "enum"].includes(fieldOf(m[1]!) ?? "")) return { field: m[1]!, op: "not_empty" };
+  m = /^ISNULL\(([a-z0-9_]+)\) = 0$/.exec(part);
+  if (m && fieldOf(m[1]!) === "number") return { field: m[1]!, op: "not_empty" };
 
   // in / not in
   m = /^([a-z0-9_]+) (NOT IN|IN) \((.*)\)$/s.exec(part);
@@ -170,7 +179,8 @@ function parsePart(info: ClassInfo, raw: string): Criterion | undefined {
 /** A trigger's filter back to conditions, and whatever else it held. */
 export function filterToConditions(info: ClassInfo, filter: string): ParsedFilter {
   const text = filter.replace(/\s+/g, " ").trim();
-  if (!text) return { conditions: [], kept: [] };
+  // "SELECT Server" alone, as an audit category over every server, filters on nothing.
+  if (!text || new RegExp(`^SELECT ${info.name}$`, "i").test(text)) return { conditions: [], kept: [] };
   const prefix = new RegExp(`^SELECT ${info.name} WHERE `, "i");
   if (!prefix.test(text)) return { conditions: [], kept: [text] };
 

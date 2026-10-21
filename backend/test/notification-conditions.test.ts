@@ -65,6 +65,25 @@ describe("notification conditions", () => {
     );
   });
 
+  it("reads the NOT form of earlier versions, and writes it back in a form iTop parses", () => {
+    const parsed = filterToConditions(
+      request,
+      "SELECT UserRequest WHERE NOT (agent_id = 0) AND NOT ((title = '' OR ISNULL(title)))",
+    );
+    assert.deepEqual(parsed, {
+      conditions: [
+        { field: "agent_id", op: "not_empty" },
+        { field: "title", op: "not_empty" },
+      ],
+      kept: [],
+    });
+    assert.equal(conditionsToFilter(request, parsed.conditions), "SELECT UserRequest WHERE agent_id != 0 AND title != ''");
+  });
+
+  it("reads a bare SELECT of the class as no conditions", () => {
+    assert.deepEqual(filterToConditions(request, "SELECT UserRequest"), { conditions: [], kept: [] });
+  });
+
   it("does not split on an AND inside quotes or brackets", () => {
     const parsed = filterToConditions(request, "SELECT UserRequest WHERE title = 'A AND B' AND (x = 1 AND y = 2)");
     assert.deepEqual(parsed.conditions, [{ field: "title", op: "equals", value: "A AND B" }]);

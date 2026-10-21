@@ -1,11 +1,13 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ChevronDown, ChevronRight, Play, ShieldCheck } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { ChevronDown, ChevronRight, FolderTree, Pencil, Play, Plus, ShieldCheck } from 'lucide-react';
 import { PageHeader } from '@/components/layout';
-import { Badge, Button, Card, CardHeader, Tabs } from '@/components/ui';
+import { Badge, Button, buttonClasses, Card, CardHeader, Tabs } from '@/components/ui';
 import { EmptyState } from '@/components/feedback';
 import { cn, friendlyDateTime } from '@/lib/utils';
 import { useAuditOverview, useAuditRuns, useRunAudit, type RunTarget } from '../api/audit.api';
+import { DomainsPanel } from '../components/DomainsPanel';
+import { parseRunParam } from '../lib/editing';
 import { describeRule, formatPercent, plural, STATUS_LABEL, STATUS_TONE } from '../lib/runs';
 import type { AuditCategory, AuditRule, CategoryRun, RuleResult } from '../types';
 
@@ -20,7 +22,9 @@ const errorNote = (e: unknown) => (
 /**
  * iTop's data-quality audit: each category checks a set of records against
  * its rules. Running it counts, per rule, the records that fail; each count
- * opens the list of those records.
+ * opens the list of those records. Categories, rules and domains are edited
+ * from here too; `?run=category:10` (or `rule:20`), set after "Save and run",
+ * runs that check as the screen opens.
  */
 export function AuditPage() {
   const overview = useAuditOverview();
@@ -28,6 +32,8 @@ export function AuditPage() {
   const run = useRunAudit();
   const [running, setRunning] = useState<Set<string>>(new Set());
   const [domain, setDomain] = useState<string>('all');
+  const [editingDomains, setEditingDomains] = useState(false);
+  const [params, setParams] = useSearchParams();
 
   const start = async (targets: RunTarget[]) => {
     setRunning((s) => new Set([...s, ...targets.map(targetKey)]));
@@ -42,6 +48,19 @@ export function AuditPage() {
     }
   };
 
+  // Run what the editor asked for, once, then forget the request.
+  const requested = useRef<string | null>(null);
+  useEffect(() => {
+    const target = parseRunParam(params.get('run'));
+    if (!target || requested.current === params.get('run')) return;
+    requested.current = params.get('run');
+    setParams((p) => {
+      p.delete('run');
+      return p;
+    }, { replace: true });
+    void start([target]);
+  }, [params]);
+
   const domains = overview.data?.domains ?? [];
   const categories = (overview.data?.categories ?? []).filter(
     (c) => domain === 'all' || c.domains.includes(Number(domain)),
@@ -54,18 +73,36 @@ export function AuditPage() {
         title="Audit"
         description="Data-quality checks on the CMDB. Each category checks a set of records against its rules."
         actions={
-          categories.length ? (
+          <div className="flex flex-wrap gap-2">
             <Button
               size="sm"
-              leadingIcon={<Play className="size-4" aria-hidden />}
-              loading={categories.some((c) => running.has(targetKey({ kind: 'category', id: c.id })))}
-              onClick={() => start(categories.map((c) => ({ kind: 'category', id: c.id })))}
+              variant="ghost"
+              leadingIcon={<FolderTree className="size-4" aria-hidden />}
+              onClick={() => setEditingDomains((v) => !v)}
             >
-              Run all
+              Domains
             </Button>
-          ) : null
+            <Link to="/audit/categories/new" className={buttonClasses({ variant: 'secondary', size: 'sm' })}>
+              <Plus className="mr-1.5 size-4" aria-hidden />
+              New category
+            </Link>
+            {categories.length ? (
+              <Button
+                size="sm"
+                leadingIcon={<Play className="size-4" aria-hidden />}
+                loading={categories.some((c) => running.has(targetKey({ kind: 'category', id: c.id })))}
+                onClick={() => start(categories.map((c) => ({ kind: 'category', id: c.id })))}
+              >
+                Run all
+              </Button>
+            ) : null}
+          </div>
         }
       />
+
+      {editingDomains && overview.data ? (
+        <DomainsPanel domains={domains} onClose={() => setEditingDomains(false)} />
+      ) : null}
 
       {domains.length ? (
         <Tabs
@@ -89,7 +126,12 @@ export function AuditPage() {
           <EmptyState
             icon={<ShieldCheck className="size-5" />}
             title="No audit categories"
-            description="Audit categories and rules have not been set up yet."
+            description="A category is a set of records to check, such as every server in production; its rules say what is wrong with them."
+            action={
+              <Link to="/audit/categories/new" className={buttonClasses({ variant: 'primary', size: 'sm' })}>
+                New category
+              </Link>
+            }
           />
         </Card>
       ) : (
@@ -141,16 +183,26 @@ function CategoryCard({ category, run, isRunning, onRun }: CategoryCardProps) {
         }
         subtitle={subtitle}
         action={
-          <Button
-            size="sm"
-            variant="secondary"
-            leadingIcon={<Play className="size-4" aria-hidden />}
-            loading={runningAll}
-            disabled={category.rules.length === 0}
-            onClick={() => onRun({ kind: 'category', id: category.id })}
-          >
-            Run
-          </Button>
+          <div className="flex gap-2">
+            <Link to={`/audit/categories/${category.id}`} className={buttonClasses({ variant: 'ghost', size: 'sm' })}>
+              <Pencil className="mr-1.5 size-4" aria-hidden />
+              Edit
+            </Link>
+            <Link to={`/audit/rules/new?category=${category.id}`} className={buttonClasses({ variant: 'ghost', size: 'sm' })}>
+              <Plus className="mr-1.5 size-4" aria-hidden />
+              Add rule
+            </Link>
+            <Button
+              size="sm"
+              variant="secondary"
+              leadingIcon={<Play className="size-4" aria-hidden />}
+              loading={runningAll}
+              disabled={category.rules.length === 0}
+              onClick={() => onRun({ kind: 'category', id: category.id })}
+            >
+              Run
+            </Button>
+          </div>
         }
       />
       {category.description ? (
@@ -168,7 +220,7 @@ function CategoryCard({ category, run, isRunning, onRun }: CategoryCardProps) {
               <th className="w-28 px-3 py-2 text-right font-medium">Failing</th>
               <th className="w-24 px-3 py-2 text-right font-medium">OK</th>
               <th className="w-32 px-3 py-2 font-medium">Status</th>
-              <th className="w-20 px-5 py-2" />
+              <th className="w-32 px-5 py-2" />
             </tr>
           </thead>
           <tbody>
@@ -243,7 +295,15 @@ function RuleRows({ rule, recordTypeLabel, result, open, onToggle, running, onRu
             )
           ) : null}
         </td>
-        <td className="px-5 py-2 text-right">
+        <td className="px-5 py-2 text-right whitespace-nowrap">
+          <Link
+            to={`/audit/rules/${rule.id}`}
+            className={buttonClasses({ variant: 'ghost', size: 'sm' })}
+            aria-label={`Edit ${rule.name}`}
+            title="Edit"
+          >
+            <Pencil className="size-4" aria-hidden />
+          </Link>
           <Button size="sm" variant="ghost" loading={running} onClick={onRun} aria-label={`Run ${rule.name}`}>
             Run
           </Button>
