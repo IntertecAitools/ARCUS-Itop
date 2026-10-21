@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 
 import { AppError } from "../../core/errors.js";
-import { currentCaller, type Caller } from "../../core/request-context.js";
+import { currentCaller, runAsServiceAccount, type Caller } from "../../core/request-context.js";
 import { idParam, intParam, parse } from "../../core/validate.js";
 import type { Services } from "../../services.js";
 import { readUpload, sendAttachment } from "../../modules/attachments/attachments.routes.js";
@@ -96,17 +96,19 @@ export function registerPortalRoutes(app: FastifyInstance, services: Services): 
   });
 
   // Attachments on the user's own tickets: the scope check resolves the host
-  // class, then the shared attachment service does the work.
+  // class, then the shared attachment service does the work, as the service
+  // account (iTop refuses end users; the scope check is the access control).
   app.get("/api/portal/requests/:id/attachments", async (request) => {
     const { id } = parse(idParams, request.params, "path parameters");
     const host = await portal.attachmentHost(caller(), id);
-    return attachments.list(host, String(id));
+    return runAsServiceAccount(() => attachments.list(host, String(id)));
   });
 
   app.post("/api/portal/requests/:id/attachments", async (request, reply) => {
     const { id } = parse(idParams, request.params, "path parameters");
     const host = await portal.attachmentHost(caller(), id);
-    const created = await attachments.upload(host, String(id), await readUpload(request));
+    const upload = await readUpload(request);
+    const created = await runAsServiceAccount(() => attachments.upload(host, String(id), upload));
     reply.code(201);
     return created;
   });
@@ -118,7 +120,8 @@ export function registerPortalRoutes(app: FastifyInstance, services: Services): 
       "path parameters",
     );
     const host = await portal.attachmentHost(caller(), id);
-    return sendAttachment(reply, await attachments.download(host, String(id), String(attachmentId)));
+    const file = await runAsServiceAccount(() => attachments.download(host, String(id), String(attachmentId)));
+    return sendAttachment(reply, file);
   });
 
   app.get("/api/portal/catalog", async () => portal.catalog(caller()));

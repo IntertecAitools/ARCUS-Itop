@@ -174,7 +174,9 @@ function buildClass(
   knownClasses: Set<string>,
   diagnostics: CmdbSchema["diagnostics"],
 ): ClassInfo {
-  const fields: Record<string, Field> = {};
+  // No prototype: a field code from a request ("constructor", "toString") must
+  // not find Object.prototype's members and pass for an attribute.
+  const fields: Record<string, Field> = Object.create(null);
   const writable: string[] = [];
   const readonlyFields: string[] = [];
   const relatedFields: string[] = [];

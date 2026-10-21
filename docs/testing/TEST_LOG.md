@@ -4,6 +4,27 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-10-21 — Security pass before go-live: sign-in rate limiting and review fixes
+
+Branch `claude/security-hardening-1b379d`. Findings and reasoning: `docs/security-review.md`.
+
+| What ran | Result | Notes |
+| --- | --- | --- |
+| Probe of the guard with encoded paths (`app.inject`, before the fix) | ❌ found | `/api/%61dmin/users` 200 for a non-admin; `/%61pi/admin/users` 200 with no session, run as the service account |
+| New/changed backend tests: auth (encoded paths, rate limiting, origin with `*`, change-password limit), rate-limiter, trust-proxy, client credentials, raw OQL refusal, CSV formulas, 5xx answers, security headers, prototype keys, attachment types/names, default organisation, user relink | ✅ all pass | |
+| Backend `npm test` + `npm run typecheck` + `npm run build` | ✅ 455/455, clean, built | The first typecheck caught two of my own errors (Fastify's `trustProxy` type has no number; a stray `asService` on `applyStimulus`), both fixed before commit |
+| Frontend `npx vitest run` + `npm run typecheck` + `npm run build` | ✅ 114/114, clean, built | Built `index.html` has no inline script left (theme bootstrap moved to `/theme-init.js` for the CSP) |
+| `npm audit` | backend 0; frontend 6 (dev tooling only) | vitest/vite/esbuild/tinypool; fix is vitest 5, left for a separate change |
+| Live: own BFF on :4300 (worktree `.env`, MySQL sessions) over local iTop :8080 | ✅ | Good sign-in 200; 5 bad for one login 401 then 429 with `Retry-After: 887`; 10 bad from one address then 429 for every login; after restart 4 bad + good → 200 and the count cleared (5 more bad = 401, then 429); encoded paths 401; API headers present |
+
+Bugs found and fixed (same commit): the encoded-path guard bypass (critical), the silent fallback to the service account, no sign-in limits, `TRUST_PROXY=true` letting clients choose their address, raw `?oql=`, CSV formula injection, internals in 5xx answers, missing security headers/CSP, page-like attachment types and non-Latin file names (500), cross-origin writes unchecked with `CORS_ORIGINS=*`, the default-organisation cache following the first caller, sessions kept after a contact relink, `constructor`-style keys giving 500s.
+
+Not covered:
+
+- The CSP was checked against the built `index.html` (no inline scripts), not in a browser behind the real nginx image; no Docker build was run in this session.
+- The rate limits were not tested across several BFF instances (they are per instance by design).
+- The frontend dev-tooling advisories are not fixed (vitest 5 upgrade).
+
 ### 2026-10-20 — Export column picker, import column mapping, class labels on lists
 
 Branch `feature/export-columns-import-mapping`.

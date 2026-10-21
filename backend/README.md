@@ -68,6 +68,16 @@ user list.
   (local, LDAP and external accounts alike), reads the account's profiles and
   allowed organisations, and sets an `HttpOnly`, `SameSite=Lax` session cookie.
   `GET /api/auth/me`, `POST /api/auth/logout`, `POST /api/auth/password`.
+- **Failed sign-ins are limited**: 10 per client address and 5 per login in
+  15 minutes; past that the answer is `429 rate_limited` with `Retry-After`,
+  checked before iTop is asked. A successful sign-in clears its login's count;
+  a wrong current password on `POST /api/auth/password` counts against the
+  login too. The counters live in memory, so they are **per BFF instance**
+  and reset on restart. The client address is `request.ip`, which follows
+  `TRUST_PROXY` (see `docs/deployment.md`).
+- **The guard decides on the matched route**, not the raw URL (the router
+  decodes `%61` to `a`), and the iTop client refuses a call that has no staff
+  user behind it unless it is explicitly made as the service account.
 - **Staff call iTop as themselves.** The session holds their credentials
   (iTop's REST API needs them on every call and no token module is
   installed), never in readable form outside the BFF's memory, so iTop enforces their profiles and organisations and

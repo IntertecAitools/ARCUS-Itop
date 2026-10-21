@@ -102,12 +102,13 @@ export class Dashboards {
   }
 
   has(id: string): boolean {
-    return id in this.data.dashboards;
+    return Object.hasOwn(this.data.dashboards, id);
   }
 
   /** The structure, stripped of OQL. */
   public(id: string): PublicDashboard {
-    const dash = this.data.dashboards[id];
+    // Own keys only: "constructor" must not find Object.prototype's.
+    const dash = Object.hasOwn(this.data.dashboards, id) ? this.data.dashboards[id] : undefined;
     if (!dash) throw notFound(`No dashboard called "${id}".`);
     return {
       id: dash.id,
@@ -125,7 +126,7 @@ export class Dashboards {
   }
 
   private dashlet(dashboardId: string, dashletId: string): RawDashlet {
-    const dash = this.data.dashboards[dashboardId];
+    const dash = Object.hasOwn(this.data.dashboards, dashboardId) ? this.data.dashboards[dashboardId] : undefined;
     if (!dash) throw notFound(`No dashboard called "${dashboardId}".`);
     const dashlet = dash.dashlets.find((d) => d.id === dashletId);
     if (!dashlet) throw notFound(`Dashboard "${dashboardId}" has no dashlet "${dashletId}".`);

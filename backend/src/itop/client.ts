@@ -2,7 +2,7 @@ import { AppError } from "../core/errors.js";
 import type { Config } from "../config/env.js";
 import { ItopCode, itopCodeToErrorCode, looksLikeAmbiguous, looksLikeNotFound } from "./codes.js";
 import { cleanMessage } from "./normalize.js";
-import { currentCaller } from "../core/request-context.js";
+import { currentCaller, serviceAccountBound } from "../core/request-context.js";
 import type { ItopResult, ItopVerb } from "./types.js";
 
 /**
@@ -65,10 +65,12 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
 export class ItopClient {
   private readonly cfg: Config["itop"];
   private readonly log: Logger;
+  private readonly authRequired: boolean;
 
   constructor(config: Config, logger: Logger = NOOP_LOGGER) {
     this.cfg = config.itop;
     this.log = logger;
+    this.authRequired = config.auth.required;
   }
 
   /**
@@ -273,11 +275,22 @@ export class ItopClient {
   /**
    * Whose account a call runs under: the signed-in staff user's when one is
    * bound to the request, so iTop applies their rights and records them in
-   * history; otherwise the BFF's service account.
+   * history; the BFF's service account only when the call asks for it.
+   *
+   * With sign-in required, a call that is not marked asService and has no
+   * staff user behind it is refused rather than quietly made as the service
+   * account (an Administrator): nobody signed in, or an end user (who has no
+   * iTop credentials here), must never end up with its rights because a
+   * route was reached that the guard should have stopped.
    */
   private credentialsFor(options: { asService?: boolean }): { user: string; password: string } {
-    const caller = options.asService ? undefined : currentCaller();
-    return caller?.credentials ?? { user: this.cfg.user, password: this.cfg.password };
+    const service = { user: this.cfg.user, password: this.cfg.password };
+    if (options.asService || serviceAccountBound()) return service;
+    const caller = currentCaller();
+    if (caller?.credentials) return caller.credentials;
+    if (!this.authRequired) return service;
+    if (!caller) throw new AppError("unauthorized", "Sign in to continue.");
+    throw new AppError("forbidden", "This is not available to end-user accounts.");
   }
 
   /** Cheap connectivity + credentials probe for the health endpoint. */

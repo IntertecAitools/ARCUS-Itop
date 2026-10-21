@@ -31,6 +31,8 @@ export interface Caller {
 
 interface RequestContext {
   caller?: Caller;
+  /** Set by runAsServiceAccount: iTop calls use the BFF's own account. */
+  asService?: boolean;
 }
 
 const storage = new AsyncLocalStorage<RequestContext>();
@@ -50,4 +52,18 @@ export function runAs<T>(caller: Caller | undefined, fn: () => T): T {
 
 export function currentCaller(): Caller | undefined {
   return storage.getStore()?.caller;
+}
+
+/**
+ * Runs `fn` with every iTop call in it made as the service account, the
+ * caller still bound. For code that is itself the access control and reuses
+ * shared services, like the self-service portal's attachments: iTop refuses
+ * end users, so their calls cannot run as them.
+ */
+export function runAsServiceAccount<T>(fn: () => T): T {
+  return storage.run({ ...storage.getStore(), asService: true }, fn);
+}
+
+export function serviceAccountBound(): boolean {
+  return storage.getStore()?.asService === true;
 }
