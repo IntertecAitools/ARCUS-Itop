@@ -1,5 +1,6 @@
 node_modules/
 dist/
+dist-e2e/
 dist-ssr/
 coverage/
 # Vite's dependency-optimisation cache, rebuilt on every dev start

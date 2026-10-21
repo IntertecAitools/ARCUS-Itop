@@ -1,9 +1,10 @@
 import { http, HttpResponse } from 'msw';
 import { env } from '@/config/env';
+import { readStored, writeStored } from '../storage';
 
 const url = (path: string) => `${env.bffUrl}${path}`;
 
-/** The account mock mode signs in as: an administrator, so every screen is reachable. */
+/** The staff account mock mode signs in as: an administrator, so every screen is reachable. */
 const mockUser = {
   id: 1,
   login: 'admin',
@@ -16,7 +17,28 @@ const mockUser = {
   orgId: 1,
 };
 
-let signedIn = true;
+/** An end user, for the self-service portal. Any login starting with "portal" signs in as them. */
+export const mockPortalUser = {
+  id: 7,
+  login: 'portal',
+  name: 'Pia Portal',
+  email: 'pia.portal@example.test',
+  kind: 'portal',
+  profiles: ['Portal user'],
+  isAdmin: false,
+  contactId: 9,
+  orgId: 1,
+};
+
+type Session = 'admin' | 'portal' | 'none';
+
+/**
+ * Who is signed in. Absent means the administrator, so `npm run dev` opens
+ * straight onto the app; the browser tests store `none` to start at sign-in.
+ * Kept in sessionStorage so a reload keeps the session, as the BFF's cookie would.
+ */
+const session = () => readStored<Session>('session', 'admin');
+export const currentMockUser = () => (session() === 'portal' ? mockPortalUser : mockUser);
 
 /**
  * Sign-in in mock mode: any non-empty login and password work, so screens can
@@ -24,13 +46,14 @@ let signedIn = true;
  */
 export const authHandlers = [
   http.get(url('/auth/me'), () =>
-    signedIn
-      ? HttpResponse.json({ user: mockUser })
+    session() !== 'none'
+      ? HttpResponse.json({ user: currentMockUser() })
       : HttpResponse.json({ error: { code: 'unauthorized', message: 'Not signed in.' } }, { status: 401 }),
   ),
-  http.post(url('/auth/login'), () => {
-    signedIn = true;
-    return HttpResponse.json({ user: mockUser });
+  http.post(url('/auth/login'), async ({ request }) => {
+    const { login } = (await request.json()) as { login: string };
+    writeStored('session', login.toLowerCase().startsWith('portal') ? 'portal' : 'admin');
+    return HttpResponse.json({ user: currentMockUser() });
   }),
   // Password reset: on in mock mode so its screens can be worked on.
   http.get(url('/auth/options'), () => HttpResponse.json({ passwordReset: true })),
@@ -54,7 +77,7 @@ export const authHandlers = [
       : HttpResponse.json({ ok: true });
   }),
   http.post(url('/auth/logout'), () => {
-    signedIn = false;
+    writeStored('session', 'none');
     return new HttpResponse(null, { status: 204 });
   }),
 ];
