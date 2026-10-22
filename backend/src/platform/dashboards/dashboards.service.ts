@@ -4,7 +4,7 @@ import { notFound } from "../../core/errors.js";
 import { quoteString } from "../../itop/oql.js";
 import type { CmdbSchema } from "../../schema/load.js";
 import type { ObjectsService } from "../objects/objects.service.js";
-import { itopDay } from "../../shared/itop-time.js";
+import { addDays, itopDay } from "../../shared/itop-time.js";
 
 /**
  * iTop's "Overview" dashboards, rendered natively.
@@ -64,19 +64,41 @@ export interface PublicDashboard {
   dashlets: PublicDashlet[];
 }
 
-/** The computed payload for one dashlet. Shape depends on kind. */
+/**
+ * What a group key is, when it is not a plain value: `day` keys are
+ * YYYY-MM-DD, `month` YYYY-MM, `year` YYYY. The frontend formats them for the
+ * viewer ("19 Oct"); a key itself is never a display string.
+ */
+export type GroupKeyType = "value" | "day" | "month" | "year";
+
+/** The computed payload for one dashlet. Shape depends on kind. `label` is the
+ * class's own (singular) label, e.g. "Business Process" for BusinessProcess. */
 export type DashletData =
-  | { kind: "badge"; count: number; class: string }
+  | { kind: "badge"; count: number; class: string; label: string }
   | { kind: "text" | "header"; title: string; text?: string }
   | {
       kind: "pie" | "bars" | "table" | "header-dynamic";
       class: string;
+      label: string;
       total: number;
+      keyType: GroupKeyType;
       groups: { key: string; label: string; count: number }[];
       /** Set when only the first GROUP_SCAN_LIMIT rows could be grouped. */
       truncated?: boolean;
     }
-  | { kind: "list"; class: string; total: number; items: { id: number; label: string; fields: Record<string, unknown> }[] };
+  | {
+      kind: "list";
+      class: string;
+      label: string;
+      total: number;
+      items: { id: number; label: string; fields: Record<string, unknown> }[];
+    };
+
+/** Options for computing a dashlet for one viewer. */
+export interface ComputeOptions {
+  /** IANA zone the viewer reads dates in; date groupings count by its days. */
+  timeZone?: string;
+}
 
 /** How many rows to pull when grouping in memory. Dashlets filter hard
  * (open-only, last 14 days), so this ceiling is generous, not a guess. */
@@ -144,9 +166,16 @@ export class Dashboards {
     return dashlet;
   }
 
+  /** A class's own label ("Business Process"), or its name when it has none. */
+  private classLabel(className: string): string {
+    return this.schema.get(className)?.labels?.class ?? className;
+  }
+
   /** The human label for an enum value, via the schema the frontend also uses. */
   private valueLabel(className: string | undefined, attcode: string | undefined, value: string): string {
     if (!className || !attcode) return value;
+    // Grouped by concrete class: "NetworkDevice" reads "Network Device".
+    if (attcode === "finalclass") return this.classLabel(value);
     const info = this.schema.get(className);
     const field = info?.fields[attcode];
     // ExternalKey values are ids; the group key stands in until the UI resolves
@@ -156,7 +185,7 @@ export class Dashboards {
   }
 
   /** Computes one dashlet's data. The OQL is read here and never returned. */
-  async compute(dashboardId: string, dashletId: string): Promise<DashletData> {
+  async compute(dashboardId: string, dashletId: string, options: ComputeOptions = {}): Promise<DashletData> {
     const d = this.dashlet(dashboardId, dashletId);
 
     if (d.kind === "text" || d.kind === "header") {
@@ -168,7 +197,7 @@ export class Dashboards {
 
     if (d.kind === "badge") {
       const result = await this.objects.list(className, { page: 1, limit: 1, oql, fields: "id" });
-      return { kind: "badge", count: result.total, class: className };
+      return { kind: "badge", count: result.total, class: className, label: this.classLabel(className) };
     }
 
     if (d.kind === "list") {
@@ -183,6 +212,7 @@ export class Dashboards {
       return {
         kind: "list",
         class: className,
+        label: this.classLabel(className),
         total: result.total,
         items: result.items.map((r) => ({ id: r.id, label: r.label, fields: r.fields })),
       };
@@ -194,6 +224,12 @@ export class Dashboards {
     let counts: Map<string, number>;
     let total: number;
     let truncated = false;
+    // An external key groups by id; its friendly name is what a person reads
+    // ("Sam Agent", not "1"). iTop resolves <key>_friendlyname for any key.
+    const field = this.schema.get(className)?.fields[groupBy] as { type?: string } | undefined;
+    const isKey = !d.groupFn && field?.type === "ExternalKey";
+    const names = new Map<string, string>();
+    const timeZone = options.timeZone ?? this.objects.timeZone;
     if (exact) {
       ({ counts, total } = exact);
     } else {
@@ -201,22 +237,34 @@ export class Dashboards {
       // dashlet over 500 matches report partial counts as if they were whole.
       const result = await this.objects.listAll(
         className,
-        { oql, fields: ["id", groupBy].join(",") },
+        { oql, fields: ["id", groupBy, ...(isKey ? [`${groupBy}_friendlyname`] : [])].join(",") },
         GROUP_SCAN_LIMIT,
       );
       counts = new Map<string, number>();
       for (const row of result.items) {
         const raw = row.fields[groupBy];
-        const key = this.bucket(raw, d.groupFn);
+        const key = this.bucket(raw, d.groupFn, timeZone);
         counts.set(key, (counts.get(key) ?? 0) + 1);
+        const name = isKey ? row.fields[`${groupBy}_friendlyname`] : undefined;
+        if (typeof name === "string" && name) names.set(key, name);
       }
       total = result.total;
       truncated = result.truncated;
     }
 
+    const keyType = keyTypeOf(d.groupFn);
+    // A day-by-day chart shows every day in its range, quiet days included.
+    if (keyType === "day" && counts.size > 0) {
+      const days = [...counts.keys()].filter((k) => /^\d{4}-\d{2}-\d{2}$/.test(k)).sort();
+      const last = days[days.length - 1];
+      for (let day = days[0]; day && last && day < last; day = addDays(day, 1)) {
+        if (!counts.has(day)) counts.set(day, 0);
+      }
+    }
+
     let groups = [...counts.entries()].map(([key, count]) => ({
       key,
-      label: this.bucketLabel(key, className, groupBy, d.groupFn),
+      label: names.get(key) ?? this.bucketLabel(key, className, groupBy, d.groupFn),
       count,
     }));
 
@@ -228,11 +276,22 @@ export class Dashboards {
         label: this.valueLabel(className, groupBy, v),
         count: counts.get(v) ?? 0,
       }));
+    } else if (keyType !== "value") {
+      // Dates read in order, not by size.
+      groups.sort((a, b) => a.key.localeCompare(b.key));
     } else {
       groups.sort((a, b) => b.count - a.count);
     }
 
-    return { kind: d.kind, class: className, total, groups, ...(truncated ? { truncated } : {}) };
+    return {
+      kind: d.kind,
+      class: className,
+      label: this.classLabel(className),
+      total,
+      keyType,
+      groups,
+      ...(truncated ? { truncated } : {}),
+    };
   }
 
   /**
@@ -279,18 +338,18 @@ export class Dashboards {
   }
 
   /** Reduces a raw value to its group key, applying a date function if any. */
-  private bucket(raw: unknown, fn?: string): string {
+  private bucket(raw: unknown, fn: string | undefined, timeZone: string): string {
     const value = raw === null || raw === undefined ? "" : String(raw);
     if (!value) return "—";
     if (!fn) return value;
     // iTop date functions used by these dashboards. DateTime values arrive as
-    // ISO instants; the day they count towards is iTop's, as in its console.
+    // ISO instants; they count towards the viewer's day (iTop's when the
+    // viewer's zone is unknown). A day keeps its month and year, so two "19"s
+    // from different months never merge and the axis can say "19 Oct".
     const instant = value.includes("T") ? new Date(value) : null;
     const date =
-      instant && !Number.isNaN(instant.getTime())
-        ? itopDay(instant, this.objects.timeZone)
-        : value.slice(0, 10); // YYYY-MM-DD
-    if (fn === "day_of_month") return date.slice(8, 10) || value;
+      instant && !Number.isNaN(instant.getTime()) ? itopDay(instant, timeZone) : value.slice(0, 10); // YYYY-MM-DD
+    if (fn === "day_of_month") return date || value;
     if (fn === "month") return date.slice(0, 7) || value; // YYYY-MM
     if (fn === "year") return date.slice(0, 4) || value;
     return value;
@@ -301,4 +360,12 @@ export class Dashboards {
     if (key === "—") return "Not set";
     return this.valueLabel(className, groupBy, key);
   }
+}
+
+/** The kind of key a group function produces. */
+function keyTypeOf(fn: string | undefined): GroupKeyType {
+  if (fn === "day_of_month") return "day";
+  if (fn === "month") return "month";
+  if (fn === "year") return "year";
+  return "value";
 }

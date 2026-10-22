@@ -149,6 +149,14 @@ describe("dashboard routes", () => {
     assert.match(response.body, /"count":5/);
   });
 
+  it("refuses a time zone that is not an IANA zone", async () => {
+    const response = await app(new FakeItopClient()).inject({
+      method: "GET",
+      url: "/api/dashboards/Server:Overview/dashlets/1?tz=Mars%2FOlympus",
+    });
+    assert.equal(response.statusCode, 400);
+  });
+
   it("404s an unknown dashlet", async () => {
     const response = await app(new FakeItopClient()).inject({
       method: "GET",
@@ -202,6 +210,92 @@ function scanDashboards(client: ItopClient) {
     schema,
   );
 }
+
+describe("Dashboards.compute labels", () => {
+  it("names an external-key group by its friendly name, not its id", async () => {
+    const fake = new FakeItopClient().on(
+      "core/get",
+      getResponse(
+        [
+          { class: "Server", id: 1, fields: { id: "1", org_id: "3", org_id_friendlyname: "Demo Org" } },
+          { class: "Server", id: 2, fields: { id: "2", org_id: "3", org_id_friendlyname: "Demo Org" } },
+        ],
+        2,
+      ),
+    );
+
+    const data = await scanDashboards(fake.asClient()).compute("Server:Overview", "2");
+
+    assert.equal(data.kind, "pie");
+    if (data.kind === "pie") {
+      assert.deepEqual(data.groups, [{ key: "3", label: "Demo Org", count: 2 }]);
+      assert.equal(data.keyType, "value");
+    }
+    assert.match(String(fake.calls[0]?.params["output_fields"]), /org_id_friendlyname/);
+  });
+
+  it("gives a day grouping full dates, in order, with quiet days filled in", async () => {
+    const schema = sampleSchema();
+    const fake = new FakeItopClient().on(
+      "core/get",
+      getResponse(
+        [
+          { class: "Server", id: 1, fields: { id: "1", purchase_date: "2026-10-21" } },
+          { class: "Server", id: 2, fields: { id: "2", purchase_date: "2026-10-19" } },
+          { class: "Server", id: 3, fields: { id: "3", purchase_date: "2026-10-21" } },
+        ],
+        3,
+      ),
+    );
+    const dashboards = Dashboards.fromData(
+      {
+        dashboards: {
+          "Server:Overview": {
+            id: "Server:Overview",
+            title: "Server overview",
+            columns: 1,
+            dashlets: [
+              {
+                id: "5",
+                kind: "bars",
+                title: "Bought per day",
+                class: "Server",
+                oql: "SELECT Server",
+                groupBy: "purchase_date",
+                groupFn: "day_of_month",
+              },
+            ],
+          },
+        },
+        skipped: [],
+      },
+      new ObjectsService(fake.asClient(), schema, "test"),
+      schema,
+    );
+
+    const data = await dashboards.compute("Server:Overview", "5", { timeZone: "Asia/Kolkata" });
+
+    assert.equal(data.kind, "bars");
+    if (data.kind === "bars") {
+      assert.equal(data.keyType, "day");
+      assert.deepEqual(
+        data.groups.map((g) => [g.key, g.count]),
+        [
+          ["2026-10-19", 1],
+          ["2026-10-20", 0],
+          ["2026-10-21", 2],
+        ],
+      );
+    }
+  });
+
+  it("carries the class's own label", async () => {
+    const fake = new FakeItopClient().on("core/get", getResponse([], 4));
+    const data = await sampleDashboards(fake.asClient()).compute("Server:Overview", "1");
+    assert.equal(data.kind, "badge");
+    if (data.kind === "badge") assert.ok(data.label.length > 0);
+  });
+});
 
 describe("Dashboards.compute over more than one page", () => {
   it("counts every matching row, not just the first 500", async () => {
