@@ -2,7 +2,7 @@ import { badRequest } from "../core/errors.js";
 import type { ObjectsService } from "../platform/objects/objects.service.js";
 import type { CurrentContact } from "./current-contact.js";
 import { str } from "./ticket-mapping.js";
-import { currentCaller, runAs, runAsServiceAccount } from "../core/request-context.js";
+import { currentCaller, currentTenant, runAs, runAsServiceAccount } from "../core/request-context.js";
 
 /**
  * Resolves the organisation a record belongs to when the UI does not ask.
@@ -35,6 +35,15 @@ export class DefaultOrganization {
   ) {}
 
   async resolve(): Promise<string> {
+    // For a tenant, the instance-wide answers (the pinned id, the service
+    // account's company) are another customer's: only the tenant's own count.
+    const tenant = currentTenant();
+    if (tenant) {
+      const caller = currentCaller();
+      if (caller && tenant.orgIds.includes(caller.orgId)) return String(caller.orgId);
+      if (tenant.orgIds.length === 1) return String(tenant.orgIds[0]);
+      throw badRequest("Choose which of your organisations this record belongs to (organizationId).");
+    }
     if (this.pinnedId) return this.pinnedId;
     // A signed-in user's records belong to their own organisation.
     const caller = currentCaller();
