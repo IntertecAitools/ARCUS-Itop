@@ -4,6 +4,31 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-10-22 — Sidebar active item and groups; iTop dashboards redesigned; dashlet names and dates
+
+Branch `claude/nav-dashboards-polish`. Frontend plus the BFF's dashboard service. This worktree's BFF on `:4900` (its `node_modules` a junction to the main checkout's) against the local iTop on `:8080`, signed in as the local `admin`; Vite on `:5973`. Screenshots from headless Chromium in `docs/design/nav-dashboards/`.
+
+| What ran | Result | Notes |
+| --- | --- | --- |
+| Frontend `npx vitest run` | ✅ 28 files / 159 tests | New: `navigation/lib/active.test.ts` (one active entry: path + view, list over search, dashboards by id), `itop-dashboards/lib/labels.test.ts` (plurals, date keys) |
+| Frontend `npm run typecheck`, `npm run build` | ✅ | |
+| Backend `npm run typecheck`, `npm test` | ✅ 521 / 521 | New: an external-key group is named by its friendly name; a day grouping has full dates in order with quiet days filled; class labels on the payload; a bad `tz` is a 400 |
+| Mock browser journeys (`npx playwright test`, `E2E_MOCK_URL=http://localhost:5976`) | ✅ 7 / 7 | |
+| Live: `/records/Incident?view=Incident:OpenIncidents` | ✅ | Only "Open" is active in the sidebar (was five items) |
+| Live: sidebar right after sign-in | ✅ | Every group closed (the dashboard is in none); "Welcome" is a plain link |
+| Live: Welcome, Incident overview, Configuration management overview | ✅ | Desktop dark/light, phone, RTL. Tiles with icons, plural labels, muted zeros; section titles; charts two-up with legends |
+| Live: Incident overview data | ✅ | "Open incidents by agent" shows the agent's name, "by customer" the organisation's; the per-day chart's axis reads "Oct 19", "Oct 20" |
+
+Bugs found and fixed (in this branch):
+
+- Sidebar: every view of a class lit up at once (NavLink matched the path and ignored `?view=`). Matching is now path + view, at most one entry.
+- Sidebar: a group opened whenever the address merely started with one of its entries' paths. Now only the group holding the active entry opens by default; clicks are remembered until the next sign-in or reload.
+- Group-by on an external key returned ids ("1"); the BFF now asks iTop for `<key>_friendlyname` and labels groups with it.
+- A `day_of_month` grouping returned "19", "20" (and would have merged the same day of different months); keys are now full YYYY-MM-DD dates, counted in the viewer's zone (`?tz=`), sorted by date, quiet days filled.
+- The per-day bars could render empty in a screenshot taken during Recharts' entry animation; the animation is off.
+
+Not covered: the live journeys (`npm run e2e:live`); a screen-reader pass; real Arabic text.
+
 ### 2026-10-21 — Realistic data volume: 50,000 tickets, timings, fixes
 
 Branch `claude/data-volume-601f54`. A separate iTop: the production stack as its own compose project, `arcus-perf`, with its own MySQL (`itop_perf`) and iTop on 127.0.0.1:8189. The shared `itop-local`, `itop-mailpit` and `itop_prod` were not touched. It was filled through REST by `backend/scripts/perf-seed.mjs`:

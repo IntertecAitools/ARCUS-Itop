@@ -33,13 +33,30 @@ export function registerDashboardRoutes(app: FastifyInstance, services: Services
     return dashboards.public(id);
   });
 
-  /** The computed data for a single dashlet. The query runs here. */
+  /**
+   * The computed data for a single dashlet. The query runs here. `tz` is the
+   * viewer's IANA zone, so a "per day" chart counts the days they live in.
+   */
   app.get("/api/dashboards/:id/dashlets/:dashletId", async (request) => {
     const params = parse(
       z.object({ id: idSchema, dashletId: z.string().max(40).regex(/^[A-Za-z0-9_-]+$/) }),
       request.params,
       "path parameters",
     );
-    return dashboards.compute(params.id, params.dashletId);
+    const query = parse(
+      z.object({ tz: z.string().max(64).refine(isTimeZone, "tz must be an IANA time zone").optional() }),
+      request.query,
+      "query parameters",
+    );
+    return dashboards.compute(params.id, params.dashletId, query.tz ? { timeZone: query.tz } : {});
   });
+}
+
+function isTimeZone(value: string): boolean {
+  try {
+    new Intl.DateTimeFormat("en", { timeZone: value });
+    return true;
+  } catch {
+    return false;
+  }
 }
