@@ -28,6 +28,15 @@ export const queryKeys = {
     options: () => ['incident-options'] as const,
   },
 
+  approvals: {
+    all: () => ['approvals'] as const,
+    list: (state: string) => ['approvals', 'list', state] as const,
+    count: () => ['approvals', 'count'] as const,
+    detail: (id: string) => ['approvals', 'detail', id] as const,
+    /** The approval shown with one request (staff or portal screens). */
+    forRequest: (audience: 'staff' | 'portal', id: string) => ['approvals', 'request', audience, id] as const,
+  },
+
   userRequests: {
     all: () => ['user-requests'] as const,
     list: (filters: Record<string, unknown>) => ['user-requests', 'list', filters] as const,

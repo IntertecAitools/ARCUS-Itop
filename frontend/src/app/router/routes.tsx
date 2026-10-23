@@ -3,6 +3,7 @@ import { createBrowserRouter, type RouteObject } from 'react-router-dom';
 import { AgentLayout } from '@/app/layouts/AgentLayout';
 import { ForgotPasswordPage, LoginPage, RequireAuth, ResetPasswordPage } from '@/features/auth';
 import { LandingPage } from '@/features/landing';
+import { PortalApprovalPage, PortalApprovalsPage } from '@/features/approvals';
 import {
   PortalFaqPage,
   PortalFaqsPage,
@@ -59,6 +60,8 @@ export const router = createBrowserRouter([
       { path: 'help', element: <PortalFaqsPage /> },
       { path: 'help/:id', element: <PortalFaqPage /> },
       { path: 'profile', element: <PortalProfilePage /> },
+      { path: 'approvals', element: <PortalApprovalsPage /> },
+      { path: 'approvals/:id', element: <PortalApprovalPage /> },
     ],
   },
   {

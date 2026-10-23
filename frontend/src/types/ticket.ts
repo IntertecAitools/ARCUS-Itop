@@ -14,8 +14,15 @@ export const TICKET_STATUSES = [
   'pending',
   'resolved',
   'closed',
+  // User requests only, while an approval runs or once it is decided.
+  'awaiting_approval',
+  'approved',
+  'rejected',
 ] as const;
 export type TicketStatus = (typeof TICKET_STATUSES)[number];
+
+/** States only user requests reach; filters for incidents leave them out. */
+export const REQUEST_ONLY_STATUSES: readonly TicketStatus[] = ['awaiting_approval', 'approved', 'rejected'];
 
 export const TICKET_PRIORITIES = ['critical', 'high', 'medium', 'low'] as const;
 export type TicketPriority = (typeof TICKET_PRIORITIES)[number];

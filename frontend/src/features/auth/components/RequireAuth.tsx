@@ -13,6 +13,18 @@ function roleOf(user: SessionUser) {
 }
 
 /**
+ * Where an end user who followed a staff link (from an email, say) belongs:
+ * the same thing in the portal when there is one, else the portal's home.
+ */
+export function portalPathFor(pathname: string): string {
+  const approval = /^\/approvals(\/\d+)?\/?$/.exec(pathname);
+  if (approval) return `/portal/approvals${approval[1] ?? ''}`;
+  const request = /^\/records\/UserRequest\/(\d+)\/?$/.exec(pathname);
+  if (request) return `/portal/requests/${request[1]}`;
+  return '/portal';
+}
+
+/**
  * Shows the app only to a signed-in user; everyone else goes to sign-in,
  * coming back to where they were heading afterwards.
  *
@@ -63,6 +75,6 @@ export function RequireAuth({
     const next = `${location.pathname}${location.search}`;
     return <Navigate to={`/login${next && next !== '/' ? `?next=${encodeURIComponent(next)}` : ''}`} replace />;
   }
-  if (audience === 'staff' && user.kind === 'portal') return <Navigate to="/portal" replace />;
+  if (audience === 'staff' && user.kind === 'portal') return <Navigate to={portalPathFor(location.pathname)} replace />;
   return <>{children}</>;
 }

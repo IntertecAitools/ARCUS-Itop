@@ -1,0 +1,66 @@
+# A second, throwaway iTop for trying the approval extension, on
+# http://localhost:8093. It never touches the shared one on :8080.
+#
+# Same image and the same Windows MySQL as docker-compose.local.yml, but its
+# own code volume and its own database, `itop_approvals` (a copy of
+# itop_prod). Mail goes to the shared Mailpit (http://localhost:8025): the
+# container joins that compose file's network, so start the local stack first.
+#
+#   1. Copy the database (from any container with the mysql client):
+#        docker exec itop-local sh -c "mysql -h host.docker.internal -uroot \
+#          -e 'create database itop_approvals character set utf8mb4 collate utf8mb4_unicode_ci' \
+#          && mysqldump -h host.docker.internal -uroot --single-transaction itop_prod \
+#          | mysql -h host.docker.internal -uroot itop_approvals"
+#   2. Copy the installed code (with its config) from the shared volume:
+#        docker run --rm -v docker_itop-local-code:/from:ro \
+#          -v arcus-approvals_itop-approvals-code:/to itop-dev:php8.3 \
+#          bash -c "cp -a /from/. /to/"
+#   3. Install the approval extension: backend/README.md, "Approvals".
+#   4. docker compose -f docker/docker-compose.approvals-test.yml up -d
+#
+# Remove it with `docker compose -f docker/docker-compose.approvals-test.yml
+# down -v` and `drop database itop_approvals`.
+
+name: arcus-approvals
+
+services:
+  itop-approvals:
+    image: itop-dev:php8.3
+    container_name: itop-approvals
+    ports:
+      - "8093:80"
+    volumes:
+      - itop-approvals-code:/var/www/html
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks: [default, local]
+    restart: unless-stopped
+
+  # Runs cron.php: approval timeouts and reminders (CheckApprovalTimeout),
+  # queued email. As the Administrator in ITOP_USER / ITOP_PASSWORD.
+  itop-approvals-cron:
+    image: itop-dev:php8.3
+    container_name: itop-approvals-cron
+    user: www-data
+    command: ["sh", "/usr/local/bin/itop-cron"]
+    volumes:
+      - itop-approvals-code:/var/www/html
+      - ./itop-prod/itop-cron.sh:/usr/local/bin/itop-cron:ro
+    env_file:
+      - path: ../backend/.env
+        required: false
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks: [default, local]
+    depends_on:
+      - itop-approvals
+    restart: unless-stopped
+
+networks:
+  # docker-compose.local.yml's network, where Mailpit answers as `mailpit`.
+  local:
+    name: docker_default
+    external: true
+
+volumes:
+  itop-approvals-code:

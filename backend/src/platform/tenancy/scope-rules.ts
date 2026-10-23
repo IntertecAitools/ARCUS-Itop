@@ -54,6 +54,9 @@ const OVERRIDES: Record<string, ScopeRule> = {
 /** Families of classes outside the schema, by name. */
 const PREFIX_RULES: Array<[RegExp, ScopeRule | string]> = [
   [/^CMDBChangeOp/, { kind: "polymorphic", classAttr: "objclass", idAttr: "objkey" }],
+  // The approval extension's record of one request's approval (and its
+  // ExtendedApprovalScheme subclass): the tenant's when the request is.
+  [/ApprovalScheme$/, { kind: "polymorphic", classAttr: "obj_class", idAttr: "obj_key" }],
   [/^EventNotification/, { kind: "platform" }],
   [/^(Trigger|Action)/, { kind: "platform" }],
   // Account classes inherit User's rule.

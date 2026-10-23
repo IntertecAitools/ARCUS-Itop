@@ -30,14 +30,17 @@ export interface InboxItem {
   read: boolean;
   /** The record it is about, opened in this platform rather than iTop. */
   record: { type: string; id: number } | null;
+  /** Set when it asks for the user's approval: the approval to open instead of the record. */
+  approval: number | null;
 }
 
 const PRIORITY: Record<string, InboxItem["priority"]> = { "1": "critical", "2": "high", "3": "medium", "4": "low" };
-const FIELDS = "id,title,message,priority,read,date,object_class,object_id";
+const FIELDS = "id,title,message,priority,read,date,object_class,object_id,url";
 /** Most a "mark all read" touches in one go. */
 const MARK_ALL_LIMIT = 200;
 
-function plain(text: string): string {
+/** iTop rich text (or a page fragment) as plain text. */
+export function plain(text: string): string {
   return text
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<[^>]+>/g, "")
@@ -48,6 +51,12 @@ function plain(text: string): string {
     .replace(/&#0?39;/g, "'")
     .replace(/&amp;/g, "&")
     .trim();
+}
+
+/** The approval a platform link points at (`<APP_BASE_URL>/approvals/<id>`), if it does. */
+export function approvalIn(url: string): number | null {
+  const id = /^https?:\/\/[^/]+(?:\/[^?#]*)?\/approvals\/(\d+)\/?(?:[?#]|$)/.exec(url)?.[1];
+  return id ? Number(id) : null;
 }
 
 function toItem(row: FlatObject, timeZone: string): InboxItem {
@@ -61,6 +70,7 @@ function toItem(row: FlatObject, timeZone: string): InboxItem {
     priority: PRIORITY[str(f["priority"])] ?? "low",
     read: str(f["read"]) === "yes",
     record: objectId > 0 && str(f["object_class"]) ? { type: str(f["object_class"]), id: objectId } : null,
+    approval: approvalIn(str(f["url"])),
   };
 }
 
