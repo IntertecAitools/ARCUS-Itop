@@ -20,7 +20,11 @@ export type TicketStatus =
   | "in_progress"
   | "pending"
   | "resolved"
-  | "closed";
+  | "closed"
+  // User requests only: the approval extension's states.
+  | "awaiting_approval"
+  | "approved"
+  | "rejected";
 
 export type TicketPriority = "critical" | "high" | "medium" | "low";
 
@@ -34,6 +38,9 @@ export const STATUS_MAP: Record<string, TicketStatus> = {
   pending: "pending",
   resolved: "resolved",
   closed: "closed",
+  waiting_for_approval: "awaiting_approval",
+  approved: "approved",
+  rejected: "rejected",
 };
 
 /** Our vocabulary back to iTop's, for filtering. One of ours can map to many. */
@@ -44,6 +51,9 @@ export const STATUS_TO_ITOP: Record<TicketStatus, string[]> = {
   pending: ["pending"],
   resolved: ["resolved"],
   closed: ["closed"],
+  awaiting_approval: ["waiting_for_approval"],
+  approved: ["approved"],
+  rejected: ["rejected"],
 };
 
 /** iTop stores priority as 1..4. */

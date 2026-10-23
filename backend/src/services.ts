@@ -30,11 +30,26 @@ import { AuditService } from "./platform/admin/audit.service.js";
 import { QueriesService } from "./platform/queries/queries.service.js";
 import { InboxService } from "./platform/inbox/inbox.service.js";
 import { PortalService } from "./platform/portal/portal.service.js";
+import { ApprovalsService } from "./platform/approvals/approvals.service.js";
 import { DefaultOrganization } from "./shared/default-organization.js";
 import { CurrentContact } from "./shared/current-contact.js";
 import { TenantScopedClient } from "./platform/tenancy/scoped-client.js";
 import { TenantResolver } from "./platform/tenancy/resolve.js";
 import { MemoryTenantStore, MySqlTenantStore, type TenantStore } from "./platform/tenancy/tenant.store.js";
+import { MemoryMfaStore, MySqlMfaStore, type MfaStore } from "./platform/auth/mfa.store.js";
+import { MfaService } from "./platform/auth/mfa.service.js";
+import { Sealer } from "./platform/auth/seal.js";
+import { MemorySignInAudit, MySqlSignInAudit, type SignInAudit } from "./platform/auth/sign-in-audit.js";
+import { SsoService } from "./platform/auth/sso.service.js";
+import type { SignInPolicy } from "./config/env.js";
+
+/** No MFA, no single sign-on: what a Config without a sign-in policy (tests) means. */
+const PASSWORD_ONLY: SignInPolicy = {
+  mfaRequired: "off",
+  totpIssuer: "Arcus Helpdesk",
+  passwordSignIn: "all",
+  breakGlassLogins: [],
+};
 
 export interface Services {
   config: Config;
@@ -50,6 +65,10 @@ export interface Services {
   transfer: TransferService;
   auth: AuthService;
   sessions: SessionStore;
+  mfa: MfaService;
+  /** Present when OIDC_ISSUER is set. */
+  sso?: SsoService;
+  signInAudit: SignInAudit;
   passwordReset: PasswordResetService;
   users: UsersService;
   notifications: NotificationsService;
@@ -57,6 +76,7 @@ export interface Services {
   queries: QueriesService;
   inbox: InboxService;
   portal: PortalService;
+  approvals: ApprovalsService;
   dashboard: DashboardService;
   incidents: IncidentsService;
   problems: ProblemsService;
@@ -75,6 +95,8 @@ export interface BuildServicesOptions {
   dashboards?: Dashboards;
   sessions?: SessionStore;
   resetTokens?: ResetTokenStore;
+  mfaStore?: MfaStore;
+  signInAudit?: SignInAudit;
   /** Tenants for tests; otherwise from TENANTS_FILE or the BFF database. */
   tenants?: TenantStore;
   /** Stands in for SMTP in tests; otherwise built from PASSWORD_RESET settings. */
@@ -82,16 +104,28 @@ export interface BuildServicesOptions {
   logger?: Logger;
 }
 
+interface Stores {
+  sessions: SessionStore;
+  resetTokens: ResetTokenStore;
+  mfaStore: MfaStore;
+  signInAudit: SignInAudit;
+  /** The MySQL pool, when SESSION_STORE=mysql: tenants share it. */
+  pool?: Pool;
+}
+
 /**
- * Sessions and reset links: in memory, or in MySQL when SESSION_STORE=mysql
- * (one pool for both; the session store closes it).
+ * Sessions, reset links, authenticator enrolments and the sign-in audit log:
+ * in memory, or in MySQL when SESSION_STORE=mysql (one pool for all; the
+ * session store closes it).
  */
-function buildStores(config: Config): { sessions: SessionStore; resetTokens: ResetTokenStore; pool?: Pool } {
+function buildStores(config: Config, logger: Logger | undefined): Stores {
   const { sessionStore: store, sessionIdleMs, sessionMaxMs } = config.auth;
   if (store.kind === "memory") {
     return {
       sessions: new MemorySessionStore(sessionIdleMs, sessionMaxMs),
       resetTokens: new MemoryResetTokenStore(),
+      mfaStore: new MemoryMfaStore(),
+      signInAudit: new MemorySignInAudit(logger),
     };
   }
   const pool = createPool({
@@ -105,6 +139,8 @@ function buildStores(config: Config): { sessions: SessionStore; resetTokens: Res
   return {
     sessions: new MySqlSessionStore(pool, store.secret, sessionIdleMs, sessionMaxMs),
     resetTokens: new MySqlResetTokenStore(pool),
+    mfaStore: new MySqlMfaStore(pool, new Sealer(store.secret, "mfa")),
+    signInAudit: new MySqlSignInAudit(pool, logger),
     pool,
   };
 }
@@ -133,10 +169,19 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     currentContact,
     config.defaultOrgId,
   );
-  const auth = new AuthService(client);
-  const stores = options.sessions && options.resetTokens ? undefined : buildStores(config);
+  const policy = config.auth.signIn ?? PASSWORD_ONLY;
+  const auth = new AuthService(client, Date.now, {
+    policy,
+    externalItopAuth: config.itop.externalAuthHeader !== undefined,
+  });
+  const stores =
+    options.sessions && options.resetTokens && options.mfaStore && options.signInAudit
+      ? undefined
+      : buildStores(config, options.logger);
   const sessions = options.sessions ?? stores!.sessions;
   const resetTokens = options.resetTokens ?? stores!.resetTokens;
+  const mfaStore = options.mfaStore ?? stores!.mfaStore;
+  const signInAudit = options.signInAudit ?? stores!.signInAudit;
   const tenantStore = buildTenantStore(config, stores?.pool, options.tenants);
   const tenancy = new TenantResolver(tenantStore, config.tenancy ?? { enabled: false, platformLogins: [] });
   const reset = config.auth.passwordReset;
@@ -160,6 +205,9 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     queries: new QueriesService(client, schema, objects, transfer),
     auth,
     sessions,
+    mfa: new MfaService(mfaStore, policy),
+    ...(policy.sso ? { sso: new SsoService(policy.sso, new Sealer(config.auth.secret, "sso-state")) } : {}),
+    signInAudit,
     passwordReset: new PasswordResetService(client, auth, resetTokens, sessions, mailer, reset),
     notifications: new NotificationsService(
       client,
@@ -172,6 +220,7 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     audit: new AuditService(client, schema),
     users: new UsersService(client, objects, auth, sessions, tenancy),
     portal: new PortalService(client, schema, objects),
+    approvals: new ApprovalsService(client, config.itop.timezone),
     dashboard: new DashboardService(objects, navigation, currentContact, schema),
     defaultOrganization,
     currentContact,

@@ -123,7 +123,7 @@ and a BFF of its own, on ports no other session uses:
 
 ```bash
 cd backend
-PORT=4600 CORS_ORIGINS=http://localhost:5673 APP_BASE_URL=http://localhost:5673 npm run dev
+PORT=4600 CORS_ORIGINS=http://localhost:5673 APP_BASE_URL=http://localhost:5673 MFA_REQUIRED=off npm run dev
 cd frontend && npm run e2e:live     # starts the frontend on :5673 itself
 ```
 

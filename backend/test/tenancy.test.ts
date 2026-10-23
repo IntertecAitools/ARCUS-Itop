@@ -118,6 +118,14 @@ describe("OQL scoping", () => {
     );
   });
 
+  it("scopes an approval by the request it is about", () => {
+    assert.match(
+      scopeOql("SELECT ApprovalScheme WHERE id = 3 AND obj_class = 'UserRequest'", rules, [10]),
+      /ApprovalScheme.obj_class = 'UserRequest' AND ApprovalScheme.obj_key IN \(SELECT UserRequest AS ts_1 WHERE ts_1.org_id IN \(10\)\)$/,
+    );
+    assert.throws(() => scopeOql("SELECT ApprovalScheme WHERE status = 'ongoing'", rules, [10]), /one kind of record/);
+  });
+
   it("refuses what it cannot check", () => {
     assert.equal(selectedClassOf("SELECT a, b FROM Person AS a JOIN Organization AS b ON a.org_id = b.id"), null);
     assert.throws(() => scopeOql("SELECT a, b FROM Person AS a JOIN Organization AS b ON a.org_id = b.id", rules, [10]));
@@ -401,6 +409,22 @@ describe("guard on the client", () => {
     const client = new TenantScopedClient(fake.asClient(), schema);
     await client.call("core/get", { class: "UserRequest", key: 200 });
     assert.equal(fake.lastCall().params["key"], 200);
+  });
+
+  it("lets an approval answer through only for an approval of the tenant's", async () => {
+    const fake = new MiniItop();
+    const client = new TenantScopedClient(fake.asClient(), schema);
+    const answer = () => client.postScript("env-production/approval-base/approve.php", { operation: "do_approve", token: "3-0-Person-101-12345" });
+    // The scheme does not read back inside tenant A: refused, nothing posted.
+    await assert.rejects(runAs(staff("ann", 10), answer, A), /not one of your organisations/);
+    assert.equal(fake.scripts.length, 0);
+    const scoped = fake.calls.at(-1)!.params["key"] as string;
+    assert.match(scoped, /ApprovalScheme.obj_key IN \(SELECT UserRequest AS ts_1 WHERE ts_1.org_id IN \(10,11\)\)/);
+    // It does: posted.
+    fake.on("core/get", () => getResponse([{ class: "ExtendedApprovalScheme", id: 3, fields: { id: "3" } }]));
+    await runAs(staff("ann", 10), answer, A);
+    assert.equal(fake.scripts.length, 1);
+    await assert.rejects(runAs(staff("ann", 10), () => client.postScript("env-production/approval-base/approve.php", { token: "x" }), A));
   });
 
   it("refuses an import run as an Administrator or the service account", async () => {

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Search, X } from 'lucide-react';
 import { Button, Input, Select } from '@/components/ui';
 import { statusLabel, priorityLabel } from '@/components/data-display';
-import { TICKET_PRIORITIES, TICKET_STATUSES } from '@/types/ticket';
+import { REQUEST_ONLY_STATUSES, TICKET_PRIORITIES, TICKET_STATUSES } from '@/types/ticket';
 import type { TicketPriority, TicketStatus } from '@/types/ticket';
 import type { IncidentFilters } from '../types';
 
@@ -64,7 +64,7 @@ export function IncidentFilterBar({ filters, onChange, onClear, activeCount }: P
         }
         options={[
           { value: '', label: 'All statuses' },
-          ...TICKET_STATUSES.map((status) => ({ value: status, label: statusLabel(status) })),
+          ...TICKET_STATUSES.filter((status) => !REQUEST_ONLY_STATUSES.includes(status)).map((status) => ({ value: status, label: statusLabel(status) })),
         ]}
       />
 

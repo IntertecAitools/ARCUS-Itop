@@ -221,9 +221,9 @@ describe("password reset routes", () => {
 
   it("tells the sign-in page whether reset is on, without a session", async () => {
     const on = await app(true).app.inject({ method: "GET", url: "/api/auth/options" });
-    assert.deepEqual(on.json(), { passwordReset: true });
+    assert.equal(on.json().passwordReset, true);
     const off = await app(false).app.inject({ method: "GET", url: "/api/auth/options" });
-    assert.deepEqual(off.json(), { passwordReset: false });
+    assert.equal(off.json().passwordReset, false);
   });
 
   it("answers an unknown account exactly like a real one, without a session", async () => {

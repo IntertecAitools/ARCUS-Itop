@@ -7,6 +7,7 @@ import type { ItopResult, ItopVerb } from "../../itop/types.js";
 import type { CmdbSchema } from "../../schema/load.js";
 import type { ClassInfo } from "../../schema/types.js";
 import { scopeOql } from "./oql-scope.js";
+import { APPROVE_SCRIPT } from "../approvals/approvals.service.js";
 import { ScopeRefusal, ScopeRules, idList } from "./scope-rules.js";
 
 type Params = Record<string, unknown>;
@@ -81,6 +82,10 @@ export class TenantScopedClient {
           options,
         );
       }
+      if (script === APPROVE_SCRIPT) {
+        await this.assertApprovalScoped(params["token"] ?? "");
+        return await this.inner.postScript(script, params, options);
+      }
       if (script === "webservices/import.php") {
         this.assertImportScoped(params["class"] ?? "", tenant, options);
         return await this.inner.postScript(script, params, options);
@@ -89,6 +94,27 @@ export class TenantScopedClient {
     } catch (error) {
       throw refusalToError(error);
     }
+  }
+
+  /**
+   * An answer to an approval (the extension's one-click page) is let
+   * through only when the approval its token names reads back inside the
+   * tenant: the token starts with the ApprovalScheme's id.
+   */
+  private async assertApprovalScoped(token: string): Promise<void> {
+    const id = /^(\d+)-/.exec(token)?.[1];
+    const found = id
+      ? normalizeObjects(
+          (
+            await this.call(
+              "core/get",
+              { class: "ApprovalScheme", key: `SELECT ApprovalScheme WHERE id = ${id} AND obj_class = 'UserRequest'`, output_fields: "id" },
+              { asService: true },
+            )
+          ).objects,
+        )
+      : [];
+    if (found.length === 0) throw new ScopeRefusal("ApprovalScheme", "is not one of your organisations'");
   }
 
   checkCredentials(): Promise<boolean> {

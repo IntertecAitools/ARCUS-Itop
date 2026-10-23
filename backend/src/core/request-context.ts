@@ -25,8 +25,34 @@ export interface Caller {
    * The user's own iTop credentials, for staff: every iTop call on their
    * behalf is made with them, so iTop applies their profiles and records
    * their name in history. Held in server memory only.
+   *
+   * After single sign-on there is no password: `external` calls carry the
+   * login in ITOP_EXTERNAL_AUTH_HEADER, which iTop's "external" login trusts
+   * (a UserExternal account).
    */
-  credentials?: { user: string; password: string };
+  credentials?: ItopCredentials;
+  /** How this session signed in, and whether it is still waiting for MFA. */
+  signIn?: SignInState;
+}
+
+export type ItopCredentials = { user: string; password: string } | { user: string; external: true };
+
+export interface SignInState {
+  method: "password" | "sso" | "break-glass";
+  /** The second factor given, when one was: our authenticator code, a recovery code, or the IdP's (`amr`). */
+  mfa?: "totp" | "recovery" | "idp";
+  /**
+   * Set while the password (or IdP) is checked but the authenticator code is
+   * not: the session reaches only /api/auth/mfa/* until `until`.
+   */
+  pending?: {
+    step: "verify" | "enrol";
+    until: number;
+    /** Wrong codes so far; the sign-in starts over after a few. */
+    attempts: number;
+    /** The secret being enrolled, until the first code confirms it. */
+    secret?: string;
+  };
 }
 
 /**

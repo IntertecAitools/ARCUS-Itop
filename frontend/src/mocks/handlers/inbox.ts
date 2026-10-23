@@ -6,6 +6,17 @@ const url = (path: string) => `${env.bffUrl}${path}`;
 /** A few notifications, so the bell can be worked on without the BFF. */
 let items = [
   {
+    id: 4,
+    title: 'Your approval is requested: R-003310',
+    message: 'Laptop for the new hire in Finance',
+    date: new Date(Date.now() - 2 * 3_600_000).toISOString(),
+    priority: 'high',
+    // Read already, so the bell journey's single unread item stays the incident.
+    read: true,
+    record: { type: 'UserRequest', id: 3310 },
+    approval: 7,
+  },
+  {
     id: 3,
     title: 'INC-1042',
     message: 'Ticket has been assigned to you',
@@ -13,6 +24,7 @@ let items = [
     priority: 'high',
     read: false,
     record: { type: 'Incident', id: 1042 },
+    approval: null,
   },
   {
     id: 2,
@@ -22,6 +34,7 @@ let items = [
     priority: 'low',
     read: true,
     record: { type: 'UserRequest', id: 3301 },
+    approval: null,
   },
 ];
 

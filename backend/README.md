@@ -64,6 +64,8 @@ Everyone signs in to **our** frontend; nobody needs iTop's console. Accounts
 are still iTop's own (`UserLocal`, `UserLDAP`, `UserExternal`), so there is one
 user list.
 
+- Single sign-on (OIDC, e.g. Entra ID), MFA and the break-glass account:
+  see "Single sign-on and MFA" below.
 - `POST /api/auth/login` checks the password with `core/check_credentials`
   (local, LDAP and external accounts alike), reads the account's profiles and
   allowed organisations, and sets an `HttpOnly`, `SameSite=Lax` session cookie.
@@ -122,6 +124,126 @@ user list.
   - Mail goes over TLS (`SMTP_REQUIRE_TLS`, off only for a local test mailbox).
   - Other settings: `AUTH_REQUIRED`, `SESSION_IDLE_MINUTES`,
     `SESSION_MAX_HOURS`, `COOKIE_SECURE` (on behind HTTPS).
+
+### Single sign-on and MFA
+
+Settings are in `.env.example` ("MFA, single sign-on, break-glass"). Three
+ways in, all ending in the same session cookie:
+
+| Way in | Who | Second factor |
+| --- | --- | --- |
+| **Password** (`POST /api/auth/login`) | everyone, unless `PASSWORD_SIGN_IN` narrows it | our authenticator code (TOTP) for staff (`MFA_REQUIRED=staff`, the default; `admin` or `off`) and for anyone who has enrolled |
+| **Single sign-on** (OIDC, e.g. Microsoft Entra ID) | anyone with an account whose email the IdP vouches for | the IdP's: its `amr` claim. `SSO_MFA=idp-or-totp` (default) asks staff for our code when `amr` shows no MFA; `idp` refuses them; `off` trusts the IdP's own policy |
+| **Break-glass** (password) | the logins in `BREAK_GLASS_LOGINS` | our code, always. Every sign-in, refusal and request is in the sign-in audit log |
+
+**MFA after a password.** `POST /api/auth/login` then answers
+`{ mfa: { step: "enrol" | "verify" } }` and a session that reaches only
+`/api/auth/mfa/*` for 10 minutes (`GET /api/auth/me` is a 401 with
+`details.mfa`). Nothing runs as the user until the code is given; the full
+session gets a new cookie.
+
+- `GET /api/auth/mfa/enrol` gives a secret and its `otpauth://` link (the
+  frontend shows it as a QR code); `POST /api/auth/mfa/enrol { code }`
+  confirms it and answers 10 recovery codes, once.
+- `POST /api/auth/mfa/verify { code }` or `{ recoveryCode }`. A code works
+  once (its time step is recorded), with 30 s of clock drift either way; a
+  recovery code works once. After 5 wrong codes the sign-in starts over;
+  more than 10 wrong codes per login in 15 minutes is a 429, whatever the
+  password (the password count is cleared by a right password, this one is
+  not).
+- Signed in: `GET /api/auth/mfa` (enrolled, codes left, how this session
+  signed in), `POST /api/auth/mfa/recovery-codes { code }` (new ones).
+- Administrators: `DELETE /api/admin/users/:id/mfa` removes someone's
+  authenticator (lost phone) and signs them out; they enrol again at their
+  next sign-in.
+- Enrolments are the BFF's (iTop has nowhere to keep them): table `bff_mfa`
+  and `bff_mfa_recovery` in the session database, the secret sealed with
+  `SESSION_SECRET` (AES-256-GCM, bound to the account), recovery codes as
+  SHA-256 only. With `SESSION_STORE=memory` they are lost on restart.
+
+**Single sign-on** (on once `OIDC_ISSUER` is set). Authorization Code flow
+with PKCE (S256), `state` and `nonce`, using `openid-client`; the ID token's
+signature, issuer, audience, expiry and nonce are checked. The state travels
+in a 10-minute cookie sealed with `SESSION_SECRET`, so any BFF instance can
+take the callback.
+
+- `GET /api/auth/sso/start?returnTo=/path` (a link, not a fetch) sends the
+  browser to the IdP; `GET /api/auth/sso/callback` (the redirect URI) lands
+  it on the frontend: `returnTo`, or `/login?next=` when our code is still
+  needed, or `/login?sso_error=<reason>`. `returnTo` is a path on our own
+  site only.
+- **Matching.** The first of `OIDC_EMAIL_CLAIMS` holding an address
+  (`email` is skipped when `email_verified` is false) must be the email of
+  exactly one enabled iTop account, whose person is not inactive. Unknown,
+  disabled, inactive and ambiguous are refused with a reason; nobody is
+  created. Matching is by email, so the person's email in iTop must be the
+  address the IdP sends (for Entra ID, usually the UPN).
+- **Staff call iTop as themselves** without a password: their account must
+  be a **UserExternal** (create it as "external" in Users), and iTop's
+  "external" login must read the header the BFF sends
+  (`ITOP_EXTERNAL_AUTH_HEADER`, e.g. `X-Arcus-Remote-User`; in
+  `config-itop.php`, `'ext_auth_variable' => "$_SERVER['HTTP_X_ARCUS_REMOTE_USER']"`
+  and `external` in `allowed_login_types`). The production stack's
+  `itop-setup` sets both from the same variable.
+  **Safeguard:** with this setting, anyone who can reach iTop directly and
+  send that header is signed in as any UserExternal, with no password. So
+  in production iTop must be reachable **only** from the BFF
+  (`docs/deployment.md`, "Locked down"), and every reverse proxy must strip
+  an incoming `X-Arcus-Remote-User` (the bundled nginx,
+  `frontend/nginx/default.conf.template`, does; do the same in your TLS
+  proxy). The BFF never forwards a browser's headers to iTop. Staff with a UserLocal account keep
+  signing in with their password. End users need neither: the self-service
+  API runs as the service account.
+- `GET /api/auth/options` tells the sign-in page whether to offer the button
+  (`sso.label`) and who may use a password (`passwordSignIn`).
+
+**What IT must give us for Microsoft Entra ID.** An app registration
+(Entra admin center → App registrations → New registration):
+
+| We need | Where in Entra | Setting |
+| --- | --- | --- |
+| Directory (tenant) ID | Overview | `OIDC_ISSUER=https://login.microsoftonline.com/<tenant-id>/v2.0` |
+| Application (client) ID | Overview | `OIDC_CLIENT_ID` |
+| A client secret (value, and its expiry date) | Certificates & secrets | `OIDC_CLIENT_SECRET` (renew before it expires) |
+| Redirect URI, platform **Web** | Authentication | exactly `OIDC_REDIRECT_URI`, e.g. `https://helpdesk.example.com/api/auth/sso/callback` |
+| Supported account types | Authentication | "this organizational directory only" (single tenant) |
+| Delegated permissions `openid`, `profile`, `email` (admin consent granted) | API permissions | `OIDC_SCOPES=openid profile email` |
+| Optional claim `email` on the ID token | Token configuration | else set `OIDC_EMAIL_CLAIMS=preferred_username,email,upn` (the UPN) |
+| Who may sign in (optional): "Assignment required" + users/groups | Enterprise applications → the app → Properties / Users and groups | |
+| MFA: a Conditional Access policy requiring MFA for this app | Security → Conditional Access | keep `SSO_MFA=idp-or-totp`; Entra reports MFA in `amr` (`"mfa"`). If tokens arrive without `amr`, set `SSO_MFA=off` and rely on the policy |
+
+Then set `PASSWORD_SIGN_IN=portal` (staff use Microsoft; end users and
+break-glass keep passwords) or `break-glass`, and create staff accounts as
+external accounts whose login and person email are their Entra address.
+
+**Break-glass.** A UserLocal Administrator listed in `BREAK_GLASS_LOGINS`,
+for when the IdP is down. Its password sign-in always needs our code (it
+enrols at first use: do that when setting it up, and keep the recovery codes
+with the password, e.g. in a safe). It is allowed whatever
+`PASSWORD_SIGN_IN` says.
+
+**Sign-in audit log.** `GET /api/admin/sign-in-audit?limit=&before=&login=`
+(administrators). Every sign-in (with method and second factor), refused
+sign-in (with the reason, never the password), wrong code, enrolment,
+recovery code use, MFA reset, and every request of a break-glass session
+(`GET /api/objects/Server -> 200`). Kept in `bff_sign_in_audit` (never
+pruned) or memory (the last 5000), and each entry is also logged at warn
+with `audit: true`.
+
+**Locally.** `npm run idp:dev` starts a development IdP on
+`http://127.0.0.1:3027` (signs in any email; a box sets `amr` to MFA); its
+header lists the settings to point the BFF at it. `npm run e2e:sso` runs the
+whole set against it, a BFF of its own on :3020 and the local iTop
+(`scripts/e2e-sso.mjs`). Scripted password sign-ins (`api:check`, the
+frontend's `e2e:live`) need `MFA_REQUIRED=off` on the BFF they use.
+For staff single sign-on against the local iTop, add after
+`allowed_login_types` in its `conf/production/config-itop.php` (keep a copy
+of the file first) the line
+`'ext_auth_variable' => "\$_SERVER['HTTP_X_ARCUS_REMOTE_USER']",` and set
+`ITOP_EXTERNAL_AUTH_HEADER=X-Arcus-Remote-User` (and
+`E2E_ITOP_EXTERNAL_HEADER` for `e2e:sso`). Use the `$_SERVER` form, not
+`getallheaders()['X-Arcus-Remote-User']`: Node sends header names in lower
+case and `getallheaders()` lookups are case-sensitive.
 
 ### iTop accounts the BFF needs
 
@@ -317,6 +439,131 @@ resets; iTop: ticket notifications).
 If the mail provider requires OAuth instead of a password (Microsoft 365
 may), iTop has `'email_transport' => 'SMTP_OAuth'`; the BFF needs OAuth
 support added first.
+
+## Approvals
+
+Requests that need someone's go-ahead before the service desk works on them
+("a new laptop: the requester's manager approves, then Finance"). Approvers
+answer in the platform, staff and end users alike; nobody opens iTop.
+
+**The engine is Combodo's "Approval process automation" extension**
+(AGPL-3.0, free): `approval-base` 3.4.0, `combodo-approval-extended` 1.5.4,
+`combodo-sla-computation` 2.4.7 and `itop-approval-portal` 1.0.12. It was
+chosen over "Approval process light" (one level, approver picked by hand per
+ticket) and over no extension (iTop's bare `waiting_for_approval` states, with
+no rules, levels or history). The two Combodo extensions cannot be installed
+together.
+
+How it works:
+
+- An administrator defines an **approval rule** (iTop class `ApprovalRule`):
+  up to two levels, each an OQL query for the approvers (`SELECT Person WHERE
+  …`, e.g. the caller's manager), an exit condition (first reply, first
+  reject, first approve), an optional timeout in hours with a default answer,
+  optional substitutes, and a coverage window (working hours) that the
+  timeout counts in. The rule is attached to **service subcategories**.
+- A user request raised in such a subcategory (from the portal, the staff
+  screens, email…) goes to **Awaiting approval** (iTop's
+  `waiting_for_approval`) and the extension asks level 1. When a level
+  concludes it asks the next, and finally moves the request to **Approved**
+  (then the service desk assigns it as usual) or **Rejected**. Staff cannot
+  approve or reject by hand: the extension makes those transitions internal.
+- The BFF reads the extension's `ApprovalScheme` (one per request; its levels
+  are PHP-serialized, read by `shared/php-unserialize.ts`) as the service
+  account, and is the access control: a user sees only the approvals they are
+  an approver or substitute on, matched on the Person linked to their account.
+- An answer is posted to the extension's own one-click page
+  (`env-production/approval-base/approve.php`) with that user's token, exactly
+  as the extension's email link would, so iTop applies its own logic and
+  records "Approved by <name>" with the comment. The passcode in the token
+  never leaves the BFF. A rejection needs a comment (the extension's rule).
+
+Endpoints (`platform/approvals/`):
+
+| | |
+| --- | --- |
+| `GET /api/me/approvals?state=pending\|decided` | Waiting for me; or decided by me in the last 90 days. With `pending`, the count |
+| `GET /api/me/approvals/count` | `{ pending }`, for the badges (also `pendingApprovals` in `/api/nav/counts`) |
+| `GET /api/me/approvals/:id` | One approval: the request, every level, who answered what. 404 unless the caller is on it |
+| `POST /api/me/approvals/:id/approve` / `reject` | `{ comment }` (required to reject). 409 when the caller's answer is no longer awaited |
+| `GET /api/approvals/requests/:id` | Staff: the approval on a request they can read |
+| `GET /api/portal/requests/:id/approval` | End users: the approval on their own request (portal scope) |
+| `POST /api/admin/approvals/notifications` | Administrators: set up the notifications below (same as the script) |
+
+`/api/me/` is open to staff and end users, so one API serves both. The
+frontend has **Approvals** in the staff sidebar (with a badge), and in the
+portal an Approvals link with a count plus a prompt on the home page, shown
+to end users who have approvals waiting. The approval also shows on the
+request itself: the record screen for staff, the request page in the portal.
+
+### Approval notifications
+
+`npm run approvals:setup` (or `POST /api/admin/approvals/notifications`) sets
+them up in iTop, idempotently; run it once per iTop and again after changing
+`APP_BASE_URL` or the sender. It needs `APP_BASE_URL` and
+`NOTIFICATION_FROM` (or `MAIL_FROM`).
+
+- **Approvers** are told when their answer is awaited (and reminded, when a
+  level has a timeout) by the extension's `TriggerOnApprovalRequest`, to
+  which it links an email of ours ("Platform: approval requested") whose link
+  is `APP_BASE_URL/approvals/<id>`, not iTop's page, and a bell entry
+  ("… (in the app)") that opens the approval. An end user who follows the
+  staff link lands on the same approval in the portal.
+- **Requesters** are told when their request is approved or rejected by two
+  ordinary notification rules ("Request approved/rejected: tell the
+  requester"), which then show on the Notifications screen; an existing rule
+  of that name is left as an administrator edited it.
+- iTop's bell (newsroom) only reaches accounts with back-office access, so
+  **end-user approvers get the email and the portal's badge, not the bell**.
+  Bell entries are queued and sent by iTop's cron.
+
+### Installing the approval extension on an iTop
+
+Done on the test iTop of `docker/docker-compose.approvals-test.yml` (port
+8093, database `itop_approvals`, a copy of `itop_prod`); the same steps apply
+to the main or production iTop. **Back up iTop's database and its `conf/`
+first**: the setup changes the schema.
+
+1. Get the four modules at those tags from GitHub
+   (`https://github.com/Combodo/<module>/archive/refs/tags/<tag>.tar.gz`) or
+   the "Approval process automation" package from the iTop Hub, and put each
+   in iTop's `extensions/<module>/` (without `tests/`), owned by `www-data`.
+2. Make the configuration file writable for the setup
+   (`chmod u+w conf/production/config-itop.php`).
+3. Run the unattended upgrade with `docker/itop-approvals-upgrade.xml` (the
+   installed module list plus the four; set `<database><name>` and `<url>` for
+   that iTop), copied into the container. **iTop 3.4 needs three passes**:
+   one pass fails (`Unknown class 'TriggerOnApprovalRequest'`: the extension's
+   installer runs before the new classes are loaded) and the schema lags one
+   compile behind, so:
+
+   ```bash
+   # pass 1: everything except combodo-approval-extended
+   sed '/combodo-approval-extended<\/item>/d' approvals-upgrade.xml > approvals-upgrade-pass1.xml
+   docker exec -u www-data -w /var/www/html/setup/unattended-install <container> php unattended-install.php --param-file=/var/www/html/approvals-upgrade-pass1.xml
+   # passes 2 and 3: the full list, twice
+   docker exec -u www-data -w /var/www/html/setup/unattended-install <container> php unattended-install.php --param-file=/var/www/html/approvals-upgrade.xml
+   docker exec -u www-data -w /var/www/html/setup/unattended-install <container> php unattended-install.php --param-file=/var/www/html/approvals-upgrade.xml
+   docker restart <container>
+   ```
+
+   A failed pass leaves iTop in maintenance: delete `data/.maintenance` and
+   `data/.readonly` before the next one. Check: `core/get ApprovalRule`
+   answers (no "table doesn't exist").
+4. Make sure iTop's cron runs (timeouts, reminders, the bell).
+5. `npm run approvals:setup` against that iTop.
+6. In iTop's data (until the platform has a screen for it; REST as an
+   administrator works): create a `CoverageWindow` (e.g. 24×7: each weekday
+   00:00–24:00) and an `ApprovalRule`, and set `approvalrule_id` on the
+   service subcategories that need approval. `scripts/e2e-approvals.mjs`
+   shows the fields.
+7. `node scripts/e2e-approvals.mjs` checks it end to end (see the script's
+   header; it creates `e2e.*` accounts and an "E2E needs approval"
+   subcategory, so run it on a test iTop).
+
+Not covered yet: a platform screen to manage approval rules; reminders and
+substitutes were not exercised (no timeouts in the test rule); approvals on
+anything but user requests (the extension supports only those).
 
 ## Audit
 
@@ -846,7 +1093,9 @@ finding out via a 404.
 |---|---|
 | `npm run dev` | watch mode |
 | `npm run build` / `npm start` | compile to `dist/`, run it |
-| `npm test` | 176 tests, no iTop needed |
+| `npm test` | unit tests, no iTop needed |
+| `npm run idp:dev` | a local OIDC identity provider for single sign-on |
+| `npm run e2e:sso` | sign-in end to end: SSO, MFA, break-glass (dev IdP + local iTop) |
 | `npm run typecheck` | `tsc --noEmit` over src + tests + scripts |
 | `npm run smoke` | live read-only check (`-- --write` for full CRUD) |
 | `npm run schema:pull` | vendor `cmdb-schema.json` into `schema/` |

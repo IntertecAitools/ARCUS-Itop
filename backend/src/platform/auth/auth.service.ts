@@ -1,9 +1,18 @@
+import type { SignInPolicy } from "../../config/env.js";
 import { AppError, badRequest } from "../../core/errors.js";
 import { RateLimiter } from "../../core/rate-limiter.js";
 import { runAs, runUnscoped, type Caller } from "../../core/request-context.js";
 import type { ItopClient } from "../../itop/client.js";
 import { normalizeObjects } from "../../itop/normalize.js";
 import { quoteString } from "../../itop/oql.js";
+import type { SsoIdentity } from "./sso.service.js";
+
+export interface AuthOptions {
+  /** MFA, single sign-on and break-glass rules; absent means password only. */
+  policy?: SignInPolicy;
+  /** ITOP_EXTERNAL_AUTH_HEADER is set: staff signed in by SSO can call iTop. */
+  externalItopAuth?: boolean;
+}
 
 /** iTop's profile names (datamodels/2.x/itop-profiles-itil, core). */
 export const PORTAL_PROFILE = "Portal user";
@@ -44,6 +53,13 @@ export function publicUser(caller: Caller): PublicUser {
  */
 export const SIGN_IN_LIMITS = { perAddress: 10, perLogin: 5, windowMs: 15 * 60_000 } as const;
 
+/**
+ * Wrong authenticator or recovery codes allowed per login per window. Kept
+ * apart from the password count, which a correct password clears: whoever
+ * is at this step knows the password.
+ */
+export const MFA_CODE_LIMIT = 10;
+
 const str = (v: unknown) => (v === null || v === undefined ? "" : String(v));
 
 /**
@@ -58,13 +74,16 @@ const str = (v: unknown) => (v === null || v === undefined ? "" : String(v));
 export class AuthService {
   private readonly failuresByAddress: RateLimiter;
   private readonly failuresByLogin: RateLimiter;
+  private readonly codeFailuresByLogin: RateLimiter;
 
   constructor(
     private readonly client: ItopClient,
     now: () => number = Date.now,
+    private readonly options: AuthOptions = {},
   ) {
     this.failuresByAddress = new RateLimiter(SIGN_IN_LIMITS.perAddress, SIGN_IN_LIMITS.windowMs, now);
     this.failuresByLogin = new RateLimiter(SIGN_IN_LIMITS.perLogin, SIGN_IN_LIMITS.windowMs, now);
+    this.codeFailuresByLogin = new RateLimiter(MFA_CODE_LIMIT, SIGN_IN_LIMITS.windowMs, now);
   }
 
   /** `address` is the client's, as the request saw it (TRUST_PROXY decides how). */
@@ -86,6 +105,9 @@ export class AuthService {
     this.failuresByLogin.clear(loginKey);
 
     const caller = await this.loadCaller(trimmed);
+    const breakGlass = this.isBreakGlass(caller.login);
+    this.assertPasswordSignInAllowed(caller, breakGlass);
+    caller.signIn = { method: breakGlass ? "break-glass" : "password" };
     if (caller.kind === "staff") {
       caller.credentials = { user: trimmed, password };
       await this.assertRestAccess(caller);
@@ -93,8 +115,116 @@ export class AuthService {
     return caller;
   }
 
-  private assertNotThrottled(loginKey: string, address?: string): void {
+  isBreakGlass(login: string): boolean {
+    return this.options.policy?.breakGlassLogins.includes(login.toLowerCase()) ?? false;
+  }
+
+  /**
+   * PASSWORD_SIGN_IN: with single sign-on in place, passwords may be kept to
+   * end users and break-glass accounts, or to break-glass accounts alone.
+   * Checked after the password, so the answer reveals nothing about a login
+   * to someone who does not know its password.
+   */
+  private assertPasswordSignInAllowed(caller: Caller, breakGlass: boolean): void {
+    const rule = this.options.policy?.passwordSignIn ?? "all";
+    if (rule === "all" || breakGlass) return;
+    if (rule === "portal" && caller.kind === "portal") return;
+    const label = this.options.policy?.sso?.label ?? "single sign-on";
+    throw new AppError("forbidden", `This account signs in with single sign-on. Use "${label}".`);
+  }
+
+  /**
+   * Single sign-on: the IdP vouched for an email address, which must belong
+   * to exactly one enabled iTop account, linked to an active person. Unknown
+   * and disabled users are refused; nobody is created here.
+   *
+   * Staff then call iTop as themselves through iTop's "external" login, which
+   * needs a UserExternal account (iTop's kind for users authenticated
+   * elsewhere) and ITOP_EXTERNAL_AUTH_HEADER. End users need neither: the
+   * self-service API runs as the service account.
+   */
+  async signInWithSso(identity: SsoIdentity): Promise<Caller> {
+    const found = await this.client.call(
+      "core/get",
+      {
+        class: "User",
+        key: `SELECT User WHERE email = ${quoteString(identity.email)}`,
+        output_fields: "id,login,status",
+        limit: 5,
+      },
+      { asService: true },
+    );
+    const accounts = normalizeObjects(found.objects);
+    if (accounts.length === 0) {
+      throw new AppError(
+        "forbidden",
+        `No helpdesk account belongs to ${identity.email}. Ask an administrator to create one.`,
+      );
+    }
+    const enabled = accounts.filter((a) => str(a.fields["status"]) !== "disabled");
+    if (enabled.length === 0) {
+      throw new AppError("forbidden", "This account is disabled. Ask an administrator to enable it.");
+    }
+    if (enabled.length > 1) {
+      throw new AppError(
+        "forbidden",
+        `Several helpdesk accounts belong to ${identity.email}, so single sign-on cannot tell which is yours. ` +
+          `Ask an administrator to keep one.`,
+      );
+    }
+    const account = enabled[0]!;
+    const caller = await this.loadCaller(str(account.fields["login"]));
+    await this.assertPersonActive(caller);
+    caller.signIn = { method: "sso" };
+
+    if (caller.kind === "staff") {
+      if (account.class !== "UserExternal") {
+        throw new AppError(
+          "forbidden",
+          `Your account (${caller.login}) signs in with a password, not single sign-on. ` +
+            `Ask an administrator to make it an external account, or sign in with your password.`,
+        );
+      }
+      if (!this.options.externalItopAuth) {
+        throw new AppError("forbidden", "Single sign-on is not available to staff yet: iTop is not set up for it.");
+      }
+      caller.credentials = { user: caller.login, external: true };
+      await this.assertRestAccess(caller);
+    }
+    return caller;
+  }
+
+  /** A person marked inactive in iTop has left: their account does not sign in by SSO either. */
+  private async assertPersonActive(caller: Caller): Promise<void> {
+    if (!caller.contactId) return;
+    const people = await this.client.call(
+      "core/get",
+      { class: "Person", key: caller.contactId, output_fields: "status" },
+      { asService: true },
+    );
+    const person = normalizeObjects(people.objects)[0];
+    if (person && str(person.fields["status"]) === "inactive") {
+      throw new AppError("forbidden", "This account belongs to someone marked inactive. Ask an administrator.");
+    }
+  }
+
+  /**
+   * A wrong authenticator or recovery code: counted per address like a wrong
+   * password, and per login on a count of its own that no password clears.
+   */
+  recordWrongCode(login: string, address: string): void {
+    this.failuresByAddress.record(address);
+    this.codeFailuresByLogin.record(login.toLowerCase());
+  }
+
+  /** Throws rate_limited while a login cannot try another authenticator code. */
+  assertCodeNotThrottled(login: string, address: string): void {
+    this.assertNotThrottled(login.toLowerCase(), address, this.codeFailuresByLogin.retryAfterMs(login.toLowerCase()));
+  }
+
+  private assertNotThrottled(loginKey: string, address?: string, extraWaitMs = 0): void {
     const waitMs = Math.max(
+      extraWaitMs,
       address === undefined ? 0 : this.failuresByAddress.retryAfterMs(address),
       this.failuresByLogin.retryAfterMs(loginKey),
     );
@@ -187,6 +317,22 @@ export class AuthService {
     try {
       await runAs(caller, () => this.client.call("list_operations", {}));
     } catch (error) {
+      // Only the profile message means the profile: an external login iTop
+      // did not take (ext_auth_variable not reading our header) comes back as
+      // a missing auth_user or an invalid login.
+      if (
+        error instanceof AppError &&
+        error.code === "forbidden" &&
+        caller.credentials &&
+        !("password" in caller.credentials) &&
+        !/not authorized to use the web services/i.test(error.message)
+      ) {
+        throw new AppError(
+          "forbidden",
+          "iTop did not accept the single sign-on login. An administrator needs to finish setting it up " +
+            "(iTop's ext_auth_variable and ITOP_EXTERNAL_AUTH_HEADER).",
+        );
+      }
       if (error instanceof AppError && error.code === "forbidden") {
         throw new AppError(
           "forbidden",

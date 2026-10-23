@@ -21,12 +21,15 @@ export function badgeText(count: number): string {
 /**
  * The bell: unread count, and a panel of the latest notifications. Clicking
  * one marks it read and opens what it is about, where `linkFor` says (the
- * agent screens and the portal open records in different places).
+ * agent screens and the portal open records in different places). A request
+ * for the user's approval opens the approval, where `approvalLink` says.
  */
 export function NotificationBell({
   linkFor,
+  approvalLink = (id) => `/approvals/${id}`,
 }: {
   linkFor: (record: NonNullable<InboxItem['record']>) => string | null;
+  approvalLink?: (id: number) => string;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -52,7 +55,7 @@ export function NotificationBell({
 
   const openItem = (item: InboxItem) => {
     if (!item.read) markRead.mutate(item.id);
-    const to = item.record ? linkFor(item.record) : null;
+    const to = item.approval ? approvalLink(item.approval) : item.record ? linkFor(item.record) : null;
     if (to) {
       setOpen(false);
       navigate(to);

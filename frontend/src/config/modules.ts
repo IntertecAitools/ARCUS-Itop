@@ -1,6 +1,7 @@
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
 import {
   BellRing,
+  ClipboardCheck,
   Database,
   LayoutDashboard,
   LayoutGrid,
@@ -119,6 +120,27 @@ export const modules: ModuleDefinition[] = [
     component: lazy(() =>
       import('@/features/dashboard').then((m) => ({ default: m.DashboardPage })),
     ),
+  },
+  {
+    id: 'approvals',
+    label: 'Approvals',
+    path: 'approvals',
+    icon: ClipboardCheck,
+    group: 'operations',
+    description: 'Requests waiting for your approval, and the ones you decided.',
+    badgeKey: 'pendingApprovals',
+    component: lazy(() =>
+      import('@/features/approvals').then((m) => ({ default: m.ApprovalListPage })),
+    ),
+    children: [
+      {
+        path: ':id',
+        label: 'Approval',
+        component: lazy(() =>
+          import('@/features/approvals').then((m) => ({ default: m.ApprovalDetailPage })),
+        ),
+      },
+    ],
   },
   {
     id: 'incidents',

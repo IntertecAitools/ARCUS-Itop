@@ -140,7 +140,7 @@ describe("MySqlSessionStore", () => {
     const s = store(pool, clock);
     const a = await s.create(jane);
     await s.update(a, { ...jane, credentials: { user: "jane", password: "new-pass" } });
-    assert.equal((await s.get(a))?.credentials?.password, "new-pass");
+    assert.deepEqual((await s.get(a))?.credentials, { user: "jane", password: "new-pass" });
 
     const b = await s.create(jane);
     const other = await s.create({ ...jane, userId: 8, login: "bob" });
