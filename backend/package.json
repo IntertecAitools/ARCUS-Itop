@@ -16,7 +16,9 @@
     "schema:pull": "node scripts/pull-schema.mjs",
     "smoke": "node --import tsx scripts/smoke.ts",
     "api:check": "node scripts/api-check.mjs",
-    "approvals:setup": "node --import tsx scripts/approvals-setup.ts"
+    "approvals:setup": "node --import tsx scripts/approvals-setup.ts",
+    "tenants": "node --import tsx scripts/tenants.ts",
+    "e2e:tenancy": "node scripts/e2e-tenancy.mjs"
   },
   "dependencies": {
     "@fastify/multipart": "^10.1.3",

@@ -6,6 +6,7 @@ import { likeContains } from "../../itop/oql.js";
 import type { ObjectsService } from "../objects/objects.service.js";
 import { ADMIN_PROFILE, PORTAL_PROFILE, REST_PROFILE, type AuthService } from "../auth/auth.service.js";
 import type { SessionStore } from "../auth/session.store.js";
+import type { TenantResolver } from "../tenancy/resolve.js";
 
 export type AccountType = "local" | "ldap" | "external";
 
@@ -86,7 +87,38 @@ export class UsersService {
     private readonly objects: ObjectsService,
     private readonly auth: AuthService,
     private readonly sessions: SessionStore,
+    private readonly tenancy?: TenantResolver,
   ) {}
+
+  /**
+   * With tenancy on, an account's organisations are its own tenant's: the
+   * tenant of its person's organisation. Allowed organisations from another
+   * tenant are refused, and an empty list (iTop reads it as "every
+   * organisation") becomes the tenant's own, so iTop's silos hold the
+   * account to its tenant as well. Unchanged when tenancy is off or the
+   * person belongs to no tenant (a platform operator's).
+   */
+  private async tenantOrgs(contactId: number, allowedOrgIds: number[] | undefined): Promise<number[] | undefined> {
+    if (!this.tenancy?.enabled) return allowedOrgIds;
+    const person = contactId > 0 ? await this.objects.get("Person", contactId, "id,org_id") : undefined;
+    const orgId = Number(person?.fields["org_id"]) || 0;
+    const tenant = orgId > 0 ? await this.tenancy.tenantOfOrg(orgId) : undefined;
+    const others = await Promise.all((allowedOrgIds ?? []).map((id) => this.tenancy!.tenantOfOrg(id)));
+    if (!tenant) {
+      if (others.some(Boolean)) {
+        throw badRequest("This person belongs to no customer, so the account cannot be given a customer's organisations.");
+      }
+      return allowedOrgIds;
+    }
+    const outside = (allowedOrgIds ?? []).filter((_, i) => others[i]?.id !== tenant.id);
+    if (outside.length) {
+      throw badRequest(
+        `An account can only be given organisations of its own customer (${tenant.name}); ` +
+          `organisation${outside.length === 1 ? "" : "s"} ${outside.join(", ")} ${outside.length === 1 ? "is" : "are"} not.`,
+      );
+    }
+    return allowedOrgIds && allowedOrgIds.length > 0 ? allowedOrgIds : [...tenant.orgIds];
+  }
 
   async list(query: { q?: string; page: number; limit: number }) {
     const term = query.q?.trim();
@@ -163,15 +195,24 @@ export class UsersService {
     }
     if (input.profileIds.length === 0) throw badRequest("Give the account at least one profile.");
 
+    if (!("id" in input.contact) && this.tenancy?.enabled) {
+      // The new person's organisation decides the tenant: check before creating it.
+      const tenant = await this.tenancy.tenantOfOrg(input.contact.orgId);
+      const others = await Promise.all((input.allowedOrgIds ?? []).map((id) => this.tenancy!.tenantOfOrg(id)));
+      if (others.some((t) => t?.id !== tenant?.id)) {
+        throw badRequest("An account can only be given organisations of its own customer.");
+      }
+    }
     const contactId = "id" in input.contact ? input.contact.id : await this.createPerson(input.contact);
     const profileIds = await this.withRestProfile(input.profileIds);
+    const allowedOrgIds = await this.tenantOrgs(contactId, input.allowedOrgIds);
 
     const fields: Record<string, unknown> = {
       login,
       contactid: contactId,
       status: "enabled",
       profile_list: profileIds.map((profileid) => ({ profileid })),
-      allowed_org_list: (input.allowedOrgIds ?? []).map((allowed_org_id) => ({ allowed_org_id })),
+      allowed_org_list: (allowedOrgIds ?? []).map((allowed_org_id) => ({ allowed_org_id })),
     };
     if (input.type === "local") fields["password"] = input.password;
     if (input.language) fields["language"] = input.language;
@@ -210,8 +251,10 @@ export class UsersService {
       if (input.profileIds.length === 0) throw badRequest("An account needs at least one profile.");
       fields["profile_list"] = (await this.withRestProfile(input.profileIds)).map((profileid) => ({ profileid }));
     }
-    if (input.allowedOrgIds) {
-      fields["allowed_org_list"] = input.allowedOrgIds.map((allowed_org_id) => ({ allowed_org_id }));
+    if (input.allowedOrgIds || (input.contactId !== undefined && this.tenancy?.enabled)) {
+      const contactId = input.contactId ?? current.contactId;
+      const allowed = await this.tenantOrgs(contactId, input.allowedOrgIds ?? current.allowedOrgs.map((o) => o.id));
+      fields["allowed_org_list"] = (allowed ?? []).map((allowed_org_id) => ({ allowed_org_id }));
     }
     if (Object.keys(fields).length === 0) throw badRequest("No changes were supplied.");
 

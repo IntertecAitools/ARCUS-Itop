@@ -1,6 +1,6 @@
 import { AppError, badRequest } from "../../core/errors.js";
 import { RateLimiter } from "../../core/rate-limiter.js";
-import { runAs, type Caller } from "../../core/request-context.js";
+import { runAs, runUnscoped, type Caller } from "../../core/request-context.js";
 import type { ItopClient } from "../../itop/client.js";
 import { normalizeObjects } from "../../itop/normalize.js";
 import { quoteString } from "../../itop/oql.js";
@@ -108,8 +108,16 @@ export class AuthService {
     }
   }
 
-  /** Reads the account behind a login, with the service account. */
-  async loadCaller(login: string): Promise<Caller> {
+  /**
+   * Reads the account behind a login, with the service account, across
+   * tenants: which tenant it belongs to is decided from what this finds
+   * (platform/tenancy/resolve.ts), and the sign-in route refuses a mismatch.
+   */
+  loadCaller(login: string): Promise<Caller> {
+    return runUnscoped(() => this.readCaller(login));
+  }
+
+  private async readCaller(login: string): Promise<Caller> {
     const users = await this.client.call(
       "core/get",
       {

@@ -143,6 +143,69 @@ its token login is not installed.
   **Users** (`/api/admin/users`, `/api/admin/profiles`). Nobody needs to open
   iTop for this.
 
+## Multi-tenancy
+
+One platform can serve several customers (`TENANCY=on`). A **tenant** is a
+customer: an id, a name, the host names of its site, and the iTop
+organisations that are its own. Everything a tenant's users do in iTop is
+limited to those organisations; iTop itself knows nothing of tenants.
+
+- **Where tenants live.** In the BFF database (`SESSION_STORE=mysql`), tables
+  `bff_tenants`, `bff_tenant_domains`, `bff_tenant_orgs`, created on first
+  use; or in `TENANTS_FILE` (a JSON array) without a database. An
+  organisation and a domain belong to one tenant at most (they are the
+  primary keys). Each instance rereads the tables every 30 seconds.
+  `npm run tenants -- list | set <id> --name N --domain D --org N … |
+  enable | disable | remove`.
+- **Which tenant a request is for** (`platform/tenancy/resolve.ts`), decided
+  in the sign-in guard from the request's host name and the signed-in user:
+  - the user's tenant is the one owning their person's organisation, else the
+    one owning all their allowed organisations (`tenantOfUser`, which reads
+    only `login`, `orgId` and `allowedOrgIds`, so any sign-in method that
+    fills those works);
+  - on a tenant's domain only its own users can sign in or use a session;
+  - a user no tenant claims is refused, except a platform operator
+    (`PLATFORM_LOGINS`): unscoped on the platform's own address, held to the
+    tenant on a tenant's domain;
+  - a disabled tenant is refused.
+- **One enforcement point.** Every service talks to iTop through
+  `TenantScopedClient` (`platform/tenancy/scoped-client.ts`), wrapped around
+  the iTop client in `services.ts`. While a tenant is bound to the request
+  nothing reaches iTop unscoped:
+  - *Reads*: the key of every `core/get` (an id, criteria or any OQL) is
+    rewritten to `SELECT C WHERE id IN (<the query>) AND <tenant condition>`.
+    Lists, searches, pickers, dashboards, nav counts, audits, saved queries
+    and history all read this way, so another tenant's record is simply not
+    found, by a guessed id too.
+  - *Writes*: updates, deletes and transitions use the same scoped key (a
+    404 for another tenant's record). Creates and the fields of updates are
+    checked: the organisation and every key they set (caller, CI, contact,
+    link-set rows such as an account's allowed organisations) must point
+    inside the tenant; a key given as criteria is resolved there.
+  - *Impact graphs*: the root must be the tenant's; other tenants' records
+    are cut out of the answer.
+  - *Exports*: the OQL is scoped. *Imports* run only as a user iTop itself
+    holds to the tenant (not an Administrator, allowed organisations all the
+    tenant's), since iTop's CSV import reconciles against what it can see.
+- **Whose records are whose** (`platform/tenancy/scope-rules.ts`), following
+  iTop's own silos and extending them where iTop leaves records open:
+  `Organization` by id; classes with `org_id` by it; accounts by their
+  person's organisation; attachments by `item_org_id`; link rows by every key
+  they hold; saved queries by owner (no owner: shared, read-only); history by
+  the record it is about. Reference data with no organisation (brands,
+  models, FAQs, profiles, audit rules) is shared: read by every tenant,
+  changed only by the platform operator. Platform configuration
+  (notification triggers and actions, the email log) and any class the
+  rules do not know are refused.
+- **Accounts.** An account can only be given organisations of its own
+  tenant (the one owning its person's organisation); an empty list becomes
+  the tenant's organisations, so iTop's silos hold the account too.
+- `runUnscoped()` stands the guard down; it is used only to find the
+  account behind a sign-in.
+- Test data: `npm run tenants -- seed-test` creates two tenants in a local
+  iTop, and `npm run e2e:tenancy` proves neither can reach the other's
+  records through the BFF.
+
 ## Notifications
 
 Email rules ("when a User Request enters Resolved, email the caller") are
@@ -860,6 +923,8 @@ finding out via a 404.
 | `npm run typecheck` | `tsc --noEmit` over src + tests + scripts |
 | `npm run smoke` | live read-only check (`-- --write` for full CRUD) |
 | `npm run schema:pull` | vendor `cmdb-schema.json` into `schema/` |
+| `npm run tenants -- <command>` | list / set / enable / disable / remove tenants; `seed-test` for a local iTop |
+| `npm run e2e:tenancy` | live cross-tenant leak test (BFF on :4010 with `TENANCY=on`, after `seed-test`) |
 
 ## Known limitations
 

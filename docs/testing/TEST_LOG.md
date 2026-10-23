@@ -15,16 +15,35 @@ Branch `claude/approvals-82e84e`. A separate test iTop for the extension: compos
 | Frontend `npm run typecheck`, `npx vitest run`, `npm run build` | ✅ 30 files / 166 tests | New: `ApprovalParts.test.tsx` (approve, reject needs a reason, locked while sending, levels and stand-ins, status in words), `RequireAuth.test.ts` (`portalPathFor`); `modules.test.ts` expects the new Approvals nav item |
 | Live: `node scripts/e2e-approvals.mjs` (BFF :4030 → iTop :8093 → Mailpit) | ✅ 10 / 10, twice | Portal request → awaiting approval → level 1 (end user) emailed with `APP_BASE_URL/approvals/<id>` (no `approve.php`) → reject without comment 400 → approve → 409 on repeat, 404/403 for others → level 2 (staff) emailed + bell entry → reject with comment → request rejected, requester emailed, portal shows both answers; second request approved at both levels → approved, requester emailed |
 | Live UI (built-in browser, :5203) | ✅ | End user follows the staff link `/approvals/2` → lands on `/portal/approvals/2`; reject without a comment is refused in the form; approve with a comment; nav badge clears. Staff: sidebar Approvals, "Decided by me", detail, and the approval card on `/records/UserRequest/35` |
+| After merging `origin/main` (multi-tenancy, SSO): backend typecheck + `npm test`, frontend typecheck + vitest, live e2e | ✅ 569 / 569, 166 / 166, 10 / 10 | New in `test/tenancy.test.ts`: an approval is scoped by the request it is about; `approve.php` is let through only for an approval that reads back inside the tenant |
 
 Bugs found and fixed (in this branch):
 
 - `frontend/.env.local` (pointing the dev server at `:4030`) made 11 AttachmentsPanel tests fail; they pass without it. Not a code bug: the override is local only and not committed.
 - "Decided by me" took 19 s on the loaded machine (every iTop call 2.5–5 s that hour, other sessions' stacks busy): its two iTop reads now run in parallel.
+- After the merge with multi-tenancy, approvals would have been refused for tenant users (`ApprovalScheme` unknown to the schema = platform-only; `approve.php` not an allowed script). `ApprovalScheme` is now scoped like history (polymorphic on `obj_class`/`obj_key`), and the tenant guard checks the token's approval before posting.
 - iTop's newsroom (the bell) skips accounts without back-office access, so end-user approvers can never get a bell entry from iTop. They get the email and an Approvals badge / home prompt in the portal instead; documented.
 
 The automatic hook (`.claude/hooks/record-test-run.mjs`) did not append entries for this session's runs; the table above is the record.
 
-Not covered: approval timeouts, reminders and substitutes live (unit-tested only; the test rule has no timeout); the mock Playwright journeys (`npm run e2e`) were not re-run and have no approvals journey yet; a screen to manage approval rules (done in iTop's data for now). Test data left on the test iTop: accounts `e2e.requester`, `e2e.approver`, `e2e.manager` (random passwords), rule "E2E approvals", subcategory "E2E needs approval", coverage window "E2E 24x7", "Trial rule"/"24x7", requests R-000033 to R-000038; `e2e.portal`'s password there was changed.
+Not covered: approvals with tenancy switched on live (unit-tested only; the test BFF runs with tenancy off); approval timeouts, reminders and substitutes live (unit-tested only; the test rule has no timeout); the mock Playwright journeys (`npm run e2e`) were not re-run and have no approvals journey yet; a screen to manage approval rules (done in iTop's data for now). Test data left on the test iTop: accounts `e2e.requester`, `e2e.approver`, `e2e.manager` (random passwords), rule "E2E approvals", subcategory "E2E needs approval", coverage window "E2E 24x7", "Trial rule"/"24x7", requests R-000033 to R-000038; `e2e.portal`'s password there was changed.
+### 2026-10-22 — Multi-tenancy core: tenants, scoping of every iTop call, cross-tenant leak tests
+
+Branch `claude/multi-tenancy-efcab8`. Backend only. This worktree's BFF on `:4010` (`TENANCY=on`, `PLATFORM_LOGINS=admin`, sessions and tenants in its own database `arcus_bff_mt`) against the shared local iTop on `:8080`. Test data added to iTop by `npm run tenants -- seed-test`: organisations `zz-mt-acme` (13) and `zz-mt-globex` (14), each with a person, an agent (`mt.<t>.agent`, Service Desk Agent, limited to its organisation), an administrator (`mt.<t>.admin`), a user request and a server; tenants `mt-acme` (`acme.localhost`) and `mt-globex` (`globex.localhost`).
+
+| What ran | Result | Notes |
+| --- | --- | --- |
+| Backend `npm run typecheck`, `npm run build` | ✅ | |
+| Backend `npm test` | ✅ 556 / 556 | 521 existing unchanged + 35 new in `test/tenancy.test.ts`: scope rules per class, OQL rewriting (unions, aliases, history pinned to one class, refusals), tenant resolution (domain, user, orphan, disabled, platform operator), and leak tests through the real routes over a small simulated iTop with two tenants (list, guessed id, filter/search, update, delete, create into the other org, a key pointing at the other tenant, export, history, impact graph, saved queries, notifications, wrong domain, account organisations) |
+| Live `npm run e2e:tenancy` (A→B and B→A, as agent and as administrator) | ✅ 143 / 143 | Lists of UserRequest, Ticket, Server, FunctionalCI, Person, Organization; search; criteria on the other org; organisation picker; GET by guessed id of ticket, server, organisation, person, history, impact graph, link rows; update, transition, simulated delete, bulk update; create in the other org or with the other's person; CSV export; dashboard; saved queries (list, get, run, delete); user list, account by id, giving an account the other org (create and update); signing in and using a session on the other tenant's site; the other ticket unchanged afterwards; platform operator sees both on the platform address and one on a tenant's site |
+| Live spot checks as `mt.acme.admin` | ✅ | Audit overview, nav counts, the bell, dashboards list, own history and pickers answer; notification rules refused (403) |
+
+Bugs found and fixed (in this branch, before the first commit):
+
+- iTop rejected the scoped queries with "Ambiguous filter code" as soon as a tenant condition held a subquery: it resolves an unqualified name against the enclosing queries' aliases too. Tenant conditions are now qualified (`UserRequest.org_id`) and every generated subquery has its own alias (`ts_1`); the wrapped query keeps the class's own alias, so the original query's names still resolve. Confirmed against the live iTop for URP_UserOrg, QueryOQL, CMDBChangeOp, link rows and Organization.
+- Account link sets (`allowed_org_list`, `profile_list`) are in the published schema without their link class, so their rows went unchecked; they are now mapped, and any other link set the schema does not describe is refused for tenants.
+
+Not covered: the frontend (no screen changes in scope; the UI was not run against `TENANCY=on`); imports by a non-admin tenant agent against the live iTop (unit-tested only); attachments and the end-user portal under a tenant (they go through the same guard, not exercised live); the MySQL tenant store is exercised only live (no unit test of `MySqlTenantStore`). The auto-log hook recorded this worktree's runs into the main checkout's `docs/testing/TEST_LOG.md` (it resolves `CLAUDE_PROJECT_DIR`), so the entries for these runs at the end of this file were added by hand.
 
 ### 2026-10-22 — Sidebar active item and groups; iTop dashboards redesigned; dashlet names and dates
 
@@ -830,3 +849,9 @@ Not covered yet: approvals (extension not installed); load and concurrency beyon
   - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/funny-maxwell-1ae845/frontend"; npx vitest run src/features/records/lib/import-mapping.test.ts 2>&1 | tail -15; cat "C:/Users/`
 - **2026-10-20 13:56 UTC** · `feature/itop-dates@780553e` + uncommitted changes · Frontend unit tests (vitest) (frontend) · ✅ 36 passed, 0 failed
   - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/funny-maxwell-1ae845"; grep -n "friendly name" frontend/src/features/records/lib/import-mapping.ts; (cd backend && node --impo`
+- **2026-10-22 17:20 UTC** · `claude/multi-tenancy-efcab8@f5b5c70` + uncommitted changes · Unit tests (backend) · ✅ 556 passed, 0 failed (added by hand: the hook logged to the main checkout)
+  - command: `npm test`
+- **2026-10-22 17:21 UTC** · `claude/multi-tenancy-efcab8@f5b5c70` + uncommitted changes · Typecheck + build (backend) · ✅ (added by hand)
+  - command: `npm run typecheck; npm run build`
+- **2026-10-22 17:10 UTC** · `claude/multi-tenancy-efcab8@f5b5c70` + uncommitted changes · Live end-to-end script (backend) · ✅ 143 passed, 0 failed (added by hand)
+  - command: `PLATFORM_LOGIN=admin PLATFORM_PASSWORD=… node scripts/e2e-tenancy.mjs`

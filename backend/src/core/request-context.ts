@@ -29,10 +29,25 @@ export interface Caller {
   credentials?: { user: string; password: string };
 }
 
+/**
+ * The customer a request is for, when the platform serves several
+ * (TENANCY=on): every iTop read and write is limited to these organisations
+ * (platform/tenancy). Absent means unscoped: tenancy is off, or a platform
+ * operator on the platform's own address.
+ */
+export interface TenantScope {
+  id: string;
+  name: string;
+  orgIds: number[];
+}
+
 interface RequestContext {
   caller?: Caller;
   /** Set by runAsServiceAccount: iTop calls use the BFF's own account. */
   asService?: boolean;
+  tenant?: TenantScope;
+  /** Set by runUnscoped: the tenant guard lets these calls through as they are. */
+  unscoped?: boolean;
 }
 
 const storage = new AsyncLocalStorage<RequestContext>();
@@ -41,13 +56,32 @@ const storage = new AsyncLocalStorage<RequestContext>();
  * Binds a caller to the rest of the current request. Called from the auth
  * hook; everything the request does after it, however deep, sees the caller.
  */
-export function enterRequestContext(caller: Caller | undefined): void {
-  storage.enterWith({ ...(caller ? { caller } : {}) });
+export function enterRequestContext(caller: Caller | undefined, tenant?: TenantScope): void {
+  storage.enterWith({ ...(caller ? { caller } : {}), ...(tenant ? { tenant } : {}) });
 }
 
-/** Runs `fn` with `caller` bound; for code outside a request (tests, jobs). */
-export function runAs<T>(caller: Caller | undefined, fn: () => T): T {
-  return storage.run({ ...(caller ? { caller } : {}) }, fn);
+/**
+ * Runs `fn` with `caller` bound; for code outside a request (tests, jobs).
+ * The current tenant stays bound unless one is given: switching the account
+ * a call runs as never widens what it may see.
+ */
+export function runAs<T>(caller: Caller | undefined, fn: () => T, tenant?: TenantScope): T {
+  const bound = tenant ?? storage.getStore()?.tenant;
+  return storage.run({ ...(caller ? { caller } : {}), ...(bound ? { tenant: bound } : {}) }, fn);
+}
+
+export function currentTenant(): TenantScope | undefined {
+  const store = storage.getStore();
+  return store?.unscoped ? undefined : store?.tenant;
+}
+
+/**
+ * Runs `fn` with the tenant guard stood down. Only for what has to look
+ * across tenants before one is known: finding the account behind a sign-in.
+ * Grep for it; every use is a place tenancy is deliberately not applied.
+ */
+export function runUnscoped<T>(fn: () => T): T {
+  return storage.run({ ...storage.getStore(), unscoped: true }, fn);
 }
 
 export function currentCaller(): Caller | undefined {
