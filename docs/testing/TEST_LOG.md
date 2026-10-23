@@ -19,6 +19,7 @@ Branch `claude/sso-mfa-5a55e9`. Plan rows 16–18 ("Beyond iTop (platform)").
 | Browser journeys, mock: new `mfa.spec.ts` (3) + `staff`, `portal`, `forgot-password` | ✅ 7 passed |
 | `docker/itop-prod/configure.php` `php -l` | ✅ no syntax errors |
 | MySQL MFA and audit stores against the local session database (`arcus_bff`, test user 999999, rows removed afterwards): round trip, secret sealed, step and recovery code single-use, other `SESSION_SECRET` opens nothing | ✅ 11 checks passed |
+| 2026-10-23: `npm run e2e:sso` with staff SSO against the **shared local iTop on :8080**, after the user-approved `'ext_auth_variable' => '$_SERVER[\'HTTP_X_ARCUS_REMOTE_USER\']'` line was added to its `config-itop.php` (original kept as `config-itop.php.bak-before-sso`) | ✅ 14 passed, 0 failed |
 
 The e2e covers: staff password sign-in → enrol (QR secret, code) → 10 recovery
 codes; a pending sign-in reaches no API; verify with a code, a wrong code
@@ -47,9 +48,9 @@ Bugs found and fixed before the commit:
 Not covered: a real Microsoft Entra ID tenant (no app registration yet; the
 settings IT must provide are in `backend/README.md`); the full SSO round trip in a browser (the
 script follows the same redirects with its own cookie jar). The shared local
-iTop on :8080 was not changed: the approved `ext_auth_variable` line was
-blocked by this session's permission checks and is left for the user to add
-(command in the PR). The test-run hook wrote this session's
+iTop on :8080 now has the user-approved `ext_auth_variable` line (added
+2026-10-23 00:50, outside this session's own edit, which permission checks
+had blocked); the 14/14 run above went through it. The test-run hook wrote this session's
 automatic entries into the main checkout's log (`CLAUDE_PROJECT_DIR`); they
 are copied verbatim at the end of this file.
 
