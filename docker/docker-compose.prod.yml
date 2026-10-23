@@ -27,6 +27,8 @@ x-itop-env: &itop-env
   ITOP_CRON_USER: ${ITOP_USER}
   ITOP_CRON_PASSWORD: ${ITOP_PASSWORD}
   ITOP_TIMEZONE: ${ITOP_TIMEZONE:-Europe/Paris}
+  # Single sign-on for staff: itop-setup makes iTop's external login read it.
+  ITOP_EXTERNAL_AUTH_HEADER: ${ITOP_EXTERNAL_AUTH_HEADER:-}
   # itop.env holds MySQL's root password for `db`; iTop never needs it.
   MYSQL_ROOT_PASSWORD: ""
 

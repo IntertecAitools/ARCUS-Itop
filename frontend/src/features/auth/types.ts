@@ -17,3 +17,25 @@ export interface SessionUser {
   contactId: number;
   orgId: number;
 }
+
+/** Where a sign-in waiting for its second factor is. */
+export type MfaStep = 'verify' | 'enrol';
+
+/** `POST /auth/login`: signed in, or an authenticator code is needed first. */
+export type SignInResult = { user: SessionUser } | { mfa: { step: MfaStep } };
+
+/** What the sign-in page may offer before anyone is signed in. */
+export interface AuthOptions {
+  passwordReset: boolean;
+  /** Single sign-on (e.g. Microsoft Entra ID), with its button text; null when off. */
+  sso: { label: string } | null;
+  /** Who may use a password: everyone, end users (staff use SSO), or break-glass accounts only. */
+  passwordSignIn: 'all' | 'portal' | 'break-glass';
+}
+
+/** A new authenticator to set up: the key, and the otpauth:// link a QR code carries. */
+export interface MfaEnrolment {
+  secret: string;
+  otpauthUrl: string;
+  account: string;
+}

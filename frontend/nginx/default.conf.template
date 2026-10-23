@@ -40,6 +40,9 @@ server {
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $forwarded_proto;
     proxy_set_header X-Forwarded-Host $host;
+    # iTop's external login trusts this header (single sign-on); only the BFF
+    # may set it, never a browser. The BFF does not forward it either.
+    proxy_set_header X-Arcus-Remote-User "";
     # iTop can be slow; the BFF's own timeout (ITOP_TIMEOUT_MS) is 30 s by default.
     proxy_read_timeout 120s;
     proxy_send_timeout 120s;
@@ -55,6 +58,7 @@ server {
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $forwarded_proto;
     proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Arcus-Remote-User "";
     proxy_read_timeout 300s;
     proxy_send_timeout 300s;
   }

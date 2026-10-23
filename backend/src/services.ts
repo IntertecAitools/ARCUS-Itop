@@ -31,6 +31,20 @@ import { InboxService } from "./platform/inbox/inbox.service.js";
 import { PortalService } from "./platform/portal/portal.service.js";
 import { DefaultOrganization } from "./shared/default-organization.js";
 import { CurrentContact } from "./shared/current-contact.js";
+import { MemoryMfaStore, MySqlMfaStore, type MfaStore } from "./platform/auth/mfa.store.js";
+import { MfaService } from "./platform/auth/mfa.service.js";
+import { Sealer } from "./platform/auth/seal.js";
+import { MemorySignInAudit, MySqlSignInAudit, type SignInAudit } from "./platform/auth/sign-in-audit.js";
+import { SsoService } from "./platform/auth/sso.service.js";
+import type { SignInPolicy } from "./config/env.js";
+
+/** No MFA, no single sign-on: what a Config without a sign-in policy (tests) means. */
+const PASSWORD_ONLY: SignInPolicy = {
+  mfaRequired: "off",
+  totpIssuer: "Arcus Helpdesk",
+  passwordSignIn: "all",
+  breakGlassLogins: [],
+};
 
 export interface Services {
   config: Config;
@@ -46,6 +60,10 @@ export interface Services {
   transfer: TransferService;
   auth: AuthService;
   sessions: SessionStore;
+  mfa: MfaService;
+  /** Present when OIDC_ISSUER is set. */
+  sso?: SsoService;
+  signInAudit: SignInAudit;
   passwordReset: PasswordResetService;
   users: UsersService;
   notifications: NotificationsService;
@@ -68,21 +86,33 @@ export interface BuildServicesOptions {
   dashboards?: Dashboards;
   sessions?: SessionStore;
   resetTokens?: ResetTokenStore;
+  mfaStore?: MfaStore;
+  signInAudit?: SignInAudit;
   /** Stands in for SMTP in tests; otherwise built from PASSWORD_RESET settings. */
   mailer?: Mailer;
   logger?: Logger;
 }
 
+interface Stores {
+  sessions: SessionStore;
+  resetTokens: ResetTokenStore;
+  mfaStore: MfaStore;
+  signInAudit: SignInAudit;
+}
+
 /**
- * Sessions and reset links: in memory, or in MySQL when SESSION_STORE=mysql
- * (one pool for both; the session store closes it).
+ * Sessions, reset links, authenticator enrolments and the sign-in audit log:
+ * in memory, or in MySQL when SESSION_STORE=mysql (one pool for all; the
+ * session store closes it).
  */
-function buildStores(config: Config): { sessions: SessionStore; resetTokens: ResetTokenStore } {
+function buildStores(config: Config, logger: Logger | undefined): Stores {
   const { sessionStore: store, sessionIdleMs, sessionMaxMs } = config.auth;
   if (store.kind === "memory") {
     return {
       sessions: new MemorySessionStore(sessionIdleMs, sessionMaxMs),
       resetTokens: new MemoryResetTokenStore(),
+      mfaStore: new MemoryMfaStore(),
+      signInAudit: new MemorySignInAudit(logger),
     };
   }
   const pool = createPool({
@@ -96,6 +126,8 @@ function buildStores(config: Config): { sessions: SessionStore; resetTokens: Res
   return {
     sessions: new MySqlSessionStore(pool, store.secret, sessionIdleMs, sessionMaxMs),
     resetTokens: new MySqlResetTokenStore(pool),
+    mfaStore: new MySqlMfaStore(pool, new Sealer(store.secret, "mfa")),
+    signInAudit: new MySqlSignInAudit(pool, logger),
   };
 }
 
@@ -111,10 +143,19 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     currentContact,
     config.defaultOrgId,
   );
-  const auth = new AuthService(client);
-  const stores = options.sessions && options.resetTokens ? undefined : buildStores(config);
+  const policy = config.auth.signIn ?? PASSWORD_ONLY;
+  const auth = new AuthService(client, Date.now, {
+    policy,
+    externalItopAuth: config.itop.externalAuthHeader !== undefined,
+  });
+  const stores =
+    options.sessions && options.resetTokens && options.mfaStore && options.signInAudit
+      ? undefined
+      : buildStores(config, options.logger);
   const sessions = options.sessions ?? stores!.sessions;
   const resetTokens = options.resetTokens ?? stores!.resetTokens;
+  const mfaStore = options.mfaStore ?? stores!.mfaStore;
+  const signInAudit = options.signInAudit ?? stores!.signInAudit;
   const reset = config.auth.passwordReset;
   const mailer = options.mailer ?? (reset ? new SmtpMailer(reset) : undefined);
   const dashboards =
@@ -136,6 +177,9 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     queries: new QueriesService(client, schema, objects, transfer),
     auth,
     sessions,
+    mfa: new MfaService(mfaStore, policy),
+    ...(policy.sso ? { sso: new SsoService(policy.sso, new Sealer(config.auth.secret, "sso-state")) } : {}),
+    signInAudit,
     passwordReset: new PasswordResetService(client, auth, resetTokens, sessions, mailer, reset),
     notifications: new NotificationsService(
       client,

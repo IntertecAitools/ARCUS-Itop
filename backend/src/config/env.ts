@@ -83,6 +83,13 @@ export interface Config {
      * text in it, with no offset; this is how they become exact instants.
      */
     timezone: string;
+    /**
+     * The request header iTop's "external" login reads (ext_auth_variable),
+     * e.g. X-Arcus-Remote-User. Staff who signed in with single sign-on have
+     * no iTop password, so their calls carry their login in it instead. Unset:
+     * staff cannot use single sign-on.
+     */
+    externalAuthHeader?: string;
   };
   server: {
     host: string;
@@ -137,7 +144,63 @@ export interface Config {
     sessionStore: SessionStoreConfig;
     /** "Forgot password" by email; absent when no SMTP server is configured. */
     passwordReset?: PasswordResetConfig;
+    /**
+     * SESSION_SECRET, when set: seals authenticator secrets and the single
+     * sign-on state cookie. Without it a random key per process is used.
+     */
+    secret?: string;
+    /** MFA, single sign-on and break-glass rules. Absent: password only, no MFA. */
+    signIn?: SignInPolicy;
   };
+}
+
+export interface SignInPolicy {
+  /**
+   * Who must give an authenticator code after a password sign-in: `staff`
+   * (agents and administrators), `admin` (administrators only) or `off`.
+   * Break-glass accounts always must. An account that has enrolled is always asked.
+   */
+  mfaRequired: "staff" | "admin" | "off";
+  /** The name authenticator apps show next to the code. */
+  totpIssuer: string;
+  /**
+   * Who may sign in with a password: `all`, `portal` (end users and
+   * break-glass accounts; staff use single sign-on) or `break-glass` (only
+   * break-glass accounts; everyone else uses single sign-on).
+   */
+  passwordSignIn: "all" | "portal" | "break-glass";
+  /** iTop logins of the break-glass accounts, lower case. */
+  breakGlassLogins: string[];
+  sso?: SsoConfig;
+}
+
+/** OpenID Connect single sign-on (Authorization Code + PKCE), e.g. Microsoft Entra ID. */
+export interface SsoConfig {
+  /** e.g. https://login.microsoftonline.com/<tenant-id>/v2.0 */
+  issuer: string;
+  clientId: string;
+  /** Absent for a public client (PKCE only). */
+  clientSecret?: string;
+  /** The BFF's callback, as registered at the IdP: <public address>/api/auth/sso/callback */
+  redirectUri: string;
+  scopes: string;
+  /** Claims tried in order for the user's email address. */
+  emailClaims: string[];
+  /** The button text, e.g. "Sign in with Microsoft". */
+  label: string;
+  /**
+   * For staff signing in this way: `idp-or-totp` trusts the IdP's `amr` claim
+   * when it shows MFA and otherwise asks for our authenticator code; `idp`
+   * refuses sign-in unless `amr` shows MFA; `off` asks for nothing (the IdP
+   * enforces MFA by its own policy).
+   */
+  mfa: "idp-or-totp" | "idp" | "off";
+  /** `amr` values that count as MFA (RFC 8176). */
+  mfaAmr: string[];
+  /** Where the browser goes after signing in (the frontend); errors add ?sso_error=. */
+  appUrl: string;
+  /** Allow an http:// issuer: only for a local test IdP. */
+  allowHttp: boolean;
 }
 
 export interface PasswordResetConfig {
@@ -251,6 +314,59 @@ export type SessionStoreConfig =
       secret: string;
     };
 
+function oneOf<T extends string>(name: string, fallback: T, allowed: readonly T[]): T {
+  const value = optional(name, fallback).toLowerCase() as T;
+  if (!allowed.includes(value)) {
+    throw new Error(`${name} must be one of ${allowed.join(", ")}, not "${value}".`);
+  }
+  return value;
+}
+
+const list = (raw: string) => raw.split(",").map((part) => part.trim()).filter(Boolean);
+
+function ssoConfig(): SsoConfig | undefined {
+  const issuer = optional("OIDC_ISSUER", "").replace(/\/+$/, "");
+  if (!issuer) return undefined;
+  const allowHttp = optional("OIDC_ALLOW_HTTP", "false").toLowerCase() === "true";
+  if (!/^https:\/\//.test(issuer) && !(allowHttp && /^http:\/\//.test(issuer))) {
+    throw new Error("OIDC_ISSUER must start with https:// (OIDC_ALLOW_HTTP=true allows http:// for a local test IdP).");
+  }
+  const redirectUri = required("OIDC_REDIRECT_URI");
+  if (!/^https?:\/\/[^/]+(\/.*)?\/api\/auth\/sso\/callback$/.test(redirectUri)) {
+    throw new Error("OIDC_REDIRECT_URI must be the BFF's callback: <public address>/api/auth/sso/callback.");
+  }
+  const appUrl = optional("OIDC_APP_URL", appBaseUrl() ?? "/").replace(/\/+$/, "") || "/";
+  const secret = optional("OIDC_CLIENT_SECRET", "");
+  return {
+    issuer,
+    clientId: required("OIDC_CLIENT_ID"),
+    ...(secret ? { clientSecret: secret } : {}),
+    redirectUri,
+    scopes: optional("OIDC_SCOPES", "openid profile email"),
+    emailClaims: list(optional("OIDC_EMAIL_CLAIMS", "email,preferred_username,upn")),
+    label: optional("OIDC_LABEL", "Sign in with Microsoft"),
+    mfa: oneOf("SSO_MFA", "idp-or-totp", ["idp-or-totp", "idp", "off"] as const),
+    mfaAmr: list(optional("OIDC_MFA_AMR", "mfa,otp,hwk,sms,fido")).map((v) => v.toLowerCase()),
+    appUrl,
+    allowHttp,
+  };
+}
+
+function signInPolicy(): SignInPolicy {
+  const sso = ssoConfig();
+  const passwordSignIn = oneOf("PASSWORD_SIGN_IN", "all", ["all", "portal", "break-glass"] as const);
+  if (passwordSignIn !== "all" && !sso) {
+    throw new Error(`PASSWORD_SIGN_IN=${passwordSignIn} needs single sign-on (OIDC_ISSUER): staff would have no way in.`);
+  }
+  return {
+    mfaRequired: oneOf("MFA_REQUIRED", "staff", ["staff", "admin", "off"] as const),
+    totpIssuer: optional("MFA_ISSUER", "Arcus Helpdesk"),
+    passwordSignIn,
+    breakGlassLogins: list(optional("BREAK_GLASS_LOGINS", "")).map((l) => l.toLowerCase()),
+    ...(sso ? { sso } : {}),
+  };
+}
+
 function sessionStoreConfig(): SessionStoreConfig {
   const kind = optional("SESSION_STORE", "memory").toLowerCase();
   if (kind === "memory") return { kind: "memory" };
@@ -310,6 +426,9 @@ export function loadConfig(envFile = resolve(PACKAGE_ROOT, ".env")): Config {
       // auditing history inside iTop itself.
       defaultComment: optional("ITOP_DEFAULT_COMMENT", "via intertec-backend"),
       timezone: itopTimezone(),
+      ...(optional("ITOP_EXTERNAL_AUTH_HEADER", "")
+        ? { externalAuthHeader: optional("ITOP_EXTERNAL_AUTH_HEADER", "") }
+        : {}),
     },
     server: {
       host: optional("HOST", "127.0.0.1"),
@@ -343,6 +462,8 @@ export function loadConfig(envFile = resolve(PACKAGE_ROOT, ".env")): Config {
       cookieSecure: optional("COOKIE_SECURE", "false").toLowerCase() === "true",
       sessionStore: sessionStoreConfig(),
       ...withPasswordReset(passwordResetConfig()),
+      ...(optional("SESSION_SECRET", "") ? { secret: optional("SESSION_SECRET", "") } : {}),
+      signIn: signInPolicy(),
     },
   };
 }

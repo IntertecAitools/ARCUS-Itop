@@ -57,6 +57,7 @@ async function signIn(login) {
     body: JSON.stringify({ login, password: PASSWORD }),
   });
   if (res.status !== 200) throw new Error(`sign-in as ${login}: HTTP ${res.status} ${await res.text()}`);
+  if ((await res.clone().json()).mfa) throw new Error('The BFF asks for an authenticator code after a password sign-in (MFA_REQUIRED). Run the BFF used for scripted tests with MFA_REQUIRED=off.');
   return res.headers.getSetCookie().map((c) => c.split(';')[0]).join('; ');
 }
 

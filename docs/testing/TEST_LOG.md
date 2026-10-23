@@ -4,6 +4,55 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-10-22 — Single sign-on (OIDC / Entra ID), MFA (TOTP) and break-glass sign-in
+
+Branch `claude/sso-mfa-5a55e9`. Plan rows 16–18 ("Beyond iTop (platform)").
+
+| What ran | Result |
+| --- | --- |
+| Backend unit tests (`npm test`), 37 new in `test/mfa.test.ts`, `test/sso.test.ts` | ✅ 558 passed, 0 failed |
+| Backend typecheck, build | ✅ clean |
+| `npm run e2e:sso` (dev IdP + own BFF on :3020 + local iTop), staff SSO off | ✅ 13 passed, 0 failed |
+| `npm run e2e:sso` with staff SSO through iTop's external login (a second iTop container on :8100, same volume and database, config copy with `ext_auth_variable`; removed afterwards) | ✅ 14 passed, 0 failed |
+| Frontend unit tests (vitest) | ✅ 159 passed |
+| Frontend typecheck, production build | ✅ clean |
+| Browser journeys, mock: new `mfa.spec.ts` (3) + `staff`, `portal`, `forgot-password` | ✅ 7 passed |
+| `docker/itop-prod/configure.php` `php -l` | ✅ no syntax errors |
+| MySQL MFA and audit stores against the local session database (`arcus_bff`, test user 999999, rows removed afterwards): round trip, secret sealed, step and recovery code single-use, other `SESSION_SECRET` opens nothing | ✅ 11 checks passed |
+
+The e2e covers: staff password sign-in → enrol (QR secret, code) → 10 recovery
+codes; a pending sign-in reaches no API; verify with a code, a wrong code
+(attempts left), a recovery code once; break-glass password + mandatory TOTP
+with its refusal, sign-in and each request in the sign-in audit log; SSO
+discovery, unknown email refused with the reason, end user signed in and
+landed on `returnTo`, the IdP's `amr` reaching the session, forged state
+refused, disabled account refused; staff SSO either refused (iTop not set up)
+or, with the external login, trusted on `amr` and calling iTop as themselves,
+and asked for our code when `amr` shows no MFA.
+
+Bugs found and fixed before the commit:
+
+- A correct password cleared the per-login failure count, so wrong MFA codes
+  could be retried without limit across sign-ins. Wrong codes now have their
+  own per-login limit (10 per 15 min) that no password clears (unit test
+  "limits wrong codes per login…").
+- The dev IdP left `amr` out of ID tokens (oidc-provider only issues claims a
+  scope lists): found by the e2e's `amr` check; `openid` now lists `amr`.
+- Break-glass audit lines showed the route pattern (`/api/objects/:class`),
+  now the path asked for.
+- `getallheaders()` lookups in iTop are case-sensitive and Node's fetch sends
+  lower-case header names, so the documented iTop setting reads
+  `$_SERVER['HTTP_X_ARCUS_REMOTE_USER']` instead.
+
+Not covered: a real Microsoft Entra ID tenant (no app registration yet; the
+settings IT must provide are in `backend/README.md`); the full SSO round trip in a browser (the
+script follows the same redirects with its own cookie jar). The shared local
+iTop on :8080 was not changed: the approved `ext_auth_variable` line was
+blocked by this session's permission checks and is left for the user to add
+(command in the PR). The test-run hook wrote this session's
+automatic entries into the main checkout's log (`CLAUDE_PROJECT_DIR`); they
+are copied verbatim at the end of this file.
+
 ### 2026-10-22 — Sidebar active item and groups; iTop dashboards redesigned; dashlet names and dates
 
 Branch `claude/nav-dashboards-polish`. Frontend plus the BFF's dashboard service. This worktree's BFF on `:4900` (its `node_modules` a junction to the main checkout's) against the local iTop on `:8080`, signed in as the local `admin`; Vite on `:5973`. Screenshots from headless Chromium in `docs/design/nav-dashboards/`.
@@ -808,3 +857,39 @@ Not covered yet: approvals (extension not installed); load and concurrency beyon
   - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/funny-maxwell-1ae845/frontend"; npx vitest run src/features/records/lib/import-mapping.test.ts 2>&1 | tail -15; cat "C:/Users/`
 - **2026-10-20 13:56 UTC** · `feature/itop-dates@780553e` + uncommitted changes · Frontend unit tests (vitest) (frontend) · ✅ 36 passed, 0 failed
   - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/funny-maxwell-1ae845"; grep -n "friendly name" frontend/src/features/records/lib/import-mapping.ts; (cd backend && node --impo`
+- **2026-10-22 16:36 UTC** · `main@f5b5c70` + uncommitted changes · Typecheck (backend) · ❌ errors (see the session)
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/sso-mfa-5a55e9/backend" && python "C:/Users/VENKAT~1.V/AppData/Local/Temp/claude/C--Users-Venkatesh-V-Arcus-ITOP--claude-workt`
+- **2026-10-22 16:40 UTC** · `main@f5b5c70` + uncommitted changes · Unit tests (backend) · ran — no summary line in the output
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/sso-mfa-5a55e9/backend" && cat > "C:/Users/VENKAT~1.V/AppData/Local/Temp/claude/C--Users-Venkatesh-V-Arcus-ITOP--claude-worktr`
+- **2026-10-22 16:41 UTC** · `main@f5b5c70` + uncommitted changes · Unit tests (backend) · ran — no summary line in the output
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/sso-mfa-5a55e9/backend" && grep -n "passwordReset: true }\|passwordReset: false }" test/*.ts; npm test 2>&1 | grep -E "^# (tes`
+- **2026-10-22 16:43 UTC** · `main@f5b5c70` + uncommitted changes · Unit tests (backend) · ✅ 521 passed, 0 failed
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/sso-mfa-5a55e9/backend" && sed -i 's/assert.deepEqual(on.json(), { passwordReset: true });/assert.equal(on.json().passwordRese`
+- **2026-10-22 16:48 UTC** · `main@f5b5c70` + uncommitted changes · Unit tests (backend) · ❌ 34 passed, 3 failed
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/sso-mfa-5a55e9/backend" && npx tsc -p tsconfig.json --noEmit 2>&1 | head -20; node --import tsx --test test/mfa.test.ts test/s`
+- **2026-10-22 16:49 UTC** · `main@f5b5c70` + uncommitted changes · Unit tests (backend) · ✅ 37 passed, 0 failed
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/sso-mfa-5a55e9/backend" && cat > "C:/Users/VENKAT~1.V/AppData/Local/Temp/claude/C--Users-Venkatesh-V-Arcus-ITOP--claude-worktr`
+- **2026-10-22 16:53 UTC** · `main@f5b5c70` + uncommitted changes · Live end-to-end script (backend) · ran — no summary line in the output
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/sso-mfa-5a55e9/backend" && grep -n "app.get(\"/api/portal/requests\"" src/platform/portal/portal.routes.ts; sed -i 's/ LOG_LEV`
+- **2026-10-22 16:55 UTC** · `main@f5b5c70` + uncommitted changes · Live end-to-end script (backend) · ✅ 12 passed, 0 failed
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/sso-mfa-5a55e9/backend" && timeout 500 node --import tsx scripts/e2e-sso.mjs 2>&1 | tail -40`
+- **2026-10-22 16:57 UTC** · `main@f5b5c70` + uncommitted changes · Live end-to-end script (frontend) · ran — no summary line in the output
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/sso-mfa-5a55e9" && sed -i 's#sso.landing('/login?returnTo=${encodeURIComponent(returnTo)}')#sso.landing('/login?next=${encodeU`
+- **2026-10-22 17:07 UTC** · `main@f5b5c70` + uncommitted changes · Typecheck (frontend) · ✅ clean
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/sso-mfa-5a55e9/frontend" && cat > "C:/Users/VENKAT~1.V/AppData/Local/Temp/claude/C--Users-Venkatesh-V-Arcus-ITOP--claude-workt`
+- **2026-10-22 17:10 UTC** · `main@f5b5c70` + uncommitted changes · Frontend unit tests (vitest) (frontend) · ✅ 159 passed, 0 failed
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/sso-mfa-5a55e9/frontend" && npx vitest run 2>&1 | tail -8; ls src/test 2>/dev/null; grep -rln "setupServer\|renderWithProvider`
+- **2026-10-22 17:15 UTC** · `main@f5b5c70` + uncommitted changes · Browser journeys, mock API (Playwright) (frontend) · ✅ 7 passed, 0 failed
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/sso-mfa-5a55e9/frontend" && E2E_MOCK_URL=http://localhost:5694 timeout 580 npx playwright test tests/journeys/mfa.spec.ts test`
+- **2026-10-22 17:16 UTC** · `main@f5b5c70` + uncommitted changes · Live API check (BFF → iTop) (backend) · ran — no summary line in the output
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/sso-mfa-5a55e9" && grep -n "auth/login" -B2 -A6 backend/scripts/api-check.mjs backend/scripts/perf-measure.mjs | head -40`
+- **2026-10-22 17:17 UTC** · `main@f5b5c70` + uncommitted changes · Live API check (BFF → iTop) (frontend) · ran — no summary line in the output
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/sso-mfa-5a55e9" && sed -n 116,125p backend/scripts/api-check.mjs; sed -n 43,60p frontend/tests/journeys/support/live-setup.ts`
+- **2026-10-22 17:23 UTC** · `main@f5b5c70` + uncommitted changes · Unit tests (backend) · ✅ 558 passed, 0 failed
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/sso-mfa-5a55e9" && sed -i 's/^# header; itop-setup makes iTop.s external login read it.$/# header; itop-setup makes iTop'"'"'s`
+- **2026-10-22 17:25 UTC** · `main@f5b5c70` + uncommitted changes · Browser journeys, mock API (Playwright) (backend) · ❌ 12 passed, 1 failed
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/sso-mfa-5a55e9/backend" && timeout 500 npm run e2e:sso 2>&1 | tail -20`
+- **2026-10-22 17:27 UTC** · `main@f5b5c70` + uncommitted changes · Browser journeys, mock API (Playwright) (backend) · ✅ 13 passed, 0 failed
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/sso-mfa-5a55e9/backend" && rm scripts/_amr-debug.mjs && timeout 500 npm run e2e:sso 2>&1 | tail -17`
+- **2026-10-22 17:30 UTC** · `main@f5b5c70` + uncommitted changes · Browser journeys, mock API (Playwright) (backend) · ✅ 14 passed, 0 failed
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/sso-mfa-5a55e9/backend" && ITOP_BASE_URL=http://127.0.0.1:8100 E2E_ITOP_EXTERNAL_HEADER=X-Arcus-Remote-User timeout 560 npm ru`

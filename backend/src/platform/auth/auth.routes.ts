@@ -6,10 +6,13 @@ import { currentCaller, enterRequestContext, type Caller } from "../../core/requ
 import { parse } from "../../core/validate.js";
 import type { Services } from "../../services.js";
 import { publicUser } from "./auth.service.js";
+import { registerMfaRoutes } from "./mfa.routes.js";
+import { SESSION_COOKIE, SignInFlow, sessionCookie } from "./sign-in.flow.js";
+import { registerSsoRoutes } from "./sso.routes.js";
 
-export const SESSION_COOKIE = "intertec_sid";
+export { SESSION_COOKIE };
 
-/** Paths that answer without a session. */
+/** Paths that answer without a session. The MFA step checks its own (pending) session. */
 const PUBLIC_PATHS = new Set([
   "/health",
   "/health/upstream",
@@ -19,7 +22,25 @@ const PUBLIC_PATHS = new Set([
   "/api/auth/options",
   "/api/auth/forgot-password",
   "/api/auth/reset-password",
+  "/api/auth/sso/start",
+  "/api/auth/sso/callback",
+  "/api/auth/mfa/verify",
+  "/api/auth/mfa/enrol",
 ]);
+
+/**
+ * Sessions still waiting for an authenticator code, by request. They are not
+ * bound as the caller (nothing may run as them yet); only the MFA routes and
+ * /api/auth/me look them up here.
+ */
+const pendingByRequest = new WeakMap<FastifyRequest, { id: string; caller: Caller }>();
+
+export function pendingSignIn(request: FastifyRequest): { id: string; caller: Caller } | undefined {
+  return pendingByRequest.get(request);
+}
+
+/** Break-glass sessions, by request, so each of their requests can be audited when it ends. */
+const breakGlassByRequest = new WeakMap<FastifyRequest, Caller>();
 
 /** What an end-user (portal) session may reach. Everything else is staff-only. */
 const PORTAL_PREFIXES = ["/api/auth/", "/api/portal/", "/api/me/"];
@@ -34,19 +55,6 @@ export function readCookie(request: FastifyRequest, name: string): string | unde
   return undefined;
 }
 
-function sessionCookie(services: Services, value: string, maxAgeSeconds: number): string {
-  return [
-    `${SESSION_COOKIE}=${encodeURIComponent(value)}`,
-    "Path=/",
-    "HttpOnly",
-    // Lax: sent on the app's own requests and top-level navigations, never on
-    // a cross-site POST -- the CSRF half of the cookie's job.
-    "SameSite=Lax",
-    `Max-Age=${maxAgeSeconds}`,
-    ...(services.config.auth.cookieSecure ? ["Secure"] : []),
-  ].join("; ");
-}
-
 /**
  * Sign-in for every kind of user, and the guard in front of the whole API.
  *
@@ -57,7 +65,8 @@ function sessionCookie(services: Services, value: string, maxAgeSeconds: number)
  * origin outside CORS_ORIGINS.
  */
 export function registerAuth(app: FastifyInstance, services: Services): void {
-  const { sessions, auth, config, passwordReset } = services;
+  const { sessions, auth, config, passwordReset, signInAudit } = services;
+  const flow = new SignInFlow(services);
 
   app.addHook("onRequest", (request: FastifyRequest, _reply, done) => {
     // Callback style on purpose. The session lookup is async (it may read a
@@ -65,9 +74,18 @@ export function registerAuth(app: FastifyInstance, services: Services): void {
     // when the hook hands over from the same async context that bound the
     // caller -- an async hook resumes in another one and the handler would
     // see nobody signed in.
-    sessions.get(readCookie(request, SESSION_COOKIE)).then(
-      (caller) => {
+    const id = readCookie(request, SESSION_COOKIE);
+    sessions.get(id).then(
+      (session) => {
         try {
+          let caller = session;
+          const pending = session?.signIn?.pending;
+          if (session && pending) {
+            // Not signed in yet: remembered for the MFA routes, bound as nobody.
+            if (pending.until > Date.now()) pendingByRequest.set(request, { id: id!, caller: session });
+            caller = undefined;
+          }
+          if (caller?.signIn?.method === "break-glass") breakGlassByRequest.set(request, caller);
           guard(request, caller);
           done();
         } catch (error) {
@@ -104,6 +122,24 @@ export function registerAuth(app: FastifyInstance, services: Services): void {
     }
   }
 
+  // Every request a break-glass session makes is written to the sign-in audit
+  // log, with its outcome: the account exists for emergencies only.
+  app.addHook("onResponse", async (request, reply) => {
+    const caller = breakGlassByRequest.get(request);
+    if (!caller || !request.routeOptions.url?.startsWith("/api/")) return;
+    await signInAudit
+      .record({
+        event: "break_glass_request",
+        login: caller.login,
+        userId: caller.userId,
+        method: "break-glass",
+        address: request.ip,
+        // The path as asked (no query string), so the log names the record touched.
+        detail: `${request.method} ${request.url.split("?")[0]} -> ${reply.statusCode}`,
+      })
+      .catch((error: unknown) => request.log.error({ err: error }, "Could not write the sign-in audit log"));
+  });
+
   /**
    * A write's Origin, when the browser sent one, must be allow-listed. With
    * CORS_ORIGINS=* (no list) it must at least be this server's own origin:
@@ -129,14 +165,33 @@ export function registerAuth(app: FastifyInstance, services: Services): void {
     );
     // End users are served by the self-service API (/api/portal), which the
     // guard keeps them to; staff get the whole API, as themselves.
-    const caller = await auth.signIn(body.login, body.password, request.ip);
-    const id = await sessions.create(caller);
-    reply.header("Set-Cookie", sessionCookie(services, id, Math.floor(config.auth.sessionMaxMs / 1000)));
-    return { user: publicUser(caller) };
+    let caller: Caller;
+    try {
+      caller = await auth.signIn(body.login, body.password, request.ip);
+    } catch (error) {
+      if (error instanceof AppError && error.code !== "rate_limited" && body.login.trim()) {
+        const breakGlass = auth.isBreakGlass(body.login.trim());
+        await signInAudit.record({
+          event: breakGlass ? "break_glass_refused" : "sign_in_refused",
+          login: body.login.trim().slice(0, 255),
+          method: breakGlass ? "break-glass" : "password",
+          address: request.ip,
+          detail: error.message,
+        });
+      }
+      throw error;
+    }
+    // Staff (MFA_REQUIRED), break-glass accounts and anyone enrolled answer
+    // { mfa: { step } } here and finish at /api/auth/mfa/*.
+    return flow.begin(request, reply, caller);
   });
 
   /** What the sign-in page may offer, before anyone is signed in. */
-  app.get("/api/auth/options", async () => ({ passwordReset: passwordReset.enabled }));
+  app.get("/api/auth/options", async () => ({
+    passwordReset: passwordReset.enabled,
+    sso: services.sso ? { label: services.sso.config.label } : null,
+    passwordSignIn: config.auth.signIn?.passwordSignIn ?? "all",
+  }));
 
   /**
    * Sends a reset link to the account behind a login or email address. The
@@ -181,10 +236,17 @@ export function registerAuth(app: FastifyInstance, services: Services): void {
     return null;
   });
 
-  /** Who is signed in; 401 when nobody is, which is how the app knows to show sign-in. */
-  app.get("/api/auth/me", async () => {
+  /**
+   * Who is signed in; 401 when nobody is, which is how the app knows to show
+   * sign-in. A sign-in waiting for its authenticator code is a 401 too, with
+   * `details.mfa` saying which step (after single sign-on, the app lands here).
+   */
+  app.get("/api/auth/me", async (request) => {
     const caller = currentCaller();
-    if (!caller) throw new AppError("unauthorized", "Not signed in.");
+    if (!caller) {
+      const pending = pendingSignIn(request)?.caller.signIn?.pending;
+      throw new AppError("unauthorized", "Not signed in.", pending ? { details: { mfa: { step: pending.step } } } : {});
+    }
     return { user: publicUser(caller) };
   });
 
@@ -199,9 +261,12 @@ export function registerAuth(app: FastifyInstance, services: Services): void {
     await auth.changeOwnPassword(caller, body.current, body.next);
     // The session keeps calling iTop as this user, so it needs the new password.
     const id = readCookie(request, SESSION_COOKIE);
-    if (id && caller.credentials) {
+    if (id && caller.credentials && "password" in caller.credentials) {
       await sessions.update(id, { ...caller, credentials: { user: caller.login, password: body.next } });
     }
     return { ok: true };
   });
+
+  registerMfaRoutes(app, services, flow);
+  registerSsoRoutes(app, services, flow);
 }

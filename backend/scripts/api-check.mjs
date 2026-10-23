@@ -117,6 +117,10 @@ await check('upstream', 'GET', '/health/upstream', {
     console.error(`Sign-in failed (${response.status}): ${await response.text()}`);
     process.exit(2);
   }
+  if ((await response.clone().json()).mfa) {
+    console.error('The BFF asks for an authenticator code after a password sign-in (MFA_REQUIRED). Run the BFF used for scripted tests with MFA_REQUIRED=off.');
+    process.exit(2);
+  }
   cookie = (response.headers.get('set-cookie') ?? '').split(';')[0];
 }
 
