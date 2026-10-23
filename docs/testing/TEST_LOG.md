@@ -4,6 +4,16 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-10-23 — Brand name "Intertec Helpdesk" → "Intertec Servicedesk"
+
+| What ran | Result |
+|---|---|
+| Frontend typecheck (`tsc --noEmit`) | ✅ |
+| Frontend unit tests (vitest) | ✅ 180/180 |
+| Local run (BFF :4000 + Vite :5173 from latest `main`), landing page | ✅ Tab title and logo read "Intertec Servicedesk" |
+
+No bugs found. Only the brand tagline (`VITE_PLATFORM_NAME` default) and the page title changed; other uses of "helpdesk" (sidebar group, help text, mail addresses, docs) are intentionally unchanged. Not covered: sign-in and the agent screens were not clicked through.
+
 ### 2026-10-23 — Request forms per catalogue item; target date for the requester
 
 Branch `claude/requests-c8e01b`. This worktree's BFF on `:4040` (sessions and request forms in the shared `arcus_bff` database, new table `bff_request_forms`) against the shared local iTop on `:8080`. iTop 3.4 community has no request templates, so form definitions live in the BFF and answers are written into the request's description. The target date is iTop's own time-to-resolve deadline (`ttr_escalation_deadline`, from the SLA that applies).

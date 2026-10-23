@@ -60,7 +60,7 @@ A complete map of what the frontend (`frontend/src`) shows: every sidebar item, 
 
 | # | Element | Type | Details |
 |---|---|---|---|
-| 1 | **Logo** | Layout / brand | SVG mark + app name (`VITE_APP_NAME`, default "Intertec") + tagline (`VITE_PLATFORM_NAME`, default "Helpdesk"). Name hidden when collapsed |
+| 1 | **Logo** | Layout / brand | SVG mark + app name (`VITE_APP_NAME`, default "Intertec") + tagline (`VITE_PLATFORM_NAME`, default "Servicedesk"). Name hidden when collapsed |
 | 2 | **Built modules** group | Navigation | `NavItem`s generated from `modules.ts`. Today one item: **Dashboard** (LayoutDashboard icon). Active item gets a brand-coloured left bar. Supports a red count badge (`badgeKey`), unused by Dashboard |
 | 3 | **"Modules" header + "All" link** | Navigation | Opens `/modules` |
 | 4 | **iTop module groups** (`GroupSection` × 10) | Navigation (collapsible) | One collapsible button per iTop menu group (10), with icon + chevron. The group containing the current page opens automatically. Each entry is a `NavLink`; "create" entries show a `NEW` hint and "search" entries show `SEARCH` |

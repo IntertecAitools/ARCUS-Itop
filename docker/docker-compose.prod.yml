@@ -82,7 +82,7 @@ services:
       args:
         VITE_BFF_URL: /api
         VITE_APP_NAME: ${VITE_APP_NAME:-Intertec}
-        VITE_PLATFORM_NAME: ${VITE_PLATFORM_NAME:-Helpdesk}
+        VITE_PLATFORM_NAME: ${VITE_PLATFORM_NAME:-Servicedesk}
         VITE_DEFAULT_LOCALE: ${VITE_DEFAULT_LOCALE:-en}
     image: arcus-web:${ARCUS_VERSION:-latest}
     restart: unless-stopped

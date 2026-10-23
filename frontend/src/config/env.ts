@@ -38,7 +38,7 @@ export const env: Env = {
   isMock: mode === 'mock',
   bffUrl: import.meta.env.VITE_BFF_URL || 'http://localhost:4000/api',
   appName: import.meta.env.VITE_APP_NAME || 'Intertec',
-  platformName: import.meta.env.VITE_PLATFORM_NAME || 'Helpdesk',
+  platformName: import.meta.env.VITE_PLATFORM_NAME || 'Servicedesk',
   defaultLocale: import.meta.env.VITE_DEFAULT_LOCALE || 'en',
   isDev: import.meta.env.DEV,
 };
