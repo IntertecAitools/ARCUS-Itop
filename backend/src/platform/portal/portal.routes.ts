@@ -6,6 +6,7 @@ import { currentCaller, runAsServiceAccount, type Caller } from "../../core/requ
 import { idParam, intParam, parse } from "../../core/validate.js";
 import type { Services } from "../../services.js";
 import { readUpload, sendAttachment } from "../../modules/attachments/attachments.routes.js";
+import { answersSchema } from "../../modules/request-forms/index.js";
 
 function caller(): Caller {
   const c = currentCaller();
@@ -21,7 +22,7 @@ const idParams = z.object({ id: idParam });
  * end-user sessions reach only this and /api/auth.
  */
 export function registerPortalRoutes(app: FastifyInstance, services: Services): void {
-  const { portal, attachments } = services;
+  const { portal, attachments, requestForms } = services;
 
   app.get("/api/portal/requests", async (request) => {
     const query = parse(
@@ -50,13 +51,23 @@ export function registerPortalRoutes(app: FastifyInstance, services: Services): 
         serviceId: z.number().int().positive().optional(),
         subcategoryId: z.number().int().positive().optional(),
         urgency: z.enum(["1", "2", "3", "4"]).optional(),
+        answers: answersSchema.optional(),
       }),
       request.body,
       "request body",
     );
+    // The catalogue item's own questions, checked and written into the
+    // description; createRequest then checks the item is the user's to pick.
+    const target = {
+      ...(body.serviceId !== undefined ? { serviceId: body.serviceId } : {}),
+      ...(body.subcategoryId !== undefined ? { subcategoryId: body.subcategoryId } : {}),
+    };
+    const description = body.description.trim()
+      ? await requestForms.describe(body.description.trim(), target, body.answers)
+      : body.description;
     const created = await portal.createRequest(caller(), {
       title: body.title,
-      description: body.description,
+      description,
       ...(body.serviceId !== undefined ? { serviceId: body.serviceId } : {}),
       ...(body.subcategoryId !== undefined ? { subcategoryId: body.subcategoryId } : {}),
       ...(body.urgency ? { urgency: body.urgency } : {}),
@@ -134,6 +145,24 @@ export function registerPortalRoutes(app: FastifyInstance, services: Services): 
   });
 
   app.get("/api/portal/catalog", async () => portal.catalog(caller()));
+
+  // The extra questions for a catalogue item, once it is one of the user's.
+  app.get("/api/portal/request-form", async (request) => {
+    const query = parse(
+      z.object({
+        serviceId: z.coerce.number().int().positive(),
+        subcategoryId: z.coerce.number().int().positive().optional(),
+      }),
+      request.query,
+      "query parameters",
+    );
+    const { services: offered } = await portal.catalog(caller());
+    const service = offered.find((s) => s.id === query.serviceId);
+    if (!service || (query.subcategoryId !== undefined && !service.subcategories.some((sc) => sc.id === query.subcategoryId))) {
+      throw new AppError("not_found", "That service is not available to you.");
+    }
+    return { fields: await requestForms.resolve(query.serviceId, query.subcategoryId) };
+  });
 
   app.get("/api/portal/faqs", async (request) => {
     const { q } = parse(z.object({ q: z.string().max(200).optional() }), request.query, "query parameters");

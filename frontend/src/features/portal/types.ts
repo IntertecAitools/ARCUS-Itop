@@ -15,6 +15,9 @@ export interface PortalTicket {
   updatedAt: string;
   service: string;
   subcategory: string;
+  /** When it should be resolved by (the SLA's deadline, ISO instant); "" when no SLA applies. */
+  targetDate: string;
+  targetMissed: boolean;
 }
 
 export interface PortalTicketDetail extends PortalTicket {
@@ -72,4 +75,6 @@ export interface NewRequest {
   serviceId?: number;
   subcategoryId?: number;
   urgency?: string;
+  /** Answers to the catalogue item's request form, by field key. */
+  answers?: Record<string, string>;
 }

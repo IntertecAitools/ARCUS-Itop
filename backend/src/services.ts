@@ -6,6 +6,12 @@ import { DashboardService } from "./modules/dashboard/index.js";
 import { DirectoryService } from "./modules/directory/index.js";
 import { IncidentsService } from "./modules/incidents/index.js";
 import { ProblemsService } from "./modules/problems/index.js";
+import {
+  MemoryRequestFormStore,
+  MySqlRequestFormStore,
+  RequestFormsService,
+  type RequestFormStore,
+} from "./modules/request-forms/index.js";
 import { LookupsService } from "./platform/lookups/lookups.service.js";
 import { Navigation } from "./platform/navigation/navigation.service.js";
 import { Dashboards } from "./platform/dashboards/dashboards.service.js";
@@ -80,6 +86,7 @@ export interface Services {
   dashboard: DashboardService;
   incidents: IncidentsService;
   problems: ProblemsService;
+  requestForms: RequestFormsService;
   directory: DirectoryService;
   defaultOrganization: DefaultOrganization;
   currentContact: CurrentContact;
@@ -99,6 +106,8 @@ export interface BuildServicesOptions {
   signInAudit?: SignInAudit;
   /** Tenants for tests; otherwise from TENANTS_FILE or the BFF database. */
   tenants?: TenantStore;
+  /** Request forms for tests; otherwise in the BFF database, or memory. */
+  requestForms?: RequestFormStore;
   /** Stands in for SMTP in tests; otherwise built from PASSWORD_RESET settings. */
   mailer?: Mailer;
   logger?: Logger;
@@ -226,6 +235,10 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     currentContact,
     incidents: new IncidentsService(objects, schema, defaultOrganization),
     problems: new ProblemsService(objects, client, config.itop.timezone),
+    requestForms: new RequestFormsService(
+      client,
+      options.requestForms ?? (stores?.pool ? new MySqlRequestFormStore(stores.pool) : new MemoryRequestFormStore()),
+    ),
     directory: new DirectoryService(objects),
     tenancy,
     tenantStore,

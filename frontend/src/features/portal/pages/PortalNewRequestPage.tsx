@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button, Card, CardBody, CardHeader, Input, Skeleton } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import { PageIntro, publicControl } from '@/components/public';
+import { RequestFormSection, answersFor, missingRequired, type FormAnswers, type FormField } from '@/features/request-forms';
 import { useCatalog, useCreateRequest } from '../api/portal.api';
 
 const CONTROL = publicControl;
@@ -28,6 +29,10 @@ export function PortalNewRequestPage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [urgency, setUrgency] = useState('4');
+  // The chosen service's own questions, and the answers so far.
+  const [formFields, setFormFields] = useState<FormField[]>([]);
+  const [answers, setAnswers] = useState<FormAnswers>({});
+  const unanswered = missingRequired(formFields, answers);
 
   const families = useMemo(() => {
     const groups = new Map<string, NonNullable<typeof services>>();
@@ -47,6 +52,7 @@ export function PortalNewRequestPage() {
         urgency,
         ...(serviceId ? { serviceId } : {}),
         ...(subcategoryId ? { subcategoryId } : {}),
+        ...(formFields.length > 0 ? { answers: answersFor(formFields, answers) } : {}),
       },
       { onSuccess: (ticket) => navigate(`/portal/requests/${ticket.id}`, { replace: true }) },
     );
@@ -120,6 +126,18 @@ export function PortalNewRequestPage() {
         </CardBody>
       </Card>
 
+      <RequestFormSection
+        audience="portal"
+        serviceId={serviceId ?? undefined}
+        subcategoryId={subcategoryId ?? undefined}
+        answers={answers}
+        onChange={(key, value) => setAnswers((a) => ({ ...a, [key]: value }))}
+        onFields={setFormFields}
+        title="What we need to know"
+        controlClass={CONTROL}
+        className="mb-6"
+      />
+
       <Card className="mb-6">
         <CardHeader title="2. Describe it" />
         <CardBody className="space-y-4">
@@ -142,8 +160,17 @@ export function PortalNewRequestPage() {
         </CardBody>
       </Card>
 
-      <div className="flex justify-end border-t border-line pt-6">
-        <Button size="lg" className="h-12 px-8 text-[14px]" onClick={submit} disabled={!title.trim() || !description.trim()} loading={create.isPending}>
+      <div className="flex flex-wrap justify-end gap-3 border-t border-line pt-6">
+        {unanswered.length > 0 ? (
+          <p className="me-auto self-center text-[13px] text-ink-secondary">Still to answer: {unanswered.map((f) => f.label).join(', ')}</p>
+        ) : null}
+        <Button
+          size="lg"
+          className="h-12 px-8 text-[14px]"
+          onClick={submit}
+          disabled={!title.trim() || !description.trim() || unanswered.length > 0}
+          loading={create.isPending}
+        >
           Submit request
         </Button>
       </div>

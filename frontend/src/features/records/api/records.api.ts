@@ -48,10 +48,11 @@ export function listRecords(className: string, filters: RecordFilters, fields?: 
 export const getRecord = (className: string, id: string, fields?: string) =>
   apiClient.get<RecordDto>(`/objects/${className}/${id}`, { query: { fields } });
 
-export const createRecord = (className: string, fields: Record<string, unknown>) =>
+/** `formAnswers`: on a new request, the answers to its service's request form. */
+export const createRecord = (className: string, fields: Record<string, unknown>, formAnswers?: Record<string, string>) =>
   apiClient.post<{ object: RecordDto; rejected: Array<{ field: string; reason: string }> }>(
     `/objects/${className}`,
-    { fields },
+    { fields, ...(formAnswers ? { formAnswers } : {}) },
   );
 
 export const updateRecord = (className: string, id: string, fields: Record<string, unknown>) =>
