@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { AppError } from "../../core/errors.js";
 import { currentCaller, enterRequestContext, type Caller } from "../../core/request-context.js";
+import type { Resolution } from "../tenancy/resolve.js";
 import { parse } from "../../core/validate.js";
 import type { Services } from "../../services.js";
 import { publicUser } from "./auth.service.js";
@@ -65,7 +66,7 @@ export function readCookie(request: FastifyRequest, name: string): string | unde
  * origin outside CORS_ORIGINS.
  */
 export function registerAuth(app: FastifyInstance, services: Services): void {
-  const { sessions, auth, config, passwordReset, signInAudit } = services;
+  const { sessions, auth, config, passwordReset, signInAudit, tenancy } = services;
   const flow = new SignInFlow(services);
 
   app.addHook("onRequest", (request: FastifyRequest, _reply, done) => {
@@ -74,30 +75,45 @@ export function registerAuth(app: FastifyInstance, services: Services): void {
     // when the hook hands over from the same async context that bound the
     // caller -- an async hook resumes in another one and the handler would
     // see nobody signed in.
+    // The tenant is decided here too, from the host name and the user, and
+    // bound with the caller: from now on every iTop call is held to it.
     const id = readCookie(request, SESSION_COOKIE);
-    sessions.get(id).then(
-      (session) => {
-        try {
-          let caller = session;
-          const pending = session?.signIn?.pending;
-          if (session && pending) {
-            // Not signed in yet: remembered for the MFA routes, bound as nobody.
-            if (pending.until > Date.now()) pendingByRequest.set(request, { id: id!, caller: session });
-            caller = undefined;
-          }
-          if (caller?.signIn?.method === "break-glass") breakGlassByRequest.set(request, caller);
-          guard(request, caller);
-          done();
-        } catch (error) {
-          done(error as Error);
+    sessions
+      .get(id)
+      .then(async (session) => {
+        let caller = session;
+        const pending = session?.signIn?.pending;
+        if (session && pending) {
+          // Not signed in yet: remembered for the MFA routes, bound as nobody.
+          if (pending.until > Date.now()) pendingByRequest.set(request, { id: id!, caller: session });
+          caller = undefined;
         }
-      },
-      (error: Error) => done(error),
-    );
+        return { caller, resolution: await tenancy.resolve(request.host, caller) };
+      })
+      .then(
+        ({ caller, resolution }) => {
+          try {
+            if (caller?.signIn?.method === "break-glass") breakGlassByRequest.set(request, caller);
+            guard(request, caller, resolution);
+            done();
+          } catch (error) {
+            done(error as Error);
+          }
+        },
+        (error: Error) => done(error),
+      );
   });
 
-  function guard(request: FastifyRequest, caller: Caller | undefined): void {
-    enterRequestContext(caller);
+  function guard(request: FastifyRequest, signedIn: Caller | undefined, resolution: Resolution): void {
+    // A user this site refuses counts as signed out on the public paths
+    // (they can still sign out or see the sign-in page) and is refused on
+    // every other one.
+    const caller = resolution.refused ? undefined : signedIn;
+    enterRequestContext(caller, resolution.tenant);
+    const path = request.routeOptions.url;
+    if (resolution.refused && signedIn && !(path !== undefined && PUBLIC_PATHS.has(path))) {
+      throw resolution.refused;
+    }
     if (!config.auth.required || request.method === "OPTIONS") return;
 
     if (!["GET", "HEAD"].includes(request.method) && !allowedOrigin(request)) {
@@ -108,7 +124,6 @@ export function registerAuth(app: FastifyInstance, services: Services): void {
     // never on the raw URL: the router decodes percent-escapes, so
     // "/%61pi/%61dmin/users" reaches /api/admin/users while a prefix check on
     // the raw text sees neither "/api/" nor "/api/admin/".
-    const path = request.routeOptions.url;
     // No route: the not-found handler answers, and it reveals nothing.
     if (path === undefined) return;
 
@@ -181,8 +196,9 @@ export function registerAuth(app: FastifyInstance, services: Services): void {
       }
       throw error;
     }
-    // Staff (MFA_REQUIRED), break-glass accounts and anyone enrolled answer
-    // { mfa: { step } } here and finish at /api/auth/mfa/*.
+    // The account must belong to this site's tenant (checked in begin, for
+    // every way in). Staff (MFA_REQUIRED), break-glass accounts and anyone
+    // enrolled then answer { mfa: { step } } and finish at /api/auth/mfa/*.
     return flow.begin(request, reply, caller);
   });
 

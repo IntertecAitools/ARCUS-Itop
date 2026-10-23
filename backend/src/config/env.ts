@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { DEFAULT_ITOP_TIMEZONE } from "../shared/itop-time.js";
+import type { TenancyConfig } from "../platform/tenancy/resolve.js";
 
 /**
  * Relative paths in .env resolve against the package root (the directory
@@ -123,6 +124,8 @@ export interface Config {
   notificationSender?: { address: string; label: string };
   /** Pins the organisation new records belong to. Optional. */
   defaultOrgId?: string;
+  /** Several customers on one platform (platform/tenancy). Off when absent. */
+  tenancy?: TenancyConfig;
   auth: {
     /**
      * When true (the default) every /api route except sign-in needs a session,
@@ -273,6 +276,23 @@ function notificationSender(): { address: string; label: string } | undefined {
   return parsed;
 }
 
+function tenancyConfig(sessionStore: SessionStoreConfig): TenancyConfig {
+  const mode = optional("TENANCY", "off").toLowerCase();
+  if (mode !== "on" && mode !== "off") throw new Error(`TENANCY must be "on" or "off", not "${mode}".`);
+  const file = optional("TENANTS_FILE", "");
+  if (mode === "on" && !file && sessionStore.kind !== "mysql") {
+    throw new Error("TENANCY=on keeps tenants in the BFF database: set SESSION_STORE=mysql, or TENANTS_FILE.");
+  }
+  return {
+    enabled: mode === "on",
+    platformLogins: optional("PLATFORM_LOGINS", "")
+      .split(",")
+      .map((l) => l.trim())
+      .filter(Boolean),
+    ...(file ? { tenantsFile: resolve(PACKAGE_ROOT, file) } : {}),
+  };
+}
+
 function withPasswordReset(config: PasswordResetConfig | undefined) {
   return config ? { passwordReset: config } : {};
 }
@@ -413,6 +433,8 @@ export function loadConfig(envFile = resolve(PACKAGE_ROOT, ".env")): Config {
           .map((o) => o.trim().replace(/\/+$/, ""))
           .filter((o) => o !== "");
 
+  const sessionStore = sessionStoreConfig();
+
   return {
     itop: {
       baseUrl,
@@ -455,12 +477,13 @@ export function loadConfig(envFile = resolve(PACKAGE_ROOT, ".env")): Config {
     ...(appBaseUrl() ? { appBaseUrl: appBaseUrl()! } : {}),
     ...(notificationSender() ? { notificationSender: notificationSender()! } : {}),
     ...(optional("ITOP_DEFAULT_ORG_ID", "") ? { defaultOrgId: optional("ITOP_DEFAULT_ORG_ID", "") } : {}),
+    tenancy: tenancyConfig(sessionStore),
     auth: {
       required: optional("AUTH_REQUIRED", "true").toLowerCase() !== "false",
       sessionIdleMs: integer("SESSION_IDLE_MINUTES", 60, 5, 24 * 60) * 60_000,
       sessionMaxMs: integer("SESSION_MAX_HOURS", 12, 1, 24 * 30) * 3_600_000,
       cookieSecure: optional("COOKIE_SECURE", "false").toLowerCase() === "true",
-      sessionStore: sessionStoreConfig(),
+      sessionStore,
       ...withPasswordReset(passwordResetConfig()),
       ...(optional("SESSION_SECRET", "") ? { secret: optional("SESSION_SECRET", "") } : {}),
       signIn: signInPolicy(),

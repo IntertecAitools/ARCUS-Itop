@@ -5,6 +5,7 @@ import { buildApp } from "../src/app.js";
 import type { SignInPolicy } from "../src/config/env.js";
 import { MemoryMfaStore } from "../src/platform/auth/mfa.store.js";
 import { MemorySignInAudit } from "../src/platform/auth/sign-in-audit.js";
+import { MemoryTenantStore, type Tenant } from "../src/platform/tenancy/tenant.store.js";
 import {
   base32Decode,
   base32Encode,
@@ -109,13 +110,12 @@ const ADMIN: Account = { id: 1, login: "admin", password: "admin-pass-1", profil
 const PORTAL: Account = { id: 30, login: "pat", password: "pat-pass-12", profiles: ["Portal user"] };
 const BREAK_GLASS: Account = { id: 99, login: "breakglass", password: "glass-pass-1", profiles: ["Administrator", "REST Services User"] };
 
-function setup(policy: Partial<SignInPolicy> = {}, accounts = [AGENT, ADMIN, PORTAL, BREAK_GLASS]) {
+function setup(policy: Partial<SignInPolicy> = {}, accounts = [AGENT, ADMIN, PORTAL, BREAK_GLASS], tenants?: Tenant[]) {
   const fake = itop(accounts);
   const schema = sampleSchema();
   const audit = new MemorySignInAudit();
   const store = new MemoryMfaStore();
-  const { app, services } = buildApp(
-    testConfig({
+  const config = testConfig({
       auth: {
         required: true,
         sessionIdleMs: 3_600_000,
@@ -130,16 +130,17 @@ function setup(policy: Partial<SignInPolicy> = {}, accounts = [AGENT, ADMIN, POR
           ...policy,
         },
       },
-    }),
-    {
-      client: fake.asClient(),
-      schema,
-      navigation: sampleNavigation(schema),
-      dashboards: sampleDashboards(fake.asClient(), schema),
-      mfaStore: store,
-      signInAudit: audit,
-    },
-  );
+  });
+  if (tenants) config.tenancy = { enabled: true, platformLogins: [] };
+  const { app, services } = buildApp(config, {
+    client: fake.asClient(),
+    schema,
+    navigation: sampleNavigation(schema),
+    dashboards: sampleDashboards(fake.asClient(), schema),
+    mfaStore: store,
+    signInAudit: audit,
+    ...(tenants ? { tenants: new MemoryTenantStore(tenants) } : {}),
+  });
   after(async () => {
     await app.close();
   });
@@ -408,5 +409,50 @@ describe("password sign-in policy and break-glass", () => {
       remoteAddress: "10.9.9.9",
     });
     assert.equal(blocked.statusCode, 429);
+  });
+});
+
+describe("MFA with tenancy", () => {
+  const TENANTS: Tenant[] = [
+    { id: "acme", name: "Acme", status: "active", domains: ["acme.test"], orgIds: [1] },
+    { id: "globex", name: "Globex", status: "active", domains: ["globex.test"], orgIds: [2] },
+  ];
+  const at = (host: string, cookie?: string) => ({ host, ...(cookie ? { cookie } : {}) });
+
+  it("refuses another tenant's site before any MFA step, and binds the tenant once the code is given", async () => {
+    const { app, fake } = setup({}, [AGENT], TENANTS);
+    const wrong = await app.inject({
+      method: "POST",
+      url: "/api/auth/login",
+      headers: at("globex.test"),
+      payload: { login: AGENT.login, password: AGENT.password },
+    });
+    assert.equal(wrong.statusCode, 403);
+    assert.match(wrong.json().error.message, /another site/);
+    assert.equal(wrong.headers["set-cookie"], undefined, "no pending session for a refused tenant");
+
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/auth/login",
+      headers: at("acme.test"),
+      payload: { login: AGENT.login, password: AGENT.password },
+    });
+    assert.deepEqual(res.json(), { mfa: { step: "enrol" } });
+    const pending = cookieOf(res);
+    const { secret } = (await app.inject({ method: "GET", url: "/api/auth/mfa/enrol", headers: at("acme.test", pending) })).json();
+    const done = await app.inject({
+      method: "POST",
+      url: "/api/auth/mfa/enrol",
+      headers: at("acme.test", pending),
+      payload: { code: totpAt(secret, timeStep(Date.now())) },
+    });
+    assert.equal(done.statusCode, 200, done.body);
+    const cookie = cookieOf(done);
+
+    const list = await app.inject({ method: "GET", url: "/api/objects/Server", headers: at("acme.test", cookie) });
+    assert.equal(list.statusCode, 200);
+    assert.equal(fake.lastCall().as, "jane");
+    const elsewhere = await app.inject({ method: "GET", url: "/api/objects/Server", headers: at("globex.test", cookie) });
+    assert.equal(elsewhere.statusCode, 403, "the session is still held to its own tenant");
   });
 });

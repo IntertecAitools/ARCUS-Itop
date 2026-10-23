@@ -17,7 +17,9 @@
     "smoke": "node --import tsx scripts/smoke.ts",
     "api:check": "node scripts/api-check.mjs",
     "idp:dev": "node scripts/dev-idp.mjs",
-    "e2e:sso": "node --import tsx scripts/e2e-sso.mjs"
+    "e2e:sso": "node --import tsx scripts/e2e-sso.mjs",
+    "tenants": "node --import tsx scripts/tenants.ts",
+    "e2e:tenancy": "node scripts/e2e-tenancy.mjs"
   },
   "dependencies": {
     "@fastify/multipart": "^10.1.3",

@@ -45,6 +45,10 @@ export class SignInFlow {
     caller: Caller,
     idpMfa = false,
   ): Promise<SignInOutcome> {
+    // The account must belong to this site's tenant (or run the platform),
+    // whichever way it signed in; refused before any session exists.
+    const resolution = await this.services.tenancy.resolve(request.host, caller);
+    if (resolution.refused) throw resolution.refused;
     const step = await this.mfaStep(caller, idpMfa);
     if (!step) {
       return this.complete(request, reply, caller, undefined, idpMfa ? "idp" : undefined);

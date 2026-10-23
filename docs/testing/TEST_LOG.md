@@ -20,6 +20,7 @@ Branch `claude/sso-mfa-5a55e9`. Plan rows 16–18 ("Beyond iTop (platform)").
 | `docker/itop-prod/configure.php` `php -l` | ✅ no syntax errors |
 | MySQL MFA and audit stores against the local session database (`arcus_bff`, test user 999999, rows removed afterwards): round trip, secret sealed, step and recovery code single-use, other `SESSION_SECRET` opens nothing | ✅ 11 checks passed |
 | 2026-10-23: `npm run e2e:sso` with staff SSO against the **shared local iTop on :8080**, after the user-approved `'ext_auth_variable' => '$_SERVER[\'HTTP_X_ARCUS_REMOTE_USER\']'` line was added to its `config-itop.php` (original kept as `config-itop.php.bak-before-sso`) | ✅ 14 passed, 0 failed |
+| 2026-10-23, after merging `main` (multi-tenancy, PR #23): backend `npm test` (one new test: a sign-in on another tenant's site is refused before any MFA step; after MFA the session stays held to its tenant), backend and frontend typecheck, backend build, `npm run e2e:sso` with staff SSO on | ✅ 594 passed; clean; clean; 14 passed |
 
 The e2e covers: staff password sign-in → enrol (QR secret, code) → 10 recovery
 codes; a pending sign-in reaches no API; verify with a code, a wrong code
@@ -53,6 +54,23 @@ iTop on :8080 now has the user-approved `ext_auth_variable` line (added
 had blocked); the 14/14 run above went through it. The test-run hook wrote this session's
 automatic entries into the main checkout's log (`CLAUDE_PROJECT_DIR`); they
 are copied verbatim at the end of this file.
+### 2026-10-22 — Multi-tenancy core: tenants, scoping of every iTop call, cross-tenant leak tests
+
+Branch `claude/multi-tenancy-efcab8`. Backend only. This worktree's BFF on `:4010` (`TENANCY=on`, `PLATFORM_LOGINS=admin`, sessions and tenants in its own database `arcus_bff_mt`) against the shared local iTop on `:8080`. Test data added to iTop by `npm run tenants -- seed-test`: organisations `zz-mt-acme` (13) and `zz-mt-globex` (14), each with a person, an agent (`mt.<t>.agent`, Service Desk Agent, limited to its organisation), an administrator (`mt.<t>.admin`), a user request and a server; tenants `mt-acme` (`acme.localhost`) and `mt-globex` (`globex.localhost`).
+
+| What ran | Result | Notes |
+| --- | --- | --- |
+| Backend `npm run typecheck`, `npm run build` | ✅ | |
+| Backend `npm test` | ✅ 556 / 556 | 521 existing unchanged + 35 new in `test/tenancy.test.ts`: scope rules per class, OQL rewriting (unions, aliases, history pinned to one class, refusals), tenant resolution (domain, user, orphan, disabled, platform operator), and leak tests through the real routes over a small simulated iTop with two tenants (list, guessed id, filter/search, update, delete, create into the other org, a key pointing at the other tenant, export, history, impact graph, saved queries, notifications, wrong domain, account organisations) |
+| Live `npm run e2e:tenancy` (A→B and B→A, as agent and as administrator) | ✅ 143 / 143 | Lists of UserRequest, Ticket, Server, FunctionalCI, Person, Organization; search; criteria on the other org; organisation picker; GET by guessed id of ticket, server, organisation, person, history, impact graph, link rows; update, transition, simulated delete, bulk update; create in the other org or with the other's person; CSV export; dashboard; saved queries (list, get, run, delete); user list, account by id, giving an account the other org (create and update); signing in and using a session on the other tenant's site; the other ticket unchanged afterwards; platform operator sees both on the platform address and one on a tenant's site |
+| Live spot checks as `mt.acme.admin` | ✅ | Audit overview, nav counts, the bell, dashboards list, own history and pickers answer; notification rules refused (403) |
+
+Bugs found and fixed (in this branch, before the first commit):
+
+- iTop rejected the scoped queries with "Ambiguous filter code" as soon as a tenant condition held a subquery: it resolves an unqualified name against the enclosing queries' aliases too. Tenant conditions are now qualified (`UserRequest.org_id`) and every generated subquery has its own alias (`ts_1`); the wrapped query keeps the class's own alias, so the original query's names still resolve. Confirmed against the live iTop for URP_UserOrg, QueryOQL, CMDBChangeOp, link rows and Organization.
+- Account link sets (`allowed_org_list`, `profile_list`) are in the published schema without their link class, so their rows went unchecked; they are now mapped, and any other link set the schema does not describe is refused for tenants.
+
+Not covered: the frontend (no screen changes in scope; the UI was not run against `TENANCY=on`); imports by a non-admin tenant agent against the live iTop (unit-tested only); attachments and the end-user portal under a tenant (they go through the same guard, not exercised live); the MySQL tenant store is exercised only live (no unit test of `MySqlTenantStore`). The auto-log hook recorded this worktree's runs into the main checkout's `docs/testing/TEST_LOG.md` (it resolves `CLAUDE_PROJECT_DIR`), so the entries for these runs at the end of this file were added by hand.
 
 ### 2026-10-22 — Sidebar active item and groups; iTop dashboards redesigned; dashlet names and dates
 
@@ -894,3 +912,9 @@ Not covered yet: approvals (extension not installed); load and concurrency beyon
   - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/sso-mfa-5a55e9/backend" && rm scripts/_amr-debug.mjs && timeout 500 npm run e2e:sso 2>&1 | tail -17`
 - **2026-10-22 17:30 UTC** · `main@f5b5c70` + uncommitted changes · Browser journeys, mock API (Playwright) (backend) · ✅ 14 passed, 0 failed
   - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/sso-mfa-5a55e9/backend" && ITOP_BASE_URL=http://127.0.0.1:8100 E2E_ITOP_EXTERNAL_HEADER=X-Arcus-Remote-User timeout 560 npm ru`
+- **2026-10-22 17:20 UTC** · `claude/multi-tenancy-efcab8@f5b5c70` + uncommitted changes · Unit tests (backend) · ✅ 556 passed, 0 failed (added by hand: the hook logged to the main checkout)
+  - command: `npm test`
+- **2026-10-22 17:21 UTC** · `claude/multi-tenancy-efcab8@f5b5c70` + uncommitted changes · Typecheck + build (backend) · ✅ (added by hand)
+  - command: `npm run typecheck; npm run build`
+- **2026-10-22 17:10 UTC** · `claude/multi-tenancy-efcab8@f5b5c70` + uncommitted changes · Live end-to-end script (backend) · ✅ 143 passed, 0 failed (added by hand)
+  - command: `PLATFORM_LOGIN=admin PLATFORM_PASSWORD=… node scripts/e2e-tenancy.mjs`
