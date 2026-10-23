@@ -11,10 +11,10 @@ Branch `claude/requests-c8e01b`. This worktree's BFF on `:4040` (sessions and re
 | What ran | Result | Notes |
 | --- | --- | --- |
 | Backend `npm run typecheck` | ✅ | |
-| Backend `npm test` | ✅ 569 / 569 | 13 new in `test/request-forms.test.ts`: answer checks (required, number, date, choice; all problems at once), the HTML block (escaping, line breaks, an HTML description kept), service + subcategory merge, definition cleaning, save only for a visible catalogue item, catalogue counts, staff create through `/api/objects/UserRequest` (answers written, refused without a required answer before iTop is called, no form = untouched), target date read and converted from iTop's time zone, target fields asked only where the datamodel has them |
+| Backend `npm test` | ✅ 569 / 569 (582 / 582 after merging main with approvals) | 13 new in `test/request-forms.test.ts`: answer checks (required, number, date, choice; all problems at once), the HTML block (escaping, line breaks, an HTML description kept), service + subcategory merge, definition cleaning, save only for a visible catalogue item, catalogue counts, staff create through `/api/objects/UserRequest` (answers written, refused without a required answer before iTop is called, no form = untouched), target date read and converted from iTop's time zone, target fields asked only where the datamodel has them |
 | Live `npm run e2e:requests` | ✅ 16 / 16 | Sets up its own service, subcategory, contract and a 72 h TTR SLA, then: admin saves forms, broken/unknown forms refused, catalogue counts; portal user reads the merged form, cannot read another service's or the staff endpoint, is refused without the required answer, raises a request whose description holds the answers and whose target date is 72 h out (and in the list); a request with no SLA has no target date; an agent's create is refused without the answer and carries it with; emptying a form removes it. Everything it created is deleted again (the portal account `e2e.requests.portal` is kept and reused) |
 | Frontend `tsc -p tsconfig.app.json` | ✅ | |
-| Frontend `npx vitest run` | ✅ 163 / 163 | includes new `request-forms/lib/fields.test.ts` |
+| Frontend `npx vitest run` | ✅ 163 / 163 (170 / 170 after the merge) | includes new `request-forms/lib/fields.test.ts` |
 | Playwright mock journeys `request-forms`, `portal` (`E2E_MOCK_URL=http://localhost:5714`) | ✅ 4 / 4 | new `request-forms.spec.ts`: a service's required question blocks submit, answers and the target date show on the request; a service with no form asks nothing; admin adds a question, preview shows it, save |
 
 Bugs found and fixed (before the first commit):
@@ -885,3 +885,9 @@ Not covered yet: approvals (extension not installed); load and concurrency beyon
   - command: `npx tsc -p tsconfig.app.json --noEmit; npx vitest run`
 - **2026-10-23 06:20 UTC** · `claude/requests-c8e01b@2d47fa2` + uncommitted changes · Playwright mock journeys (frontend) · ✅ 4 passed, 0 failed (added by hand)
   - command: `E2E_MOCK_URL=http://localhost:5714 npx playwright test request-forms portal --workers=1`
+- **2026-10-23 07:10 UTC** · `claude/requests-c8e01b@1c16737` (after merging main with approvals) · Unit tests + typecheck (backend) · ✅ 582 passed, 0 failed (added by hand)
+  - command: `npm run typecheck; npm test`
+- **2026-10-23 07:15 UTC** · `claude/requests-c8e01b@1c16737` · Frontend typecheck + vitest (frontend) · ✅ 170 passed, 0 failed (added by hand)
+  - command: `npx tsc -p tsconfig.app.json --noEmit; npx vitest run`
+- **2026-10-23 07:20 UTC** · `claude/requests-c8e01b@1c16737` · Playwright mock journeys (frontend) · ✅ 4 passed, 0 failed (added by hand)
+  - command: `E2E_MOCK_URL=http://localhost:5714 npx playwright test request-forms portal approvals --workers=1`
