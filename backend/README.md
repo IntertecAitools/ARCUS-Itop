@@ -699,10 +699,21 @@ recompiled; back up the database first):
 3. Copy the file in and run the unattended upgrade:
    `docker cp docker/itop-problem-rca-upgrade.xml <container>:/tmp/` and
    `docker exec -u www-data -w /var/www/html/setup/unattended-install <container> php unattended-install.php --param-file=/tmp/itop-problem-rca-upgrade.xml`.
-   A failed run leaves iTop in maintenance: fix the cause, delete
-   `data/.maintenance`, run it again.
-4. Check: `npm run e2e:problems` reports "this iTop has the
-   arcus-problem-rca extension" and passes.
+   **Run it twice.** The first run compiles the new fields but updates the
+   database from the previously compiled model, so the columns are missing
+   until the second run (seen on the local iTop, 2026-10-23; each run is
+   about a minute of maintenance mode). A failed run leaves iTop in
+   maintenance: fix the cause, delete `data/.maintenance`, run it again.
+4. `docker exec <container> apache2ctl graceful`, so the web server drops
+   the model it has cached (the setup asks for a restart; a graceful reload
+   lets requests in flight finish).
+5. Check: `core/get` on a Problem with `output_fields=root_cause` returns the
+   field, and `npm run e2e:problems` reports "this iTop has the
+   arcus-problem-rca extension" and passes (on a BFF with
+   `MFA_REQUIRED=off`, as for the other e2e scripts).
+
+Installed on the shared local iTop (`:8080`, `itop_prod`) on 2026-10-23,
+after a dump of `itop_prod` to `C:\Users\Venkatesh.V\itop-backups\`.
 
 For production, add the folder to the iTop image's `extensions/` before the
 first install, and `arcus-problem-rca` to the install's module list.
@@ -1101,7 +1112,7 @@ finding out via a 404.
 | `npm run schema:pull` | vendor `cmdb-schema.json` into `schema/` |
 | `npm run tenants -- <command>` | list / set / enable / disable / remove tenants; `seed-test` for a local iTop |
 | `npm run e2e:tenancy` | live cross-tenant leak test (BFF on :4010 with `TENANCY=on`, after `seed-test`) |
-| `npm run e2e:problems` | live problem management: root cause, known error, trends (BFF on :4050; `E2E_LOGIN`, `E2E_PASSWORD`). Creates and deletes its own records |
+| `npm run e2e:problems` | live problem management: root cause, known error, trends (BFF on :4050 with `MFA_REQUIRED=off`; `E2E_LOGIN`, `E2E_PASSWORD`). Creates and deletes its own records |
 
 ## Known limitations
 

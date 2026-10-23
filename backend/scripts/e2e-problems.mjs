@@ -16,6 +16,8 @@
  *
  *   E2E_LOGIN=admin E2E_PASSWORD=... npm run e2e:problems     BFF on http://127.0.0.1:4050
  *   E2E_BFF=http://127.0.0.1:4000 npm run e2e:problems
+ *
+ * Signs in with a password only, so the BFF it uses needs MFA_REQUIRED=off.
  */
 import http from "node:http";
 
