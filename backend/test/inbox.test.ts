@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 
 import { runAs, type Caller } from "../src/core/request-context.js";
 import type { ItopClient } from "../src/itop/client.js";
-import { InboxService } from "../src/platform/inbox/inbox.service.js";
+import { approvalIn, InboxService } from "../src/platform/inbox/inbox.service.js";
 
 interface Row {
   id: number;
@@ -121,5 +121,15 @@ describe("iTop times", () => {
     assert.equal(itopTimeToIso("2026-10-20 14:04:17", "Asia/Kolkata"), "2026-10-20T08:34:17.000Z");
     assert.equal(itopTimeToIso("", "Europe/Paris"), "");
     assert.equal(toItopTime(new Date("2026-10-20T12:04:17Z"), "Europe/Paris"), "2026-10-20 14:04:17");
+  });
+});
+
+describe("approvalIn", () => {
+  it("finds the approval a platform link opens, and nothing else", () => {
+    assert.equal(approvalIn("http://localhost:5203/approvals/7"), 7);
+    assert.equal(approvalIn("https://help.example.com/app/approvals/12?x=1"), 12);
+    assert.equal(approvalIn("http://localhost:8080/pages/UI.php?operation=details&class=UserRequest&id=3"), null);
+    assert.equal(approvalIn("http://localhost:5203/records/UserRequest/7"), null);
+    assert.equal(approvalIn(""), null);
   });
 });

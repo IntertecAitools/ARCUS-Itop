@@ -8,6 +8,7 @@ import { ChangePasswordDialog } from '@/features/auth';
 import { useSessionStore } from '@/stores/session.store';
 import { compactNumber } from '@/lib/utils';
 import { useFaq, useFaqs, useMyRequests, useProfile, useUpdateProfile } from '../api/portal.api';
+import { usePendingApprovalCount } from '@/features/approvals';
 
 const stripHtml = (html: string) => html.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
 
@@ -15,6 +16,7 @@ const stripHtml = (html: string) => html.replace(/<[^>]+>/g, ' ').replace(/&nbsp
 export function PortalHomePage() {
   const user = useSessionStore((s) => s.user);
   const { data: open, isLoading } = useMyRequests('open', 1, '');
+  const { data: pendingApprovals = 0 } = usePendingApprovalCount();
   const tile = 'group flex flex-col border-t border-line pt-6 pb-2 transition-colors hover:border-ink';
 
   return (
@@ -22,6 +24,18 @@ export function PortalHomePage() {
       <Eyebrow>Service portal</Eyebrow>
       <h1 className="display mt-4 text-[40px] sm:text-[56px]">Hello{user?.name ? `, ${user.name.split(' ')[0]}` : ''}</h1>
       <p className="mt-3 mb-12 text-[17px] text-ink-secondary">How can we help today?</p>
+
+      {pendingApprovals > 0 ? (
+        <Link
+          to="/portal/approvals"
+          className="mb-12 flex items-center justify-between gap-4 rounded-card border border-warning/40 bg-warning-soft px-5 py-4 text-warning-ink transition-colors hover:border-warning"
+        >
+          <span className="text-[16px]">
+            {pendingApprovals === 1 ? 'A request waits for your approval.' : `${pendingApprovals} requests wait for your approval.`}
+          </span>
+          <ArrowRight className="size-4 shrink-0 rtl:-scale-x-100" aria-hidden />
+        </Link>
+      ) : null}
 
       <div className="mb-16 grid grid-cols-1 gap-x-10 gap-y-8 sm:grid-cols-3">
         <Link to="/portal/new" className={tile}>
