@@ -181,8 +181,13 @@ async function main() {
     check("symptom from the problem's description", f.symptom === "Mail stops & queues", JSON.stringify(f.symptom));
     check("domain and error code as given", f.domain === "Server" && f.error_code === "E-RELAY");
     if (ciId) {
-      const cis = await request("GET", `/api/objects/KnownError/${keId}/links/ci_list`);
-      check("known error lists the CI", JSON.stringify(cis.json ?? "").includes(String(ciId)));
+      const cis = await request("GET", `/api/objects/KnownError/${keId}/links/ci_list?fields=functionalci_id,reason`);
+      const rows = cis.json?.items ?? [];
+      check(
+        "known error links exactly the problem's CI",
+        rows.length === 1 && String(rows[0].fields.functionalci_id) === String(ciId),
+        `${cis.status} ${cis.text.slice(0, 400)}`,
+      );
     }
 
     res = await request("GET", `/api/problems/${problemId}/analysis`);
