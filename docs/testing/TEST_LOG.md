@@ -6,7 +6,7 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ### 2026-10-23 — Problems: root-cause fields (iTop extension), known error from a problem, recurring-incident trends
 
-Branch `claude/problems-80ecee`. This worktree's BFF on `:4050` (`node_modules` junctions to the main checkout's) against the shared local iTop on `:8080`, signed in as the local `admin`; Vite on `:5223` in mock mode for a look at the screens. The shared iTop does **not** have the new `arcus-problem-rca` extension yet: where it is installed is waiting on the user, so the live run covers the "extension missing" path, and the "extension present" path is unit-tested only.
+Branch `claude/problems-80ecee`. This worktree's BFF on `:4050` (`node_modules` junctions to the main checkout's) against the shared local iTop on `:8080`, signed in as the local `admin`; Vite on `:5223` in mock mode for a look at the screens. The new `arcus-problem-rca` extension was first tested live as missing, then installed on the shared iTop (`itop_prod`, after a mysqldump to `C:\Users\Venkatesh.V\itop-backups\`) and tested again with it. Since the merge with `main` the BFF defaults to MFA for staff; this worktree's test BFF runs with `MFA_REQUIRED=off` (user approved), as the e2e scripts require.
 
 | What ran | Result | Notes |
 | --- | --- | --- |
@@ -16,6 +16,8 @@ Branch `claude/problems-80ecee`. This worktree's BFF on `:4050` (`node_modules` 
 | Frontend `npx vitest run src/features/problems`, `npm run typecheck` | ✅ 10 / 10, clean (after the switch) | Panel: save, known-error dialog and link, "extension missing" notice with everything disabled, discard |
 | Live `npm run e2e:problems`, first design (analysis in the private log) | ✅ 29 / 29 | Superseded: the user then chose a real iTop field over the private log |
 | Live `npm run e2e:problems`, final design, iTop without the extension | ✅ 15 / 15 | Analysis answers empty with `available: false`; saving and raising a known error are 409s naming the extension; the generic Problem record still reads; trend groups a throwaway service's 3 incidents (1, 8, 15 days ago, one linked to the problem) as recurring, by service, category and CI, weekly and monthly. Everything created was deleted |
+| Install on the shared iTop: unattended upgrade (`docker/itop-problem-rca-upgrade.xml`), `apache2ctl graceful` | ✅ after two runs | Module list checked against `priv_module_install` (46 installed, the same, plus ours). The first run compiled the fields but left the database without the columns; the second added them. Maintenance mode off afterwards; `core/get` returns the three fields; Incident reads unaffected |
+| Live `npm run e2e:problems`, iTop **with** the extension | ✅ 28 / 28 (twice) | Save root cause / workaround / resolution (markup characters and line breaks exact), generic Problem read still fine; known error created with all three copied, `problem_id`, symptom from the description, domain, error code, exactly the problem's CI linked; the problem lists it; trends as before. Everything created was deleted |
 | Mock UI in the browser pane (`/problem-trends`) | ✅ | Stats, chart and table render; "Open a problem" offered for a recurring group without one. The Root cause tab was not looked at in the browser (the pane stalled on reloads); its component tests cover it |
 
 Bugs found and fixed (before the first commit):
@@ -23,7 +25,9 @@ Bugs found and fixed (before the first commit):
 - iTop's sanitiser cut a plain-text case-log entry at the first `<` (the first design wrote the analysis to the private log). Moot after the switch to real fields, which are plain text.
 - The trend and panel tests failed only in the full run: a `frontend/.env` with `VITE_API_MODE=mock`, made for the browser look, leaked into vitest and broke `AttachmentsPanel.test.tsx` (removed), and the first `findBy` waited only 1 s on a busy machine (these two test files now wait up to 10 s).
 
-Not covered: the extension installed in an iTop (setup run, the fields in iTop's own screens, then `npm run e2e:problems` with the extension: the known-error checks); the live browser journeys; the Root cause tab against the live BFF.
+- The e2e's "known error lists the CI" check looked for the CI id anywhere in the response text, so it passed or failed by chance (a timestamp holding a "9"); the link itself was always right. It now asks for `functionalci_id` and checks the one row (`4f88a81`).
+
+Not covered: the fields in iTop's own console screens (nobody uses them); the live browser journeys; the Root cause tab against the live BFF in a browser.
 
 ### 2026-10-22 — Single sign-on (OIDC / Entra ID), MFA (TOTP) and break-glass sign-in
 
@@ -981,3 +985,7 @@ Not covered yet: approvals (extension not installed); load and concurrency beyon
   - command: `npm run typecheck; npm test`
 - **2026-10-23** · `claude/problems-80ecee` merging `origin/main` · Typecheck + frontend unit tests (vitest) · ✅ 176 passed, 0 failed (added by hand; after merging main)
   - command: `npm run typecheck; npx vitest run`
+- **2026-10-23 04:2x UTC** · `claude/problems-80ecee@df25751` · Live end-to-end script (backend) · ❌ 27 passed, 1 failed (added by hand; iTop with the extension; the failing check was the test's own text match, fixed in `4f88a81`)
+  - command: `E2E_LOGIN=… E2E_PASSWORD=… E2E_ORIGIN=http://localhost:5223 node scripts/e2e-problems.mjs`
+- **2026-10-23 04:3x UTC** · `claude/problems-80ecee@df25751` + uncommitted changes · Live end-to-end script (backend) · ✅ 28 passed, 0 failed, twice (added by hand; iTop with the extension, corrected check)
+  - command: `E2E_LOGIN=… E2E_PASSWORD=… E2E_ORIGIN=http://localhost:5223 node scripts/e2e-problems.mjs`
