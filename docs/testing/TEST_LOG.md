@@ -22,6 +22,8 @@ Bugs found and fixed (before the first commit):
 - iTop stores a ticket's description as HTML (`<format>html</format>`), so the first plain-text "Request details" block would have collapsed onto one line in iTop and its emails. The block is now HTML (`<p>`, `<ul><li>`), a plain description is converted with its line breaks, and the portal shows list items as "- " lines. A typed `<Ana>` is not mistaken for HTML (caught by the unit test).
 - A broken form definition could reach iTop before being refused (and failed as a 502 when iTop was busy); the definition is now checked first.
 
+Second merge of main (SSO+MFA #24, Problems #27): conflicts in the module registries, `services.ts`, `package.json`, the READMEs' script tables and this log, all lists both sides added to; both kept. The first union of the backend registry ran two entries into one object (caught by `tsc`, fixed). The worktree's `node_modules` were junctions to the main checkout's, which had been emptied, so this worktree got its own `npm ci`. Staff password sign-in now asks for TOTP (`MFA_REQUIRED=staff`): `e2e:requests` runs against a BFF with `MFA_REQUIRED=off`, as the README prescribes for scripted sign-ins, or answers the prompt when given `E2E_STAFF_TOTP_SECRET`. After that merge: backend 637/637, frontend typecheck clean and vitest 180/180, all 13 Playwright mock journeys, live `e2e:requests` 16/16.
+
 Not covered: the live Playwright suite (`npm run e2e:live`) and a manual look at the screens against the live BFF (the browser pane could not register the mock service worker, so the screens were checked through the Playwright mock journeys); `MySqlRequestFormStore` only live, no unit test. The auto-log hook writes to the main checkout's file, so this worktree's runs are listed at the end by hand.
 
 ### 2026-10-23 — Problems: root-cause fields (iTop extension), known error from a problem, recurring-incident trends
@@ -1015,3 +1017,11 @@ Not covered yet: approvals (extension not installed); load and concurrency beyon
   - command: `npx tsc -p tsconfig.app.json --noEmit; npx vitest run`
 - **2026-10-23 07:20 UTC** · `claude/requests-c8e01b@1c16737` · Playwright mock journeys (frontend) · ✅ 4 passed, 0 failed (added by hand)
   - command: `E2E_MOCK_URL=http://localhost:5714 npx playwright test request-forms portal approvals --workers=1`
+- **2026-10-23 10:00 UTC** · `claude/requests-c8e01b` merging `origin/main` (SSO+MFA, Problems) · Typecheck + unit tests (backend) · ✅ 637 passed, 0 failed (added by hand)
+  - command: `npm run typecheck; npm test`
+- **2026-10-23 10:10 UTC** · `claude/requests-c8e01b` merging `origin/main` · Typecheck + frontend unit tests (vitest) · ✅ 180 passed, 0 failed (added by hand)
+  - command: `npm run typecheck; npx vitest run`
+- **2026-10-23 10:20 UTC** · `claude/requests-c8e01b` merging `origin/main` · Live end-to-end script (backend, BFF with MFA_REQUIRED=off) · ✅ 16 passed, 0 failed (added by hand)
+  - command: `E2E_STAFF_PASSWORD=… npm run e2e:requests`
+- **2026-10-23 10:25 UTC** · `claude/requests-c8e01b` merging `origin/main` · Playwright mock journeys (frontend) · ✅ 13 passed, 0 failed (added by hand)
+  - command: `E2E_MOCK_URL=http://localhost:5714 npx playwright test --workers=1`

@@ -19,9 +19,14 @@
  * cannot be deleted from the API; the next run reuses it).
  *
  *   E2E_STAFF_PASSWORD=... npm run e2e:requests          BFF on http://127.0.0.1:4040
+ *
+ * Staff sign in with a password, so the BFF needs MFA_REQUIRED=off (as for
+ * api:check and e2e:live), or E2E_STAFF_TOTP_SECRET for an enrolled account.
  *   E2E_BFF=http://127.0.0.1:4000 E2E_STAFF_LOGIN=admin E2E_STAFF_PASSWORD=... npm run e2e:requests
  */
 import { randomBytes } from "node:crypto";
+
+import { timeStep, totpAt } from "../src/platform/auth/totp.ts";
 
 const BFF = (process.env.E2E_BFF ?? "http://127.0.0.1:4040").replace(/\/$/, "");
 const ORIGIN = process.env.E2E_ORIGIN ?? "http://localhost:5213";
@@ -68,9 +73,20 @@ function session() {
   };
   return {
     call,
-    async signIn(login, password) {
+    async signIn(login, password, totpSecret) {
       const res = await call("POST", "/auth/login", { login, password });
       if (res.status !== 200) throw new Error(`Sign-in as ${login} answered ${res.status}: ${res.text.slice(0, 200)}`);
+      // Staff need our authenticator code after the password (MFA_REQUIRED=staff).
+      const step = res.json?.mfa?.step;
+      if (!step) return;
+      if (step !== "verify" || !totpSecret) {
+        throw new Error(
+          `${login} must ${step === "enrol" ? "enrol in" : "answer"} MFA: run the BFF with MFA_REQUIRED=off, ` +
+            "or set E2E_STAFF_TOTP_SECRET to the account's enrolled authenticator secret.",
+        );
+      }
+      const verified = await call("POST", "/auth/mfa/verify", { code: totpAt(totpSecret, timeStep(Date.now())) });
+      if (verified.status !== 200) throw new Error(`MFA for ${login} answered ${verified.status}: ${verified.text.slice(0, 200)}`);
     },
     /** A call that must succeed; its JSON. */
     async ok(method, path, body) {
@@ -108,7 +124,7 @@ async function cleanup() {
 async function main() {
   if (!STAFF.password) throw new Error("Set E2E_STAFF_PASSWORD (the staff account's password).");
   console.log(`BFF ${BFF}, staff ${STAFF.login}`);
-  await staff.signIn(STAFF.login, STAFF.password);
+  await staff.signIn(STAFF.login, STAFF.password, process.env.E2E_STAFF_TOTP_SECRET);
   const me = await staff.ok("GET", "/auth/me");
   const orgId = me.orgId ?? me.user?.orgId;
   if (!orgId) throw new Error("The staff account has no organisation.");

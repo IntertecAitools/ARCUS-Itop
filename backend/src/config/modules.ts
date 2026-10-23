@@ -76,6 +76,8 @@ export const modules: BackendModule[] = [
     basePath: "/api/problems",
     description: "Root-cause analysis, known errors raised from problems, recurring-incident trends.",
     register: registerProblemRoutes,
+  },
+  {
     id: "request-forms",
     basePath: "/api/request-forms",
     description: "The extra questions each catalogue item asks when a request is raised (edited under /api/admin/request-forms).",

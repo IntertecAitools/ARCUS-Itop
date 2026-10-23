@@ -1134,7 +1134,7 @@ finding out via a 404.
 | `npm run tenants -- <command>` | list / set / enable / disable / remove tenants; `seed-test` for a local iTop |
 | `npm run e2e:tenancy` | live cross-tenant leak test (BFF on :4010 with `TENANCY=on`, after `seed-test`) |
 | `npm run e2e:problems` | live problem management: root cause, known error, trends (BFF on :4050; `E2E_LOGIN`, `E2E_PASSWORD`). Creates and deletes its own records |
-| `npm run e2e:requests` | live request forms + target date check (BFF on :4040; `E2E_STAFF_PASSWORD`) |
+| `npm run e2e:requests` | live request forms + target date check (BFF on :4040 with `MFA_REQUIRED=off`, or `E2E_STAFF_TOTP_SECRET`; `E2E_STAFF_PASSWORD`) |
 
 ## Known limitations
 
