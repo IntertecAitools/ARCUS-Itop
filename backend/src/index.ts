@@ -39,7 +39,19 @@ async function main(): Promise<void> {
   // With SESSION_STORE=mysql, a database that cannot be reached is a reason
   // not to start: every request would fail later instead.
   await services.sessions.ready();
+  await services.mfa.ready();
+  await services.signInAudit.ready();
   app.log.info({ store: config.auth.sessionStore.kind }, "Session store ready");
+  const policy = config.auth.signIn;
+  app.log.info(
+    {
+      mfaRequired: policy?.mfaRequired,
+      passwordSignIn: policy?.passwordSignIn,
+      breakGlassAccounts: policy?.breakGlassLogins.length ?? 0,
+      sso: policy?.sso ? { issuer: policy.sso.issuer, mfa: policy.sso.mfa } : "off",
+    },
+    "Sign-in policy",
+  );
 
   await app.listen({ host: config.server.host, port: config.server.port });
 }

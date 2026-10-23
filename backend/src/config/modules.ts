@@ -4,6 +4,7 @@ import type { Services } from "../services.js";
 import { registerDashboardRoutes } from "../modules/dashboard/index.js";
 import { registerDirectoryRoutes } from "../modules/directory/index.js";
 import { registerIncidentRoutes } from "../modules/incidents/index.js";
+import { registerProblemRoutes } from "../modules/problems/index.js";
 import { registerRequestFormRoutes } from "../modules/request-forms/index.js";
 
 /**
@@ -71,6 +72,10 @@ export const modules: BackendModule[] = [
     register: registerIncidentRoutes,
   },
   {
+    id: "problems",
+    basePath: "/api/problems",
+    description: "Root-cause analysis, known errors raised from problems, recurring-incident trends.",
+    register: registerProblemRoutes,
     id: "request-forms",
     basePath: "/api/request-forms",
     description: "The extra questions each catalogue item asks when a request is raised (edited under /api/admin/request-forms).",

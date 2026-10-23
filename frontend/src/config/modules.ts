@@ -8,6 +8,7 @@ import {
   LayoutGrid,
   LifeBuoy,
   ListFilter,
+  Repeat,
   ShieldCheck,
   UsersRound,
   type LucideIcon,
@@ -173,6 +174,17 @@ export const modules: ModuleDefinition[] = [
         ),
       },
     ],
+  },
+  {
+    id: 'problem-trends',
+    label: 'Problem trends',
+    path: 'problem-trends',
+    icon: Repeat,
+    group: 'operations',
+    description: 'Incidents that keep coming back, by service, CI or category.',
+    component: lazy(() =>
+      import('@/features/problems').then((m) => ({ default: m.ProblemTrendsPage })),
+    ),
   },
   {
     id: 'records',

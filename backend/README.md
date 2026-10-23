@@ -64,6 +64,8 @@ Everyone signs in to **our** frontend; nobody needs iTop's console. Accounts
 are still iTop's own (`UserLocal`, `UserLDAP`, `UserExternal`), so there is one
 user list.
 
+- Single sign-on (OIDC, e.g. Entra ID), MFA and the break-glass account:
+  see "Single sign-on and MFA" below.
 - `POST /api/auth/login` checks the password with `core/check_credentials`
   (local, LDAP and external accounts alike), reads the account's profiles and
   allowed organisations, and sets an `HttpOnly`, `SameSite=Lax` session cookie.
@@ -122,6 +124,126 @@ user list.
   - Mail goes over TLS (`SMTP_REQUIRE_TLS`, off only for a local test mailbox).
   - Other settings: `AUTH_REQUIRED`, `SESSION_IDLE_MINUTES`,
     `SESSION_MAX_HOURS`, `COOKIE_SECURE` (on behind HTTPS).
+
+### Single sign-on and MFA
+
+Settings are in `.env.example` ("MFA, single sign-on, break-glass"). Three
+ways in, all ending in the same session cookie:
+
+| Way in | Who | Second factor |
+| --- | --- | --- |
+| **Password** (`POST /api/auth/login`) | everyone, unless `PASSWORD_SIGN_IN` narrows it | our authenticator code (TOTP) for staff (`MFA_REQUIRED=staff`, the default; `admin` or `off`) and for anyone who has enrolled |
+| **Single sign-on** (OIDC, e.g. Microsoft Entra ID) | anyone with an account whose email the IdP vouches for | the IdP's: its `amr` claim. `SSO_MFA=idp-or-totp` (default) asks staff for our code when `amr` shows no MFA; `idp` refuses them; `off` trusts the IdP's own policy |
+| **Break-glass** (password) | the logins in `BREAK_GLASS_LOGINS` | our code, always. Every sign-in, refusal and request is in the sign-in audit log |
+
+**MFA after a password.** `POST /api/auth/login` then answers
+`{ mfa: { step: "enrol" | "verify" } }` and a session that reaches only
+`/api/auth/mfa/*` for 10 minutes (`GET /api/auth/me` is a 401 with
+`details.mfa`). Nothing runs as the user until the code is given; the full
+session gets a new cookie.
+
+- `GET /api/auth/mfa/enrol` gives a secret and its `otpauth://` link (the
+  frontend shows it as a QR code); `POST /api/auth/mfa/enrol { code }`
+  confirms it and answers 10 recovery codes, once.
+- `POST /api/auth/mfa/verify { code }` or `{ recoveryCode }`. A code works
+  once (its time step is recorded), with 30 s of clock drift either way; a
+  recovery code works once. After 5 wrong codes the sign-in starts over;
+  more than 10 wrong codes per login in 15 minutes is a 429, whatever the
+  password (the password count is cleared by a right password, this one is
+  not).
+- Signed in: `GET /api/auth/mfa` (enrolled, codes left, how this session
+  signed in), `POST /api/auth/mfa/recovery-codes { code }` (new ones).
+- Administrators: `DELETE /api/admin/users/:id/mfa` removes someone's
+  authenticator (lost phone) and signs them out; they enrol again at their
+  next sign-in.
+- Enrolments are the BFF's (iTop has nowhere to keep them): table `bff_mfa`
+  and `bff_mfa_recovery` in the session database, the secret sealed with
+  `SESSION_SECRET` (AES-256-GCM, bound to the account), recovery codes as
+  SHA-256 only. With `SESSION_STORE=memory` they are lost on restart.
+
+**Single sign-on** (on once `OIDC_ISSUER` is set). Authorization Code flow
+with PKCE (S256), `state` and `nonce`, using `openid-client`; the ID token's
+signature, issuer, audience, expiry and nonce are checked. The state travels
+in a 10-minute cookie sealed with `SESSION_SECRET`, so any BFF instance can
+take the callback.
+
+- `GET /api/auth/sso/start?returnTo=/path` (a link, not a fetch) sends the
+  browser to the IdP; `GET /api/auth/sso/callback` (the redirect URI) lands
+  it on the frontend: `returnTo`, or `/login?next=` when our code is still
+  needed, or `/login?sso_error=<reason>`. `returnTo` is a path on our own
+  site only.
+- **Matching.** The first of `OIDC_EMAIL_CLAIMS` holding an address
+  (`email` is skipped when `email_verified` is false) must be the email of
+  exactly one enabled iTop account, whose person is not inactive. Unknown,
+  disabled, inactive and ambiguous are refused with a reason; nobody is
+  created. Matching is by email, so the person's email in iTop must be the
+  address the IdP sends (for Entra ID, usually the UPN).
+- **Staff call iTop as themselves** without a password: their account must
+  be a **UserExternal** (create it as "external" in Users), and iTop's
+  "external" login must read the header the BFF sends
+  (`ITOP_EXTERNAL_AUTH_HEADER`, e.g. `X-Arcus-Remote-User`; in
+  `config-itop.php`, `'ext_auth_variable' => "$_SERVER['HTTP_X_ARCUS_REMOTE_USER']"`
+  and `external` in `allowed_login_types`). The production stack's
+  `itop-setup` sets both from the same variable.
+  **Safeguard:** with this setting, anyone who can reach iTop directly and
+  send that header is signed in as any UserExternal, with no password. So
+  in production iTop must be reachable **only** from the BFF
+  (`docs/deployment.md`, "Locked down"), and every reverse proxy must strip
+  an incoming `X-Arcus-Remote-User` (the bundled nginx,
+  `frontend/nginx/default.conf.template`, does; do the same in your TLS
+  proxy). The BFF never forwards a browser's headers to iTop. Staff with a UserLocal account keep
+  signing in with their password. End users need neither: the self-service
+  API runs as the service account.
+- `GET /api/auth/options` tells the sign-in page whether to offer the button
+  (`sso.label`) and who may use a password (`passwordSignIn`).
+
+**What IT must give us for Microsoft Entra ID.** An app registration
+(Entra admin center → App registrations → New registration):
+
+| We need | Where in Entra | Setting |
+| --- | --- | --- |
+| Directory (tenant) ID | Overview | `OIDC_ISSUER=https://login.microsoftonline.com/<tenant-id>/v2.0` |
+| Application (client) ID | Overview | `OIDC_CLIENT_ID` |
+| A client secret (value, and its expiry date) | Certificates & secrets | `OIDC_CLIENT_SECRET` (renew before it expires) |
+| Redirect URI, platform **Web** | Authentication | exactly `OIDC_REDIRECT_URI`, e.g. `https://helpdesk.example.com/api/auth/sso/callback` |
+| Supported account types | Authentication | "this organizational directory only" (single tenant) |
+| Delegated permissions `openid`, `profile`, `email` (admin consent granted) | API permissions | `OIDC_SCOPES=openid profile email` |
+| Optional claim `email` on the ID token | Token configuration | else set `OIDC_EMAIL_CLAIMS=preferred_username,email,upn` (the UPN) |
+| Who may sign in (optional): "Assignment required" + users/groups | Enterprise applications → the app → Properties / Users and groups | |
+| MFA: a Conditional Access policy requiring MFA for this app | Security → Conditional Access | keep `SSO_MFA=idp-or-totp`; Entra reports MFA in `amr` (`"mfa"`). If tokens arrive without `amr`, set `SSO_MFA=off` and rely on the policy |
+
+Then set `PASSWORD_SIGN_IN=portal` (staff use Microsoft; end users and
+break-glass keep passwords) or `break-glass`, and create staff accounts as
+external accounts whose login and person email are their Entra address.
+
+**Break-glass.** A UserLocal Administrator listed in `BREAK_GLASS_LOGINS`,
+for when the IdP is down. Its password sign-in always needs our code (it
+enrols at first use: do that when setting it up, and keep the recovery codes
+with the password, e.g. in a safe). It is allowed whatever
+`PASSWORD_SIGN_IN` says.
+
+**Sign-in audit log.** `GET /api/admin/sign-in-audit?limit=&before=&login=`
+(administrators). Every sign-in (with method and second factor), refused
+sign-in (with the reason, never the password), wrong code, enrolment,
+recovery code use, MFA reset, and every request of a break-glass session
+(`GET /api/objects/Server -> 200`). Kept in `bff_sign_in_audit` (never
+pruned) or memory (the last 5000), and each entry is also logged at warn
+with `audit: true`.
+
+**Locally.** `npm run idp:dev` starts a development IdP on
+`http://127.0.0.1:3027` (signs in any email; a box sets `amr` to MFA); its
+header lists the settings to point the BFF at it. `npm run e2e:sso` runs the
+whole set against it, a BFF of its own on :3020 and the local iTop
+(`scripts/e2e-sso.mjs`). Scripted password sign-ins (`api:check`, the
+frontend's `e2e:live`) need `MFA_REQUIRED=off` on the BFF they use.
+For staff single sign-on against the local iTop, add after
+`allowed_login_types` in its `conf/production/config-itop.php` (keep a copy
+of the file first) the line
+`'ext_auth_variable' => "\$_SERVER['HTTP_X_ARCUS_REMOTE_USER']",` and set
+`ITOP_EXTERNAL_AUTH_HEADER=X-Arcus-Remote-User` (and
+`E2E_ITOP_EXTERNAL_HEADER` for `e2e:sso`). Use the `$_SERVER` form, not
+`getallheaders()['X-Arcus-Remote-User']`: Node sends header names in lower
+case and `getallheaders()` lookups are case-sensitive.
 
 ### iTop accounts the BFF needs
 
@@ -565,6 +687,58 @@ iTop's query phrasebook (`QueryOQL`) and its "Run queries" page, from
   `runnable: false`.
 - iTop requires a description: the name stands in when none is given.
 
+## Problems
+
+Problem management on top of the generic record screens (`modules/problems/`;
+the problem record itself, its lifecycle and links stay on
+`/api/objects/Problem`). In the frontend: a **Root cause** tab on a problem,
+and **Problem trends** in the sidebar.
+
+| | |
+| --- | --- |
+| `GET /api/problems/:id/analysis` | Root cause, workaround, resolution; the known errors raised from the problem; `available: false` when the iTop lacks the extension below |
+| `PUT /api/problems/:id/analysis` | `{ rootCause, workaround, resolution }`; writes only what changed. 409 without the extension |
+| `POST /api/problems/:id/known-errors` | `{ name?, symptom?, domain?, errorCode? }` → 201. Creates a KnownError with the analysis copied (resolution as its `solution`), `problem_id` pointing back, the problem's CIs linked, and the symptom taken from the problem's description unless given. 400 until a root cause or workaround is saved; 409 without the extension |
+| `GET /api/problems/trends?period=30d\|90d\|180d\|365d&groupBy=service\|ci\|category` | Incidents and problems opened in the period, per week (up to 90 days) or month, and per service, CI or service subcategory: how many incidents are linked to a problem, the problems involved, and whether the group is **recurring** (3+ incidents in 2+ buckets). Reads at most 5,000 of each, else `truncated: true` |
+
+### The arcus-problem-rca iTop extension
+
+iTop's Problem has no root cause, workaround or solution: only KnownError
+does. `itop-extensions/arcus-problem-rca/` is a small iTop extension of our
+own that adds them to Problem (`root_cause`, `workaround`, `solution`, all
+AttributeText like KnownError's, in a "Root cause analysis" fieldset). It
+changes no other class and nothing in `iTop/`.
+
+The BFF reads and writes these three fields itself, straight through the
+tenant-scoped client; they are deliberately **not** in `cmdb-schema.json`.
+So an iTop without the extension keeps working everywhere (iTop leaves an
+unknown attribute out of a read): only the Root cause tab says the fields
+are missing, and saving or raising a known error answers 409. Do not
+re-extract the schema from an iTop that has the extension unless every iTop
+the BFF talks to has it: the generic screens would then ask every iTop for
+the fields.
+
+Installing it on an iTop (an **upgrade**: data is kept, but iTop is in
+maintenance mode for the few minutes the setup runs, and the datamodel is
+recompiled; back up the database first):
+
+1. Copy the folder into the iTop's `extensions/`:
+   `docker cp itop-extensions/arcus-problem-rca <container>:/var/www/html/extensions/`
+   then `docker exec <container> chown -R www-data:www-data /var/www/html/extensions/arcus-problem-rca`.
+2. Check the module list in `docker/itop-problem-rca-upgrade.xml` against
+   the modules that iTop has installed (it is the local iTop's list plus
+   `arcus-problem-rca`); set `<database><name>` and `<url>`.
+3. Copy the file in and run the unattended upgrade:
+   `docker cp docker/itop-problem-rca-upgrade.xml <container>:/tmp/` and
+   `docker exec -u www-data -w /var/www/html/setup/unattended-install <container> php unattended-install.php --param-file=/tmp/itop-problem-rca-upgrade.xml`.
+   A failed run leaves iTop in maintenance: fix the cause, delete
+   `data/.maintenance`, run it again.
+4. Check: `npm run e2e:problems` reports "this iTop has the
+   arcus-problem-rca extension" and passes.
+
+For production, add the folder to the iTop image's `extensions/` before the
+first install, and `arcus-problem-rca` to the install's module list.
+
 ## What this layer is actually for
 
 Five upstream behaviours make a direct browser-to-iTop integration painful.
@@ -951,12 +1125,15 @@ finding out via a 404.
 |---|---|
 | `npm run dev` | watch mode |
 | `npm run build` / `npm start` | compile to `dist/`, run it |
-| `npm test` | 176 tests, no iTop needed |
+| `npm test` | unit tests, no iTop needed |
+| `npm run idp:dev` | a local OIDC identity provider for single sign-on |
+| `npm run e2e:sso` | sign-in end to end: SSO, MFA, break-glass (dev IdP + local iTop) |
 | `npm run typecheck` | `tsc --noEmit` over src + tests + scripts |
 | `npm run smoke` | live read-only check (`-- --write` for full CRUD) |
 | `npm run schema:pull` | vendor `cmdb-schema.json` into `schema/` |
 | `npm run tenants -- <command>` | list / set / enable / disable / remove tenants; `seed-test` for a local iTop |
 | `npm run e2e:tenancy` | live cross-tenant leak test (BFF on :4010 with `TENANCY=on`, after `seed-test`) |
+| `npm run e2e:problems` | live problem management: root cause, known error, trends (BFF on :4050; `E2E_LOGIN`, `E2E_PASSWORD`). Creates and deletes its own records |
 | `npm run e2e:requests` | live request forms + target date check (BFF on :4040; `E2E_STAFF_PASSWORD`) |
 
 ## Known limitations

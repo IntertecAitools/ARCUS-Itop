@@ -70,7 +70,7 @@ export default async function liveSetup() {
       `The BFF is not responding at ${origin}.\n\n` +
         `The live journeys need the real stack. Start it first (see frontend/README.md):\n` +
         `  1. local iTop on :8080 and Mailpit on :8025 (docker/docker-compose.local.yml)\n` +
-        `  2. cd backend && PORT=4600 CORS_ORIGINS=${FRONTEND_URL} APP_BASE_URL=${FRONTEND_URL} npm run dev\n`,
+        `  2. cd backend && PORT=4600 CORS_ORIGINS=${FRONTEND_URL} APP_BASE_URL=${FRONTEND_URL} MFA_REQUIRED=off npm run dev\n`,
     );
   }
   const upstream = await probe(`${origin}/health/upstream`, 60_000);
@@ -89,7 +89,10 @@ export default async function liveSetup() {
     throw new Error('Set E2E_STAFF_PASSWORD: no password for the staff account was found.');
   }
   const bff = new Bff();
-  const { user: me } = await bff.call<{ user: User }>('POST', '/auth/login', staff);
+  const { user: me, mfa } = await bff.call<{ user: User; mfa?: unknown }>('POST', '/auth/login', staff);
+  if (mfa) {
+    throw new Error('The BFF asks for an authenticator code after a password sign-in: start it with MFA_REQUIRED=off.');
+  }
 
   const portalLogin = process.env.E2E_PORTAL_LOGIN ?? 'e2e.portal';
   const portalEmail = process.env.E2E_PORTAL_EMAIL ?? `${portalLogin}@example.test`;
