@@ -1036,3 +1036,5 @@ Not covered yet: approvals (extension not installed); load and concurrency beyon
   - command: `E2E_LOGIN=… E2E_PASSWORD=… E2E_ORIGIN=http://localhost:5223 node scripts/e2e-problems.mjs`
 - **2026-10-23** · `claude/problems-install-followup` + uncommitted changes · Live end-to-end script (backend) · ✅ 29 passed, 0 failed, three runs (added by hand; MFA on, TOTP test account; first run enrolled)
   - command: `E2E_ORIGIN=http://localhost:5223 npm run e2e:problems`
+- **2026-10-23** · `claude/problems-install-followup` after merging `origin/main` · Typecheck + unit tests (backend) · ✅ 637 passed, 0 failed (added by hand)
+  - command: `npm run typecheck; npm test`
