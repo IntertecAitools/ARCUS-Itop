@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Pencil, Trash2, X } from 'lucide-react';
 import { PageHeader } from '@/components/layout';
@@ -16,6 +16,14 @@ import { ImpactTab } from '../components/ImpactTab';
 import { DeleteDialog } from '../components/DeleteDialog';
 import { TransitionDialog } from '../components/TransitionDialog';
 import { requiredForTransition, transitionPrompts } from '../lib/transitions';
+
+/**
+ * A problem's root-cause analysis and known errors, a tab of their own.
+ * Lazy: only a Problem's screen pulls the problems feature in.
+ */
+const ProblemAnalysisPanel = lazy(() =>
+  import('@/features/problems').then((m) => ({ default: m.ProblemAnalysisPanel })),
+);
 
 /**
  * One record of any class, laid out the way iTop lays it out.
@@ -199,6 +207,7 @@ export function RecordDetailPage() {
 
   const tabs = [
     { id: 'details', label: 'Details' },
+    ...(info.name === 'Problem' ? [{ id: 'rca', label: 'Root cause' }] : []),
     ...(supportsAttachments ? [{ id: 'attachments', label: 'Attachments' }] : []),
     ...extraTabs.map(({ code }) => ({ id: code, label: fieldLabel(info, code) })),
     // iTop's impact analysis applies to configuration items.
@@ -328,7 +337,11 @@ export function RecordDetailPage() {
         <RequestApprovalCard audience="staff" requestId={id} className="mb-4" />
       ) : null}
 
-      {tab === 'attachments' ? (
+      {tab === 'rca' ? (
+        <Suspense fallback={<Skeleton className="h-80 w-full" />}>
+          <ProblemAnalysisPanel id={id} />
+        </Suspense>
+      ) : tab === 'attachments' ? (
         <AttachmentsPanel className={className} id={id} />
       ) : tab === 'details' ? (
         <RecordForm

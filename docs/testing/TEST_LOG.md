@@ -4,6 +4,27 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-10-23 — Problems: root-cause fields (iTop extension), known error from a problem, recurring-incident trends
+
+Branch `claude/problems-80ecee`. This worktree's BFF on `:4050` (`node_modules` junctions to the main checkout's) against the shared local iTop on `:8080`, signed in as the local `admin`; Vite on `:5223` in mock mode for a look at the screens. The shared iTop does **not** have the new `arcus-problem-rca` extension yet: where it is installed is waiting on the user, so the live run covers the "extension missing" path, and the "extension present" path is unit-tested only.
+
+| What ran | Result | Notes |
+| --- | --- | --- |
+| Backend `npm run typecheck` | ✅ | |
+| Backend `npm test` | ✅ 573 / 573 | 556 existing unchanged + 17 new in `test/problems.test.ts`: reading and writing the extension's fields (only changed ones, trimmed), `available: false` and 409s without the extension, iTop's "Unknown attribute" mapped to the extension message, 404 for a missing problem; known error copies root cause / workaround / solution, points at the problem, links its CIs (duplicates collapsed, a refused CI does not lose the known error); trend buckets (Monday weeks, months across a year end), grouping by service / CI / category, recurring rule, totals; route validation (400s, no iTop call) |
+| Frontend `npx vitest run` | ✅ 31 files / 169 tests (before the switch to the extension) | `config/modules.test.ts` updated: "Problem trends" is now a sidebar item. New: `problems/lib/trends.test.ts`, `ProblemAnalysisPanel.test.tsx`, `ProblemTrendsPage.test.tsx` |
+| Frontend `npx vitest run src/features/problems`, `npm run typecheck` | ✅ 10 / 10, clean (after the switch) | Panel: save, known-error dialog and link, "extension missing" notice with everything disabled, discard |
+| Live `npm run e2e:problems`, first design (analysis in the private log) | ✅ 29 / 29 | Superseded: the user then chose a real iTop field over the private log |
+| Live `npm run e2e:problems`, final design, iTop without the extension | ✅ 15 / 15 | Analysis answers empty with `available: false`; saving and raising a known error are 409s naming the extension; the generic Problem record still reads; trend groups a throwaway service's 3 incidents (1, 8, 15 days ago, one linked to the problem) as recurring, by service, category and CI, weekly and monthly. Everything created was deleted |
+| Mock UI in the browser pane (`/problem-trends`) | ✅ | Stats, chart and table render; "Open a problem" offered for a recurring group without one. The Root cause tab was not looked at in the browser (the pane stalled on reloads); its component tests cover it |
+
+Bugs found and fixed (before the first commit):
+
+- iTop's sanitiser cut a plain-text case-log entry at the first `<` (the first design wrote the analysis to the private log). Moot after the switch to real fields, which are plain text.
+- The trend and panel tests failed only in the full run: a `frontend/.env` with `VITE_API_MODE=mock`, made for the browser look, leaked into vitest and broke `AttachmentsPanel.test.tsx` (removed), and the first `findBy` waited only 1 s on a busy machine (these two test files now wait up to 10 s).
+
+Not covered: the extension installed in an iTop (setup run, the fields in iTop's own screens, then `npm run e2e:problems` with the extension: the known-error checks); the live browser journeys; the Root cause tab against the live BFF.
+
 ### 2026-10-22 — Single sign-on (OIDC / Entra ID), MFA (TOTP) and break-glass sign-in
 
 Branch `claude/sso-mfa-5a55e9`. Plan rows 16–18 ("Beyond iTop (platform)").
@@ -944,3 +965,19 @@ Not covered yet: approvals (extension not installed); load and concurrency beyon
   - command: `npm run typecheck; npm run build`
 - **2026-10-22 17:10 UTC** · `claude/multi-tenancy-efcab8@f5b5c70` + uncommitted changes · Live end-to-end script (backend) · ✅ 143 passed, 0 failed (added by hand)
   - command: `PLATFORM_LOGIN=admin PLATFORM_PASSWORD=… node scripts/e2e-tenancy.mjs`
+- **2026-10-23 01:50 UTC** · `claude/problems-80ecee@2d47fa2` + uncommitted changes · Live end-to-end script (backend) · ✅ 29 passed, 0 failed (added by hand: the hook logged to the main checkout; first design, since replaced)
+  - command: `E2E_LOGIN=… E2E_PASSWORD=… E2E_ORIGIN=http://localhost:5223 node scripts/e2e-problems.mjs`
+- **2026-10-23 02:03 UTC** · `claude/problems-80ecee@2d47fa2` + uncommitted changes · Unit tests (backend) · ✅ 573 passed, 0 failed (added by hand)
+  - command: `npm test`
+- **2026-10-23 02:25 UTC** · `claude/problems-80ecee@2d47fa2` + uncommitted changes · Frontend unit tests (vitest) (frontend) · ✅ 169 passed, 0 failed (added by hand)
+  - command: `npx vitest run`
+- **2026-10-23** · `claude/problems-80ecee@2d47fa2` + uncommitted changes · Frontend unit tests (vitest) + typecheck (frontend) · ✅ 10 passed, 0 failed; clean (added by hand; after the switch to the extension)
+  - command: `npm run typecheck; npx vitest run src/features/problems`
+- **2026-10-23** · `claude/problems-80ecee@2d47fa2` + uncommitted changes · Live end-to-end script (backend) · ✅ 15 passed, 0 failed (added by hand; iTop without the extension)
+  - command: `E2E_LOGIN=… E2E_PASSWORD=… E2E_ORIGIN=http://localhost:5223 node scripts/e2e-problems.mjs`
+- **2026-10-23** · `claude/problems-80ecee@2d47fa2` + uncommitted changes · Unit tests (backend) · ✅ 573 passed, 0 failed (added by hand; after the switch)
+  - command: `npm test`
+- **2026-10-23** · `claude/problems-80ecee` merging `origin/main` · Typecheck + unit tests (backend) · ✅ 624 passed, 0 failed (added by hand; after merging main, own `npm ci`)
+  - command: `npm run typecheck; npm test`
+- **2026-10-23** · `claude/problems-80ecee` merging `origin/main` · Typecheck + frontend unit tests (vitest) · ✅ 176 passed, 0 failed (added by hand; after merging main)
+  - command: `npm run typecheck; npx vitest run`

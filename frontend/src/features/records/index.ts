@@ -15,4 +15,6 @@ export { recordColumns } from './components/RecordColumns';
 export { defaultColumns, listFields } from './lib/list-cells';
 export { exportableColumns } from './lib/export-columns';
 export { humaniseAttcode } from './components/FieldControls';
+// Shared with problems (the "Create known error" dialog).
+export { RecordDialog } from './components/TransitionDialog';
 export type { ExportFormat, RecordList } from './types';

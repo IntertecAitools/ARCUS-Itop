@@ -655,6 +655,58 @@ iTop's query phrasebook (`QueryOQL`) and its "Run queries" page, from
   `runnable: false`.
 - iTop requires a description: the name stands in when none is given.
 
+## Problems
+
+Problem management on top of the generic record screens (`modules/problems/`;
+the problem record itself, its lifecycle and links stay on
+`/api/objects/Problem`). In the frontend: a **Root cause** tab on a problem,
+and **Problem trends** in the sidebar.
+
+| | |
+| --- | --- |
+| `GET /api/problems/:id/analysis` | Root cause, workaround, resolution; the known errors raised from the problem; `available: false` when the iTop lacks the extension below |
+| `PUT /api/problems/:id/analysis` | `{ rootCause, workaround, resolution }`; writes only what changed. 409 without the extension |
+| `POST /api/problems/:id/known-errors` | `{ name?, symptom?, domain?, errorCode? }` → 201. Creates a KnownError with the analysis copied (resolution as its `solution`), `problem_id` pointing back, the problem's CIs linked, and the symptom taken from the problem's description unless given. 400 until a root cause or workaround is saved; 409 without the extension |
+| `GET /api/problems/trends?period=30d\|90d\|180d\|365d&groupBy=service\|ci\|category` | Incidents and problems opened in the period, per week (up to 90 days) or month, and per service, CI or service subcategory: how many incidents are linked to a problem, the problems involved, and whether the group is **recurring** (3+ incidents in 2+ buckets). Reads at most 5,000 of each, else `truncated: true` |
+
+### The arcus-problem-rca iTop extension
+
+iTop's Problem has no root cause, workaround or solution: only KnownError
+does. `itop-extensions/arcus-problem-rca/` is a small iTop extension of our
+own that adds them to Problem (`root_cause`, `workaround`, `solution`, all
+AttributeText like KnownError's, in a "Root cause analysis" fieldset). It
+changes no other class and nothing in `iTop/`.
+
+The BFF reads and writes these three fields itself, straight through the
+tenant-scoped client; they are deliberately **not** in `cmdb-schema.json`.
+So an iTop without the extension keeps working everywhere (iTop leaves an
+unknown attribute out of a read): only the Root cause tab says the fields
+are missing, and saving or raising a known error answers 409. Do not
+re-extract the schema from an iTop that has the extension unless every iTop
+the BFF talks to has it: the generic screens would then ask every iTop for
+the fields.
+
+Installing it on an iTop (an **upgrade**: data is kept, but iTop is in
+maintenance mode for the few minutes the setup runs, and the datamodel is
+recompiled; back up the database first):
+
+1. Copy the folder into the iTop's `extensions/`:
+   `docker cp itop-extensions/arcus-problem-rca <container>:/var/www/html/extensions/`
+   then `docker exec <container> chown -R www-data:www-data /var/www/html/extensions/arcus-problem-rca`.
+2. Check the module list in `docker/itop-problem-rca-upgrade.xml` against
+   the modules that iTop has installed (it is the local iTop's list plus
+   `arcus-problem-rca`); set `<database><name>` and `<url>`.
+3. Copy the file in and run the unattended upgrade:
+   `docker cp docker/itop-problem-rca-upgrade.xml <container>:/tmp/` and
+   `docker exec -u www-data -w /var/www/html/setup/unattended-install <container> php unattended-install.php --param-file=/tmp/itop-problem-rca-upgrade.xml`.
+   A failed run leaves iTop in maintenance: fix the cause, delete
+   `data/.maintenance`, run it again.
+4. Check: `npm run e2e:problems` reports "this iTop has the
+   arcus-problem-rca extension" and passes.
+
+For production, add the folder to the iTop image's `extensions/` before the
+first install, and `arcus-problem-rca` to the install's module list.
+
 ## What this layer is actually for
 
 Five upstream behaviours make a direct browser-to-iTop integration painful.
@@ -1049,6 +1101,7 @@ finding out via a 404.
 | `npm run schema:pull` | vendor `cmdb-schema.json` into `schema/` |
 | `npm run tenants -- <command>` | list / set / enable / disable / remove tenants; `seed-test` for a local iTop |
 | `npm run e2e:tenancy` | live cross-tenant leak test (BFF on :4010 with `TENANCY=on`, after `seed-test`) |
+| `npm run e2e:problems` | live problem management: root cause, known error, trends (BFF on :4050; `E2E_LOGIN`, `E2E_PASSWORD`). Creates and deletes its own records |
 
 ## Known limitations
 

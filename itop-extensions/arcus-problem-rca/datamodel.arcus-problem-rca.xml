@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<itop_design xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="3.2">
+  <classes>
+    <class id="Problem" _delta="must_exist">
+      <fields>
+        <!-- Same types as KnownError's root_cause, workaround and solution,
+             so a known error raised from a problem takes them unchanged. -->
+        <field id="root_cause" xsi:type="AttributeText" _delta="define">
+          <sql>root_cause</sql>
+          <default_value/>
+          <is_null_allowed>true</is_null_allowed>
+        </field>
+        <field id="workaround" xsi:type="AttributeText" _delta="define">
+          <sql>workaround</sql>
+          <default_value/>
+          <is_null_allowed>true</is_null_allowed>
+        </field>
+        <field id="solution" xsi:type="AttributeText" _delta="define">
+          <sql>solution</sql>
+          <default_value/>
+          <is_null_allowed>true</is_null_allowed>
+        </field>
+      </fields>
+      <presentation>
+        <details>
+          <items>
+            <item id="col:col1" _delta="must_exist">
+              <items>
+                <item id="fieldset:Problem:rca" _delta="define">
+                  <rank>30</rank>
+                  <items>
+                    <item id="root_cause">
+                      <rank>10</rank>
+                    </item>
+                    <item id="workaround">
+                      <rank>20</rank>
+                    </item>
+                    <item id="solution">
+                      <rank>30</rank>
+                    </item>
+                  </items>
+                </item>
+              </items>
+            </item>
+          </items>
+        </details>
+      </presentation>
+    </class>
+  </classes>
+</itop_design>
