@@ -4,6 +4,28 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-10-23 — Approvals (Combodo "Approval process automation"), staff and portal, notifications
+
+Branch `claude/approvals-82e84e`. A separate test iTop for the extension: compose project `arcus-approvals` (`docker/docker-compose.approvals-test.yml`), container `itop-approvals` on `:8093` plus `itop-approvals-cron`, database `itop_approvals` on the Windows MySQL (a copy of `itop_prod`), mail to the shared Mailpit. The shared `itop-local`/`itop_prod` were not touched. This worktree's BFF on `:4030` (its `node_modules` a junction to the main checkout's), Vite on `:5203`.
+
+| What ran | Result | Notes |
+| --- | --- | --- |
+| Extension install on the test iTop (unattended upgrade) | ✅ after 3 passes | One pass fails (`Unknown class 'TriggerOnApprovalRequest'`) and the schema lags a compile; pass 1 without `combodo-approval-extended`, then the full list twice. Recipe in `backend/README.md`, "Approvals" |
+| Backend `npm run typecheck`, `npm test` | ✅ 532 / 532 | New `test/approvals.test.ts` (PHP unserialize incl. the real stored steps; only the caller's approvals; 404 for non-approvers; token with own or substitute passcode; reject needs a comment; 409 on a second answer or a decided approval; iTop's words when not recorded; no passcode in the request view) and `approvalIn` in `test/inbox.test.ts` |
+| Frontend `npm run typecheck`, `npx vitest run`, `npm run build` | ✅ 30 files / 166 tests | New: `ApprovalParts.test.tsx` (approve, reject needs a reason, locked while sending, levels and stand-ins, status in words), `RequireAuth.test.ts` (`portalPathFor`); `modules.test.ts` expects the new Approvals nav item |
+| Live: `node scripts/e2e-approvals.mjs` (BFF :4030 → iTop :8093 → Mailpit) | ✅ 10 / 10, twice | Portal request → awaiting approval → level 1 (end user) emailed with `APP_BASE_URL/approvals/<id>` (no `approve.php`) → reject without comment 400 → approve → 409 on repeat, 404/403 for others → level 2 (staff) emailed + bell entry → reject with comment → request rejected, requester emailed, portal shows both answers; second request approved at both levels → approved, requester emailed |
+| Live UI (built-in browser, :5203) | ✅ | End user follows the staff link `/approvals/2` → lands on `/portal/approvals/2`; reject without a comment is refused in the form; approve with a comment; nav badge clears. Staff: sidebar Approvals, "Decided by me", detail, and the approval card on `/records/UserRequest/35` |
+
+Bugs found and fixed (in this branch):
+
+- `frontend/.env.local` (pointing the dev server at `:4030`) made 11 AttachmentsPanel tests fail; they pass without it. Not a code bug: the override is local only and not committed.
+- "Decided by me" took 19 s on the loaded machine (every iTop call 2.5–5 s that hour, other sessions' stacks busy): its two iTop reads now run in parallel.
+- iTop's newsroom (the bell) skips accounts without back-office access, so end-user approvers can never get a bell entry from iTop. They get the email and an Approvals badge / home prompt in the portal instead; documented.
+
+The automatic hook (`.claude/hooks/record-test-run.mjs`) did not append entries for this session's runs; the table above is the record.
+
+Not covered: approval timeouts, reminders and substitutes live (unit-tested only; the test rule has no timeout); the mock Playwright journeys (`npm run e2e`) were not re-run and have no approvals journey yet; a screen to manage approval rules (done in iTop's data for now). Test data left on the test iTop: accounts `e2e.requester`, `e2e.approver`, `e2e.manager` (random passwords), rule "E2E approvals", subcategory "E2E needs approval", coverage window "E2E 24x7", "Trial rule"/"24x7", requests R-000033 to R-000038; `e2e.portal`'s password there was changed.
+
 ### 2026-10-22 — Sidebar active item and groups; iTop dashboards redesigned; dashlet names and dates
 
 Branch `claude/nav-dashboards-polish`. Frontend plus the BFF's dashboard service. This worktree's BFF on `:4900` (its `node_modules` a junction to the main checkout's) against the local iTop on `:8080`, signed in as the local `admin`; Vite on `:5973`. Screenshots from headless Chromium in `docs/design/nav-dashboards/`.

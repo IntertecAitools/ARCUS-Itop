@@ -29,6 +29,7 @@ import { AuditService } from "./platform/admin/audit.service.js";
 import { QueriesService } from "./platform/queries/queries.service.js";
 import { InboxService } from "./platform/inbox/inbox.service.js";
 import { PortalService } from "./platform/portal/portal.service.js";
+import { ApprovalsService } from "./platform/approvals/approvals.service.js";
 import { DefaultOrganization } from "./shared/default-organization.js";
 import { CurrentContact } from "./shared/current-contact.js";
 
@@ -53,6 +54,7 @@ export interface Services {
   queries: QueriesService;
   inbox: InboxService;
   portal: PortalService;
+  approvals: ApprovalsService;
   dashboard: DashboardService;
   incidents: IncidentsService;
   directory: DirectoryService;
@@ -148,6 +150,7 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     audit: new AuditService(client, schema),
     users: new UsersService(client, objects, auth, sessions),
     portal: new PortalService(client, schema, objects),
+    approvals: new ApprovalsService(client, config.itop.timezone),
     dashboard: new DashboardService(objects, navigation, currentContact, schema),
     defaultOrganization,
     currentContact,

@@ -255,6 +255,131 @@ If the mail provider requires OAuth instead of a password (Microsoft 365
 may), iTop has `'email_transport' => 'SMTP_OAuth'`; the BFF needs OAuth
 support added first.
 
+## Approvals
+
+Requests that need someone's go-ahead before the service desk works on them
+("a new laptop: the requester's manager approves, then Finance"). Approvers
+answer in the platform, staff and end users alike; nobody opens iTop.
+
+**The engine is Combodo's "Approval process automation" extension**
+(AGPL-3.0, free): `approval-base` 3.4.0, `combodo-approval-extended` 1.5.4,
+`combodo-sla-computation` 2.4.7 and `itop-approval-portal` 1.0.12. It was
+chosen over "Approval process light" (one level, approver picked by hand per
+ticket) and over no extension (iTop's bare `waiting_for_approval` states, with
+no rules, levels or history). The two Combodo extensions cannot be installed
+together.
+
+How it works:
+
+- An administrator defines an **approval rule** (iTop class `ApprovalRule`):
+  up to two levels, each an OQL query for the approvers (`SELECT Person WHERE
+  …`, e.g. the caller's manager), an exit condition (first reply, first
+  reject, first approve), an optional timeout in hours with a default answer,
+  optional substitutes, and a coverage window (working hours) that the
+  timeout counts in. The rule is attached to **service subcategories**.
+- A user request raised in such a subcategory (from the portal, the staff
+  screens, email…) goes to **Awaiting approval** (iTop's
+  `waiting_for_approval`) and the extension asks level 1. When a level
+  concludes it asks the next, and finally moves the request to **Approved**
+  (then the service desk assigns it as usual) or **Rejected**. Staff cannot
+  approve or reject by hand: the extension makes those transitions internal.
+- The BFF reads the extension's `ApprovalScheme` (one per request; its levels
+  are PHP-serialized, read by `shared/php-unserialize.ts`) as the service
+  account, and is the access control: a user sees only the approvals they are
+  an approver or substitute on, matched on the Person linked to their account.
+- An answer is posted to the extension's own one-click page
+  (`env-production/approval-base/approve.php`) with that user's token, exactly
+  as the extension's email link would, so iTop applies its own logic and
+  records "Approved by <name>" with the comment. The passcode in the token
+  never leaves the BFF. A rejection needs a comment (the extension's rule).
+
+Endpoints (`platform/approvals/`):
+
+| | |
+| --- | --- |
+| `GET /api/me/approvals?state=pending\|decided` | Waiting for me; or decided by me in the last 90 days. With `pending`, the count |
+| `GET /api/me/approvals/count` | `{ pending }`, for the badges (also `pendingApprovals` in `/api/nav/counts`) |
+| `GET /api/me/approvals/:id` | One approval: the request, every level, who answered what. 404 unless the caller is on it |
+| `POST /api/me/approvals/:id/approve` / `reject` | `{ comment }` (required to reject). 409 when the caller's answer is no longer awaited |
+| `GET /api/approvals/requests/:id` | Staff: the approval on a request they can read |
+| `GET /api/portal/requests/:id/approval` | End users: the approval on their own request (portal scope) |
+| `POST /api/admin/approvals/notifications` | Administrators: set up the notifications below (same as the script) |
+
+`/api/me/` is open to staff and end users, so one API serves both. The
+frontend has **Approvals** in the staff sidebar (with a badge), and in the
+portal an Approvals link with a count plus a prompt on the home page, shown
+to end users who have approvals waiting. The approval also shows on the
+request itself: the record screen for staff, the request page in the portal.
+
+### Approval notifications
+
+`npm run approvals:setup` (or `POST /api/admin/approvals/notifications`) sets
+them up in iTop, idempotently; run it once per iTop and again after changing
+`APP_BASE_URL` or the sender. It needs `APP_BASE_URL` and
+`NOTIFICATION_FROM` (or `MAIL_FROM`).
+
+- **Approvers** are told when their answer is awaited (and reminded, when a
+  level has a timeout) by the extension's `TriggerOnApprovalRequest`, to
+  which it links an email of ours ("Platform: approval requested") whose link
+  is `APP_BASE_URL/approvals/<id>`, not iTop's page, and a bell entry
+  ("… (in the app)") that opens the approval. An end user who follows the
+  staff link lands on the same approval in the portal.
+- **Requesters** are told when their request is approved or rejected by two
+  ordinary notification rules ("Request approved/rejected: tell the
+  requester"), which then show on the Notifications screen; an existing rule
+  of that name is left as an administrator edited it.
+- iTop's bell (newsroom) only reaches accounts with back-office access, so
+  **end-user approvers get the email and the portal's badge, not the bell**.
+  Bell entries are queued and sent by iTop's cron.
+
+### Installing the approval extension on an iTop
+
+Done on the test iTop of `docker/docker-compose.approvals-test.yml` (port
+8093, database `itop_approvals`, a copy of `itop_prod`); the same steps apply
+to the main or production iTop. **Back up iTop's database and its `conf/`
+first**: the setup changes the schema.
+
+1. Get the four modules at those tags from GitHub
+   (`https://github.com/Combodo/<module>/archive/refs/tags/<tag>.tar.gz`) or
+   the "Approval process automation" package from the iTop Hub, and put each
+   in iTop's `extensions/<module>/` (without `tests/`), owned by `www-data`.
+2. Make the configuration file writable for the setup
+   (`chmod u+w conf/production/config-itop.php`).
+3. Run the unattended upgrade with `docker/itop-approvals-upgrade.xml` (the
+   installed module list plus the four; set `<database><name>` and `<url>` for
+   that iTop), copied into the container. **iTop 3.4 needs three passes**:
+   one pass fails (`Unknown class 'TriggerOnApprovalRequest'`: the extension's
+   installer runs before the new classes are loaded) and the schema lags one
+   compile behind, so:
+
+   ```bash
+   # pass 1: everything except combodo-approval-extended
+   sed '/combodo-approval-extended<\/item>/d' approvals-upgrade.xml > approvals-upgrade-pass1.xml
+   docker exec -u www-data -w /var/www/html/setup/unattended-install <container> php unattended-install.php --param-file=/var/www/html/approvals-upgrade-pass1.xml
+   # passes 2 and 3: the full list, twice
+   docker exec -u www-data -w /var/www/html/setup/unattended-install <container> php unattended-install.php --param-file=/var/www/html/approvals-upgrade.xml
+   docker exec -u www-data -w /var/www/html/setup/unattended-install <container> php unattended-install.php --param-file=/var/www/html/approvals-upgrade.xml
+   docker restart <container>
+   ```
+
+   A failed pass leaves iTop in maintenance: delete `data/.maintenance` and
+   `data/.readonly` before the next one. Check: `core/get ApprovalRule`
+   answers (no "table doesn't exist").
+4. Make sure iTop's cron runs (timeouts, reminders, the bell).
+5. `npm run approvals:setup` against that iTop.
+6. In iTop's data (until the platform has a screen for it; REST as an
+   administrator works): create a `CoverageWindow` (e.g. 24×7: each weekday
+   00:00–24:00) and an `ApprovalRule`, and set `approvalrule_id` on the
+   service subcategories that need approval. `scripts/e2e-approvals.mjs`
+   shows the fields.
+7. `node scripts/e2e-approvals.mjs` checks it end to end (see the script's
+   header; it creates `e2e.*` accounts and an "E2E needs approval"
+   subcategory, so run it on a test iTop).
+
+Not covered yet: a platform screen to manage approval rules; reminders and
+substitutes were not exercised (no timeouts in the test rule); approvals on
+anything but user requests (the extension supports only those).
+
 ## Audit
 
 iTop's data-quality audit is run from **Audit** in the frontend,

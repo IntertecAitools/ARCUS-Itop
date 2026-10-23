@@ -77,6 +77,7 @@ export const emptyOverview: DashboardOverview = {
 export const emptyNavCounts = {
   openIncidents: 0,
   openRequests: 0,
+  pendingApprovals: 1,
 };
 
 /** Populated sample data — kept for demos and for styling the loaded states. */
@@ -325,4 +326,5 @@ export const seededOverview: DashboardOverview = {
 export const seededNavCounts = {
   openIncidents: 18,
   openRequests: 7,
+  pendingApprovals: 1,
 };

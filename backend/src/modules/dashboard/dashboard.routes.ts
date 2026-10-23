@@ -15,7 +15,7 @@ const overviewQuerySchema = z.object({
  * one request. Each is owned by the feature that renders it.
  */
 export function registerDashboardRoutes(app: FastifyInstance, services: Services): void {
-  const { dashboard } = services;
+  const { dashboard, approvals } = services;
 
   app.get("/api/dashboard/overview", async (request) => {
     const query = parse(overviewQuerySchema, request.query, "query parameters");
@@ -23,5 +23,8 @@ export function registerDashboardRoutes(app: FastifyInstance, services: Services
   });
 
   /** Sidebar badge counts — one call for the whole shell, not one per module. */
-  app.get("/api/nav/counts", async () => dashboard.navCounts());
+  app.get("/api/nav/counts", async () => {
+    const [counts, pendingApprovals] = await Promise.all([dashboard.navCounts(), approvals.pendingCount()]);
+    return { ...counts, pendingApprovals };
+  });
 }

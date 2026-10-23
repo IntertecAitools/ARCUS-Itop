@@ -22,6 +22,7 @@ import { registerAuditRoutes } from "./platform/admin/audit.routes.js";
 import { registerQueryRoutes } from "./platform/queries/queries.routes.js";
 import { registerInboxRoutes } from "./platform/inbox/inbox.routes.js";
 import { registerPortalRoutes } from "./platform/portal/portal.routes.js";
+import { registerApprovalRoutes } from "./platform/approvals/approvals.routes.js";
 import { buildServices, type BuildServicesOptions, type Services } from "./services.js";
 
 export interface BuildAppResult {
@@ -106,6 +107,7 @@ export function buildApp(config: Config, options: BuildServicesOptions = {}): Bu
   registerQueryRoutes(app, services);
   registerInboxRoutes(app, services);
   registerPortalRoutes(app, services);
+  registerApprovalRoutes(app, services);
   registerLookupRoutes(app, services);
   registerAttachmentRoutes(app, services);
 
