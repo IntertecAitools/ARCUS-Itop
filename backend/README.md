@@ -373,6 +373,38 @@ unless `keepCondition: false`) and `valueLabels` (names of the records key
 conditions point at). Conditions on dates are refused, since a fixed date
 cannot be read back as a condition.
 
+## Request forms and target dates
+
+Each service, and each of its subcategories, can ask extra questions when a
+request is raised (`modules/request-forms/`). iTop 3.4 community has no
+request templates (a commercial extension), so:
+
+- **Definitions live in the BFF**: table `bff_request_forms` in the BFF
+  database (`SESSION_STORE=mysql`, created on first use), or memory with
+  `SESSION_STORE=memory` (lost on restart). A field is
+  `{ key, label, type: text|textarea|number|date|choice, required, options?, help? }`.
+  A subcategory's questions follow the service's; the same key overrides.
+- **Answers go into iTop**: checked (required, number, YYYY-MM-DD date, one of
+  the options; every problem reported at once) and appended to the request's
+  description as an HTML "Request details" list, since iTop stores ticket
+  descriptions as HTML. iTop, its emails and exports carry them. A service
+  with no form leaves the description as written.
+- Endpoints: `GET/PUT /api/admin/request-forms[/:scope/:id]` (administrators;
+  an empty field list removes a form; the catalogue item must be readable by
+  the caller, so tenants edit only their own), `GET /api/request-forms/resolve`
+  (staff), `GET /api/portal/request-form` (end users, inside their catalogue).
+  `POST /api/portal/requests` takes `answers`; `POST /api/objects/UserRequest`
+  takes `formAnswers` and refuses a missing required answer.
+
+**Target date.** Portal tickets carry `targetDate` (iTop's time-to-resolve
+deadline, `ttr_escalation_deadline`, from the SLA that applies: customer
+contract → service → SLA → SLT for the priority and request type; "" when
+none does) and `targetMissed` (`sla_ttr_passed`). Asked only where the
+datamodel has them.
+
+`npm run e2e:requests` exercises both against a running BFF (default
+`:4040`) and iTop, creating and then deleting its own service and SLA.
+
 ## Saved queries
 
 iTop's query phrasebook (`QueryOQL`) and its "Run queries" page, from
@@ -800,6 +832,7 @@ finding out via a 404.
 | `npm run schema:pull` | vendor `cmdb-schema.json` into `schema/` |
 | `npm run tenants -- <command>` | list / set / enable / disable / remove tenants; `seed-test` for a local iTop |
 | `npm run e2e:tenancy` | live cross-tenant leak test (BFF on :4010 with `TENANCY=on`, after `seed-test`) |
+| `npm run e2e:requests` | live request forms + target date check (BFF on :4040; `E2E_STAFF_PASSWORD`) |
 
 ## Known limitations
 

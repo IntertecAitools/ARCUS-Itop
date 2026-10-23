@@ -3,6 +3,9 @@ import { env } from '@/config/env';
 import type { CatalogService, NewRequest, PortalTicket, PortalTicketDetail } from '@/features/portal/types';
 import { readStored, writeStored } from '../storage';
 import { currentMockUser } from './auth';
+import { mockDescribe, mockFormFor } from './request-forms';
+
+const inDays = (days: number) => new Date(Date.now() + days * 86_400_000).toISOString();
 
 const url = (path: string) => `${env.bffUrl}${path}`;
 
@@ -38,6 +41,8 @@ const seeded: PortalTicket[] = [
     updatedAt: '2026-10-16T14:03:00Z',
     service: 'Network access',
     subcategory: 'VPN',
+    targetDate: inDays(2),
+    targetMissed: false,
   },
   {
     id: 102,
@@ -51,6 +56,8 @@ const seeded: PortalTicket[] = [
     updatedAt: '2026-10-14T10:00:00Z',
     service: 'Hardware',
     subcategory: 'Peripherals',
+    targetDate: '2026-10-15T17:00:00Z',
+    targetMissed: false,
   },
 ];
 
@@ -78,8 +85,8 @@ const seededDetail = (t: PortalTicket): PortalTicketDetail => ({
 let tickets: PortalTicketDetail[] = readStored('portal', seeded.map(seededDetail));
 const save = () => writeStored('portal', tickets);
 
-const summary = ({ id, ref, kind, title, status, priority, closed, createdAt, updatedAt, service, subcategory }: PortalTicketDetail): PortalTicket =>
-  ({ id, ref, kind, title, status, priority, closed, createdAt, updatedAt, service, subcategory });
+const summary = ({ id, ref, kind, title, status, priority, closed, createdAt, updatedAt, service, subcategory, targetDate, targetMissed }: PortalTicketDetail): PortalTicket =>
+  ({ id, ref, kind, title, status, priority, closed, createdAt, updatedAt, service, subcategory, targetDate: targetDate ?? '', targetMissed: targetMissed ?? false });
 
 const notFound = () =>
   HttpResponse.json({ error: { code: 'not_found', message: 'No such request.' } }, { status: 404 });
@@ -113,7 +120,10 @@ export const portalHandlers = [
       updatedAt: now,
       service: service?.name ?? '',
       subcategory: service?.subcategories.find((sc) => sc.id === input.subcategoryId)?.name ?? '',
-      description: input.description,
+      // Raised against a service: the mock SLA gives it three days.
+      targetDate: service ? inDays(3) : '',
+      targetMissed: false,
+      description: mockDescribe(input.description, mockFormFor(input.serviceId, input.subcategoryId), input.answers),
       solution: '',
       caller: currentMockUser().name,
       agent: '',

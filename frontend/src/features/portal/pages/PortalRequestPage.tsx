@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { AttachmentsPanel } from '@/features/attachments';
 import { useMyRequest, useRequestActions } from '../api/portal.api';
 import { formatDate } from './PortalRequestsPage';
+import { TargetDate } from '../components/TargetDate';
 
 const TEXTAREA = publicControl;
 
@@ -23,6 +24,9 @@ function plain(html: string) {
   return html
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<\/p>/gi, '\n')
+    // List items (a request form's answers) as "- " lines.
+    .replace(/<li[^>]*>/gi, '- ')
+    .replace(/<\/li>/gi, '\n')
     .replace(/<[^>]+>/g, '')
     .replace(/&nbsp;/g, ' ')
     .replace(/&amp;/g, '&')
@@ -83,6 +87,12 @@ export function PortalRequestPage() {
           ) : null}
         </div>
       </div>
+
+      {ticket.targetDate ? (
+        <div className="-mt-4 mb-8 max-w-3xl">
+          <TargetDate ticket={ticket} variant="panel" />
+        </div>
+      ) : null}
 
       {actionError ? (
         <div role="alert" className="mb-4 rounded-card border border-critical/30 bg-critical-soft px-4 py-3 text-[13px] text-critical-ink">
@@ -210,6 +220,7 @@ export function PortalRequestPage() {
                 ['Service', ticket.subcategory ? `${ticket.service} › ${ticket.subcategory}` : ticket.service],
                 ['Handled by', [ticket.agent, ticket.team].filter(Boolean).join(' · ')],
                 ['Raised for', ticket.caller],
+                ['Expected by', ticket.targetDate ? formatDate(ticket.targetDate) : ''],
                 ['Last update', formatDate(ticket.updatedAt)],
                 ['Resolved', ticket.resolvedAt ? formatDate(ticket.resolvedAt) : ''],
                 ['Closed', ticket.closedAt ? formatDate(ticket.closedAt) : ''],

@@ -4,6 +4,7 @@ import type { Services } from "../services.js";
 import { registerDashboardRoutes } from "../modules/dashboard/index.js";
 import { registerDirectoryRoutes } from "../modules/directory/index.js";
 import { registerIncidentRoutes } from "../modules/incidents/index.js";
+import { registerRequestFormRoutes } from "../modules/request-forms/index.js";
 
 /**
  * ════════════════════════════════════════════════════════════════════════════
@@ -68,6 +69,12 @@ export const modules: BackendModule[] = [
     basePath: "/api/incidents",
     description: "Unplanned interruptions to a service.",
     register: registerIncidentRoutes,
+  },
+  {
+    id: "request-forms",
+    basePath: "/api/request-forms",
+    description: "The extra questions each catalogue item asks when a request is raised (edited under /api/admin/request-forms).",
+    register: registerRequestFormRoutes,
   },
 ];
 

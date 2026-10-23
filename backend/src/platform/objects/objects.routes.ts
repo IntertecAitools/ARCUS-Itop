@@ -12,6 +12,7 @@ import {
 import { DEFAULT_PAGE_SIZE, MAX_BULK_IDS, MAX_PAGE_SIZE } from "./objects.service.js";
 import { parseCriteriaParam } from "./criteria.js";
 import type { Services } from "../../services.js";
+import { answersSchema } from "../../modules/request-forms/index.js";
 
 /** Query keys the list endpoint interprets itself; anything else is a filter. */
 const RESERVED_QUERY_KEYS = new Set([
@@ -64,7 +65,15 @@ const writeBodySchema = z.object({
   strict: z.boolean().optional(),
   /** Attributes to return on the created/updated object. */
   returnFields: z.string().max(2_000).optional(),
+  /** On a new UserRequest: answers to its catalogue item's request form. */
+  formAnswers: answersSchema.optional(),
 });
+
+/** A key field's value as an id, when it is one (not criteria or empty). */
+const keyId = (value: unknown): number | undefined => {
+  const n = Number(value);
+  return Number.isInteger(n) && n > 0 ? n : undefined;
+};
 
 /** Extracts the query params not in `reserved` as exact-match filters. */
 export function extractFilters(query: unknown, reserved: ReadonlySet<string>): Record<string, string> {
@@ -185,6 +194,20 @@ export function registerObjectRoutes(app: FastifyInstance, services: Services): 
   app.post("/api/objects/:class", async (request, reply) => {
     const params = parse(z.object({ class: identifierParam }), request.params, "path parameters");
     const body = parse(writeBodySchema, request.body, "request body");
+
+    // A request answers its catalogue item's form: checked here and written
+    // into the description, as the portal does, whoever raises it.
+    if (params.class === "UserRequest") {
+      const serviceId = keyId(body.fields["service_id"]);
+      const subcategoryId = keyId(body.fields["servicesubcategory_id"]);
+      const written = String(body.fields["description"] ?? "");
+      const described = await services.requestForms.describe(
+        written,
+        { ...(serviceId ? { serviceId } : {}), ...(subcategoryId ? { subcategoryId } : {}) },
+        body.formAnswers,
+      );
+      if (described !== written) body.fields["description"] = described;
+    }
 
     const created = await objects.create(params.class, body.fields, {
       ...(body.comment !== undefined ? { comment: body.comment } : {}),

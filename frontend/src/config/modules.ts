@@ -1,6 +1,7 @@
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
 import {
   BellRing,
+  ClipboardList,
   Database,
   LayoutDashboard,
   LayoutGrid,
@@ -283,6 +284,27 @@ export const modules: ModuleDefinition[] = [
         label: 'Rule',
         component: lazy(() =>
           import('@/features/notifications').then((m) => ({ default: m.NotificationEditorPage })),
+        ),
+      },
+    ],
+  },
+  {
+    id: 'request-forms',
+    label: 'Request forms',
+    path: 'request-forms',
+    icon: ClipboardList,
+    group: 'administration',
+    description: 'The extra questions each service asks when a request is raised.',
+    adminOnly: true,
+    component: lazy(() =>
+      import('@/features/request-forms').then((m) => ({ default: m.RequestFormListPage })),
+    ),
+    children: [
+      {
+        path: ':scope/:id',
+        label: 'Form',
+        component: lazy(() =>
+          import('@/features/request-forms').then((m) => ({ default: m.RequestFormEditorPage })),
         ),
       },
     ],

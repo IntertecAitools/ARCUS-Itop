@@ -85,7 +85,8 @@ function useRecordMutation<TArgs, TResult>(
 
 export function useCreateRecord(className: string) {
   return useRecordMutation(
-    (fields: Record<string, unknown>) => createRecord(className, fields),
+    ({ fields, formAnswers }: { fields: Record<string, unknown>; formAnswers?: Record<string, string> }) =>
+      createRecord(className, fields, formAnswers),
     className,
   );
 }
