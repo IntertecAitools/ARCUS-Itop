@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { AppError } from "../../core/errors.js";
 import { currentCaller, enterRequestContext, type Caller } from "../../core/request-context.js";
+import type { Resolution } from "../tenancy/resolve.js";
 import { parse } from "../../core/validate.js";
 import type { Services } from "../../services.js";
 import { publicUser } from "./auth.service.js";
@@ -57,7 +58,7 @@ function sessionCookie(services: Services, value: string, maxAgeSeconds: number)
  * origin outside CORS_ORIGINS.
  */
 export function registerAuth(app: FastifyInstance, services: Services): void {
-  const { sessions, auth, config, passwordReset } = services;
+  const { sessions, auth, config, passwordReset, tenancy } = services;
 
   app.addHook("onRequest", (request: FastifyRequest, _reply, done) => {
     // Callback style on purpose. The session lookup is async (it may read a
@@ -65,21 +66,34 @@ export function registerAuth(app: FastifyInstance, services: Services): void {
     // when the hook hands over from the same async context that bound the
     // caller -- an async hook resumes in another one and the handler would
     // see nobody signed in.
-    sessions.get(readCookie(request, SESSION_COOKIE)).then(
-      (caller) => {
-        try {
-          guard(request, caller);
-          done();
-        } catch (error) {
-          done(error as Error);
-        }
-      },
-      (error: Error) => done(error),
-    );
+    // The tenant is decided here too, from the host name and the user, and
+    // bound with the caller: from now on every iTop call is held to it.
+    sessions
+      .get(readCookie(request, SESSION_COOKIE))
+      .then(async (caller) => ({ caller, resolution: await tenancy.resolve(request.host, caller) }))
+      .then(
+        ({ caller, resolution }) => {
+          try {
+            guard(request, caller, resolution);
+            done();
+          } catch (error) {
+            done(error as Error);
+          }
+        },
+        (error: Error) => done(error),
+      );
   });
 
-  function guard(request: FastifyRequest, caller: Caller | undefined): void {
-    enterRequestContext(caller);
+  function guard(request: FastifyRequest, signedIn: Caller | undefined, resolution: Resolution): void {
+    // A user this site refuses counts as signed out on the public paths
+    // (they can still sign out or see the sign-in page) and is refused on
+    // every other one.
+    const caller = resolution.refused ? undefined : signedIn;
+    enterRequestContext(caller, resolution.tenant);
+    const path = request.routeOptions.url;
+    if (resolution.refused && signedIn && !(path !== undefined && PUBLIC_PATHS.has(path))) {
+      throw resolution.refused;
+    }
     if (!config.auth.required || request.method === "OPTIONS") return;
 
     if (!["GET", "HEAD"].includes(request.method) && !allowedOrigin(request)) {
@@ -90,7 +104,6 @@ export function registerAuth(app: FastifyInstance, services: Services): void {
     // never on the raw URL: the router decodes percent-escapes, so
     // "/%61pi/%61dmin/users" reaches /api/admin/users while a prefix check on
     // the raw text sees neither "/api/" nor "/api/admin/".
-    const path = request.routeOptions.url;
     // No route: the not-found handler answers, and it reveals nothing.
     if (path === undefined) return;
 
@@ -130,6 +143,9 @@ export function registerAuth(app: FastifyInstance, services: Services): void {
     // End users are served by the self-service API (/api/portal), which the
     // guard keeps them to; staff get the whole API, as themselves.
     const caller = await auth.signIn(body.login, body.password, request.ip);
+    // The account must belong to this site's tenant (or run the platform).
+    const resolution = await tenancy.resolve(request.host, caller);
+    if (resolution.refused) throw resolution.refused;
     const id = await sessions.create(caller);
     reply.header("Set-Cookie", sessionCookie(services, id, Math.floor(config.auth.sessionMaxMs / 1000)));
     return { user: publicUser(caller) };
