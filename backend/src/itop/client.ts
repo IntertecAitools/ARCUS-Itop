@@ -2,7 +2,7 @@ import { AppError } from "../core/errors.js";
 import type { Config } from "../config/env.js";
 import { ItopCode, itopCodeToErrorCode, looksLikeAmbiguous, looksLikeNotFound } from "./codes.js";
 import { cleanMessage } from "./normalize.js";
-import { currentCaller, serviceAccountBound } from "../core/request-context.js";
+import { currentCaller, serviceAccountBound, type ItopCredentials } from "../core/request-context.js";
 import type { ItopResult, ItopVerb } from "./types.js";
 
 /**
@@ -102,10 +102,10 @@ export class ItopClient {
     const credentials = this.credentialsFor(options);
     const body = new URLSearchParams({
       version: this.cfg.version,
-      auth_user: credentials.user,
-      auth_pwd: credentials.password,
+      ...this.formAuth(credentials),
       json_data: JSON.stringify(payload),
     });
+    const authHeaders = this.headerAuth(credentials);
 
     const maxAttempts =
       1 + (IDEMPOTENT_VERBS.has(verb) ? (options.retries ?? this.cfg.retries) : 0);
@@ -114,7 +114,7 @@ export class ItopClient {
 
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
       try {
-        return await this.attempt<T>(verb, body, options.signal);
+        return await this.attempt<T>(verb, body, options.signal, authHeaders);
       } catch (error) {
         // Application-level failures are deterministic; only transport faults
         // are worth another attempt.
@@ -141,6 +141,7 @@ export class ItopClient {
     verb: ItopVerb,
     body: URLSearchParams,
     callerSignal?: AbortSignal,
+    authHeaders: Record<string, string> = {},
   ): Promise<T> {
     const timeout = AbortSignal.timeout(this.cfg.timeoutMs);
     const signal = callerSignal ? AbortSignal.any([timeout, callerSignal]) : timeout;
@@ -153,6 +154,7 @@ export class ItopClient {
         headers: {
           "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
           Accept: "application/json",
+          ...authHeaders,
         },
         body,
         signal,
@@ -237,10 +239,13 @@ export class ItopClient {
   ): Promise<Response> {
     const url = `${this.cfg.baseUrl}/${script}`;
     const credentials = this.credentialsFor(options);
-    const body = new URLSearchParams({ auth_user: credentials.user, auth_pwd: credentials.password, ...params });
+    const body = new URLSearchParams({ ...this.formAuth(credentials), ...params });
     const timeout = AbortSignal.timeout(options.timeoutMs ?? Math.max(this.cfg.timeoutMs, 120_000));
     const signal = options.signal ? AbortSignal.any([timeout, options.signal]) : timeout;
-    const basic = Buffer.from(`${credentials.user}:${credentials.password}`).toString("base64");
+    const authHeaders =
+      "password" in credentials
+        ? { Authorization: `Basic ${Buffer.from(`${credentials.user}:${credentials.password}`).toString("base64")}` }
+        : this.headerAuth(credentials);
 
     let response: Response;
     try {
@@ -248,7 +253,7 @@ export class ItopClient {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-          Authorization: `Basic ${basic}`,
+          ...authHeaders,
         },
         body,
         signal,
@@ -283,14 +288,33 @@ export class ItopClient {
    * iTop credentials here), must never end up with its rights because a
    * route was reached that the guard should have stopped.
    */
-  private credentialsFor(options: { asService?: boolean }): { user: string; password: string } {
+  private credentialsFor(options: { asService?: boolean }): ItopCredentials {
     const service = { user: this.cfg.user, password: this.cfg.password };
     if (options.asService || serviceAccountBound()) return service;
     const caller = currentCaller();
-    if (caller?.credentials) return caller.credentials;
+    // A session still waiting for its authenticator code has no rights yet.
+    if (caller?.credentials && !caller.signIn?.pending) return caller.credentials;
     if (!this.authRequired) return service;
     if (!caller) throw new AppError("unauthorized", "Sign in to continue.");
     throw new AppError("forbidden", "This is not available to end-user accounts.");
+  }
+
+  /** auth_user/auth_pwd for iTop's "form" login; nothing for an external identity. */
+  private formAuth(credentials: ItopCredentials): Record<string, string> {
+    return "password" in credentials ? { auth_user: credentials.user, auth_pwd: credentials.password } : {};
+  }
+
+  /**
+   * The header iTop's "external" login reads (ext_auth_variable), for a user
+   * who signed in with single sign-on and so has no password here. Refused
+   * when the header is not configured, rather than sent anonymously.
+   */
+  private headerAuth(credentials: ItopCredentials): Record<string, string> {
+    if ("password" in credentials) return {};
+    if (!this.cfg.externalAuthHeader) {
+      throw new AppError("forbidden", "Single sign-on is not set up for iTop calls (ITOP_EXTERNAL_AUTH_HEADER).");
+    }
+    return { [this.cfg.externalAuthHeader]: credentials.user };
   }
 
   /** Cheap connectivity + credentials probe for the health endpoint. */

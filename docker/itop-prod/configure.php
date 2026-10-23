@@ -6,7 +6,9 @@
  *
  * - config-itop.php: timezone (ITOP_TIMEZONE, which the BFF reads too), the
  *   SMTP settings iTop sends notifications with, queued sending (the cron
- *   container delivers the queue).
+ *   container delivers the queue), and -- when ITOP_EXTERNAL_AUTH_HEADER is
+ *   set -- the "external" login reading that header, so staff signed in by
+ *   single sign-on call iTop as their UserExternal account.
  * - The BFF's service account ITOP_SERVICE_USER: created if missing, password
  *   set, profiles Administrator + REST Services User. iTop's REST API cannot
  *   give REST Services User to an account that lacks it, which is why this
@@ -55,8 +57,25 @@ if (env('ITOP_MAIL_FROM_ADDRESS') !== null) {
 	$aSettings['email_default_sender_label'] = env('ITOP_MAIL_FROM_LABEL', '');
 }
 
+// Single sign-on: iTop's "external" login trusts the login in this header,
+// which only the BFF sends (iTop is reachable from nowhere else). PHP exposes
+// a request header X-Foo-Bar as $_SERVER['HTTP_X_FOO_BAR'], whatever its case.
+$sExternalHeader = env('ITOP_EXTERNAL_AUTH_HEADER');
+if ($sExternalHeader !== null) {
+	if (preg_match('/^[A-Za-z][A-Za-z0-9-]{2,63}$/', $sExternalHeader) !== 1) {
+		fwrite(STDERR, "configure: ITOP_EXTERNAL_AUTH_HEADER must be a header name like X-Arcus-Remote-User\n");
+		exit(1);
+	}
+	$aSettings['ext_auth_variable'] = "\$_SERVER['HTTP_".strtoupper(str_replace('-', '_', $sExternalHeader))."']";
+}
+
 $oConfig = new Config(CONFIG_FILE);
 $bChanged = false;
+if ($sExternalHeader !== null && !in_array('external', $oConfig->GetAllowedLoginTypes(), true)) {
+	$oConfig->SetAllowedLoginTypes(array_merge($oConfig->GetAllowedLoginTypes(), ['external']));
+	$bChanged = true;
+	out('allowed external logins (single sign-on)');
+}
 foreach ($aSettings as $sCode => $value) {
 	if ($oConfig->Get($sCode) !== $value) {
 		$oConfig->Set($sCode, $value, 'arcus configure.php');

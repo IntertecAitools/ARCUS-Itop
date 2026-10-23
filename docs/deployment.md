@@ -454,7 +454,8 @@ defaults are in `backend/.env.example`. In production, set these in
     `arcus_bff`). A database of its own, **not iTop's**; the bundled MySQL
     creates it and its user on first start (with an existing MySQL, create
     them first, see above). The BFF creates its tables (`bff_sessions`,
-    `bff_password_resets`) on start and refuses to start if the database
+    `bff_password_resets`, `bff_mfa`, `bff_mfa_recovery`,
+    `bff_sign_in_audit`) on start and refuses to start if the database
     cannot be reached.
   - `memory` would sign everyone out on every restart and allows only one BFF
     instance.
@@ -472,6 +473,34 @@ defaults are in `backend/.env.example`. In production, set these in
       it into iTop's `config-itop.php`; iTop stores datetimes as local text in
       that zone, and the BFF converts them with the same value. Choose it
       before the first install; changing it later shifts every stored time.
+
+### Sign-in: MFA, single sign-on, break-glass
+
+Details and the Entra ID app registration IT must create:
+`backend/README.md`, "Single sign-on and MFA".
+
+- [ ] **`MFA_REQUIRED=staff`** (the default): agents and administrators
+      give an authenticator code after their password.
+- [ ] **A break-glass account** for when single sign-on is down: a UserLocal
+      Administrator with a long random password, listed in
+      `BREAK_GLASS_LOGINS`. Sign in with it once to enrol its authenticator,
+      and keep the password and recovery codes somewhere safe and offline.
+      Its every use is in the sign-in audit log
+      (`GET /api/admin/sign-in-audit`).
+- [ ] **Single sign-on** (when the Entra app registration exists):
+      `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`,
+      `OIDC_REDIRECT_URI` (exactly as registered), then
+      `PASSWORD_SIGN_IN=portal` or `break-glass`. Note the client secret's
+      expiry date: sign-in by SSO stops when it expires.
+- [ ] **`ITOP_EXTERNAL_AUTH_HEADER`** for staff single sign-on. Re-run
+      `itop-setup` after setting it: it turns on iTop's external login, reading
+      that header. Staff accounts must then be **external** accounts (Users →
+      type external, login = their Entra address). The header names a user to
+      iTop with no password, so iTop must stay reachable only from the BFF
+      ("Locked down" above), and your TLS proxy must strip an incoming
+      `X-Arcus-Remote-User` (`proxy_set_header X-Arcus-Remote-User "";`, as
+      the bundled `web` nginx does); close the emergency console (`:8089`) again as
+      soon as the repair is done.
 
 ### The iTop service account (`ITOP_USER`, `ITOP_PASSWORD`)
 
