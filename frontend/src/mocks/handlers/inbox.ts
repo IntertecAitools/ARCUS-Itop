@@ -11,7 +11,8 @@ let items = [
     message: 'Laptop for the new hire in Finance',
     date: new Date(Date.now() - 2 * 3_600_000).toISOString(),
     priority: 'high',
-    read: false,
+    // Read already, so the bell journey's single unread item stays the incident.
+    read: true,
     record: { type: 'UserRequest', id: 3310 },
     approval: 7,
   },
