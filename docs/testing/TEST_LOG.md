@@ -24,6 +24,31 @@ Bugs found and fixed (before the first commit):
 
 Not covered: the live Playwright suite (`npm run e2e:live`) and a manual look at the screens against the live BFF (the browser pane could not register the mock service worker, so the screens were checked through the Playwright mock journeys); `MySqlRequestFormStore` only live, no unit test. The auto-log hook writes to the main checkout's file, so this worktree's runs are listed at the end by hand.
 
+### 2026-10-23 — Approvals (Combodo "Approval process automation"), staff and portal, notifications
+
+Branch `claude/approvals-82e84e`. A separate test iTop for the extension: compose project `arcus-approvals` (`docker/docker-compose.approvals-test.yml`), container `itop-approvals` on `:8093` plus `itop-approvals-cron`, database `itop_approvals` on the Windows MySQL (a copy of `itop_prod`), mail to the shared Mailpit. The shared `itop-local`/`itop_prod` were not touched. This worktree's BFF on `:4030` (its `node_modules` a junction to the main checkout's), Vite on `:5203`.
+
+| What ran | Result | Notes |
+| --- | --- | --- |
+| Extension install on the test iTop (unattended upgrade) | ✅ after 3 passes | One pass fails (`Unknown class 'TriggerOnApprovalRequest'`) and the schema lags a compile; pass 1 without `combodo-approval-extended`, then the full list twice. Recipe in `backend/README.md`, "Approvals" |
+| Backend `npm run typecheck`, `npm test` | ✅ 532 / 532 | New `test/approvals.test.ts` (PHP unserialize incl. the real stored steps; only the caller's approvals; 404 for non-approvers; token with own or substitute passcode; reject needs a comment; 409 on a second answer or a decided approval; iTop's words when not recorded; no passcode in the request view) and `approvalIn` in `test/inbox.test.ts` |
+| Frontend `npm run typecheck`, `npx vitest run`, `npm run build` | ✅ 30 files / 166 tests | New: `ApprovalParts.test.tsx` (approve, reject needs a reason, locked while sending, levels and stand-ins, status in words), `RequireAuth.test.ts` (`portalPathFor`); `modules.test.ts` expects the new Approvals nav item |
+| Live: `node scripts/e2e-approvals.mjs` (BFF :4030 → iTop :8093 → Mailpit) | ✅ 10 / 10, twice | Portal request → awaiting approval → level 1 (end user) emailed with `APP_BASE_URL/approvals/<id>` (no `approve.php`) → reject without comment 400 → approve → 409 on repeat, 404/403 for others → level 2 (staff) emailed + bell entry → reject with comment → request rejected, requester emailed, portal shows both answers; second request approved at both levels → approved, requester emailed |
+| Live UI (built-in browser, :5203) | ✅ | End user follows the staff link `/approvals/2` → lands on `/portal/approvals/2`; reject without a comment is refused in the form; approve with a comment; nav badge clears. Staff: sidebar Approvals, "Decided by me", detail, and the approval card on `/records/UserRequest/35` |
+| After merging `origin/main` (multi-tenancy, SSO): backend typecheck + `npm test`, frontend typecheck + vitest, live e2e | ✅ 569 / 569, 166 / 166, 10 / 10 | New in `test/tenancy.test.ts`: an approval is scoped by the request it is about; `approve.php` is let through only for an approval that reads back inside the tenant |
+| Mock browser journeys (`npx playwright test`, `E2E_MOCK_URL=http://localhost:5706`, 2 workers) | ✅ 7 / 7 | After the CI fix below |
+
+Bugs found and fixed (in this branch):
+
+- `frontend/.env.local` (pointing the dev server at `:4030`) made 11 AttachmentsPanel tests fail; they pass without it. Not a code bug: the override is local only and not committed.
+- "Decided by me" took 19 s on the loaded machine (every iTop call 2.5–5 s that hour, other sessions' stacks busy): its two iTop reads now run in parallel.
+- CI "E2E (browser journeys, mock API)" failed on `6b16b06`: the bell journey expects one unread item, and the new mock "approval requested" notification was a second. The mock item now starts read (fixed in the commit after `6b16b06`).
+- After the merge with multi-tenancy, approvals would have been refused for tenant users (`ApprovalScheme` unknown to the schema = platform-only; `approve.php` not an allowed script). `ApprovalScheme` is now scoped like history (polymorphic on `obj_class`/`obj_key`), and the tenant guard checks the token's approval before posting.
+- iTop's newsroom (the bell) skips accounts without back-office access, so end-user approvers can never get a bell entry from iTop. They get the email and an Approvals badge / home prompt in the portal instead; documented.
+
+The automatic hook (`.claude/hooks/record-test-run.mjs`) did not append entries for this session's runs; the table above is the record.
+
+Not covered: approvals with tenancy switched on live (unit-tested only; the test BFF runs with tenancy off); approval timeouts, reminders and substitutes live (unit-tested only; the test rule has no timeout); a mock Playwright journey for approvals; a screen to manage approval rules (done in iTop's data for now). Test data left on the test iTop: accounts `e2e.requester`, `e2e.approver`, `e2e.manager` (random passwords), rule "E2E approvals", subcategory "E2E needs approval", coverage window "E2E 24x7", "Trial rule"/"24x7", requests R-000033 to R-000038; `e2e.portal`'s password there was changed.
 ### 2026-10-22 — Multi-tenancy core: tenants, scoping of every iTop call, cross-tenant leak tests
 
 Branch `claude/multi-tenancy-efcab8`. Backend only. This worktree's BFF on `:4010` (`TENANCY=on`, `PLATFORM_LOGINS=admin`, sessions and tenants in its own database `arcus_bff_mt`) against the shared local iTop on `:8080`. Test data added to iTop by `npm run tenants -- seed-test`: organisations `zz-mt-acme` (13) and `zz-mt-globex` (14), each with a person, an agent (`mt.<t>.agent`, Service Desk Agent, limited to its organisation), an administrator (`mt.<t>.admin`), a user request and a server; tenants `mt-acme` (`acme.localhost`) and `mt-globex` (`globex.localhost`).

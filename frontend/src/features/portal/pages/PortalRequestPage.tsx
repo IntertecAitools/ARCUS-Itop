@@ -6,6 +6,7 @@ import { StatusPill } from '@/components/data-display';
 import { Eyebrow, publicControl } from '@/components/public';
 import { cn } from '@/lib/utils';
 import { AttachmentsPanel } from '@/features/attachments';
+import { RequestApprovalCard } from '@/features/approvals';
 import { useMyRequest, useRequestActions } from '../api/portal.api';
 import { formatDate } from './PortalRequestsPage';
 import { TargetDate } from '../components/TargetDate';
@@ -212,6 +213,7 @@ export function PortalRequestPage() {
           />
         </div>
 
+        <div className="space-y-6">
         <Card className="h-fit">
           <CardHeader title="Details" />
           <CardBody>
@@ -233,6 +235,8 @@ export function PortalRequestPage() {
             </dl>
           </CardBody>
         </Card>
+        {ticket.kind === 'request' ? <RequestApprovalCard audience="portal" requestId={String(ticket.id)} /> : null}
+        </div>
       </div>
     </>
   );

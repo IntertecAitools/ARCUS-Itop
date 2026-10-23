@@ -6,6 +6,7 @@ import { Button, buttonClasses, Card, Skeleton } from '@/components/ui';
 import { EmptyState } from '@/components/feedback';
 import { cn } from '@/lib/utils';
 import { AttachmentsPanel } from '@/features/attachments';
+import { RequestApprovalCard } from '@/features/approvals';
 import { useApplyStimulus, useClassInfo, useRecord, useUpdateRecord } from '../api/useRecords';
 import { fieldLabel, layoutFor, RecordForm } from '../components/RecordForm';
 import { RelatedTab } from '../components/RelatedTab';
@@ -321,6 +322,10 @@ export function RecordDetailPage() {
             </button>
           ))}
         </div>
+      ) : null}
+
+      {className === 'UserRequest' && tab === 'details' ? (
+        <RequestApprovalCard audience="staff" requestId={id} className="mb-4" />
       ) : null}
 
       {tab === 'attachments' ? (

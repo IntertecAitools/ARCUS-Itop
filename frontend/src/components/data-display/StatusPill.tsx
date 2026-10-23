@@ -16,6 +16,9 @@ const statusMeta: Record<TicketStatus, { tone: BadgeTone; label: string }> = {
   pending: { tone: 'warning', label: 'Pending' },
   resolved: { tone: 'good', label: 'Resolved' },
   closed: { tone: 'neutral', label: 'Closed' },
+  awaiting_approval: { tone: 'warning', label: 'Awaiting approval' },
+  approved: { tone: 'good', label: 'Approved' },
+  rejected: { tone: 'serious', label: 'Rejected' },
 };
 
 export function StatusPill({

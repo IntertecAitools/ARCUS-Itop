@@ -16,6 +16,7 @@
     "schema:pull": "node scripts/pull-schema.mjs",
     "smoke": "node --import tsx scripts/smoke.ts",
     "api:check": "node scripts/api-check.mjs",
+    "approvals:setup": "node --import tsx scripts/approvals-setup.ts",
     "tenants": "node --import tsx scripts/tenants.ts",
     "e2e:tenancy": "node scripts/e2e-tenancy.mjs",
     "e2e:requests": "node scripts/e2e-requests.mjs"

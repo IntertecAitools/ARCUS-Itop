@@ -9,6 +9,8 @@ export interface InboxItem {
   read: boolean;
   /** The record it is about; opened in this platform. */
   record: { type: string; id: number } | null;
+  /** Set when it asks for the user's approval: open that approval instead. */
+  approval: number | null;
 }
 
 export interface InboxList {

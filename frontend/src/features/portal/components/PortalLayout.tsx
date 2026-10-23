@@ -8,12 +8,14 @@ import { env } from '@/config/env';
 import { useSessionStore } from '@/stores/session.store';
 import { useSignOut } from '@/features/auth';
 import { NotificationBell } from '@/features/inbox';
+import { usePendingApprovalCount } from '@/features/approvals';
 
 const LINKS = [
   { to: '/portal', label: 'Home', end: true },
   { to: '/portal/requests', label: 'My requests', end: false },
   { to: '/portal/new', label: 'New request', end: false },
   { to: '/portal/help', label: 'Knowledge base', end: false },
+  { to: '/portal/approvals', label: 'Approvals', end: false },
   { to: '/portal/profile', label: 'My profile', end: false },
 ];
 
@@ -30,6 +32,7 @@ export function PortalLayout() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const { data: pendingApprovals = 0 } = usePendingApprovalCount();
 
   // A link in the phone menu was followed: fold the menu away.
   useEffect(() => setMenuOpen(false), [pathname]);
@@ -42,8 +45,9 @@ export function PortalLayout() {
       },
     });
 
+  // Approvals is offered to the people who have some to give, or once given.
   const links = (variant: 'bar' | 'menu') =>
-    LINKS.map((link) => (
+    LINKS.filter((link) => link.to !== '/portal/approvals' || pendingApprovals > 0 || pathname.startsWith('/portal/approvals')).map((link) => (
       <NavLink
         key={link.to}
         to={link.to}
@@ -59,6 +63,12 @@ export function PortalLayout() {
         }
       >
         {link.label}
+        {link.to === '/portal/approvals' && pendingApprovals > 0 ? (
+          <span className="ms-1.5 rounded-pill bg-warning-soft px-1.5 py-px text-[11px] font-semibold text-warning-ink tabular-nums">
+            <span className="sr-only">, waiting: </span>
+            {pendingApprovals}
+          </span>
+        ) : null}
       </NavLink>
     ));
 
@@ -79,7 +89,10 @@ export function PortalLayout() {
           <div className="ms-auto flex items-center gap-1 text-[13px] lg:ms-0">
             <PublicThemeToggle />
             {/* End users only reach their own requests here. */}
-            <NotificationBell linkFor={(r) => (r.type === 'UserRequest' ? `/portal/requests/${r.id}` : null)} />
+            <NotificationBell
+              linkFor={(r) => (r.type === 'UserRequest' ? `/portal/requests/${r.id}` : null)}
+              approvalLink={(id) => `/portal/approvals/${id}`}
+            />
             <span className="ms-2 hidden text-ink-secondary md:inline">{user?.name}</span>
             <button
               type="button"
