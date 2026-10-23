@@ -5,6 +5,7 @@ import { AttachmentsService } from "./modules/attachments/attachments.service.js
 import { DashboardService } from "./modules/dashboard/index.js";
 import { DirectoryService } from "./modules/directory/index.js";
 import { IncidentsService } from "./modules/incidents/index.js";
+import { ProblemsService } from "./modules/problems/index.js";
 import { LookupsService } from "./platform/lookups/lookups.service.js";
 import { Navigation } from "./platform/navigation/navigation.service.js";
 import { Dashboards } from "./platform/dashboards/dashboards.service.js";
@@ -58,6 +59,7 @@ export interface Services {
   portal: PortalService;
   dashboard: DashboardService;
   incidents: IncidentsService;
+  problems: ProblemsService;
   directory: DirectoryService;
   defaultOrganization: DefaultOrganization;
   currentContact: CurrentContact;
@@ -174,6 +176,7 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     defaultOrganization,
     currentContact,
     incidents: new IncidentsService(objects, schema, defaultOrganization),
+    problems: new ProblemsService(objects, client, config.itop.timezone),
     directory: new DirectoryService(objects),
     tenancy,
     tenantStore,

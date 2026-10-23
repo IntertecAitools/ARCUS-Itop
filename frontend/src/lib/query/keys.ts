@@ -28,6 +28,12 @@ export const queryKeys = {
     options: () => ['incident-options'] as const,
   },
 
+  problems: {
+    all: () => ['problems'] as const,
+    analysis: (id: string) => ['problems', 'analysis', id] as const,
+    trends: (period: string, groupBy: string) => ['problems', 'trends', period, groupBy] as const,
+  },
+
   userRequests: {
     all: () => ['user-requests'] as const,
     list: (filters: Record<string, unknown>) => ['user-requests', 'list', filters] as const,

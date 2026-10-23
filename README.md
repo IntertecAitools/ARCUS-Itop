@@ -14,12 +14,13 @@ browser ──> frontend ──HTTP/JSON──> backend ──form POST──> i
 
 ## Repository map
 
-Only two folders contain code we write:
+Two folders contain the product's code; `itop-extensions/` holds the small iTop extensions it needs:
 
 | Folder | What it is | Ours? |
 | ------ | ---------- | ----- |
 | **`frontend/`** | React 19 + TypeScript + Vite. The entire UI. | ✅ **yes** |
 | **`backend/`** | Fastify + TypeScript. The BFF over iTop's REST API. | ✅ **yes** |
+| `itop-extensions/` | iTop extensions of our own (`arcus-problem-rca`), installed into an iTop's `extensions/`. | ✅ yes |
 | `cmdb-schema/` | Generator that extracts iTop's datamodel to JSON (146 classes). Run it, don't hand-edit the output. | tooling |
 | `iTop/` | Vendored upstream iTop. **Never edit.** | ❌ upstream |
 | `docker/` | Compose files, php.ini, install params for the iTop container. | infra |
@@ -28,6 +29,8 @@ Only two folders contain code we write:
 > **Rule:** all feature development happens in `frontend/` and `backend/`.
 > If a change seems to need an edit inside `iTop/`, it belongs in `backend/`
 > instead — that is what the BFF is for.
+> The exception is a field iTop's datamodel does not have at all: that is a
+> small extension in `itop-extensions/`, never an edit to `iTop/`.
 
 ---
 

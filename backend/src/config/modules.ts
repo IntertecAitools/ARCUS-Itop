@@ -4,6 +4,7 @@ import type { Services } from "../services.js";
 import { registerDashboardRoutes } from "../modules/dashboard/index.js";
 import { registerDirectoryRoutes } from "../modules/directory/index.js";
 import { registerIncidentRoutes } from "../modules/incidents/index.js";
+import { registerProblemRoutes } from "../modules/problems/index.js";
 
 /**
  * ════════════════════════════════════════════════════════════════════════════
@@ -68,6 +69,12 @@ export const modules: BackendModule[] = [
     basePath: "/api/incidents",
     description: "Unplanned interruptions to a service.",
     register: registerIncidentRoutes,
+  },
+  {
+    id: "problems",
+    basePath: "/api/problems",
+    description: "Root-cause analysis, known errors raised from problems, recurring-incident trends.",
+    register: registerProblemRoutes,
   },
 ];
 
