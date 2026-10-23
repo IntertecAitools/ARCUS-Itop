@@ -26,6 +26,8 @@ const TICKET_CLASSES = ["UserRequest", "Incident"] as const;
 
 const LIST_FIELDS =
   "id,ref,title,status,priority,operational_status,start_date,last_update,service_name,servicesubcategory_name";
+/** The resolution target, where the datamodel has one (the ITIL ticket modules). */
+const TARGET_FIELDS = ["ttr_escalation_deadline", "sla_ttr_passed"] as const;
 const DETAIL_FIELDS =
   `${LIST_FIELDS},description,solution,public_log,urgency,impact,resolution_date,close_date,` +
   "caller_id_friendlyname,agent_id_friendlyname,team_id_friendlyname";
@@ -42,6 +44,13 @@ export interface PortalTicket {
   updatedAt: string;
   service: string;
   subcategory: string;
+  /**
+   * When the request should be resolved by: the time-to-resolve deadline
+   * iTop computes from the SLA that applies (ISO instant), "" when none does.
+   */
+  targetDate: string;
+  /** The target date passed before the request was resolved. */
+  targetMissed: boolean;
 }
 
 export interface PortalTicketDetail extends PortalTicket {
@@ -99,7 +108,13 @@ export class PortalService {
   }
 
   private fieldSpec(fields: string): string {
-    return TICKET_CLASSES.map((c) => `${c}:${fields}`).join(";");
+    return TICKET_CLASSES.map((c) => `${c}:${fields}${this.targetFields(c)}`).join(";");
+  }
+
+  /** `,ttr_escalation_deadline,...` for a class that has them, else "". */
+  private targetFields(cls: string): string {
+    const known = this.schema.get(cls)?.fields ?? {};
+    return TARGET_FIELDS.filter((f) => known[f]).map((f) => `,${f}`).join("");
   }
 
   /** A row's fields with its DateTimes and case-log dates as ISO instants. */
@@ -121,6 +136,8 @@ export class PortalService {
       updatedAt: str(f["last_update"]),
       service: str(f["service_name"]),
       subcategory: str(f["servicesubcategory_name"]),
+      targetDate: str(f["ttr_escalation_deadline"]),
+      targetMissed: str(f["sla_ttr_passed"]) === "yes",
     };
   }
 
@@ -187,7 +204,9 @@ export class PortalService {
 
   private async loadInScope(caller: Caller, id: number, fields: string): Promise<FlatObject> {
     const extra = fields.includes("user_satisfaction") ? "" : ",user_satisfaction,user_comment";
-    const spec = TICKET_CLASSES.map((c) => `${c}:${fields}${c === "UserRequest" ? extra : ""}`).join(";");
+    const spec = TICKET_CLASSES.map(
+      (c) => `${c}:${fields}${c === "UserRequest" ? extra : ""}${fields === DETAIL_FIELDS ? this.targetFields(c) : ""}`,
+    ).join(";");
     const result = await this.client.call(
       "core/get",
       { class: "Ticket", key: `SELECT Ticket WHERE id = ${Number(id)} AND ${this.scope(caller)}`, output_fields: spec },

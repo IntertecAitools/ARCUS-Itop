@@ -4,6 +4,28 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-10-23 — Request forms per catalogue item; target date for the requester
+
+Branch `claude/requests-c8e01b`. This worktree's BFF on `:4040` (sessions and request forms in the shared `arcus_bff` database, new table `bff_request_forms`) against the shared local iTop on `:8080`. iTop 3.4 community has no request templates, so form definitions live in the BFF and answers are written into the request's description. The target date is iTop's own time-to-resolve deadline (`ttr_escalation_deadline`, from the SLA that applies).
+
+| What ran | Result | Notes |
+| --- | --- | --- |
+| Backend `npm run typecheck` | ✅ | |
+| Backend `npm test` | ✅ 569 / 569 (582 / 582 after merging main with approvals) | 13 new in `test/request-forms.test.ts`: answer checks (required, number, date, choice; all problems at once), the HTML block (escaping, line breaks, an HTML description kept), service + subcategory merge, definition cleaning, save only for a visible catalogue item, catalogue counts, staff create through `/api/objects/UserRequest` (answers written, refused without a required answer before iTop is called, no form = untouched), target date read and converted from iTop's time zone, target fields asked only where the datamodel has them |
+| Live `npm run e2e:requests` | ✅ 16 / 16 | Sets up its own service, subcategory, contract and a 72 h TTR SLA, then: admin saves forms, broken/unknown forms refused, catalogue counts; portal user reads the merged form, cannot read another service's or the staff endpoint, is refused without the required answer, raises a request whose description holds the answers and whose target date is 72 h out (and in the list); a request with no SLA has no target date; an agent's create is refused without the answer and carries it with; emptying a form removes it. Everything it created is deleted again (the portal account `e2e.requests.portal` is kept and reused) |
+| Frontend `tsc -p tsconfig.app.json` | ✅ | |
+| Frontend `npx vitest run` | ✅ 163 / 163 (170 / 170 after the merge) | includes new `request-forms/lib/fields.test.ts` |
+| Playwright mock journeys `request-forms`, `portal` (`E2E_MOCK_URL=http://localhost:5714`) | ✅ 4 / 4 | new `request-forms.spec.ts`: a service's required question blocks submit, answers and the target date show on the request; a service with no form asks nothing; admin adds a question, preview shows it, save |
+
+Bugs found and fixed (before the first commit):
+
+- iTop stores a ticket's description as HTML (`<format>html</format>`), so the first plain-text "Request details" block would have collapsed onto one line in iTop and its emails. The block is now HTML (`<p>`, `<ul><li>`), a plain description is converted with its line breaks, and the portal shows list items as "- " lines. A typed `<Ana>` is not mistaken for HTML (caught by the unit test).
+- A broken form definition could reach iTop before being refused (and failed as a 502 when iTop was busy); the definition is now checked first.
+
+Second merge of main (SSO+MFA #24, Problems #27): conflicts in the module registries, `services.ts`, `package.json`, the READMEs' script tables and this log, all lists both sides added to; both kept. The first union of the backend registry ran two entries into one object (caught by `tsc`, fixed). The worktree's `node_modules` were junctions to the main checkout's, which had been emptied, so this worktree got its own `npm ci`. Staff password sign-in now asks for TOTP (`MFA_REQUIRED=staff`): `e2e:requests` runs against a BFF with `MFA_REQUIRED=off`, as the README prescribes for scripted sign-ins, or answers the prompt when given `E2E_STAFF_TOTP_SECRET`. After that merge: backend 637/637, frontend typecheck clean and vitest 180/180, all 13 Playwright mock journeys, live `e2e:requests` 16/16.
+
+Not covered: the live Playwright suite (`npm run e2e:live`) and a manual look at the screens against the live BFF (the browser pane could not register the mock service worker, so the screens were checked through the Playwright mock journeys); `MySqlRequestFormStore` only live, no unit test. The auto-log hook writes to the main checkout's file, so this worktree's runs are listed at the end by hand.
+
 ### 2026-10-23 — Problems: root-cause fields (iTop extension), known error from a problem, recurring-incident trends
 
 Branch `claude/problems-80ecee`. This worktree's BFF on `:4050` (`node_modules` junctions to the main checkout's) against the shared local iTop on `:8080`, signed in as the local `admin`; Vite on `:5223` in mock mode for a look at the screens. The shared iTop does **not** have the new `arcus-problem-rca` extension yet: where it is installed is waiting on the user, so the live run covers the "extension missing" path, and the "extension present" path is unit-tested only.
@@ -981,3 +1003,25 @@ Not covered yet: approvals (extension not installed); load and concurrency beyon
   - command: `npm run typecheck; npm test`
 - **2026-10-23** · `claude/problems-80ecee` merging `origin/main` · Typecheck + frontend unit tests (vitest) · ✅ 176 passed, 0 failed (added by hand; after merging main)
   - command: `npm run typecheck; npx vitest run`
+- **2026-10-23 05:50 UTC** · `claude/requests-c8e01b@2d47fa2` + uncommitted changes · Unit tests (backend) · ✅ 569 passed, 0 failed (added by hand: the hook logged to the main checkout)
+  - command: `npm test`
+- **2026-10-23 05:52 UTC** · `claude/requests-c8e01b@2d47fa2` + uncommitted changes · Live end-to-end script (backend) · ✅ 16 passed, 0 failed (added by hand)
+  - command: `E2E_STAFF_PASSWORD=… npm run e2e:requests`
+- **2026-10-23 06:00 UTC** · `claude/requests-c8e01b@2d47fa2` + uncommitted changes · Frontend unit tests (vitest) + typecheck (frontend) · ✅ 163 passed, 0 failed (added by hand)
+  - command: `npx tsc -p tsconfig.app.json --noEmit; npx vitest run`
+- **2026-10-23 06:20 UTC** · `claude/requests-c8e01b@2d47fa2` + uncommitted changes · Playwright mock journeys (frontend) · ✅ 4 passed, 0 failed (added by hand)
+  - command: `E2E_MOCK_URL=http://localhost:5714 npx playwright test request-forms portal --workers=1`
+- **2026-10-23 07:10 UTC** · `claude/requests-c8e01b@1c16737` (after merging main with approvals) · Unit tests + typecheck (backend) · ✅ 582 passed, 0 failed (added by hand)
+  - command: `npm run typecheck; npm test`
+- **2026-10-23 07:15 UTC** · `claude/requests-c8e01b@1c16737` · Frontend typecheck + vitest (frontend) · ✅ 170 passed, 0 failed (added by hand)
+  - command: `npx tsc -p tsconfig.app.json --noEmit; npx vitest run`
+- **2026-10-23 07:20 UTC** · `claude/requests-c8e01b@1c16737` · Playwright mock journeys (frontend) · ✅ 4 passed, 0 failed (added by hand)
+  - command: `E2E_MOCK_URL=http://localhost:5714 npx playwright test request-forms portal approvals --workers=1`
+- **2026-10-23 10:00 UTC** · `claude/requests-c8e01b` merging `origin/main` (SSO+MFA, Problems) · Typecheck + unit tests (backend) · ✅ 637 passed, 0 failed (added by hand)
+  - command: `npm run typecheck; npm test`
+- **2026-10-23 10:10 UTC** · `claude/requests-c8e01b` merging `origin/main` · Typecheck + frontend unit tests (vitest) · ✅ 180 passed, 0 failed (added by hand)
+  - command: `npm run typecheck; npx vitest run`
+- **2026-10-23 10:20 UTC** · `claude/requests-c8e01b` merging `origin/main` · Live end-to-end script (backend, BFF with MFA_REQUIRED=off) · ✅ 16 passed, 0 failed (added by hand)
+  - command: `E2E_STAFF_PASSWORD=… npm run e2e:requests`
+- **2026-10-23 10:25 UTC** · `claude/requests-c8e01b` merging `origin/main` · Playwright mock journeys (frontend) · ✅ 13 passed, 0 failed (added by hand)
+  - command: `E2E_MOCK_URL=http://localhost:5714 npx playwright test --workers=1`

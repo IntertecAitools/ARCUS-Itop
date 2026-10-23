@@ -6,6 +6,7 @@ import { PageIntro } from '@/components/public';
 import { DataTable, StatusPill, type Column } from '@/components/data-display';
 import { cn, dateTimeText } from '@/lib/utils';
 import { useMyRequests } from '../api/portal.api';
+import { TargetDate } from '../components/TargetDate';
 import type { PortalTicket } from '../types';
 
 /** A request's date-time on the viewer's clock. */
@@ -17,6 +18,7 @@ const columns: Column<PortalTicket>[] = [
   { id: 'service', header: 'Service', enableSorting: false, cell: ({ row }) => row.original.subcategory || row.original.service || '—' },
   { id: 'status', header: 'Status', size: 120, enableSorting: false, cell: ({ row }) => <StatusPill status={row.original.status} size="sm" /> },
   { id: 'created', header: 'Raised', size: 140, enableSorting: false, cell: ({ row }) => formatDate(row.original.createdAt) },
+  { id: 'target', header: 'Expected by', size: 150, enableSorting: false, cell: ({ row }) => <TargetDate ticket={row.original} variant="cell" /> },
 ];
 
 /** The user's own requests (and incidents), open or closed, newest first. */
@@ -96,6 +98,11 @@ export function PortalRequestsPage() {
                   <StatusPill status={t.status} size="sm" />
                   <span className="truncate text-[13px] text-ink-secondary">{t.subcategory || t.service}</span>
                 </span>
+                {t.targetDate && !t.closed ? (
+                  <span className="mt-1 block text-[13px] text-ink-secondary">
+                    Expected by <TargetDate ticket={t} variant="cell" />
+                  </span>
+                ) : null}
               </Link>
             </li>
           ))

@@ -9,6 +9,7 @@ import { useClasses, useClassInfo, useCreateRecord } from '../api/useRecords';
 import { humaniseAttcode } from '../components/FieldControls';
 import { layoutFor, mustSupply, RecordForm } from '../components/RecordForm';
 import type { RecordDto } from '../types';
+import { RequestFormSection, answersFor, missingRequired, type FormAnswers, type FormField } from '@/features/request-forms';
 
 /** What the BFF returns from a create: the row, plus anything iTop refused. */
 interface CreateResult {
@@ -45,6 +46,10 @@ export function RecordNewPage() {
   );
 
   const [draft, setDraft] = useState<Record<string, string>>({});
+  // A user request also asks its service's own questions (request forms).
+  const isRequest = className === 'UserRequest';
+  const [formFields, setFormFields] = useState<FormField[]>([]);
+  const [answers, setAnswers] = useState<FormAnswers>({});
   /**
    * Set only when the record was created but iTop refused some fields, which
    * is a real case: `priority` on a ticket is derived from impact and urgency,
@@ -72,12 +77,14 @@ export function RecordNewPage() {
   const fields = useMemo(() => fieldsets.flatMap((f) => f.fields), [fieldsets]);
 
   const missing = useMemo(
-    () =>
-      fields.filter((a) => {
+    () => [
+      ...fields.filter((a) => {
         const spec = info?.fields[a];
         return spec && mustSupply(spec) && !(draft[a] ?? '').trim();
       }),
-    [fields, info, draft],
+      ...missingRequired(formFields, answers).map((f) => f.label),
+    ],
+    [fields, info, draft, formFields, answers],
   );
 
   const crumbs = [
@@ -98,7 +105,8 @@ export function RecordNewPage() {
       if (value !== '') payload[attcode] = value;
     }
 
-    create.mutate(payload, {
+    const formAnswers = formFields.length > 0 ? answersFor(formFields, answers) : undefined;
+    create.mutate({ fields: payload, ...(formAnswers ? { formAnswers } : {}) }, {
       onSuccess: (result: CreateResult) => {
         if (result.rejected.length > 0) {
           setPartial(result);
@@ -260,6 +268,18 @@ export function RecordNewPage() {
           }
         />
       </Card>
+
+      {isRequest ? (
+        <RequestFormSection
+          audience="staff"
+          serviceId={Number(draft['service_id']) || undefined}
+          subcategoryId={Number(draft['servicesubcategory_id']) || undefined}
+          answers={answers}
+          onChange={(key, value) => setAnswers((a) => ({ ...a, [key]: value }))}
+          onFields={setFormFields}
+          className="mb-4"
+        />
+      ) : null}
 
       <RecordForm
         info={info}
