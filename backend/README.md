@@ -709,11 +709,20 @@ recompiled; back up the database first):
    lets requests in flight finish).
 5. Check: `core/get` on a Problem with `output_fields=root_cause` returns the
    field, and `npm run e2e:problems` reports "this iTop has the
-   arcus-problem-rca extension" and passes (on a BFF with
-   `MFA_REQUIRED=off`, as for the other e2e scripts).
+   arcus-problem-rca extension" and passes.
 
 Installed on the shared local iTop (`:8080`, `itop_prod`) on 2026-10-23,
 after a dump of `itop_prod` to `C:\Users\Venkatesh.V\itop-backups\`.
+
+`npm run e2e:problems` keeps MFA on. It signs in as a staff test account
+(on the local iTop: `e2e.problems`, Administrator + REST Services User)
+whose login and password are in `backend/e2e.local.json` (git-ignored):
+`{ "problems": { "login": "…", "password": "…", "totpSecret": "" } }`. On
+its first run the script enrols the account in MFA and writes the secret
+into that file; afterwards it answers the MFA step with codes made from it.
+To start over (new iTop, lost file): create the account (from **Users**, or
+in iTop), put its login and password in the file, and remove its MFA
+enrolment from **Users** so the next run enrols again.
 
 For production, add the folder to the iTop image's `extensions/` before the
 first install, and `arcus-problem-rca` to the install's module list.
@@ -1112,7 +1121,7 @@ finding out via a 404.
 | `npm run schema:pull` | vendor `cmdb-schema.json` into `schema/` |
 | `npm run tenants -- <command>` | list / set / enable / disable / remove tenants; `seed-test` for a local iTop |
 | `npm run e2e:tenancy` | live cross-tenant leak test (BFF on :4010 with `TENANCY=on`, after `seed-test`) |
-| `npm run e2e:problems` | live problem management: root cause, known error, trends (BFF on :4050 with `MFA_REQUIRED=off`; `E2E_LOGIN`, `E2E_PASSWORD`). Creates and deletes its own records |
+| `npm run e2e:problems` | live problem management: root cause, known error, trends (BFF on :4050, MFA on; account and TOTP secret in `backend/e2e.local.json`, see "Problems"). Creates and deletes its own records |
 
 ## Known limitations
 

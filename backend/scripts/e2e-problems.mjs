@@ -14,21 +14,35 @@
  *     recurring, by service, CI and category.
  * Everything it creates is deleted at the end, pass or fail.
  *
- *   E2E_LOGIN=admin E2E_PASSWORD=... npm run e2e:problems     BFF on http://127.0.0.1:4050
+ *   npm run e2e:problems                                  BFF on http://127.0.0.1:4050
  *   E2E_BFF=http://127.0.0.1:4000 npm run e2e:problems
  *
- * Signs in with a password only, so the BFF it uses needs MFA_REQUIRED=off.
+ * MFA stays on. The account is a staff test account (Administrator) whose
+ * login, password and TOTP secret live in backend/e2e.local.json (git-
+ * ignored): { "problems": { "login", "password", "totpSecret" } }. With no
+ * secret yet, the first run enrols the account in MFA and saves the secret
+ * there; every run then answers the MFA step with a code made from it.
+ * Setting it up: backend/README.md, "Problems".
  */
+import fs from "node:fs";
 import http from "node:http";
 
+import { timeStep, totpAt } from "../src/platform/auth/totp.ts";
+
+const CONFIG = new URL("../e2e.local.json", import.meta.url);
 const BFF = new URL(process.env.E2E_BFF ?? "http://127.0.0.1:4050");
-const LOGIN = process.env.E2E_LOGIN ?? "admin";
-const PASSWORD = process.env.E2E_PASSWORD;
 const ORIGIN = process.env.E2E_ORIGIN ?? "http://localhost:5173";
 const TAG = `e2e-problems ${new Date().toISOString().slice(0, 19)}`;
 
-if (!PASSWORD) {
-  console.error("Set E2E_PASSWORD (and E2E_LOGIN if not admin).");
+let config;
+try {
+  config = JSON.parse(fs.readFileSync(CONFIG, "utf8"));
+} catch {
+  config = {};
+}
+const account = config.problems;
+if (!account?.login || !account?.password) {
+  console.error('Put { "problems": { "login", "password" } } in backend/e2e.local.json (backend/README.md, "Problems").');
   process.exit(2);
 }
 
@@ -92,13 +106,54 @@ async function create(className, fields) {
   return id;
 }
 
+/** Keeps the session cookie a response sets (sign-in, and again once MFA completes). */
+function keepCookie(res) {
+  const set = res.headers["set-cookie"];
+  if (set) cookie = String(Array.isArray(set) ? set[0] : set).split(";")[0];
+}
+
+const code = (secret, offset = 0) => totpAt(secret, timeStep(Date.now()) + offset);
+
+/** Password, then the MFA step: enrols (saving the secret) or answers with a code. */
+async function signIn() {
+  const login = await request("POST", "/api/auth/login", { login: account.login, password: account.password });
+  if (login.status !== 200) throw new Error(`sign-in: ${login.status} ${login.text.slice(0, 200)}`);
+  keepCookie(login);
+  if (login.json.user) throw new Error("signed in without MFA: this BFF has MFA off, which this script does not expect");
+
+  if (login.json.mfa?.step === "enrol") {
+    const enrol = await request("GET", "/api/auth/mfa/enrol");
+    if (enrol.status !== 200) throw new Error(`MFA set-up: ${enrol.status} ${enrol.text.slice(0, 200)}`);
+    account.totpSecret = enrol.json.secret;
+    const done = await request("POST", "/api/auth/mfa/enrol", { code: code(account.totpSecret) });
+    if (done.status !== 200) throw new Error(`MFA enrolment: ${done.status} ${done.text.slice(0, 200)}`);
+    keepCookie(done);
+    fs.writeFileSync(CONFIG, `${JSON.stringify(config, null, 2)}
+`);
+    check("enrolled in MFA; secret saved to e2e.local.json", Boolean(done.json.user));
+    return done.json.user;
+  }
+
+  if (!account.totpSecret) throw new Error("the account is enrolled in MFA but e2e.local.json has no totpSecret");
+  // A code is accepted once: if the last run used this 30-second step, the
+  // next step's code is the one to send.
+  for (const offset of [0, 1]) {
+    if (offset) await new Promise((r) => setTimeout(r, (30 - (Math.floor(Date.now() / 1000) % 30) + 1) * 1000));
+    const verify = await request("POST", "/api/auth/mfa/verify", { code: code(account.totpSecret) });
+    if (verify.status === 200) {
+      keepCookie(verify);
+      check("signed in with password and a TOTP code", Boolean(verify.json.user));
+      return verify.json.user;
+    }
+    if (offset) throw new Error(`MFA code refused: ${verify.status} ${verify.text.slice(0, 200)}`);
+  }
+}
+
 const daysAgo = (n) => new Date(Date.now() - n * 86_400_000).toISOString();
 
 async function main() {
-  const login = await request("POST", "/api/auth/login", { login: LOGIN, password: PASSWORD });
-  if (login.status !== 200) throw new Error(`sign-in: ${login.status} ${login.text.slice(0, 200)}`);
-  cookie = String(login.headers["set-cookie"]).split(";")[0];
-  const orgId = Number(login.json.user.orgId || 1);
+  const user = await signIn();
+  const orgId = Number(user.orgId || 1);
 
   console.log("\nSetup");
   const serviceId = await create("Service", { name: `${TAG} service`, org_id: orgId });

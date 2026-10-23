@@ -14,3 +14,6 @@ frontend/test-results/
 /docker/prod.env
 /docker/prod.local.env
 /docker/itop.env
+
+# Local e2e test accounts and their TOTP secrets (backend/README.md, "Problems")
+backend/e2e.local.json

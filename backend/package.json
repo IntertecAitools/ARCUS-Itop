@@ -21,7 +21,7 @@
     "approvals:setup": "node --import tsx scripts/approvals-setup.ts",
     "tenants": "node --import tsx scripts/tenants.ts",
     "e2e:tenancy": "node scripts/e2e-tenancy.mjs",
-    "e2e:problems": "node scripts/e2e-problems.mjs"
+    "e2e:problems": "node --import tsx scripts/e2e-problems.mjs"
   },
   "dependencies": {
     "@fastify/multipart": "^10.1.3",

@@ -6,7 +6,7 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ### 2026-10-23 — Problems: root-cause fields (iTop extension), known error from a problem, recurring-incident trends
 
-Branch `claude/problems-80ecee`. This worktree's BFF on `:4050` (`node_modules` junctions to the main checkout's) against the shared local iTop on `:8080`, signed in as the local `admin`; Vite on `:5223` in mock mode for a look at the screens. The new `arcus-problem-rca` extension was first tested live as missing, then installed on the shared iTop (`itop_prod`, after a mysqldump to `C:\Users\Venkatesh.V\itop-backups\`) and tested again with it. Since the merge with `main` the BFF defaults to MFA for staff; this worktree's test BFF runs with `MFA_REQUIRED=off` (user approved), as the e2e scripts require.
+Branch `claude/problems-80ecee`. This worktree's BFF on `:4050` (`node_modules` junctions to the main checkout's) against the shared local iTop on `:8080`, signed in as the local `admin`; Vite on `:5223` in mock mode for a look at the screens. The new `arcus-problem-rca` extension was first tested live as missing, then installed on the shared iTop (`itop_prod`, after a mysqldump to `C:\Users\Venkatesh.V\itop-backups\`) and tested again with it. Since the merge with `main` the BFF defaults to MFA for staff. The first full run used `MFA_REQUIRED=off` on this worktree's test BFF; at the user's request it was then turned back on, and the script now signs in as a dedicated test account, `e2e.problems` (Administrator + REST Services User, created on the local iTop), enrolled in TOTP, with its secret in the git-ignored `backend/e2e.local.json`.
 
 | What ran | Result | Notes |
 | --- | --- | --- |
@@ -18,6 +18,7 @@ Branch `claude/problems-80ecee`. This worktree's BFF on `:4050` (`node_modules` 
 | Live `npm run e2e:problems`, final design, iTop without the extension | ✅ 15 / 15 | Analysis answers empty with `available: false`; saving and raising a known error are 409s naming the extension; the generic Problem record still reads; trend groups a throwaway service's 3 incidents (1, 8, 15 days ago, one linked to the problem) as recurring, by service, category and CI, weekly and monthly. Everything created was deleted |
 | Install on the shared iTop: unattended upgrade (`docker/itop-problem-rca-upgrade.xml`), `apache2ctl graceful` | ✅ after two runs | Module list checked against `priv_module_install` (46 installed, the same, plus ours). The first run compiled the fields but left the database without the columns; the second added them. Maintenance mode off afterwards; `core/get` returns the three fields; Incident reads unaffected |
 | Live `npm run e2e:problems`, iTop **with** the extension | ✅ 28 / 28 (twice) | Save root cause / workaround / resolution (markup characters and line breaks exact), generic Problem read still fine; known error created with all three copied, `problem_id`, symptom from the description, domain, error code, exactly the problem's CI linked; the problem lists it; trends as before. Everything created was deleted |
+| Live `npm run e2e:problems`, MFA **on**, TOTP | ✅ 29 / 29 (three runs) | First run enrolled `e2e.problems` and saved the secret; the next two answered the MFA step with generated codes (back to back, so the one-use-per-30 s rule was exercised). All checks as in the run above, plus the sign-in |
 | Mock UI in the browser pane (`/problem-trends`) | ✅ | Stats, chart and table render; "Open a problem" offered for a recurring group without one. The Root cause tab was not looked at in the browser (the pane stalled on reloads); its component tests cover it |
 
 Bugs found and fixed (before the first commit):
@@ -989,3 +990,5 @@ Not covered yet: approvals (extension not installed); load and concurrency beyon
   - command: `E2E_LOGIN=… E2E_PASSWORD=… E2E_ORIGIN=http://localhost:5223 node scripts/e2e-problems.mjs`
 - **2026-10-23 04:3x UTC** · `claude/problems-80ecee@df25751` + uncommitted changes · Live end-to-end script (backend) · ✅ 28 passed, 0 failed, twice (added by hand; iTop with the extension, corrected check)
   - command: `E2E_LOGIN=… E2E_PASSWORD=… E2E_ORIGIN=http://localhost:5223 node scripts/e2e-problems.mjs`
+- **2026-10-23** · `claude/problems-install-followup` + uncommitted changes · Live end-to-end script (backend) · ✅ 29 passed, 0 failed, three runs (added by hand; MFA on, TOTP test account; first run enrolled)
+  - command: `E2E_ORIGIN=http://localhost:5223 npm run e2e:problems`
