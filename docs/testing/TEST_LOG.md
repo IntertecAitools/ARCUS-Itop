@@ -23,6 +23,8 @@ Bugs found and fixed:
 - The frontend architecture test forbids iTop stimulus names in UI code; the generic hold dialog first keyed on `ev_pending`. It now asks for the date when the action's target state is `pending`.
 - First live run also met a 502 while the Changes session ran its own iTop upgrade; re-run after it finished.
 
+After merging main (Changes #30; conflicts in the registries, `services.ts`, the READMEs, this log and the mock handler list, all kept from both sides): backend typecheck clean and `npm test` 698 / 698, frontend `tsc -b` clean and vitest 40 files / 198 tests.
+
 Not covered: the IMAP / Microsoft 365 mail source (no mailbox; only Mailpit's API was exercised — the README lists what IT must provide); attachments on emailed tickets (not built); the new screens were not clicked through in a browser against the live BFF (component tests and the mock handlers cover them); `e2e:incidents` with MFA on (needs an `incidents` account in `backend/e2e.local.json`).
 
 ### 2026-10-27 — Changes: CAB decisions, plans required by change type (iTop extension arcus-change-cab)
