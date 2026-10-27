@@ -97,7 +97,7 @@ export function TransitionDialog({
   });
 
   // Putting a ticket on hold also asks when someone acts on it again.
-  const asksDate = asksNextActionDate(info.name, action);
+  const asksDate = asksNextActionDate(info, record, action);
   const [nextActionDate, setNextActionDate] = useState('');
   const today = new Date().toLocaleDateString('en-CA');
   const missing = [

@@ -57,7 +57,7 @@ export function RecordDetailPage() {
    */
   const runAction = (action: string) => {
     if (!info || !record) return;
-    if (transitionPrompts(info, record, action).length > 0 || asksNextActionDate(info.name, action)) {
+    if (transitionPrompts(info, record, action).length > 0 || asksNextActionDate(info, record, action)) {
       stimulus.reset();
       setPendingAction(action);
       return;

@@ -28,7 +28,7 @@ describe("TicketExtras", () => {
     assert.equal(await extras.available("Incident"), true);
     assert.equal(await extras.available("Incident"), true);
     assert.equal(fake.calls.length, 1);
-    assert.match(String(fake.calls[0]?.params["key"]), /next_action_date IS NULL/);
+    assert.match(String(fake.calls[0]?.params["key"]), /next_action_date > '2000-01-01'/);
   });
 
   it("reports a missing extension and asks again later rather than at every call", async () => {

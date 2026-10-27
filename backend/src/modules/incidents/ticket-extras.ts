@@ -99,7 +99,7 @@ export class TicketExtras {
     if (typeof known === "number" && this.now().getTime() - known < MISSING_RECHECK_MS) return false;
     const result = await this.client.callRaw(
       "core/get",
-      { class: className, key: `SELECT ${className} WHERE id = 0 AND next_action_date IS NULL`, output_fields: "id" },
+      { class: className, key: `SELECT ${className} WHERE id = 0 AND next_action_date > '2000-01-01'`, output_fields: "id" },
       { asService: true },
     );
     if (result.code === 0) {
