@@ -7,6 +7,12 @@ import { DirectoryService } from "./modules/directory/index.js";
 import { IncidentsService } from "./modules/incidents/index.js";
 import { ProblemsService } from "./modules/problems/index.js";
 import {
+  ChangesService,
+  MemoryPlanRuleStore,
+  MySqlPlanRuleStore,
+  type PlanRuleStore,
+} from "./modules/changes/index.js";
+import {
   MemoryRequestFormStore,
   MySqlRequestFormStore,
   RequestFormsService,
@@ -86,6 +92,7 @@ export interface Services {
   dashboard: DashboardService;
   incidents: IncidentsService;
   problems: ProblemsService;
+  changes: ChangesService;
   requestForms: RequestFormsService;
   directory: DirectoryService;
   defaultOrganization: DefaultOrganization;
@@ -108,6 +115,8 @@ export interface BuildServicesOptions {
   tenants?: TenantStore;
   /** Request forms for tests; otherwise in the BFF database, or memory. */
   requestForms?: RequestFormStore;
+  /** Change plan rules for tests; otherwise in the BFF database, or memory. */
+  planRules?: PlanRuleStore;
   /** Stands in for SMTP in tests; otherwise built from PASSWORD_RESET settings. */
   mailer?: Mailer;
   logger?: Logger;
@@ -198,6 +207,15 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
   const dashboards =
     options.dashboards ?? Dashboards.fromFile(config.dashboardsPath, objects, schema);
   const transfer = new TransferService(client, schema);
+  const changes = new ChangesService(
+    client,
+    options.planRules ?? (stores?.pool ? new MySqlPlanRuleStore(stores.pool) : new MemoryPlanRuleStore()),
+    config.itop.timezone,
+  );
+  // Every action on a change, from any screen, meets the plan and CAB rules.
+  objects.addTransitionGuard((className, id, stimulus, fields) =>
+    changes.guardTransition(className, id, stimulus, fields),
+  );
 
   return {
     config,
@@ -235,6 +253,7 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     currentContact,
     incidents: new IncidentsService(objects, schema, defaultOrganization),
     problems: new ProblemsService(objects, client, config.itop.timezone),
+    changes,
     requestForms: new RequestFormsService(
       client,
       options.requestForms ?? (stores?.pool ? new MySqlRequestFormStore(stores.pool) : new MemoryRequestFormStore()),

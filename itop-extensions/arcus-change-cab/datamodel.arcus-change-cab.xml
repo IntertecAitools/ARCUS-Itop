@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<itop_design xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="3.2">
+  <classes>
+    <!-- Plans on every change. The rollback plan is iTop's own `fallback`;
+         these two are what iTop lacks. They are read and written by the
+         platform only, so they are left out of iTop's forms. -->
+    <class id="Change" _delta="must_exist">
+      <fields>
+        <field id="implementation_plan" xsi:type="AttributeText" _delta="define">
+          <sql>implementation_plan</sql>
+          <default_value/>
+          <is_null_allowed>true</is_null_allowed>
+        </field>
+        <field id="test_plan" xsi:type="AttributeText" _delta="define">
+          <sql>test_plan</sql>
+          <default_value/>
+          <is_null_allowed>true</is_null_allowed>
+        </field>
+      </fields>
+    </class>
+
+    <!-- Which plans a change needs is decided by the platform's rules
+         (per change type, administrator-editable), so iTop no longer makes
+         the fallback plan mandatory itself; it still asks for it at Plan.
+         Every state that set <mandatory/> on fallback directly is redefined;
+         the others inherit from these. -->
+    <class id="RoutineChange" _delta="must_exist">
+      <lifecycle>
+        <states>
+          <state id="plannedscheduled" _delta="must_exist">
+            <flags>
+              <attribute id="fallback" _delta="redefine">
+                <must_prompt/>
+              </attribute>
+            </flags>
+          </state>
+          <state id="approved" _delta="must_exist">
+            <flags>
+              <attribute id="fallback" _delta="redefine"/>
+            </flags>
+          </state>
+          <state id="notapproved" _delta="must_exist">
+            <flags>
+              <attribute id="fallback" _delta="redefine"/>
+            </flags>
+          </state>
+        </states>
+      </lifecycle>
+    </class>
+    <class id="NormalChange" _delta="must_exist">
+      <lifecycle>
+        <states>
+          <state id="plannedscheduled" _delta="must_exist">
+            <flags>
+              <attribute id="fallback" _delta="redefine">
+                <must_prompt/>
+              </attribute>
+            </flags>
+          </state>
+        </states>
+      </lifecycle>
+    </class>
+    <class id="EmergencyChange" _delta="must_exist">
+      <lifecycle>
+        <states>
+          <state id="plannedscheduled" _delta="must_exist">
+            <flags>
+              <attribute id="fallback" _delta="redefine">
+                <must_prompt/>
+              </attribute>
+            </flags>
+          </state>
+        </states>
+      </lifecycle>
+    </class>
+
+    <!-- One Change Advisory Board decision on a change. A change can have
+         several (deferred, then approved), so this is the history. -->
+    <class id="ChangeCabDecision" _delta="define">
+      <parent>cmdbAbstractObject</parent>
+      <properties>
+        <category>bizmodel,changemgmt</category>
+        <abstract>false</abstract>
+        <key_type>autoincrement</key_type>
+        <db_table>arcus_change_cab_decision</db_table>
+        <db_key_field>id</db_key_field>
+        <db_final_class_field/>
+        <naming>
+          <attributes>
+            <attribute id="change_ref"/>
+            <attribute id="decision"/>
+          </attributes>
+        </naming>
+        <style>
+          <icon/>
+        </style>
+        <reconciliation>
+          <attributes>
+            <attribute id="change_id"/>
+            <attribute id="meeting_date"/>
+          </attributes>
+        </reconciliation>
+      </properties>
+      <fields>
+        <field id="change_id" xsi:type="AttributeExternalKey">
+          <sql>change_id</sql>
+          <target_class>Change</target_class>
+          <is_null_allowed>false</is_null_allowed>
+          <on_target_delete>DEL_AUTO</on_target_delete>
+        </field>
+        <field id="change_ref" xsi:type="AttributeExternalField">
+          <extkey_attcode>change_id</extkey_attcode>
+          <target_attcode>ref</target_attcode>
+        </field>
+        <field id="meeting_date" xsi:type="AttributeDateTime">
+          <sql>meeting_date</sql>
+          <default_value/>
+          <is_null_allowed>false</is_null_allowed>
+        </field>
+        <field id="attendees" xsi:type="AttributeText">
+          <sql>attendees</sql>
+          <default_value/>
+          <is_null_allowed>true</is_null_allowed>
+        </field>
+        <field id="decision" xsi:type="AttributeEnum">
+          <values>
+            <value id="approved">
+              <code>approved</code>
+            </value>
+            <value id="rejected">
+              <code>rejected</code>
+            </value>
+            <value id="deferred">
+              <code>deferred</code>
+            </value>
+          </values>
+          <sql>decision</sql>
+          <default_value>deferred</default_value>
+          <is_null_allowed>false</is_null_allowed>
+          <display_style>list</display_style>
+        </field>
+        <field id="conditions" xsi:type="AttributeText">
+          <sql>conditions</sql>
+          <default_value/>
+          <is_null_allowed>true</is_null_allowed>
+        </field>
+        <field id="notes" xsi:type="AttributeText">
+          <sql>notes</sql>
+          <default_value/>
+          <is_null_allowed>true</is_null_allowed>
+        </field>
+        <field id="recorded_by_id" xsi:type="AttributeExternalKey">
+          <sql>recorded_by_id</sql>
+          <target_class>Person</target_class>
+          <is_null_allowed>true</is_null_allowed>
+          <on_target_delete>DEL_MANUAL</on_target_delete>
+        </field>
+        <field id="recorded_by_name" xsi:type="AttributeExternalField">
+          <extkey_attcode>recorded_by_id</extkey_attcode>
+          <target_attcode>friendlyname</target_attcode>
+        </field>
+        <field id="recorded_at" xsi:type="AttributeDateTime">
+          <sql>recorded_at</sql>
+          <default_value/>
+          <is_null_allowed>true</is_null_allowed>
+        </field>
+      </fields>
+      <methods/>
+      <presentation>
+        <details>
+          <items>
+            <item id="change_id">
+              <rank>10</rank>
+            </item>
+            <item id="meeting_date">
+              <rank>20</rank>
+            </item>
+            <item id="decision">
+              <rank>30</rank>
+            </item>
+            <item id="attendees">
+              <rank>40</rank>
+            </item>
+            <item id="conditions">
+              <rank>50</rank>
+            </item>
+            <item id="notes">
+              <rank>60</rank>
+            </item>
+            <item id="recorded_by_id">
+              <rank>70</rank>
+            </item>
+            <item id="recorded_at">
+              <rank>80</rank>
+            </item>
+          </items>
+        </details>
+        <search>
+          <items>
+            <item id="change_id">
+              <rank>10</rank>
+            </item>
+            <item id="decision">
+              <rank>20</rank>
+            </item>
+            <item id="meeting_date">
+              <rank>30</rank>
+            </item>
+          </items>
+        </search>
+        <list>
+          <items>
+            <item id="meeting_date">
+              <rank>10</rank>
+            </item>
+            <item id="decision">
+              <rank>20</rank>
+            </item>
+            <item id="recorded_by_id">
+              <rank>30</rank>
+            </item>
+          </items>
+        </list>
+      </presentation>
+    </class>
+  </classes>
+
+  <!-- Only a Change Approver records CAB decisions (administrators can do
+       everything). Every profile reads them through its "*" group. -->
+  <user_rights>
+    <groups>
+      <group id="ChangeCab" _delta="define">
+        <classes>
+          <class id="ChangeCabDecision"/>
+        </classes>
+      </group>
+    </groups>
+    <profiles>
+      <profile id="9" _delta="must_exist">
+        <groups>
+          <group id="ChangeCab" _delta="define">
+            <actions>
+              <action id="action:write">allow</action>
+            </actions>
+          </group>
+        </groups>
+      </profile>
+    </profiles>
+  </user_rights>
+</itop_design>
