@@ -46,6 +46,8 @@ const OVERRIDES: Record<string, ScopeRule> = {
   QueryOQL: { kind: "keys", keys: [{ attr: "owner_id", target: "Contact", optional: true }] },
   Query: { kind: "keys", keys: [{ attr: "owner_id", target: "Contact", optional: true }] },
   EventNotificationNewsroom: { kind: "keys", keys: [{ attr: "contact_id", target: "Contact", optional: false }] },
+  // The arcus-change-cab extension's CAB decisions: the tenant's when the change is.
+  ChangeCabDecision: { kind: "keys", keys: [{ attr: "change_id", target: "Change", optional: false }] },
   lnkAuditCategoryToAuditDomain: { kind: "shared" },
   lnkTriggerAction: { kind: "platform" },
   lnkActionNotificationToContact: { kind: "platform" },

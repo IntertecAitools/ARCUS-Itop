@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 
 import type { Services } from "../services.js";
+import { registerChangeRoutes } from "../modules/changes/index.js";
 import { registerDashboardRoutes } from "../modules/dashboard/index.js";
 import { registerDirectoryRoutes } from "../modules/directory/index.js";
 import { registerIncidentRoutes } from "../modules/incidents/index.js";
@@ -53,6 +54,12 @@ export interface BackendModule {
 }
 
 export const modules: BackendModule[] = [
+  {
+    id: "changes",
+    basePath: "/api/changes",
+    description: "Plans each change type needs before Plan / Implement, CAB decisions, changes awaiting the CAB (rules under /api/admin/change-rules).",
+    register: registerChangeRoutes,
+  },
   {
     id: "dashboard",
     basePath: "/api/dashboard",

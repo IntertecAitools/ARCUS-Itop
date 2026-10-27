@@ -1,12 +1,14 @@
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
 import {
   BellRing,
+  CalendarCheck2,
   ClipboardCheck,
   ClipboardList,
   Database,
   LayoutDashboard,
   LayoutGrid,
   LifeBuoy,
+  ListChecks,
   ListFilter,
   Repeat,
   ShieldCheck,
@@ -176,6 +178,15 @@ export const modules: ModuleDefinition[] = [
     ],
   },
   {
+    id: 'cab',
+    label: 'Awaiting CAB',
+    path: 'cab',
+    icon: CalendarCheck2,
+    group: 'operations',
+    description: 'Planned normal and emergency changes waiting for the Change Advisory Board.',
+    component: lazy(() => import('@/features/changes').then((m) => ({ default: m.CabQueuePage }))),
+  },
+  {
     id: 'problem-trends',
     label: 'Problem trends',
     path: 'problem-trends',
@@ -342,6 +353,16 @@ export const modules: ModuleDefinition[] = [
         ),
       },
     ],
+  },
+  {
+    id: 'change-rules',
+    label: 'Change plan rules',
+    path: 'change-rules',
+    icon: ListChecks,
+    group: 'administration',
+    description: 'The plans each change type needs before it can be planned or implemented.',
+    adminOnly: true,
+    component: lazy(() => import('@/features/changes').then((m) => ({ default: m.ChangeRulesPage }))),
   },
   {
     id: 'audit',
