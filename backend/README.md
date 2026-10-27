@@ -830,11 +830,12 @@ Installing it is an upgrade, like arcus-problem-rca (above): back up the
 database, `docker cp itop-extensions/arcus-change-cab <container>:/var/www/html/extensions/`
 and `chown -R www-data:www-data` it, check the module list in
 `docker/itop-change-cab-upgrade.xml` against the installed modules (it is the
-local iTop's list, arcus-problem-rca included, plus `arcus-change-cab`), copy
+local iTop's list, `arcus-problem-rca` and `arcus-incident-extras` included, plus
+`arcus-change-cab`), copy
 it in, run the unattended upgrade **twice**, then `apache2ctl graceful`.
 Check: `core/get` on a Change with `output_fields=implementation_plan`
 returns the field, and `core/get ChangeCabDecision` answers. Any later
-upgrade of that iTop must keep both arcus modules in its list.
+upgrade of that iTop must keep every arcus module in its list.
 
 `npm run e2e:changes` runs the whole flow against a BFF (default `:4020`,
 MFA on) and an iTop with the extension, each step as the profile that owns

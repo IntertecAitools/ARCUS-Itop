@@ -4,7 +4,8 @@
      fallback plan no longer mandatory in iTop) to an existing install. Mode is
      'upgrade', so the database and its data are kept. The module list is the
      local iTop's (docker/itop-problem-rca-upgrade.xml, which already added
-     arcus-problem-rca) plus the entry marked NEW. Set <database><name> and
+     arcus-problem-rca, plus arcus-incident-extras from the Incidents work)
+     plus the entry marked NEW. Set <database><name> and
      <url> for the target iTop. Steps: backend/README.md, "Changes". -->
 <installation>
   <mode>upgrade</mode>
@@ -86,6 +87,7 @@
     <item>itop-knownerror-mgmt</item>
     <item>itop-problem-mgmt</item>
     <item>arcus-problem-rca</item>
+    <item>arcus-incident-extras</item>
     <item>arcus-change-cab</item><!-- NEW -->
   </selected_modules>
   <selected_extensions type="array">
