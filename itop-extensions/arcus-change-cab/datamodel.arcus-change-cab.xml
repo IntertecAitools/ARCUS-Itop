@@ -241,6 +241,8 @@
           <group id="ChangeCab" _delta="define">
             <actions>
               <action id="action:write">allow</action>
+              <!-- iTop's REST core/create also demands bulk write. -->
+              <action id="action:bulk write">allow</action>
             </actions>
           </group>
         </groups>

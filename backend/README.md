@@ -794,8 +794,14 @@ approve through the generic action is refused on these two types
 instead. Routine changes never go to the CAB. Every decision is kept, newest
 first.
 
-iTop's profiles still decide who does what: Change Supervisor validates and
+iTop's profiles decide who does what: Change Supervisor validates and
 assigns, Change Implementor plans and implements, Change Approver approves.
+iTop's REST API does **not** check these per-action grants (`core/apply_stimulus`
+only checks that the caller may modify the class), so the changes guard
+applies iTop's own change grants from `itop-profiles-itil` to every action on
+a change (403, `reason: "profile_not_allowed"`, naming the profile needed;
+Administrator and SuperUser may do everything). Other ticket classes still
+rely on iTop alone and have the same gap.
 
 | | |
 | --- | --- |

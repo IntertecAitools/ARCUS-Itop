@@ -322,7 +322,7 @@ async function normalChange() {
     acceptance_date: new Date().toISOString(),
     acceptance_comment: "x",
   });
-  check("an Implementor may not validate (iTop refuses)", res.status >= 400 && res.status < 500, `${res.status} ${message(res)}`);
+  check("an Implementor may not validate (403: the BFF applies iTop's change grants)", res.status === 403 && reason(res) === "profile_not_allowed", `${res.status} ${message(res)}`);
 
   const id = await assignedChange("NormalChange", "upgrade the mail relay");
   res = await governance("implementor", id);
