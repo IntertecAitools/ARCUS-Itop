@@ -9,6 +9,14 @@ import { DEFAULT_ITOP_TIMEZONE, itopFieldsToIso } from "../../shared/itop-time.j
 import { validateWrite } from "../../shared/write-validation.js";
 import { criterionToOql, type Criterion } from "./criteria.js";
 
+/** See ObjectsService.addTransitionGuard. */
+export type TransitionGuard = (
+  className: string,
+  id: number,
+  stimulus: string,
+  fields: Record<string, unknown>,
+) => Promise<void>;
+
 /**
  * Upper bound on rows the BFF will pull in order to sort.
  *
@@ -635,6 +643,18 @@ export class ObjectsService {
     throw new AppError(error.code, error.message, { itopCode: result.code, details: { plan } });
   }
 
+  /**
+   * Business rules a domain module puts on lifecycle actions (changes: the
+   * plans a change type needs, the CAB's decision). Each is asked before any
+   * stimulus is applied, from the record screens and bulk actions alike, and
+   * refuses by throwing.
+   */
+  private readonly transitionGuards: TransitionGuard[] = [];
+
+  addTransitionGuard(guard: TransitionGuard): void {
+    this.transitionGuards.push(guard);
+  }
+
   /** Applies a lifecycle stimulus. Only classes with a lifecycle accept these. */
   async applyStimulus(
     className: string,
@@ -668,6 +688,8 @@ export class ObjectsService {
     const fields = hasFields
       ? validateWrite(info, rawFields, { mode: "update", strict: true, timeZone: this.timeZone }).fields
       : {};
+
+    for (const guard of this.transitionGuards) await guard(info.name, id, stimulus, fields);
 
     const result = await this.client.call("core/apply_stimulus", {
       class: info.name,

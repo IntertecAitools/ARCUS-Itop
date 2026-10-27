@@ -25,6 +25,27 @@ Bugs found and fixed:
 
 Not covered: the IMAP / Microsoft 365 mail source (no mailbox; only Mailpit's API was exercised — the README lists what IT must provide); attachments on emailed tickets (not built); the new screens were not clicked through in a browser against the live BFF (component tests and the mock handlers cover them); `e2e:incidents` with MFA on (needs an `incidents` account in `backend/e2e.local.json`).
 
+### 2026-10-27 — Changes: CAB decisions, plans required by change type (iTop extension arcus-change-cab)
+
+Branch `claude/changes-cab-a67dd0`. This worktree's BFF on `:4020` (MFA on for staff, sessions in the shared `arcus_bff` database, new table `bff_change_plan_rules`; `node_modules` junctions to the servicedesk-rename worktree's, identical lockfiles) against the shared local iTop on `:8080`. The new `arcus-change-cab` extension was installed on the shared iTop (`itop_prod`, after a mysqldump to `C:\Users\Venkatesh.V\itop-backups\itop_prod-before-arcus-change-cab-20261027-1221.sql.gz`), right after the Incidents session's `arcus-incident-extras` upgrade finished; the module list keeps both other arcus extensions.
+
+| What ran | Result | Notes |
+| --- | --- | --- |
+| Backend `npm run typecheck` | ✅ | |
+| Backend `npm test` | ✅ 664 / 664 | 27 new in `test/changes.test.ts`: plan rules (defaults, required at plan implies implement, stored rules completed, wording); governance (plans, rule, missing per gate, CAB history newest first, iTop times to ISO, who can decide, no extension = only the rollback plan); plans saved only when changed, rollback as `fallback`; the transition guard (other classes untouched, every missing plan named, rollback given with the action counts, routine needs only the implementation plan, an administrator's rule, Approve/Not approve sent to the CAB, iTop's change grants per profile); CAB decisions (approval with iTop's approval date and comment, rejection needs notes and becomes iTop's reason, deferral leaves it waiting, only Change Approver / administrator, routine / not planned / no extension refused, decision removed when iTop refuses the transition); the queue; rules per tenant; `ObjectsService` asks the guard and a refusal stops the call; the fallback flag relaxed in the real schema |
+| Frontend `npm run typecheck` | ✅ | |
+| Frontend `npx vitest run` | ✅ 187 / 187 | 7 new: `ChangeGovernancePanel.test.tsx` (missing plans, save; defer then approve with history; rejection needs notes; routine; no extension), `ChangePages.test.tsx` (CAB queue links, rules editor save and defaults). `config/modules.test.ts` updated: "Awaiting CAB" is a sidebar item |
+| Install on the shared iTop: unattended upgrade (`docker/itop-change-cab-upgrade.xml`) ×2, `apache2ctl graceful` | ✅ | Module list checked against `priv_module_install` (47 + `arcus-incident-extras` + ours). Columns `implementation_plan`, `test_plan` and table `arcus_change_cab_decision` present. Re-run once more for the grant fix below |
+| Live `npm run e2e:changes`, first run | ❌ 25 / 35 | Created and MFA-enrolled `e2e.chg.admin / .supervisor / .implementor / .approver` and "E2E change team". Found the two bugs below |
+| Live `npm run e2e:changes` after the fixes | ✅ 35 / 35 (twice) | Each step as the profile that owns it: supervisor validates and assigns, an implementor may not validate (403); Plan refused naming all three plans, then only the rollback plan, applied with the rollback plan in the action; in the CAB queue; generic Approve refused (409), implementor may not decide (403); approver defers (still waiting), approves with conditions (iTop's approval date and comment set, history of two, out of the queue), a second decision is a 409; implementor implements. Emergency change not approved: a rejection without notes is a 400, with notes iTop's `reason` carries them. Routine change plans without a rollback plan; an administrator's "test plan to implement" rule blocks Implement until it is written. Plan rules are 403 for non-administrators. Everything created was deleted (0 e2e changes and 0 CAB decisions left), the rules put back |
+
+Bugs found and fixed:
+
+- iTop's REST `core/create` demands **bulk write** as well as write, so a Change Approver could not create a CAB decision ("not enough permissions for massively creating data"). The extension now grants `action:bulk write` on `ChangeCabDecision` to Change Approver; the upgrade was run again.
+- iTop's REST `core/apply_stimulus` checks only that the caller may modify the class, never the per-action grants, so a **Change Implementor could validate** a normal change through the API (and so through the record screen). The changes guard now applies iTop's own change grants (`itop-profiles-itil`: Supervisor validates/rejects/assigns, Implementor plans/implements, Approver approves; SuperUser and Administrator everything) to every action on a change, a 403 naming the profile needed. The same gap exists for other ticket classes (incidents, requests, problems) and is not fixed here.
+
+Not covered: the screens against the live BFF in a browser (covered by the component tests on mocks); the live Playwright journeys; `MySqlPlanRuleStore` only live, no unit test; the extension's fields and class in iTop's own console. The auto-log hook writes to the main checkout's file, so this worktree's runs are recorded here by hand.
+
 ### 2026-10-23 — Brand name "Intertec Helpdesk" → "Intertec Servicedesk"
 
 | What ran | Result |

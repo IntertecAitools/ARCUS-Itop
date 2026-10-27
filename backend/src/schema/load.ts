@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 
 import { AppError, notFound } from "../core/errors.js";
-import type { ClassInfo, Field, RawClass, RawField, RawSchema, UiCategory, Widget } from "./types.js";
+import type { ClassInfo, Field, RawClass, RawField, RawSchema, StateFlag, UiCategory, Widget } from "./types.js";
 
 const WIDGET_BY_TYPE: Record<string, Widget> = {
   String: "text",
@@ -64,6 +64,40 @@ function normalizeCategory(type: string, raw: RawField): { ui: UiCategory; reaso
     return { ui: "ignored", reason: "Dashboard attributes are rendered views, not stored data" };
   }
   return { ui: raw.ui as UiCategory };
+}
+
+/**
+ * Flags a platform rule decides instead of iTop. Whether a change needs its
+ * rollback plan (`fallback`) is the change plan rules' call
+ * (modules/changes), and the arcus-change-cab extension drops iTop's own
+ * "mandatory" on it; it is still asked for at Plan. Without the extension
+ * iTop keeps refusing a change planned without one, with its own message.
+ */
+const RELAXED_MANDATORY: Record<string, string[]> = {
+  RoutineChange: ["fallback"],
+  NormalChange: ["fallback"],
+  EmergencyChange: ["fallback"],
+};
+
+function relaxFlags(
+  className: string,
+  flags: Record<string, Record<string, StateFlag[]>>,
+  diagnostics: CmdbSchema["diagnostics"],
+): Record<string, Record<string, StateFlag[]>> {
+  const relaxed = RELAXED_MANDATORY[className];
+  if (!relaxed) return flags;
+  const out: Record<string, Record<string, StateFlag[]>> = {};
+  for (const [state, attrs] of Object.entries(flags)) {
+    out[state] = { ...attrs };
+    for (const code of relaxed) {
+      const own = attrs[code];
+      if (own?.includes("mandatory")) out[state]![code] = own.filter((f) => f !== "mandatory");
+    }
+  }
+  for (const code of relaxed) {
+    diagnostics.push({ class: className, field: code, issue: "not mandatory: the change plan rules decide" });
+  }
+  return out;
 }
 
 /** Attributes preferred as the display label, in order. */
@@ -279,7 +313,7 @@ function buildClass(
           userActions: rawClass.lifecycle.user_stimuli ?? rawClass.lifecycle.stimuli ?? [],
           // Absent from schemas extracted before these were exported.
           transitions: rawClass.lifecycle.transitions ?? {},
-          flags: rawClass.lifecycle.flags ?? {},
+          flags: relaxFlags(name, rawClass.lifecycle.flags ?? {}, diagnostics),
         }
       : null,
     presentation: rawClass.presentation ?? null,

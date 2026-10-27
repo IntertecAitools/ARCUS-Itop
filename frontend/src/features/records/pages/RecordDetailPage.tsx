@@ -27,6 +27,18 @@ const ProblemAnalysisPanel = lazy(() =>
 );
 
 /**
+ * A change's plans and CAB decisions, a tab of their own. Lazy, as above.
+ */
+const ChangeGovernancePanel = lazy(() =>
+  import('@/features/changes').then((m) => ({ default: m.ChangeGovernancePanel })),
+);
+
+/** Change classes with the CAB tab; on the CAB ones, approving happens there. */
+const CHANGE_CLASSES = new Set(['Change', 'RoutineChange', 'NormalChange', 'EmergencyChange']);
+const CAB_CLASSES = new Set(['NormalChange', 'EmergencyChange']);
+const CAB_ACTIONS = new Set(['ev_approve', 'ev_notapprove']);
+
+/**
  * One record of any class, laid out the way iTop lays it out.
  *
  * Three things come from the schema rather than from this file: the fieldsets
@@ -57,6 +69,11 @@ export function RecordDetailPage() {
    */
   const runAction = (action: string) => {
     if (!info || !record) return;
+    // Approving a normal or emergency change is recording the CAB's decision.
+    if (CAB_CLASSES.has(className) && CAB_ACTIONS.has(action)) {
+      setTab('cab');
+      return;
+    }
     if (transitionPrompts(info, record, action).length > 0 || asksNextActionDate(info, record, action)) {
       stimulus.reset();
       setPendingAction(action);
@@ -209,6 +226,7 @@ export function RecordDetailPage() {
   const tabs = [
     { id: 'details', label: 'Details' },
     ...(info.name === 'Problem' ? [{ id: 'rca', label: 'Root cause' }] : []),
+    ...(CHANGE_CLASSES.has(info.name) ? [{ id: 'cab', label: 'CAB & plans' }] : []),
     ...(supportsAttachments ? [{ id: 'attachments', label: 'Attachments' }] : []),
     ...extraTabs.map(({ code }) => ({ id: code, label: fieldLabel(info, code) })),
     // iTop's impact analysis applies to configuration items.
@@ -345,6 +363,10 @@ export function RecordDetailPage() {
       {tab === 'rca' ? (
         <Suspense fallback={<Skeleton className="h-80 w-full" />}>
           <ProblemAnalysisPanel id={id} />
+        </Suspense>
+      ) : tab === 'cab' ? (
+        <Suspense fallback={<Skeleton className="h-80 w-full" />}>
+          <ChangeGovernancePanel id={id} />
         </Suspense>
       ) : tab === 'attachments' ? (
         <AttachmentsPanel className={className} id={id} />

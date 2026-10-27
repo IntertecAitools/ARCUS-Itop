@@ -929,6 +929,98 @@ three `MAIL_INTAKE_OAUTH_*` values, and optionally
 Microsoft's documented flow but has not been run against a real Microsoft
 365 mailbox yet; the first run's status (`GET /api/admin/mail-intake`) shows
 a sign-in error plainly if a step is missing.
+## Changes
+
+Change management on top of the generic record screens (`modules/changes/`;
+the change record, its form, links and other actions stay on
+`/api/objects/<Class>`). In the frontend: a **CAB & plans** tab on every
+change, **Awaiting CAB** in the sidebar, and **Change plan rules** under
+administration.
+
+**Plans required by change type.** A change has three plans: implementation,
+rollback (iTop's own `fallback`) and test. An administrator decides, per type
+(routine, normal, emergency) and per plan, whether it is required to plan,
+required to implement, or optional. Defaults: every plan before a normal or
+emergency change is planned; only the implementation plan for a routine one.
+`ObjectsService` asks the changes service before applying any action
+(`addTransitionGuard`), so **Plan** (and **Re-plan**) and **Implement** are
+refused with a 409 naming the missing plans, from the record screen, a bulk
+action or the API alike (`details: { reason: "plans_missing", gate, missing }`).
+A rollback plan given with the action itself counts. The rules are kept per
+tenant in the BFF database (`bff_change_plan_rules`, or memory with
+`SESSION_STORE=memory`).
+
+**CAB decisions.** A normal or emergency change in Planned waits for the
+Change Advisory Board. A **Change Approver** (or an administrator) records
+the decision: meeting date, attendees, approved / rejected / deferred,
+conditions, notes. Approved applies iTop's Approve with its approval date
+(the meeting) and comment ("CAB 2026-10-27: approved. Conditions: …");
+rejected needs notes and applies Not approve with them as iTop's reason;
+deferred leaves the change waiting. Both are made as the caller, so iTop
+checks the Change Approver profile too and History shows them; if iTop
+refuses the transition the decision record is removed again. Approve / Not
+approve through the generic action is refused on these two types
+(`reason: "cab_decision_required"`); the record screen opens the CAB tab
+instead. Routine changes never go to the CAB. Every decision is kept, newest
+first.
+
+iTop's profiles decide who does what: Change Supervisor validates and
+assigns, Change Implementor plans and implements, Change Approver approves.
+iTop's REST API does **not** check these per-action grants (`core/apply_stimulus`
+only checks that the caller may modify the class), so the changes guard
+applies iTop's own change grants from `itop-profiles-itil` to every action on
+a change (403, `reason: "profile_not_allowed"`, naming the profile needed;
+Administrator and SuperUser may do everything). Other ticket classes still
+rely on iTop alone and have the same gap.
+
+| | |
+| --- | --- |
+| `GET /api/changes/:id/governance` | Type, status, the three plans, this type's rule, the plans missing to plan and to implement, the CAB: required, awaiting, whether the caller can decide, the decisions. `available: false` without the extension below |
+| `PUT /api/changes/:id/plans` | `{ implementation?, rollback?, test? }`; writes only what changed. Implementation and test are 409 without the extension; the rollback plan works on any iTop |
+| `POST /api/changes/:id/cab-decisions` | `{ meetingDate, attendees[], decision, conditions, notes }` → 201 with the governance. 403 unless Change Approver or Administrator; 400 for a routine change or a rejection without notes; 409 unless the change is planned |
+| `GET /api/changes/cab` | Planned normal and emergency changes (at most 500), soonest first, with the last decision and the plans still missing to implement |
+| `GET /api/admin/change-rules`, `PUT /api/admin/change-rules` | `{ rules: { routine \| normal \| emergency: { implementation \| rollback \| test: "plan" \| "implement" \| "optional" } } }`; the answer adds `defaults`, `updatedAt`, `updatedBy` |
+
+### The arcus-change-cab iTop extension
+
+`itop-extensions/arcus-change-cab/` adds what iTop's Change lacks, and
+changes nothing in `iTop/`:
+
+- `Change.implementation_plan` and `Change.test_plan` (AttributeText, like
+  `fallback`), read and written by the BFF only; like the problem RCA fields
+  they are **not** in `cmdb-schema.json`, so an iTop without the extension
+  keeps working (only these features say so).
+- `ChangeCabDecision`: `change_id` (deleted with the change), `meeting_date`,
+  `attendees`, `decision`, `conditions`, `notes`, `recorded_by_id`,
+  `recorded_at`. Only Change Approver gets write on it (user rights group
+  `ChangeCab`); every profile reads it. Tenancy: the tenant's when its
+  change is (`scope-rules.ts`).
+- iTop's own "mandatory" on `fallback` in Planned is lifted for the three
+  change types (it is still asked for at Plan), so the plan rules decide.
+  The BFF applies the same at schema load (`relaxFlags` in `schema/load.ts`),
+  so the action dialog does not insist on it either. Without the extension
+  iTop still refuses a change planned without a rollback plan, with its own
+  message.
+
+Installing it is an upgrade, like arcus-problem-rca (above): back up the
+database, `docker cp itop-extensions/arcus-change-cab <container>:/var/www/html/extensions/`
+and `chown -R www-data:www-data` it, check the module list in
+`docker/itop-change-cab-upgrade.xml` against the installed modules (it is the
+local iTop's list, `arcus-problem-rca` and `arcus-incident-extras` included, plus
+`arcus-change-cab`), copy
+it in, run the unattended upgrade **twice**, then `apache2ctl graceful`.
+Check: `core/get` on a Change with `output_fields=implementation_plan`
+returns the field, and `core/get ChangeCabDecision` answers. Any later
+upgrade of that iTop must keep every arcus module in its list.
+
+`npm run e2e:changes` runs the whole flow against a BFF (default `:4020`,
+MFA on) and an iTop with the extension, each step as the profile that owns
+it. It uses four accounts, `e2e.chg.admin`, `.supervisor`, `.implementor`,
+`.approver`, in a team "E2E change team": on its first run it creates them in
+iTop as the BFF's service account (`ITOP_*` in `backend/.env`), enrols each
+in MFA and keeps logins, passwords and TOTP secrets in `backend/e2e.local.json`
+(git-ignored) under `"changes"`. The changes it raises are deleted at the
+end; the plan rules are put back as they were.
 
 ## What this layer is actually for
 
@@ -1325,6 +1417,7 @@ finding out via a 404.
 | `npm run tenants -- <command>` | list / set / enable / disable / remove tenants; `seed-test` for a local iTop |
 | `npm run e2e:tenancy` | live cross-tenant leak test (BFF on :4010 with `TENANCY=on`, after `seed-test`) |
 | `npm run e2e:problems` | live problem management: root cause, known error, trends (BFF on :4050, MFA on; account and TOTP secret in `backend/e2e.local.json`, see "Problems"). Creates and deletes its own records |
+| `npm run e2e:changes` | live change management: plan rules, CAB decisions, profile rights (BFF on :4020, MFA on; accounts created on the first run, see "Changes"). Creates and deletes its own changes |
 | `npm run e2e:incidents` | live holds with next-action date, major incidents and stakeholder updates, email to ticket via Mailpit (BFF on :4010 with `MAIL_INTAKE_SOURCE=mailpit`; see "Incidents: on hold, major incidents"). Creates and deletes its own records and mail |
 | `npm run e2e:requests` | live request forms + target date check (BFF on :4040 with `MFA_REQUIRED=off`, or `E2E_STAFF_TOTP_SECRET`; `E2E_STAFF_PASSWORD`) |
 

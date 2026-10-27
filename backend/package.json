@@ -22,6 +22,7 @@
     "tenants": "node --import tsx scripts/tenants.ts",
     "e2e:tenancy": "node scripts/e2e-tenancy.mjs",
     "e2e:problems": "node --import tsx scripts/e2e-problems.mjs",
+    "e2e:changes": "node --import tsx scripts/e2e-changes.mjs",
     "e2e:requests": "node --import tsx scripts/e2e-requests.mjs",
     "e2e:incidents": "node --import tsx scripts/e2e-incidents.mjs"
   },

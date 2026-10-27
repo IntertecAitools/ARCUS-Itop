@@ -34,6 +34,13 @@ export const queryKeys = {
     trends: (period: string, groupBy: string) => ['problems', 'trends', period, groupBy] as const,
   },
 
+  changes: {
+    all: () => ['changes'] as const,
+    governance: (id: string) => ['changes', 'governance', id] as const,
+    cab: () => ['changes', 'cab'] as const,
+    rules: () => ['changes', 'rules'] as const,
+  },
+
   approvals: {
     all: () => ['approvals'] as const,
     list: (state: string) => ['approvals', 'list', state] as const,
