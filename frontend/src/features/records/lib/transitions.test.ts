@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ClassInfo, RecordDto } from '../types';
-import { requiredForTransition, transitionPrompts } from './transitions';
+import { asksNextActionDate, requiredForTransition, transitionPrompts } from './transitions';
 
 /**
  * The rule iTop's stimulus form follows: prompt for what the TARGET state
@@ -77,5 +77,14 @@ describe('transitionPrompts', () => {
   it('marks only mandatory prompts as required', () => {
     const required = requiredForTransition(info, record({ status: 'assigned' }), 'ev_pending');
     expect([...required]).toEqual(['pending_reason']);
+  });
+});
+
+describe('asksNextActionDate', () => {
+  it('asks for a date when an incident or a user request goes on hold, and only then', () => {
+    expect(asksNextActionDate('UserRequest', 'ev_pending')).toBe(true);
+    expect(asksNextActionDate('Incident', 'ev_pending')).toBe(true);
+    expect(asksNextActionDate('UserRequest', 'ev_resolve')).toBe(false);
+    expect(asksNextActionDate('Change', 'ev_pending')).toBe(false);
   });
 });

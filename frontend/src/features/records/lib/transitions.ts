@@ -51,3 +51,15 @@ export function requiredForTransition(info: ClassInfo, record: RecordDto, action
     transitionPrompts(info, record, action).filter((a) => flags[a]?.includes('mandatory')),
   );
 }
+
+/** Tickets whose hold also records the day someone acts on them again. */
+const HOLD_WITH_DATE = new Set(['Incident', 'UserRequest']);
+
+/**
+ * Whether this action puts a ticket on hold, which then also asks for a
+ * next-action date. That field is the platform's own (an iTop extension the
+ * schema does not list), so the dialog adds it rather than the schema.
+ */
+export function asksNextActionDate(className: string, action: string) {
+  return action === 'ev_pending' && HOLD_WITH_DATE.has(className);
+}

@@ -12,6 +12,7 @@ import {
   IncidentTrendCard,
   KnowledgeArticlesCard,
   KpiRow,
+  MajorIncidentsBanner,
   MyAssignmentsCard,
   RecentIncidentsCard,
   ServiceRequestShortcuts,
@@ -69,6 +70,7 @@ export function DashboardPage() {
       ) : null}
 
       <div className="space-y-4">
+        <MajorIncidentsBanner items={data?.majorIncidents} />
         <KpiRow kpis={data?.kpis} range={range} isLoading={isLoading} />
 
         {/* Trend gets two thirds of the row; the two part-to-whole cards share

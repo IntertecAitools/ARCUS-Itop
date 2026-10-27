@@ -9,6 +9,7 @@ import {
   updateIncidentSchema,
 } from "../src/modules/incidents/incidents.schemas.js";
 import type { CmdbSchema } from "../src/schema/load.js";
+import type { TicketExtras } from "../src/modules/incidents/index.js";
 import type { DefaultOrganization } from "../src/shared/default-organization.js";
 import type { ObjectsService } from "../src/platform/objects/objects.service.js";
 
@@ -76,12 +77,22 @@ function stub(items: unknown[] = [], overrides: Record<string, unknown> = {}) {
       calls.push({ op: "applyStimulus", args });
       return items[0] ?? row();
     },
+    // Linked incidents (parent, children): none, and not recorded, so the
+    // call indexes above stay those of the incident itself.
+    listAll: async () => ({ items: [], total: 0 }),
     ...overrides,
   } as unknown as ObjectsService;
     // Resolves instantly so create() does not depend on a live lookup.
   const defaultOrg = { resolve: async () => "1" } as unknown as DefaultOrganization;
-  return { objects, calls, svc: new IncidentsService(objects, schemaStub, defaultOrg) };
+  return { objects, calls, svc: new IncidentsService(objects, schemaStub, defaultOrg, noExtras) };
 }
+
+/** An iTop without the arcus-incident-extras extension. */
+const noExtras = {
+  available: async () => false,
+  read: async () => new Map(),
+  overdueCondition: () => "1=0",
+} as unknown as TicketExtras;
 
 const baseQuery = { page: 1, limit: 25 };
 

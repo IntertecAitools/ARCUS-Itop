@@ -4,8 +4,9 @@ import { CmdbSchema } from "./schema/load.js";
 import { AttachmentsService } from "./modules/attachments/attachments.service.js";
 import { DashboardService } from "./modules/dashboard/index.js";
 import { DirectoryService } from "./modules/directory/index.js";
-import { IncidentsService } from "./modules/incidents/index.js";
+import { IncidentsService, TicketExtras } from "./modules/incidents/index.js";
 import { ProblemsService } from "./modules/problems/index.js";
+import { createMailSource, type MailSource, MailIntakeService } from "./modules/mail-intake/index.js";
 import {
   MemoryRequestFormStore,
   MySqlRequestFormStore,
@@ -85,7 +86,11 @@ export interface Services {
   approvals: ApprovalsService;
   dashboard: DashboardService;
   incidents: IncidentsService;
+  /** The arcus-incident-extras fields: next-action date, major flag. */
+  ticketExtras: TicketExtras;
   problems: ProblemsService;
+  /** Present when MAIL_INTAKE_SOURCE is set. */
+  mailIntake?: MailIntakeService;
   requestForms: RequestFormsService;
   directory: DirectoryService;
   defaultOrganization: DefaultOrganization;
@@ -110,6 +115,8 @@ export interface BuildServicesOptions {
   requestForms?: RequestFormStore;
   /** Stands in for SMTP in tests; otherwise built from PASSWORD_RESET settings. */
   mailer?: Mailer;
+  /** Stands in for the support mailbox in tests. */
+  mailSource?: MailSource;
   logger?: Logger;
 }
 
@@ -198,6 +205,20 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
   const dashboards =
     options.dashboards ?? Dashboards.fromFile(config.dashboardsPath, objects, schema);
   const transfer = new TransferService(client, schema);
+  const ticketExtras = new TicketExtras(client, config.itop.timezone);
+  const incidents = new IncidentsService(objects, schema, defaultOrganization, ticketExtras, mailer);
+  const mailIntake = config.mailIntake
+    ? new MailIntakeService(
+        config.mailIntake,
+        options.mailSource ?? createMailSource(config.mailIntake),
+        objects,
+        incidents,
+        defaultOrganization,
+        mailer,
+        config.notificationSender?.address ?? reset?.from,
+        options.logger,
+      )
+    : undefined;
 
   return {
     config,
@@ -230,10 +251,12 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     users: new UsersService(client, objects, auth, sessions, tenancy),
     portal: new PortalService(client, schema, objects),
     approvals: new ApprovalsService(client, config.itop.timezone),
-    dashboard: new DashboardService(objects, navigation, currentContact, schema),
+    dashboard: new DashboardService(objects, navigation, currentContact, schema, ticketExtras),
     defaultOrganization,
     currentContact,
-    incidents: new IncidentsService(objects, schema, defaultOrganization),
+    incidents,
+    ...(mailIntake ? { mailIntake } : {}),
+    ticketExtras,
     problems: new ProblemsService(objects, client, config.itop.timezone),
     requestForms: new RequestFormsService(
       client,

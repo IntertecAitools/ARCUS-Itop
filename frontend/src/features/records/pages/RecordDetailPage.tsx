@@ -15,7 +15,8 @@ import { HistoryTab } from '../components/HistoryTab';
 import { ImpactTab } from '../components/ImpactTab';
 import { DeleteDialog } from '../components/DeleteDialog';
 import { TransitionDialog } from '../components/TransitionDialog';
-import { requiredForTransition, transitionPrompts } from '../lib/transitions';
+import { PendingBanner } from '../components/PendingBanner';
+import { asksNextActionDate, requiredForTransition, transitionPrompts } from '../lib/transitions';
 
 /**
  * A problem's root-cause analysis and known errors, a tab of their own.
@@ -56,7 +57,7 @@ export function RecordDetailPage() {
    */
   const runAction = (action: string) => {
     if (!info || !record) return;
-    if (transitionPrompts(info, record, action).length > 0) {
+    if (transitionPrompts(info, record, action).length > 0 || asksNextActionDate(info.name, action)) {
       stimulus.reset();
       setPendingAction(action);
       return;
@@ -335,6 +336,10 @@ export function RecordDetailPage() {
 
       {className === 'UserRequest' && tab === 'details' ? (
         <RequestApprovalCard audience="staff" requestId={id} className="mb-4" />
+      ) : null}
+
+      {(className === 'UserRequest' || className === 'Incident') && tab === 'details' ? (
+        <PendingBanner className={className} id={id} status={String(record.fields['status'] ?? '')} />
       ) : null}
 
       {tab === 'rca' ? (

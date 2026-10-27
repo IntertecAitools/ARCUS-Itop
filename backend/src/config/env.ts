@@ -126,6 +126,8 @@ export interface Config {
   defaultOrgId?: string;
   /** Several customers on one platform (platform/tenancy). Off when absent. */
   tenancy?: TenancyConfig;
+  /** Email-to-ticket from a support mailbox (modules/mail-intake). Off when absent. */
+  mailIntake?: MailIntakeConfig;
   auth: {
     /**
      * When true (the default) every /api route except sign-in needs a session,
@@ -204,6 +206,40 @@ export interface SsoConfig {
   appUrl: string;
   /** Allow an http:// issuer: only for a local test IdP. */
   allowHttp: boolean;
+}
+
+/**
+ * The support mailbox read by the mail-intake poller. `imap` is the real
+ * mailbox (Microsoft 365 or any IMAP server); `mailpit` reads the local test
+ * mailbox's API and exists only for development and the e2e script.
+ */
+export interface MailIntakeConfig {
+  source: "imap" | "mailpit";
+  /** The mailbox's address. Mail from it (or MAIL_FROM) is never turned into a ticket. */
+  address: string;
+  intervalMs: number;
+  /** Mail from an address no Person has: make a ticket anyway, or leave it. */
+  unknownSenders: "create" | "ignore";
+  /** Organisation of tickets from unknown senders; else the default organisation. */
+  orgId?: string;
+  /** Answer each new ticket with its ref, so replies thread back to it. */
+  acknowledge: boolean;
+  /** Most messages one run reads. */
+  batchSize: number;
+  mailpit?: { url: string };
+  imap?: {
+    host: string;
+    port: number;
+    secure: boolean;
+    user: string;
+    /** Basic auth. Absent when OAuth is used. */
+    password?: string;
+    /** Microsoft 365: app-only OAuth 2.0 (client credentials) instead of a password. */
+    oauth?: { tenantId: string; clientId: string; clientSecret: string; scope: string };
+    mailbox: string;
+    /** Move processed messages here; else they are only marked read. */
+    processedFolder?: string;
+  };
 }
 
 export interface PasswordResetConfig {
@@ -290,6 +326,60 @@ function tenancyConfig(sessionStore: SessionStoreConfig): TenancyConfig {
       .map((l) => l.trim())
       .filter(Boolean),
     ...(file ? { tenantsFile: resolve(PACKAGE_ROOT, file) } : {}),
+  };
+}
+
+function mailIntakeConfig(): MailIntakeConfig | undefined {
+  const source = optional("MAIL_INTAKE_SOURCE", "").toLowerCase();
+  if (!source || source === "off") return undefined;
+  if (source !== "imap" && source !== "mailpit") {
+    throw new Error(`MAIL_INTAKE_SOURCE must be imap, mailpit or off, got "${source}".`);
+  }
+  const unknownSenders = optional("MAIL_INTAKE_UNKNOWN_SENDERS", "create").toLowerCase();
+  if (unknownSenders !== "create" && unknownSenders !== "ignore") {
+    throw new Error(`MAIL_INTAKE_UNKNOWN_SENDERS must be create or ignore, got "${unknownSenders}".`);
+  }
+  const orgId = optional("MAIL_INTAKE_ORG_ID", "");
+  const base = {
+    source: source as MailIntakeConfig["source"],
+    address: required("MAIL_INTAKE_ADDRESS").toLowerCase(),
+    intervalMs: integer("MAIL_INTAKE_INTERVAL_SECONDS", 60, 10, 3_600) * 1000,
+    unknownSenders: unknownSenders as MailIntakeConfig["unknownSenders"],
+    ...(orgId ? { orgId } : {}),
+    acknowledge: optional("MAIL_INTAKE_ACK", "on").toLowerCase() !== "off",
+    batchSize: integer("MAIL_INTAKE_BATCH", 25, 1, 200),
+  };
+  if (source === "mailpit") {
+    return { ...base, mailpit: { url: optional("MAIL_INTAKE_MAILPIT_URL", "http://127.0.0.1:8025").replace(/\/+$/, "") } };
+  }
+  const tenantId = optional("MAIL_INTAKE_OAUTH_TENANT_ID", "");
+  const password = optional("MAIL_INTAKE_IMAP_PASSWORD", "");
+  if (!tenantId && !password) {
+    throw new Error("MAIL_INTAKE_SOURCE=imap needs MAIL_INTAKE_IMAP_PASSWORD or the MAIL_INTAKE_OAUTH_* settings.");
+  }
+  const processedFolder = optional("MAIL_INTAKE_IMAP_PROCESSED_FOLDER", "");
+  const port = integer("MAIL_INTAKE_IMAP_PORT", 993, 1, 65_535);
+  return {
+    ...base,
+    imap: {
+      host: optional("MAIL_INTAKE_IMAP_HOST", "outlook.office365.com"),
+      port,
+      secure: optional("MAIL_INTAKE_IMAP_SECURE", port === 993 ? "true" : "false").toLowerCase() === "true",
+      user: optional("MAIL_INTAKE_IMAP_USER", base.address),
+      ...(password && !tenantId ? { password } : {}),
+      ...(tenantId
+        ? {
+            oauth: {
+              tenantId,
+              clientId: required("MAIL_INTAKE_OAUTH_CLIENT_ID"),
+              clientSecret: required("MAIL_INTAKE_OAUTH_CLIENT_SECRET"),
+              scope: optional("MAIL_INTAKE_OAUTH_SCOPE", "https://outlook.office365.com/.default"),
+            },
+          }
+        : {}),
+      mailbox: optional("MAIL_INTAKE_IMAP_MAILBOX", "INBOX"),
+      ...(processedFolder ? { processedFolder } : {}),
+    },
   };
 }
 
@@ -478,6 +568,7 @@ export function loadConfig(envFile = resolve(PACKAGE_ROOT, ".env")): Config {
     ...(notificationSender() ? { notificationSender: notificationSender()! } : {}),
     ...(optional("ITOP_DEFAULT_ORG_ID", "") ? { defaultOrgId: optional("ITOP_DEFAULT_ORG_ID", "") } : {}),
     tenancy: tenancyConfig(sessionStore),
+    ...(mailIntakeConfig() ? { mailIntake: mailIntakeConfig()! } : {}),
     auth: {
       required: optional("AUTH_REQUIRED", "true").toLowerCase() !== "false",
       sessionIdleMs: integer("SESSION_IDLE_MINUTES", 60, 5, 24 * 60) * 60_000,

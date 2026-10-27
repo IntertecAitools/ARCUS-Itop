@@ -1,10 +1,11 @@
 import { useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { LifeBuoy, MoreVertical, Plus } from 'lucide-react';
+import { LifeBuoy, MoreVertical, Plus, Siren } from 'lucide-react';
 import { PageHeader } from '@/components/layout';
-import { Avatar, buttonClasses, Card, IconButton } from '@/components/ui';
+import { Avatar, Badge, buttonClasses, Card, IconButton } from '@/components/ui';
 import {
   DataTable,
+  PendingNote,
   PriorityBadge,
   StatusPill,
   type Column,
@@ -49,8 +50,15 @@ export function IncidentListPage() {
         accessorKey: 'summary',
         header: 'Summary',
         cell: ({ row }) => (
-          <span className="block truncate text-ink" title={row.original.summary}>
-            {row.original.summary}
+          <span className="flex min-w-0 items-center gap-2">
+            {row.original.major ? (
+              <Badge tone="critical" size="sm" icon={<Siren className="size-3" />}>
+                Major
+              </Badge>
+            ) : null}
+            <span className="block truncate text-ink" title={row.original.summary}>
+              {row.original.summary}
+            </span>
           </span>
         ),
       },
@@ -75,8 +83,14 @@ export function IncidentListPage() {
       {
         accessorKey: 'status',
         header: 'Status',
-        size: 124,
-        cell: ({ row }) => <StatusPill status={row.original.status} size="sm" />,
+        size: 150,
+        // On hold: the next-action date under the pill, red once it has passed.
+        cell: ({ row }) => (
+          <span className="flex flex-col items-start gap-1">
+            <StatusPill status={row.original.status} size="sm" />
+            {row.original.pending ? <PendingNote pending={row.original.pending} compact /> : null}
+          </span>
+        ),
       },
       {
         accessorKey: 'caller',

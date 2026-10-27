@@ -1,5 +1,5 @@
 // dashboard: feature types.
-import type { TicketPriority, TicketStatus } from '@/types/ticket';
+import type { PendingInfo, TicketPriority, TicketStatus } from '@/types/ticket';
 
 /** The window the whole dashboard is scoped to. */
 export type DateRange = '24h' | '7d' | '30d' | '90d';
@@ -74,6 +74,18 @@ export interface DashboardTicket {
   priority: TicketPriority;
   assignee?: { id: string; name: string };
   createdAt: string;
+  /** Only while on hold (My Assignments): why, and the day to act again. */
+  pending?: PendingInfo;
+}
+
+/** An open major incident, for the dashboard banner. */
+export interface MajorIncidentSummary {
+  id: string;
+  ref: string;
+  summary: string;
+  status: TicketStatus;
+  priority: TicketPriority;
+  createdAt: string;
 }
 
 export interface CatalogShortcut {
@@ -137,6 +149,8 @@ export interface DashboardOverview {
   sla: SlaBreakdown;
   recentIncidents: DashboardTicket[];
   myAssignments: MyAssignments;
+  /** Open major incidents; absent from older BFFs. */
+  majorIncidents?: MajorIncidentSummary[];
   catalogShortcuts: CatalogShortcut[];
   changeCalendar: ChangeEvent[];
   knowledgeArticles: KnowledgeArticle[];

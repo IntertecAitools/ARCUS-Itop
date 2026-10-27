@@ -1,6 +1,7 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { X } from 'lucide-react';
-import { Button } from '@/components/ui';
+import { Button, Input } from '@/components/ui';
+import { asksNextActionDate } from '../lib/transitions';
 import type { ClassInfo, RecordDto } from '../types';
 import { FieldInput } from './FieldControls';
 import { fieldLabel } from './RecordForm';
@@ -95,7 +96,14 @@ export function TransitionDialog({
     return initial;
   });
 
-  const missing = [...required].filter((a) => (values[a] ?? '').trim() === '');
+  // Putting a ticket on hold also asks when someone acts on it again.
+  const asksDate = asksNextActionDate(info.name, action);
+  const [nextActionDate, setNextActionDate] = useState('');
+  const today = new Date().toLocaleDateString('en-CA');
+  const missing = [
+    ...[...required].filter((a) => (values[a] ?? '').trim() === ''),
+    ...(asksDate && !(nextActionDate >= today) ? ['next_action_date'] : []),
+  ];
   const label = info.labels.stimuli?.[action] ?? action;
 
   const submit = () => {
@@ -104,6 +112,7 @@ export function TransitionDialog({
     for (const attcode of prompts) {
       if ((values[attcode] ?? '') !== '') fields[attcode] = values[attcode];
     }
+    if (asksDate) fields['next_action_date'] = nextActionDate;
     onApply(fields);
   };
 
@@ -147,6 +156,20 @@ export function TransitionDialog({
           />
         </div>
       ))}
+      {asksDate ? (
+        <div>
+          <label htmlFor="field-next_action_date" className="mb-1.5 block text-[13px] font-medium text-ink">
+            Next action date<span className="ms-0.5 text-critical-ink">*</span>
+          </label>
+          <Input
+            id="field-next_action_date"
+            type="date"
+            min={today}
+            value={nextActionDate}
+            onChange={(e) => setNextActionDate(e.target.value)}
+          />
+        </div>
+      ) : null}
     </RecordDialog>
   );
 }

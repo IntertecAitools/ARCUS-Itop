@@ -5,6 +5,7 @@
  */
 export { registerIncidentRoutes } from "./incidents.routes.js";
 export { IncidentsService } from "./incidents.service.js";
+export { HOLDABLE_CLASSES, isHoldable, TicketExtras, type PendingInfo } from "./ticket-extras.js";
 export type {
   CaseLogEntry,
   CreateIncidentInput,
@@ -12,6 +13,10 @@ export type {
   IncidentListQuery,
   IncidentListResult,
   IncidentOptions,
+  IncidentRow,
+  LinkedIncident,
+  StakeholderUpdateInput,
+  StakeholderUpdateResult,
   TicketDto,
   TicketPriority,
   TicketStatus,

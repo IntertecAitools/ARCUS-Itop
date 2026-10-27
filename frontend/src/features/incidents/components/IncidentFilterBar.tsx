@@ -96,6 +96,23 @@ export function IncidentFilterBar({ filters, onChange, onClear, activeCount }: P
         ]}
       />
 
+      <Select
+        aria-label="Show"
+        className="w-44"
+        value={filters.major ? 'major' : filters.overdue ? 'overdue' : ''}
+        onChange={(e) =>
+          onChange({
+            major: e.target.value === 'major' || undefined,
+            overdue: e.target.value === 'overdue' || undefined,
+          })
+        }
+        options={[
+          { value: '', label: 'All incidents' },
+          { value: 'major', label: 'Major incidents' },
+          { value: 'overdue', label: 'Overdue holds' },
+        ]}
+      />
+
       {activeCount > 0 ? (
         <Button variant="ghost" size="sm" onClick={onClear} leadingIcon={<X className="size-4" />}>
           Clear {activeCount === 1 ? 'filter' : `${activeCount} filters`}

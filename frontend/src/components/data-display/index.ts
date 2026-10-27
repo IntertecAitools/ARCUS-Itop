@@ -7,3 +7,4 @@ export * from './PriorityBadge';
 export * from './Sparkline';
 export * from './StatusPill';
 export * from './TrendChart';
+export * from './PendingNote';

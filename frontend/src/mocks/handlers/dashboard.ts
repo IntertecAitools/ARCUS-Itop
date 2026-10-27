@@ -7,7 +7,7 @@ import {
   seededOverview,
 } from '../fixtures/dashboard';
 import { mockFlag } from '../storage';
-import { myOpenIncidents } from './incidents';
+import { myOpenIncidents, openMajorIncidents } from './incidents';
 
 const url = (path: string) => `${env.bffUrl}${path}`;
 
@@ -37,6 +37,7 @@ export const dashboardHandlers = [
       return HttpResponse.json({
         ...emptyOverview,
         myAssignments: { ...emptyOverview.myAssignments, incidents: myOpenIncidents() },
+        majorIncidents: openMajorIncidents(),
       });
     }
     return HttpResponse.json(emptyOverview);

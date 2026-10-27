@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Check, CircleSlash, PauseCircle, RotateCcw, UserPlus } from 'lucide-react';
-import { Button, Select } from '@/components/ui';
+import { Button, Input, Select } from '@/components/ui';
 import { useIncidentOptions, useTransitionIncident } from '../api/useIncidents';
 import type { IncidentDetail, TransitionAction } from '../types';
 
@@ -19,6 +19,12 @@ const ACTION_META: Record<
 
 const ORDER: TransitionAction[] = ['assign', 'reassign', 'resolve', 'hold', 'close', 'reopen'];
 
+/** Today as `YYYY-MM-DD` on this computer's calendar: the earliest next-action date. */
+export function todayInput(now = new Date()) {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
+
 /**
  * The lifecycle buttons.
  *
@@ -33,6 +39,8 @@ export function IncidentActions({ incident }: { incident: IncidentDetail }) {
   const [agentId, setAgentId] = useState('');
   const [solution, setSolution] = useState('');
   const [resolutionCode, setResolutionCode] = useState('');
+  const [pendingReason, setPendingReason] = useState('');
+  const [nextActionDate, setNextActionDate] = useState('');
 
   const actions = ORDER.filter((action) => incident.availableActions.includes(action));
 
@@ -46,13 +54,24 @@ export function IncidentActions({ incident }: { incident: IncidentDetail }) {
 
   const needsAgent = pending === 'assign' || pending === 'reassign';
   const needsSolution = pending === 'resolve';
-  const canSubmit = needsAgent ? Boolean(agentId) : needsSolution ? Boolean(solution.trim()) : true;
+  // On hold needs both: why it waits, and the day someone acts on it again.
+  const needsHold = pending === 'hold';
+  const today = todayInput();
+  const canSubmit = needsAgent
+    ? Boolean(agentId)
+    : needsSolution
+      ? Boolean(solution.trim())
+      : needsHold
+        ? Boolean(pendingReason.trim()) && nextActionDate >= today
+        : true;
 
   const reset = () => {
     setPending(null);
     setAgentId('');
     setSolution('');
     setResolutionCode('');
+    setPendingReason('');
+    setNextActionDate('');
   };
 
   const submit = () => {
@@ -62,6 +81,7 @@ export function IncidentActions({ incident }: { incident: IncidentDetail }) {
         action: pending,
         ...(needsAgent ? { agentId } : {}),
         ...(needsSolution ? { solution, ...(resolutionCode ? { resolutionCode } : {}) } : {}),
+        ...(needsHold ? { pendingReason: pendingReason.trim(), nextActionDate } : {}),
       },
       { onSuccess: reset },
     );
@@ -120,6 +140,35 @@ export function IncidentActions({ incident }: { incident: IncidentDetail }) {
                   ...(options?.resolutionCodes ?? []),
                 ]}
               />
+            </>
+          ) : null}
+
+          {needsHold ? (
+            <>
+              <textarea
+                value={pendingReason}
+                onChange={(e) => setPendingReason(e.target.value)}
+                rows={2}
+                placeholder="Why is it on hold? E.g. waiting for the caller's logs."
+                aria-label="Pending reason"
+                className="w-full rounded-control border border-line-strong bg-surface px-3 py-2 text-sm text-ink outline-none placeholder:text-ink-muted focus:border-brand focus:ring-2 focus:ring-ring/40"
+              />
+              <label className="block text-[12.5px] text-ink-secondary">
+                Next action date
+                <Input
+                  type="date"
+                  aria-label="Next action date"
+                  className="mt-1"
+                  min={today}
+                  value={nextActionDate}
+                  onChange={(e) => setNextActionDate(e.target.value)}
+                />
+              </label>
+              {incident.extrasAvailable === false ? (
+                <p className="text-[12.5px] text-warning-ink">
+                  This platform cannot record a next-action date yet, so the hold will be refused.
+                </p>
+              ) : null}
             </>
           ) : null}
 

@@ -6,6 +6,9 @@ import type {
   IncidentFilters,
   IncidentListResult,
   IncidentOptions,
+  Incident,
+  StakeholderUpdateInput,
+  StakeholderUpdateResult,
   TransitionInput,
   UpdateIncidentInput,
 } from '../types';
@@ -29,6 +32,8 @@ export function getIncidents(filters: IncidentFilters) {
       assignee: filters.assignee,
       sort: filters.sort,
       order: filters.order,
+      major: filters.major ? 'true' : undefined,
+      overdue: filters.overdue ? 'true' : undefined,
     },
   });
 }
@@ -53,6 +58,29 @@ export function updateIncident(id: string, input: UpdateIncidentInput) {
 /** Applies a lifecycle action: assign, reassign, hold, resolve, close, reopen. */
 export function transitionIncident(id: string, input: TransitionInput) {
   return apiClient.post<IncidentDetail>(`/incidents/${id}/transitions`, input);
+}
+
+/** Declares the incident a major incident, or clears the flag. */
+export function setIncidentMajor(id: string, major: boolean) {
+  return apiClient.put<IncidentDetail>(`/incidents/${id}/major`, { major });
+}
+
+/** Links incidents to this one as its children. */
+export function linkChildIncidents(id: string, incidentIds: string[]) {
+  return apiClient.post<IncidentDetail>(`/incidents/${id}/children`, { incidentIds });
+}
+
+export function unlinkChildIncident(id: string, childId: string) {
+  return apiClient.delete<IncidentDetail>(`/incidents/${id}/children/${childId}`);
+}
+
+export function postStakeholderUpdate(id: string, input: StakeholderUpdateInput) {
+  return apiClient.post<StakeholderUpdateResult>(`/incidents/${id}/stakeholder-updates`, input);
+}
+
+/** Open major incidents, newest first. */
+export function getOpenMajorIncidents() {
+  return apiClient.get<{ items: Incident[] }>('/incidents/major');
 }
 
 export function addIncidentLogEntry(id: string, message: string) {

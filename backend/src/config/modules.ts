@@ -4,6 +4,7 @@ import type { Services } from "../services.js";
 import { registerDashboardRoutes } from "../modules/dashboard/index.js";
 import { registerDirectoryRoutes } from "../modules/directory/index.js";
 import { registerIncidentRoutes } from "../modules/incidents/index.js";
+import { registerMailIntakeRoutes } from "../modules/mail-intake/index.js";
 import { registerProblemRoutes } from "../modules/problems/index.js";
 import { registerRequestFormRoutes } from "../modules/request-forms/index.js";
 
@@ -70,6 +71,12 @@ export const modules: BackendModule[] = [
     basePath: "/api/incidents",
     description: "Unplanned interruptions to a service.",
     register: registerIncidentRoutes,
+  },
+  {
+    id: "mail-intake",
+    basePath: "/api/admin/mail-intake",
+    description: "Email to ticket: the support mailbox becomes incidents, replies land on theirs.",
+    register: registerMailIntakeRoutes,
   },
   {
     id: "problems",

@@ -48,9 +48,34 @@ function make(partial: Partial<IncidentDetail> & { id: string; ref: string }): I
     sla: { ttoBreached: false, ttrBreached: false },
     log: [],
     availableActions: ACTIONS_BY_STATUS[status] ?? [],
+    childIncidents: [],
+    extrasAvailable: true,
+    major: false,
     ...partial,
   };
 }
+
+/** Today on this computer's calendar, as the BFF compares next-action dates. */
+const today = () => new Date().toLocaleDateString('en-CA');
+
+/** The detail with its linked incidents and whether its hold is overdue, as the BFF answers. */
+function view(incident: IncidentDetail): IncidentDetail {
+  const children = store
+    .filter((i) => i.parentIncident?.id === incident.id)
+    .map(({ id, ref, summary, status }) => ({ id, ref, summary, status }));
+  const pending =
+    incident.status === 'pending' && incident.pending
+      ? {
+          ...incident.pending,
+          overdue: Boolean(incident.pending.nextActionDate && incident.pending.nextActionDate < today()),
+        }
+      : undefined;
+  const { pending: _stored, ...rest } = incident;
+  return { ...rest, ...(pending ? { pending } : {}), childIncidents: children };
+}
+
+const badRequest = (message: string) =>
+  HttpResponse.json({ error: { code: 'bad_request', message } }, { status: 400 });
 
 const seeded: IncidentDetail[] = [
   make({
@@ -120,8 +145,24 @@ let nextId = Math.max(2000, ...store.map((i) => Number(i.id) || 0)) + 1;
 export function myOpenIncidents() {
   const items = store
     .filter((i) => i.assignee?.id === '1' && !['resolved', 'closed'].includes(i.status))
-    .map(({ id, ref, summary, status, priority, createdAt }) => ({ id, ref, summary, status, priority, createdAt }));
+    .map(view)
+    .map(({ id, ref, summary, status, priority, createdAt, pending }) => ({
+      id,
+      ref,
+      summary,
+      status,
+      priority,
+      createdAt,
+      ...(pending ? { pending } : {}),
+    }));
   return { items, total: items.length };
+}
+
+/** Open major incidents, as the dashboard banner shows them. */
+export function openMajorIncidents() {
+  return store
+    .filter((i) => i.major && !['resolved', 'closed'].includes(i.status))
+    .map(({ id, ref, summary, status, priority, createdAt }) => ({ id, ref, summary, status, priority, createdAt }));
 }
 
 const find = (id: unknown) => store.find((i) => i.id === String(id));
@@ -186,6 +227,9 @@ export const incidentHandlers = [
         (i) => i.ref.toLowerCase().includes(q) || i.summary.toLowerCase().includes(q),
       );
     }
+    items = items.map(view);
+    if (params.get('major') === 'true') items = items.filter((i) => i.major);
+    if (params.get('overdue') === 'true') items = items.filter((i) => i.pending?.overdue);
 
     const total = items.length;
     return HttpResponse.json({
@@ -198,9 +242,69 @@ export const incidentHandlers = [
     });
   }),
 
+  http.get(url('/incidents/major'), () => HttpResponse.json({ items: openMajorIncidents() })),
+
   http.get(url('/incidents/:id'), ({ params }) => {
     const incident = find(params.id);
-    return incident ? HttpResponse.json(incident) : notFound(params.id);
+    return incident ? HttpResponse.json(view(incident)) : notFound(params.id);
+  }),
+
+  http.put(url('/incidents/:id/major'), async ({ params, request }) => {
+    const incident = find(params.id);
+    if (!incident) return notFound(params.id);
+    const { major } = (await request.json()) as { major: boolean };
+    incident.major = major;
+    persist();
+    return HttpResponse.json(view(incident));
+  }),
+
+  http.post(url('/incidents/:id/children'), async ({ params, request }) => {
+    const incident = find(params.id);
+    if (!incident) return notFound(params.id);
+    const { incidentIds } = (await request.json()) as { incidentIds: string[] };
+    if (incidentIds.includes(incident.id)) return badRequest('An incident cannot be linked to itself.');
+    for (const childId of incidentIds) {
+      const child = find(childId);
+      if (!child) return notFound(childId);
+      child.parentIncident = { id: incident.id, ref: incident.ref, summary: incident.summary, status: incident.status };
+    }
+    persist();
+    return HttpResponse.json(view(incident));
+  }),
+
+  http.delete(url('/incidents/:id/children/:childId'), ({ params }) => {
+    const incident = find(params.id);
+    const child = find(params.childId);
+    if (!incident) return notFound(params.id);
+    if (!child || child.parentIncident?.id !== incident.id) return notFound(params.childId);
+    delete child.parentIncident;
+    persist();
+    return HttpResponse.json(view(incident));
+  }),
+
+  http.post(url('/incidents/:id/stakeholder-updates'), async ({ params, request }) => {
+    const incident = find(params.id);
+    if (!incident) return notFound(params.id);
+    if (!incident.major) return badRequest(`${incident.ref} is not a major incident; declare it one first.`);
+    const body = (await request.json()) as { message: string; postToChildren?: boolean; notifyEmails?: string[] };
+    const date = new Date().toISOString();
+    const entry = (message: string) => ({ date, author: 'admin', message });
+    incident.log = [...incident.log, entry(`Stakeholder update: ${body.message}`)];
+    const children = store.filter((i) => i.parentIncident?.id === incident.id && i.status !== 'closed');
+    if (body.postToChildren) {
+      for (const child of children) child.log = [...child.log, entry(`${incident.ref} Stakeholder update: ${body.message}`)];
+    }
+    persist();
+    return HttpResponse.json({
+      incident: view(incident),
+      postedTo: body.postToChildren ? children.length : 0,
+      notified: body.notifyEmails ?? [],
+    });
+  }),
+
+  http.get(url('/tickets/:class/:id/pending'), ({ params }) => {
+    const incident = params.class === 'Incident' ? find(params.id) : undefined;
+    return HttpResponse.json({ pending: incident ? (view(incident).pending ?? null) : null, extrasAvailable: true });
   }),
 
   http.post(url('/incidents'), async ({ request }) => {
@@ -225,14 +329,19 @@ export const incidentHandlers = [
     const body = (await request.json()) as Record<string, string>;
     Object.assign(incident, body.title ? { summary: body.title } : {});
     persist();
-    return HttpResponse.json(incident);
+    return HttpResponse.json(view(incident));
   }),
 
   http.post(url('/incidents/:id/transitions'), async ({ params, request }) => {
     const incident = find(params.id);
     if (!incident) return notFound(params.id);
 
-    const body = (await request.json()) as { action: TransitionAction; solution?: string };
+    const body = (await request.json()) as {
+      action: TransitionAction;
+      solution?: string;
+      pendingReason?: string;
+      nextActionDate?: string;
+    };
 
     // Reject an illegal transition exactly as the backend does, so the UI's
     // error path is exercised rather than assumed.
@@ -248,11 +357,18 @@ export const incidentHandlers = [
       );
     }
 
+    if (body.action === 'hold') {
+      if (!body.pendingReason?.trim()) return badRequest('"hold" requires a pending reason.');
+      if (!body.nextActionDate) return badRequest('"hold" requires a next-action date.');
+      if (body.nextActionDate < today()) return badRequest('The next-action date cannot be in the past.');
+      incident.pending = { reason: body.pendingReason.trim(), nextActionDate: body.nextActionDate, overdue: false };
+    }
+
     incident.status = RESULT_STATUS[body.action];
     incident.availableActions = ACTIONS_BY_STATUS[incident.status] ?? [];
     if (body.solution) incident.resolution = body.solution;
     persist();
-    return HttpResponse.json(incident);
+    return HttpResponse.json(view(incident));
   }),
 
   http.post(url('/incidents/:id/log'), async ({ params, request }) => {
@@ -264,6 +380,6 @@ export const incidentHandlers = [
       { date: new Date().toISOString().slice(0, 16).replace('T', ' '), author: 'admin', message },
     ];
     persist();
-    return HttpResponse.json(incident);
+    return HttpResponse.json(view(incident));
   }),
 ];

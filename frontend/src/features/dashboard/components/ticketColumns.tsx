@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { MoreVertical } from 'lucide-react';
 import { Avatar, IconButton } from '@/components/ui';
-import { PriorityBadge, StatusPill, type Column } from '@/components/data-display';
+import { PendingNote, PriorityBadge, StatusPill, type Column } from '@/components/data-display';
 import { isModuleRegistered } from '@/config/modules';
 import { shortDateTime } from '@/lib/utils';
 import type { DashboardTicket } from '../types';
@@ -58,7 +58,13 @@ export function ticketColumns({
       header: 'Status',
       size: 104,
       enableSorting: false,
-      cell: ({ row }) => <StatusPill status={row.original.status} size="sm" />,
+      // On hold: the next-action date under the pill, red once it has passed.
+      cell: ({ row }) => (
+        <span className="flex flex-col items-start gap-1">
+          <StatusPill status={row.original.status} size="sm" />
+          {row.original.pending ? <PendingNote pending={row.original.pending} compact /> : null}
+        </span>
+      ),
     },
   ];
 

@@ -5,6 +5,7 @@ import type {
   TicketStatus,
   TransitionAction,
 } from "../../shared/ticket-mapping.js";
+import type { PendingInfo } from "./ticket-extras.js";
 
 /**
  * DTOs for the incidents module.
@@ -13,7 +14,26 @@ import type {
  * the contract between the two halves — change one, change the other.
  */
 
-export type { CaseLogEntry, TicketDto, TicketPriority, TicketStatus, TransitionAction };
+export type { CaseLogEntry, PendingInfo, TicketDto, TicketPriority, TicketStatus, TransitionAction };
+
+/**
+ * A ticket row plus what the arcus-incident-extras extension adds: why and
+ * until when it is on hold, and whether it is a major incident. Both are
+ * absent on an iTop without the extension (the reason alone is iTop's own).
+ */
+export interface IncidentRow extends TicketDto {
+  /** Only while the incident is on hold. */
+  pending?: PendingInfo;
+  major?: boolean;
+}
+
+/** An incident linked to another: a major incident's children, or its parent. */
+export interface LinkedIncident {
+  id: string;
+  ref: string;
+  summary: string;
+  status: TicketStatus;
+}
 
 export interface IncidentListQuery {
   page: number;
@@ -26,10 +46,14 @@ export interface IncidentListQuery {
   assignee?: string;
   sort?: "ref" | "title" | "status" | "priority" | "start_date";
   order?: "asc" | "desc";
+  /** Major incidents only. */
+  major?: boolean;
+  /** On hold and past their next-action date. */
+  overdue?: boolean;
 }
 
 export interface IncidentListResult {
-  items: TicketDto[];
+  items: IncidentRow[];
   page: number;
   limit: number;
   total: number;
@@ -37,7 +61,7 @@ export interface IncidentListResult {
   hasMore: boolean;
 }
 
-export interface IncidentDetail extends TicketDto {
+export interface IncidentDetail extends IncidentRow {
   description: string;
   caller?: { id: string; name: string };
   organization?: { id: string; name: string };
@@ -66,6 +90,15 @@ export interface IncidentDetail extends TicketDto {
    * offer a transition iTop would reject.
    */
   availableActions: TransitionAction[];
+  /** The major incident this one is linked to. */
+  parentIncident?: LinkedIncident;
+  /** Incidents linked to this one (a major incident's children). */
+  childIncidents: LinkedIncident[];
+  /**
+   * Whether this iTop has the arcus-incident-extras fields; without them
+   * the major flag and the next-action date cannot be set.
+   */
+  extrasAvailable: boolean;
 }
 
 /**
@@ -108,7 +141,10 @@ export interface TransitionInput {
   agentId?: string;
   solution?: string;
   resolutionCode?: string;
+  /** `hold` only, required: why it waits. */
   pendingReason?: string;
+  /** `hold` only, required: the day (YYYY-MM-DD) to act again. */
+  nextActionDate?: string;
   /** Appended to the public log alongside the transition. */
   comment?: string;
 }
@@ -126,4 +162,25 @@ export interface IncidentOptions {
   services: Array<{ value: string; label: string }>;
   /** Each carries its parent service, so the picker can narrow on selection. */
   serviceSubcategories: Array<{ value: string; label: string; serviceId: string }>;
+}
+
+/** A stakeholder update on a major incident. */
+export interface StakeholderUpdateInput {
+  message: string;
+  /** Also post it on every linked (child) incident's public log. */
+  postToChildren?: boolean;
+  /** Email it to the callers of the major incident and its children. */
+  notifyCallers?: boolean;
+  /** Further addresses to email it to. */
+  notifyEmails?: string[];
+}
+
+export interface StakeholderUpdateResult {
+  incident: IncidentDetail;
+  /** Child incidents the update was posted on. */
+  postedTo: number;
+  /** Addresses it was emailed to. */
+  notified: string[];
+  /** Set when an email could not be sent; the log entries were still made. */
+  notifyError?: string;
 }
