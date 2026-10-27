@@ -41,3 +41,12 @@ export interface TicketSummary {
   updatedAt?: string;
   slaState?: SlaState;
 }
+
+/** Why a ticket is on hold and when someone acts on it again. */
+export interface PendingInfo {
+  reason: string;
+  /** A day, `YYYY-MM-DD`. Absent when the platform has none recorded. */
+  nextActionDate?: string;
+  /** The next-action date has passed and the ticket is still on hold. */
+  overdue: boolean;
+}

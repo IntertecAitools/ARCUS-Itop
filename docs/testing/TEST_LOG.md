@@ -4,6 +4,29 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-10-27 — Incidents: on-hold reason + next-action date, major incidents, email to ticket
+
+Branch `claude/incidents-400d8a`. This worktree's BFF on `:4010` against the shared local iTop on `:8080` (with the new `arcus-incident-extras` extension, installed this session) and the local Mailpit (`itop-mailpit`, SMTP 1025 / API 8025).
+
+| What ran | Result | Notes |
+| --- | --- | --- |
+| Backend `npm run typecheck` | ✅ | |
+| Backend `npm test` | ✅ 671 / 671 | new `test/incident-extras.test.ts` (20: extension detection and its cache, hold rules — reason, real day, not past, 409 without the extension —, overdue on iTop's day, the major flag, list filters, linking/unlinking children and their guards, stakeholder update on the log, the open children and by email, one message per address) and `test/mail-intake.test.ts` (14: ref in the subject, subject cleaning, quoted-reply stripping, machine mail, HTML↔text; new mail → incident with caller and acknowledgement, reply → log entry, closed ref → new incident, unknown sender create/ignore, own and automatic mail skipped, processed once, failed mail retried then set aside, unreadable mailbox reported) |
+| Live `npm run e2e:incidents` | ✅ 46 / 46 | holds (refusals, read-back on record and list, overdue after moving the date back in iTop, overdue filter, My Assignments sorts the overdue hold first), user request hold through the generic action + bulk refused, major flag/filter/banner, children linked and unlinked, stakeholder update on 3 logs and in Mailpit to the caller and an extra address, email → incident with caller and acknowledgement, reply onto the log without the quote, auto-reply skipped, unknown sender filed, second run files nothing. Run as `admin` (`E2E_LOGIN`) against the BFF with `MFA_REQUIRED=off SESSION_STORE=memory` (creating a dedicated `e2e.incidents` Administrator account was refused by the permission check; `admin` is MFA-enrolled in the shared session DB). Deletes all its records and Mailpit messages |
+| Frontend `tsc -b --noEmit` | ✅ | |
+| Frontend `npx vitest run` | ✅ 38 files, 191 tests | new: `PendingNote`, `IncidentActions` (hold needs reason + future date), `MajorIncidentPanel` (declare, children, stakeholder update), `MajorIncidentsBanner`, `asksNextActionDate` |
+| Frontend `npm run build` | ✅ | |
+
+Bugs found and fixed:
+
+- Extension detection used `… AND next_action_date IS NULL`; iTop's OQL has no `IS NULL` (it is `ISNULL()`), so every check answered "missing" and the first live run failed 21 checks with 409s. Now `next_action_date > '2000-01-01'`, verified against iTop with (code 0) and without (code 100, on Problem) the field. Fixed before the first push.
+- The frontend architecture test forbids iTop stimulus names in UI code; the generic hold dialog first keyed on `ev_pending`. It now asks for the date when the action's target state is `pending`.
+- First live run also met a 502 while the Changes session ran its own iTop upgrade; re-run after it finished.
+
+After merging main (Changes #30; conflicts in the registries, `services.ts`, the READMEs, this log and the mock handler list, all kept from both sides): backend typecheck clean and `npm test` 698 / 698, frontend `tsc -b` clean and vitest 40 files / 198 tests.
+
+Not covered: the IMAP / Microsoft 365 mail source (no mailbox; only Mailpit's API was exercised — the README lists what IT must provide); attachments on emailed tickets (not built); the new screens were not clicked through in a browser against the live BFF (component tests and the mock handlers cover them); `e2e:incidents` with MFA on (needs an `incidents` account in `backend/e2e.local.json`).
+
 ### 2026-10-27 — Changes: CAB decisions, plans required by change type (iTop extension arcus-change-cab)
 
 Branch `claude/changes-cab-a67dd0`. This worktree's BFF on `:4020` (MFA on for staff, sessions in the shared `arcus_bff` database, new table `bff_change_plan_rules`; `node_modules` junctions to the servicedesk-rename worktree's, identical lockfiles) against the shared local iTop on `:8080`. The new `arcus-change-cab` extension was installed on the shared iTop (`itop_prod`, after a mysqldump to `C:\Users\Venkatesh.V\itop-backups\itop_prod-before-arcus-change-cab-20261027-1221.sql.gz`), right after the Incidents session's `arcus-incident-extras` upgrade finished; the module list keeps both other arcus extensions.

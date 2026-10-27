@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<itop_design xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="3.2">
+  <classes>
+    <class id="Incident" _delta="must_exist">
+      <fields>
+        <!-- When the agent will act again on a ticket put on hold
+             (pending_reason, iTop's own, says why). -->
+        <field id="next_action_date" xsi:type="AttributeDate" _delta="define">
+          <sql>next_action_date</sql>
+          <default_value/>
+          <is_null_allowed>true</is_null_allowed>
+        </field>
+        <!-- A major incident: the parent the related incidents are linked
+             to (iTop's own parent_incident_id). -->
+        <field id="major_incident" xsi:type="AttributeEnum" _delta="define">
+          <values>
+            <value id="no">
+              <code>no</code>
+            </value>
+            <value id="yes">
+              <code>yes</code>
+            </value>
+          </values>
+          <sql>major_incident</sql>
+          <default_value>no</default_value>
+          <is_null_allowed>false</is_null_allowed>
+          <display_style>radio_horizontal</display_style>
+        </field>
+      </fields>
+      <presentation>
+        <details>
+          <items>
+            <item id="col:col1" _delta="must_exist">
+              <items>
+                <item id="fieldset:Ticket:moreinfo" _delta="must_exist">
+                  <items>
+                    <item id="next_action_date" _delta="define">
+                      <rank>55</rank>
+                    </item>
+                    <item id="major_incident" _delta="define">
+                      <rank>5</rank>
+                    </item>
+                  </items>
+                </item>
+              </items>
+            </item>
+          </items>
+        </details>
+      </presentation>
+    </class>
+    <class id="UserRequest" _delta="must_exist">
+      <fields>
+        <field id="next_action_date" xsi:type="AttributeDate" _delta="define">
+          <sql>next_action_date</sql>
+          <default_value/>
+          <is_null_allowed>true</is_null_allowed>
+        </field>
+      </fields>
+      <presentation>
+        <details>
+          <items>
+            <item id="col:col1" _delta="must_exist">
+              <items>
+                <item id="fieldset:Ticket:moreinfo" _delta="must_exist">
+                  <items>
+                    <item id="next_action_date" _delta="define">
+                      <rank>55</rank>
+                    </item>
+                  </items>
+                </item>
+              </items>
+            </item>
+          </items>
+        </details>
+      </presentation>
+    </class>
+  </classes>
+</itop_design>

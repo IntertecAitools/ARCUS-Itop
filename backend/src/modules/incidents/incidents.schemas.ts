@@ -47,6 +47,15 @@ const csvEnum = <T extends readonly [string, ...string[]]>(values: T) =>
     })
     .pipe(z.array(z.enum(values)).optional());
 
+/** `true`/`1` as a query flag; anything else (or absent) is off. */
+const flag = z
+  .union([z.string(), z.boolean()])
+  .optional()
+  .transform((raw) => raw === true || raw === "true" || raw === "1" || undefined);
+
+/** A calendar day. Whether it is real and not past is TicketExtras' check. */
+const day = z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD");
+
 export const incidentListQuerySchema = z.object({
   page: intParam(1, 100_000, 1),
   limit: intParam(1, 200, 25),
@@ -62,6 +71,8 @@ export const incidentListQuerySchema = z.object({
     .optional(),
   sort: z.enum(["ref", "title", "status", "priority", "start_date"]).optional(),
   order: z.enum(["asc", "desc"]).optional(),
+  major: flag,
+  overdue: flag,
 });
 
 export const incidentIdParamSchema = z.object({
@@ -117,10 +128,35 @@ export const transitionSchema = z.object({
   agentId: idString.optional(),
   solution: z.string().trim().min(1).max(10_000).optional(),
   resolutionCode: z.enum(RESOLUTION_CODES).optional(),
-  pendingReason: z.string().trim().max(500).optional(),
+  pendingReason: z.string().trim().max(1_000).optional(),
+  nextActionDate: day.optional(),
   comment: z.string().trim().max(10_000).optional(),
 });
 
 export const logEntrySchema = z.object({
   message: z.string().trim().min(1, "A message is required").max(10_000),
+});
+
+export const majorSchema = z.object({ major: z.boolean() });
+
+export const linkChildrenSchema = z.object({
+  incidentIds: z.array(idString).min(1, "Name at least one incident").max(100),
+});
+
+export const childParamSchema = z.object({
+  id: z.string().regex(/^\d+$/, "id must be numeric"),
+  childId: z.string().regex(/^\d+$/, "childId must be numeric"),
+});
+
+export const stakeholderUpdateSchema = z.object({
+  message: z.string().trim().min(1, "A message is required").max(10_000),
+  postToChildren: z.boolean().optional(),
+  notifyCallers: z.boolean().optional(),
+  notifyEmails: z.array(z.string().trim().email("Not an email address")).max(50).optional(),
+});
+
+/** A ticket the hold endpoints accept: the class and its id. */
+export const ticketParamSchema = z.object({
+  class: z.enum(["Incident", "UserRequest"]),
+  id: z.string().regex(/^\d+$/, "id must be numeric"),
 });

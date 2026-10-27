@@ -1,4 +1,5 @@
 import { badRequest, notFound } from "../../core/errors.js";
+import type { Mailer } from "../../platform/auth/mailer.js";
 import { likeContains } from "../../itop/oql.js";
 import type { CmdbSchema } from "../../schema/load.js";
 import type { DefaultOrganization } from "../../shared/default-organization.js";
@@ -15,6 +16,7 @@ import {
   str,
   TICKET_FIELDS,
   toCaseLog,
+  OPEN_STATES,
   toTicket,
   TRANSITIONS,
   URGENCY_MAP,
@@ -25,9 +27,15 @@ import type {
   IncidentListQuery,
   IncidentListResult,
   IncidentOptions,
+  IncidentRow,
+  LinkedIncident,
+  StakeholderUpdateInput,
+  StakeholderUpdateResult,
   TransitionInput,
   UpdateIncidentInput,
 } from "./incidents.types.js";
+import { stakeholderMail } from "./stakeholder-mail.js";
+import { extrasMissing, type TicketExtras } from "./ticket-extras.js";
 
 /** Extra fields the detail screen needs on top of a list row. */
 const DETAIL_FIELDS = [
@@ -54,7 +62,14 @@ const DETAIL_FIELDS = [
   "solution",
   "resolution_code",
   "public_log",
+  "parent_incident_id",
 ].join(",");
+
+/** A linked incident (parent or child), as the detail screen lists it. */
+const LINK_FIELDS = "id,ref,title,status";
+
+/** Most children a major incident lists, posts updates on and notifies. */
+const CHILD_CAP = 500;
 
 /** Turns a snake_case enum value into something a human reads. */
 const humanise = (value: string) =>
@@ -80,6 +95,9 @@ export class IncidentsService {
     private readonly objects: ObjectsService,
     private readonly schema: CmdbSchema,
     private readonly defaultOrganization: DefaultOrganization,
+    private readonly extras: TicketExtras,
+    /** Sends stakeholder updates; absent when no mail server is configured. */
+    private readonly mailer?: Mailer,
   ) {}
 
   /* --------------------------------------------------------------------- *
@@ -120,11 +138,19 @@ export class IncidentsService {
       clauses.push(`(ref LIKE ${pattern} OR title LIKE ${pattern})`);
     }
 
+    if (query.major) clauses.push("major_incident = 'yes'");
+    if (query.overdue) clauses.push(this.extras.overdueCondition());
+
     return clauses.length ? clauses.join(" AND ") : "1=1";
   }
 
   async list(query: IncidentListQuery): Promise<IncidentListResult> {
-    const where = this.buildWhere(query);
+    let where = this.buildWhere(query);
+    // Without the extension no incident is major or has a next-action date:
+    // the honest answer is an empty page, not an OQL error.
+    if (where !== null && (query.major || query.overdue) && !(await this.extras.available("Incident"))) {
+      where = null;
+    }
 
     if (where === null) {
       return { items: [], page: query.page, limit: query.limit, total: 0, pages: 0, hasMore: false };
@@ -140,8 +166,9 @@ export class IncidentsService {
       ...(query.order ? { order: query.order } : {}),
     });
 
+    const items = result.items.map(toTicket);
     return {
-      items: result.items.map(toTicket),
+      items: await this.withExtras(items),
       page: result.page,
       limit: result.limit,
       total: result.total,
@@ -161,10 +188,48 @@ export class IncidentsService {
     const item = result.items[0];
     if (!item) throw notFound(`Incident ${id} was not found.`);
 
-    return this.toDetail(item);
+    return this.detail(item);
   }
 
-  private toDetail(item: ObjectDto): IncidentDetail {
+  /** Rows with their pending reason, next-action date and major flag. */
+  private async withExtras<T extends IncidentRow>(rows: T[]): Promise<T[]> {
+    if (rows.length === 0) return rows;
+    const extras = await this.extras.read("Incident", rows.map((row) => row.id));
+    return rows.map((row) => ({ ...row, ...extras.get(row.id) }));
+  }
+
+  /** The detail DTO, with the extension's fields and the linked incidents. */
+  private async detail(item: ObjectDto): Promise<IncidentDetail> {
+    const id = String(item.id);
+    const parentId = str(item.fields["parent_incident_id"]);
+    const [extras, available, children, parents] = await Promise.all([
+      this.extras.read("Incident", [id]),
+      this.extras.available("Incident"),
+      this.linked(`parent_incident_id = ${Number(id)}`),
+      parentId && parentId !== "0" ? this.linked(`id = ${Number(parentId)}`) : Promise.resolve([]),
+    ]);
+    return {
+      ...this.toDetail(item),
+      ...extras.get(id),
+      ...(parents[0] ? { parentIncident: parents[0] } : {}),
+      childIncidents: children,
+      extrasAvailable: available,
+    };
+  }
+
+  private async linked(where: string): Promise<LinkedIncident[]> {
+    const result = await this.objects.listAll(
+      "Incident",
+      { oql: `SELECT Incident WHERE ${where}`, fields: LINK_FIELDS },
+      CHILD_CAP,
+    );
+    return result.items.map((row) => {
+      const ticket = toTicket(row);
+      return { id: ticket.id, ref: ticket.ref, summary: ticket.summary, status: ticket.status };
+    });
+  }
+
+  private toDetail(item: ObjectDto): Omit<IncidentDetail, "childIncidents" | "extrasAvailable"> {
     const f = item.fields;
 
     /** Builds a {id,name} only when iTop actually holds a link (0 = none). */
@@ -246,7 +311,7 @@ export class IncidentsService {
       comment: "Incident created via ARCUS",
     });
 
-    return this.toDetail(object);
+    return this.detail(object);
   }
 
   async update(id: string, input: UpdateIncidentInput): Promise<IncidentDetail> {
@@ -277,7 +342,7 @@ export class IncidentsService {
       comment: "Incident updated via ARCUS",
     });
 
-    return this.toDetail(object);
+    return this.detail(object);
   }
 
   /**
@@ -297,13 +362,25 @@ export class IncidentsService {
       );
     }
 
+    if (input.action === "hold") {
+      // The next-action date lives in the extension, which the generic
+      // stimulus path cannot write: TicketExtras applies the hold.
+      if (!input.pendingReason?.trim()) throw badRequest('"hold" requires a pending reason.');
+      if (!input.nextActionDate) throw badRequest('"hold" requires a next-action date.');
+      await this.extras.hold("Incident", id, {
+        reason: input.pendingReason,
+        nextActionDate: input.nextActionDate,
+        ...(input.comment ? { comment: input.comment } : {}),
+      });
+      return this.get(id);
+    }
+
     const transition = TRANSITIONS[input.action];
     const fields: Record<string, unknown> = {};
 
     if (input.agentId) fields["agent_id"] = Number(input.agentId);
     if (input.solution) fields["solution"] = input.solution;
     if (input.resolutionCode) fields["resolution_code"] = input.resolutionCode;
-    if (input.pendingReason) fields["pending_reason"] = input.pendingReason;
     if (input.comment) fields["public_log"] = input.comment;
 
     for (const required of transition.requires) {
@@ -320,7 +397,7 @@ export class IncidentsService {
       { fields: DETAIL_FIELDS, comment: `${transition.label} via ARCUS` },
     );
 
-    return this.toDetail(object);
+    return this.detail(object);
   }
 
   /** Appends a message to the public case log. */
@@ -331,7 +408,156 @@ export class IncidentsService {
       { public_log: message },
       { fields: DETAIL_FIELDS, comment: "Comment added via ARCUS" },
     );
-    return this.toDetail(object);
+    return this.detail(object);
+  }
+
+  /* --------------------------------------------------------------------- *
+   * Major incidents
+   * --------------------------------------------------------------------- */
+
+  /** Declares the incident a major incident, or clears the flag. */
+  async setMajor(id: string, major: boolean): Promise<IncidentDetail> {
+    await this.get(id);
+    await this.extras.setMajor(id, major);
+    return this.get(id);
+  }
+
+  /**
+   * Links incidents to this one as its children (iTop's own
+   * parent_incident_id). An incident already linked elsewhere moves here.
+   */
+  async linkChildren(id: string, childIds: string[]): Promise<IncidentDetail> {
+    const parent = await this.get(id);
+    const ids = [...new Set(childIds)];
+    if (ids.length === 0) throw badRequest("Name at least one incident to link.");
+    if (ids.includes(id)) throw badRequest("An incident cannot be linked to itself.");
+    if (parent.parentIncident && ids.includes(parent.parentIncident.id)) {
+      throw badRequest(`${parent.parentIncident.ref} is the parent of ${parent.ref}, so it cannot also be its child.`);
+    }
+    const found = await this.linked(`id IN (${ids.map(Number).join(",")})`);
+    const missing = ids.filter((child) => !found.some((row) => row.id === child));
+    if (missing.length) throw notFound(`Incident ${missing.join(", ")} was not found.`);
+
+    for (const child of ids) {
+      await this.objects.update("Incident", Number(child), { parent_incident_id: Number(id) }, {
+        fields: "id",
+        comment: `Linked to ${parent.ref} via ARCUS`,
+      });
+    }
+    return this.get(id);
+  }
+
+  /** Unlinks a child incident from this one. */
+  async unlinkChild(id: string, childId: string): Promise<IncidentDetail> {
+    const parent = await this.get(id);
+    if (!parent.childIncidents.some((child) => child.id === childId)) {
+      throw notFound(`Incident ${childId} is not linked to ${parent.ref}.`);
+    }
+    await this.objects.update("Incident", Number(childId), { parent_incident_id: 0 }, {
+      fields: "id",
+      comment: `Unlinked from ${parent.ref} via ARCUS`,
+    });
+    return this.get(id);
+  }
+
+  /**
+   * A stakeholder update: posted on the incident's public log, optionally on
+   * every open child's too, and optionally emailed to the callers and any
+   * further addresses. The subject carries the ref in brackets, so a reply
+   * lands back on the incident through the support mailbox.
+   */
+  async postStakeholderUpdate(id: string, input: StakeholderUpdateInput): Promise<StakeholderUpdateResult> {
+    const before = await this.get(id);
+    const message = input.message.trim();
+    if (!message) throw badRequest("A message is required.");
+    if (!before.extrasAvailable) throw extrasMissing();
+    if (!before.major) throw badRequest(`${before.ref} is not a major incident; declare it one first.`);
+
+    const entry = `Stakeholder update: ${message}`;
+    await this.objects.update("Incident", Number(id), { public_log: entry }, {
+      fields: "id",
+      comment: "Stakeholder update via ARCUS",
+    });
+
+    const children = before.childIncidents.filter((child) => child.status !== "closed");
+    let postedTo = 0;
+    if (input.postToChildren) {
+      for (const child of children) {
+        await this.objects.update("Incident", Number(child.id), { public_log: `${before.ref} ${entry}` }, {
+          fields: "id",
+          comment: `Stakeholder update from ${before.ref} via ARCUS`,
+        });
+        postedTo += 1;
+      }
+    }
+
+    const recipients = new Set(
+      (input.notifyEmails ?? []).map((email) => email.trim().toLowerCase()).filter(Boolean),
+    );
+    if (input.notifyCallers) {
+      for (const email of await this.callerEmails([id, ...children.map((child) => child.id)])) {
+        recipients.add(email.toLowerCase());
+      }
+    }
+
+    const notified: string[] = [];
+    let notifyError: string | undefined;
+    if (recipients.size > 0) {
+      if (!this.mailer) {
+        notifyError = "No mail server is configured (SMTP_HOST), so no email was sent.";
+      } else {
+        const mail = stakeholderMail(before.ref, before.summary, message);
+        // One message per address: callers of different customers must not
+        // see each other's addresses.
+        for (const to of recipients) {
+          try {
+            await this.mailer.send({ to, ...mail });
+            notified.push(to);
+          } catch (error) {
+            notifyError = `Sending to ${to} failed: ${error instanceof Error ? error.message : String(error)}`;
+          }
+        }
+      }
+    }
+
+    return {
+      incident: await this.get(id),
+      postedTo,
+      notified,
+      ...(notifyError ? { notifyError } : {}),
+    };
+  }
+
+  /** The email addresses of the callers of these incidents. */
+  private async callerEmails(ids: string[]): Promise<string[]> {
+    const result = await this.objects.listAll(
+      "Incident",
+      { oql: `SELECT Incident WHERE id IN (${ids.map(Number).join(",")})`, fields: "caller_id" },
+      CHILD_CAP + 1,
+    );
+    const callers = [
+      ...new Set(result.items.map((row) => str(row.fields["caller_id"])).filter((c) => c && c !== "0")),
+    ];
+    if (callers.length === 0) return [];
+    const people = await this.objects.listAll(
+      "Person",
+      { oql: `SELECT Person WHERE id IN (${callers.map(Number).join(",")})`, fields: "email" },
+      CHILD_CAP + 1,
+    );
+    return people.items.map((row) => str(row.fields["email"])).filter((email) => email.includes("@"));
+  }
+
+  /** Open major incidents, newest first: the dashboard's banner. */
+  async openMajor(): Promise<IncidentRow[]> {
+    if (!(await this.extras.available("Incident"))) return [];
+    const result = await this.objects.list("Incident", {
+      page: 1,
+      limit: 20,
+      oql: `SELECT Incident WHERE major_incident = 'yes' AND status IN (${OPEN_STATES})`,
+      fields: TICKET_FIELDS,
+    });
+    const rows = result.items.map(toTicket).sort((a, b) => Number(b.id) - Number(a.id));
+    return (await this.withExtras(rows)).map((row) => ({ ...row, major: true }));
   }
 
   /* --------------------------------------------------------------------- *

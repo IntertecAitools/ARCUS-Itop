@@ -1,5 +1,7 @@
 // incidents: feature types.
-import type { TicketPriority, TicketStatus } from '@/types/ticket';
+import type { PendingInfo, TicketPriority, TicketStatus } from '@/types/ticket';
+
+export type { PendingInfo };
 
 /**
  * Mirrors `backend/src/modules/incidents/incidents.types.ts`. That pairing is
@@ -17,6 +19,18 @@ export interface Incident {
   organization?: { id: string; name: string };
   createdAt: string;
   operationalStatus?: string;
+  /** Only while on hold: why, and the day to act again. */
+  pending?: PendingInfo;
+  /** A major incident. Absent when the platform cannot record it. */
+  major?: boolean;
+}
+
+/** An incident linked to another: a major incident's child, or its parent. */
+export interface LinkedIncident {
+  id: string;
+  ref: string;
+  summary: string;
+  status: TicketStatus;
 }
 
 export interface IncidentListResult {
@@ -39,6 +53,10 @@ export interface IncidentFilters {
   assignee?: string;
   sort?: IncidentSort;
   order?: 'asc' | 'desc';
+  /** Major incidents only. */
+  major?: boolean;
+  /** On hold and past the next-action date. */
+  overdue?: boolean;
 }
 
 export interface CaseLogEntry {
@@ -91,12 +109,16 @@ export interface IncidentDetail extends Incident {
   userComment?: string;
   log: CaseLogEntry[];
   privateLog?: CaseLogEntry[];
-  parentIncident?: { id: string; ref: string; title: string };
+  /** The major incident this one is linked to. */
+  parentIncident?: LinkedIncident;
   parentRequest?: { id: string; ref: string; title: string };
   parentProblem?: { id: string; ref: string; title: string };
   parentChange?: { id: string; ref: string; title: string };
   relatedRequests?: Array<{ id: string; ref: string; title: string }>;
-  childIncidents?: Array<{ id: string; ref: string; title: string }>;
+  /** Incidents linked to this one (a major incident's children). */
+  childIncidents?: LinkedIncident[];
+  /** Whether the next-action date and the major flag can be recorded. */
+  extrasAvailable?: boolean;
   escalationFlagDisplay?: string;
   escalationReasonDisplay?: string;
   pendingReasonDisplay?: string;
@@ -150,7 +172,26 @@ export interface TransitionInput {
   solution?: string;
   resolutionCode?: string;
   pendingReason?: string;
+  /** `hold` only: the day (YYYY-MM-DD) to act again. */
+  nextActionDate?: string;
   comment?: string;
+}
+
+/** A stakeholder update on a major incident. */
+export interface StakeholderUpdateInput {
+  message: string;
+  /** Also post it on every open linked incident. */
+  postToChildren?: boolean;
+  /** Email it to the callers of the incident and its linked incidents. */
+  notifyCallers?: boolean;
+  notifyEmails?: string[];
+}
+
+export interface StakeholderUpdateResult {
+  incident: IncidentDetail;
+  postedTo: number;
+  notified: string[];
+  notifyError?: string;
 }
 
 export interface SelectOption {

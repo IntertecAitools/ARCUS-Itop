@@ -8,3 +8,4 @@ export * from './RecentIncidentsCard';
 export * from './ServiceRequestShortcuts';
 export * from './SlaPerformanceCard';
 export * from './ViewAllLink';
+export * from './MajorIncidentsBanner';

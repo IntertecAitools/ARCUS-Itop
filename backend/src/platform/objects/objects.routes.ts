@@ -13,6 +13,7 @@ import { DEFAULT_PAGE_SIZE, MAX_BULK_IDS, MAX_PAGE_SIZE } from "./objects.servic
 import { parseCriteriaParam } from "./criteria.js";
 import type { Services } from "../../services.js";
 import { answersSchema } from "../../modules/request-forms/index.js";
+import { isHoldable } from "../../modules/incidents/index.js";
 
 /** Query keys the list endpoint interprets itself; anything else is a filter. */
 const RESERVED_QUERY_KEYS = new Set([
@@ -166,6 +167,9 @@ export function registerObjectRoutes(app: FastifyInstance, services: Services): 
       request.body,
       "request body",
     );
+    if (body.action === "stimulus" && body.stimulus === "ev_pending" && isHoldable(className)) {
+      throw badRequest("Put tickets on hold one at a time: each needs its own reason and next-action date.");
+    }
     const { ids, comment, ...action } = body;
     return objects.bulk(className, ids, action, comment);
   });
@@ -272,6 +276,19 @@ export function registerObjectRoutes(app: FastifyInstance, services: Services): 
       request.body,
       "request body",
     );
+
+    // A ticket put on hold also gets a next-action date, a field of the
+    // arcus-incident-extras extension that the schema-checked path cannot
+    // write: TicketExtras applies the hold, as the incident screen's does.
+    if (body.stimulus === "ev_pending" && isHoldable(params.class)) {
+      const fields = (body.fields ?? {}) as Record<string, unknown>;
+      await services.ticketExtras.hold(params.class, String(params.id), {
+        reason: typeof fields["pending_reason"] === "string" ? fields["pending_reason"] : "",
+        nextActionDate: typeof fields["next_action_date"] === "string" ? fields["next_action_date"] : "",
+        ...(typeof fields["public_log"] === "string" ? { comment: fields["public_log"] } : {}),
+      });
+      return objects.get(params.class, params.id, body.returnFields);
+    }
 
     return objects.applyStimulus(params.class, params.id, body.stimulus, body.fields, {
       ...(body.comment !== undefined ? { comment: body.comment } : {}),

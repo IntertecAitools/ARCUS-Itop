@@ -7,6 +7,8 @@ export interface Mail {
   subject: string;
   text: string;
   html: string;
+  /** Extra headers, e.g. Auto-Submitted on automatic answers. */
+  headers?: Record<string, string>;
 }
 
 /** Sends email. An interface so tests can capture what would be sent. */

@@ -759,6 +759,176 @@ enrolment from **Users** so the next run enrols again.
 For production, add the folder to the iTop image's `extensions/` before the
 first install, and `arcus-problem-rca` to the install's module list.
 
+## Incidents: on hold, major incidents
+
+On top of the incident screens (`modules/incidents/`) and, for user
+requests, the generic record screens.
+
+**On hold.** Putting an incident or a user request on hold needs a reason
+(iTop's own `pending_reason`) and a **next-action date**, the day someone acts
+on it again (today or later). Both show on the record ("On hold" banner), in
+the incident list (under the status), and in the dashboard's My Assignments
+(incidents and requests). Once the date has passed the ticket reads
+**overdue**, in red and in words, and sorts first in My Assignments. The
+incident list's "Show" filter has "Overdue holds".
+
+| | |
+| --- | --- |
+| `POST /api/incidents/:id/transitions` | `{ action: "hold", pendingReason, nextActionDate: "YYYY-MM-DD", comment? }`: 400 without either, or with a date in the past |
+| `POST /api/objects/UserRequest/:id/stimulus` | `ev_pending` with `fields: { pending_reason, next_action_date }`, same rules (the generic hold dialog asks for both). The same for `Incident`. Bulk `ev_pending` on these classes is refused: each needs its own reason and date |
+| `GET /api/tickets/:class/:id/pending` | `{ pending: { reason, nextActionDate?, overdue } \| null, extrasAvailable }` for `Incident` or `UserRequest` |
+| `GET /api/incidents?overdue=true` | on hold, next-action date before today (iTop's day) |
+
+List rows, the detail and the My Assignments rows carry
+`pending: { reason, nextActionDate, overdue }` while on hold.
+
+**Major incidents.** An agent declares an incident major (and clears it);
+major incidents carry a "Major" badge in the list, have a "Major incidents"
+filter, and every open one is named in a red banner at the top of the
+dashboard. Related incidents are linked to the major one as children
+(iTop's own `parent_incident_id`); a child shows which major incident it
+belongs to. **Stakeholder updates** go on the major incident's public log,
+optionally on every open child's log, and optionally by email to the callers
+of all of them and to further addresses, one message per address, with
+`[I-000123]` in the subject so a reply lands back on the incident (see
+"Email to ticket"). Email needs the BFF's SMTP settings (`SMTP_HOST`); without
+them the log entries are still made and the answer says no email was sent.
+
+| | |
+| --- | --- |
+| `PUT /api/incidents/:id/major` | `{ major: true \| false }` |
+| `POST /api/incidents/:id/children` | `{ incidentIds: ["…"] }`: links them (an incident linked elsewhere moves); 400 for itself or its own parent |
+| `DELETE /api/incidents/:id/children/:childId` | unlinks one |
+| `POST /api/incidents/:id/stakeholder-updates` | `{ message, postToChildren?, notifyCallers?, notifyEmails? }` → `{ incident, postedTo, notified, notifyError? }`; 400 unless the incident is major |
+| `GET /api/incidents/major` | open major incidents; the dashboard overview carries them as `majorIncidents` |
+| `GET /api/incidents?major=true` | major incidents only |
+
+The detail carries `major`, `parentIncident`, `childIncidents` and
+`extrasAvailable`.
+
+### The arcus-incident-extras iTop extension
+
+iTop has a pending reason but no date to act again, and no way to mark an
+incident as major. `itop-extensions/arcus-incident-extras/` adds
+`next_action_date` (AttributeDate) to Incident and UserRequest and
+`major_incident` (enum no/yes, default no) to Incident, in the "More
+information" fieldset. It changes no other class and nothing in `iTop/`.
+
+As with the problem RCA fields, the BFF reads and writes them itself
+(`modules/incidents/ticket-extras.ts`) and they are **not** in
+`cmdb-schema.json`, so an iTop without the extension keeps working: holds,
+the major flag and stakeholder updates answer 409 naming the extension, the
+filters answer an empty page, and the incident screen hides the major panel.
+The BFF notices the extension within a minute of its installation, no
+restart needed.
+
+Installing it is the same upgrade as for arcus-problem-rca (see "Problems"
+above), with `docker/itop-incident-extras-upgrade.xml`: back up the
+database, copy the folder into the iTop's `extensions/` (owned by
+`www-data`), make `conf/production/config-itop.php` writable, run the
+unattended upgrade **twice**, make the config read-only again,
+`apache2ctl graceful`. Check the response file's module list against the
+iTop's installed modules first, and keep every `arcus-*` extension already
+installed in it: an upgrade without a module uninstalls it.
+
+Installed on the shared local iTop (`:8080`, `itop_prod`) on 2026-10-27,
+after a dump of `itop_prod` to `C:\Users\Venkatesh.V\itop-backups\`. For
+production, add the folder to the iTop image's `extensions/` before the
+first install and `arcus-incident-extras` to the install's module list.
+
+`npm run e2e:incidents` checks all of this live, and email to ticket below
+(account: `{ "incidents": { "login", "password" } }` in
+`backend/e2e.local.json`, MFA on, as for `e2e:problems`; or `E2E_LOGIN` /
+`E2E_PASSWORD` against a BFF with `MFA_REQUIRED=off` and an account not
+enrolled in MFA).
+
+## Email to ticket
+
+Mail sent to the support mailbox becomes an incident; a reply whose subject
+carries an incident's ref (`[I-000123]`, or a bare `I-000123`) is added to
+that incident's public log instead, without the quoted thread. It is a poller
+in the BFF (`modules/mail-intake/`), running as the service account:
+
+- the sender's address is looked up among the Persons: found, they are the
+  caller and the incident is in their organisation; not found, the incident
+  goes to `MAIL_INTAKE_ORG_ID` (else the default organisation) with the
+  sender named in the description, or the mail is left alone with
+  `MAIL_INTAKE_UNKNOWN_SENDERS=ignore`;
+- the subject (without `RE:`/`FW:`) is the title, the text is the
+  description, origin is "mail";
+- the sender gets an acknowledgement with the ref in the subject (marked
+  `Auto-Submitted`), so replying threads back (`MAIL_INTAKE_ACK=off` to stop);
+- a reply to a **closed** incident opens a new one that says which it
+  follows; a resolved one gets the reply on its log;
+- never a ticket: mail from the mailbox itself or from `MAIL_FROM`,
+  auto-replies (`Auto-Submitted`, `Precedence: bulk`, `X-Autoreply`…),
+  bounces (`mailer-daemon@`, `postmaster@`, `noreply@`) and list mail;
+- processed mail is marked read (and moved, if
+  `MAIL_INTAKE_IMAP_PROCESSED_FOLDER` is set); a message that fails is
+  retried on the next runs and set aside after three;
+- attachments are not copied onto the incident yet.
+
+Administrators can see the last run and start one: `GET /api/admin/mail-intake`,
+`POST /api/admin/mail-intake/run`.
+
+**Why not iTop's own mail-to-ticket.** Combodo's "Mail to Ticket Automation"
+is a separate download (iTop Hub / GitHub), needs another multi-pass upgrade
+of iTop, and polls from iTop's cron with iTop's own rules. The platform
+already owns how a ticket is made (caller lookup, default organisation,
+tenancy), and the local test mailbox, Mailpit, speaks no IMAP, so it could
+not have been tested here. The BFF poller reads the real mailbox over IMAP
+and Mailpit over its API, behind one interface.
+
+| Setting | |
+| --- | --- |
+| `MAIL_INTAKE_SOURCE` | `imap` (the real mailbox), `mailpit` (local tests only), or unset/`off` |
+| `MAIL_INTAKE_ADDRESS` | the support address; locally anything Mailpit receives, e.g. `support@arcus.test` |
+| `MAIL_INTAKE_INTERVAL_SECONDS` | default 60 |
+| `MAIL_INTAKE_BATCH` | most messages per run, default 25 |
+| `MAIL_INTAKE_UNKNOWN_SENDERS` | `create` (default) or `ignore` |
+| `MAIL_INTAKE_ORG_ID` | organisation for unknown senders |
+| `MAIL_INTAKE_ACK` | `on` (default) or `off`; needs `SMTP_HOST` |
+| `MAIL_INTAKE_MAILPIT_URL` | default `http://127.0.0.1:8025` |
+| `MAIL_INTAKE_IMAP_HOST` / `_PORT` / `_SECURE` | default `outlook.office365.com`, 993, TLS |
+| `MAIL_INTAKE_IMAP_USER` | default the address |
+| `MAIL_INTAKE_IMAP_PASSWORD` | basic auth (not Microsoft 365) |
+| `MAIL_INTAKE_OAUTH_TENANT_ID` / `_CLIENT_ID` / `_CLIENT_SECRET` | Microsoft 365 app-only OAuth (below) |
+| `MAIL_INTAKE_IMAP_MAILBOX` | default `INBOX` |
+| `MAIL_INTAKE_IMAP_PROCESSED_FOLDER` | move processed mail there (must exist) |
+
+Locally: `MAIL_INTAKE_SOURCE=mailpit`, `MAIL_INTAKE_ADDRESS=support@arcus.test`,
+and send mail to that address through Mailpit's SMTP (`127.0.0.1:1025`). Only
+mail to that address is read; Mailpit's read flag marks it processed.
+
+### What IT must give us for the Microsoft 365 mailbox
+
+Microsoft 365 has turned off password (basic) sign-in for IMAP, so the BFF
+signs in as an app (OAuth 2.0 client credentials) with access to that one
+mailbox. From IT:
+
+1. **The mailbox**: a shared mailbox, e.g. `servicedesk@intertecsys.com`
+   (no licence needed), with IMAP enabled for it (`Set-CASMailbox
+   -ImapEnabled $true`).
+2. **An app registration** in Entra ID, with a client secret (and its expiry
+   date, so it is renewed in time): we need the **tenant id**, the
+   **client id** and the **secret**.
+3. **API permission** on it: Office 365 Exchange Online → Application →
+   `IMAP.AccessAsApp`, with admin consent.
+4. **Access to the mailbox for that app**, in Exchange Online PowerShell:
+   `New-ServicePrincipal -AppId <client id> -ObjectId <enterprise app object id>`,
+   then `Add-MailboxPermission -Identity servicedesk@… -User <enterprise app object id> -AccessRights FullAccess`.
+   This limits the app to that mailbox.
+5. Optionally a folder for processed mail (e.g. `Processed`).
+6. Outbound: the acknowledgements and stakeholder updates go through the
+   BFF's SMTP settings (`SMTP_*`, see "Switching to the real mail server"),
+   ideally sent as that same mailbox so replies come back to it.
+
+Then: `MAIL_INTAKE_SOURCE=imap`, `MAIL_INTAKE_ADDRESS=servicedesk@…`, the
+three `MAIL_INTAKE_OAUTH_*` values, and optionally
+`MAIL_INTAKE_IMAP_PROCESSED_FOLDER`. The IMAP path was built against
+Microsoft's documented flow but has not been run against a real Microsoft
+365 mailbox yet; the first run's status (`GET /api/admin/mail-intake`) shows
+a sign-in error plainly if a step is missing.
 ## Changes
 
 Change management on top of the generic record screens (`modules/changes/`;
@@ -1248,6 +1418,7 @@ finding out via a 404.
 | `npm run e2e:tenancy` | live cross-tenant leak test (BFF on :4010 with `TENANCY=on`, after `seed-test`) |
 | `npm run e2e:problems` | live problem management: root cause, known error, trends (BFF on :4050, MFA on; account and TOTP secret in `backend/e2e.local.json`, see "Problems"). Creates and deletes its own records |
 | `npm run e2e:changes` | live change management: plan rules, CAB decisions, profile rights (BFF on :4020, MFA on; accounts created on the first run, see "Changes"). Creates and deletes its own changes |
+| `npm run e2e:incidents` | live holds with next-action date, major incidents and stakeholder updates, email to ticket via Mailpit (BFF on :4010 with `MAIL_INTAKE_SOURCE=mailpit`; see "Incidents: on hold, major incidents"). Creates and deletes its own records and mail |
 | `npm run e2e:requests` | live request forms + target date check (BFF on :4040 with `MFA_REQUIRED=off`, or `E2E_STAFF_TOTP_SECRET`; `E2E_STAFF_PASSWORD`) |
 
 ## Known limitations

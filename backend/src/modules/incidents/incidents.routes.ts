@@ -1,16 +1,27 @@
 import type { FastifyInstance } from "fastify";
 
+import { notFound } from "../../core/errors.js";
 import { parse } from "../../core/validate.js";
 import type { Services } from "../../services.js";
 import {
+  childParamSchema,
   createIncidentSchema,
   incidentIdParamSchema,
   incidentListQuerySchema,
+  linkChildrenSchema,
   logEntrySchema,
+  majorSchema,
+  stakeholderUpdateSchema,
+  ticketParamSchema,
   transitionSchema,
   updateIncidentSchema,
 } from "./incidents.schemas.js";
-import type { CreateIncidentInput, TransitionInput, UpdateIncidentInput } from "./incidents.types.js";
+import type {
+  CreateIncidentInput,
+  StakeholderUpdateInput,
+  TransitionInput,
+  UpdateIncidentInput,
+} from "./incidents.types.js";
 
 /**
  * HTTP surface for incidents.
@@ -26,6 +37,9 @@ export function registerIncidentRoutes(app: FastifyInstance, services: Services)
    * as an incident id and rejected as non-numeric.
    */
   app.get("/api/incidents/options", async () => incidents.formOptions());
+
+  /** Open major incidents, for the dashboard banner. Static, so before `/:id`. */
+  app.get("/api/incidents/major", async () => ({ items: await incidents.openMajor() }));
 
   app.get("/api/incidents", async (request) => {
     const query = parse(incidentListQuerySchema, request.query, "query parameters");
@@ -69,5 +83,47 @@ export function registerIncidentRoutes(app: FastifyInstance, services: Services)
     const { id } = parse(incidentIdParamSchema, request.params, "path parameters");
     const { message } = parse(logEntrySchema, request.body, "request body");
     return incidents.addLogEntry(id, message);
+  });
+
+  /* Major incidents: the flag, the linked children, stakeholder updates. */
+
+  app.put("/api/incidents/:id/major", async (request) => {
+    const { id } = parse(incidentIdParamSchema, request.params, "path parameters");
+    const { major } = parse(majorSchema, request.body, "request body");
+    return incidents.setMajor(id, major);
+  });
+
+  app.post("/api/incidents/:id/children", async (request) => {
+    const { id } = parse(incidentIdParamSchema, request.params, "path parameters");
+    const { incidentIds } = parse(linkChildrenSchema, request.body, "request body");
+    return incidents.linkChildren(id, incidentIds);
+  });
+
+  app.delete("/api/incidents/:id/children/:childId", async (request) => {
+    const { id, childId } = parse(childParamSchema, request.params, "path parameters");
+    return incidents.unlinkChild(id, childId);
+  });
+
+  app.post("/api/incidents/:id/stakeholder-updates", async (request) => {
+    const { id } = parse(incidentIdParamSchema, request.params, "path parameters");
+    const body = parse(stakeholderUpdateSchema, request.body, "request body");
+    return incidents.postStakeholderUpdate(id, body as StakeholderUpdateInput);
+  });
+
+  /**
+   * Why and until when a ticket (incident or user request) is on hold, for
+   * the generic record screen, which reads no extension fields. Putting a
+   * user request on hold goes through the generic stimulus route
+   * (`ev_pending`), which hands it to the same TicketExtras.
+   */
+  app.get("/api/tickets/:class/:id/pending", async (request) => {
+    const params = parse(ticketParamSchema, request.params, "path parameters");
+    const rows = await services.ticketExtras.read(params.class, [params.id]);
+    const row = rows.get(params.id);
+    if (!row) throw notFound(`${params.class} ${params.id} was not found.`);
+    return {
+      pending: row.pending ?? null,
+      extrasAvailable: await services.ticketExtras.available(params.class),
+    };
   });
 }

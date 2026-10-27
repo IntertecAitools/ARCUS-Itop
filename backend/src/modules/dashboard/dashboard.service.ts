@@ -10,6 +10,7 @@ import {
   type TicketDto,
 } from "../../shared/ticket-mapping.js";
 import { addDays, itopDay, weekday } from "../../shared/itop-time.js";
+import type { PendingInfo, TicketExtras } from "../incidents/index.js";
 
 // Re-exported so existing importers of this module keep working; the type is
 // owned by shared/ticket-mapping.ts, which every ticket module shares.
@@ -56,15 +57,32 @@ export interface DashboardOverview {
   sla: { compliance: number | null; onTime: number; atRisk: number; breached: number };
   recentIncidents: TicketDto[];
   myAssignments: MyAssignments;
+  /** Open major incidents, newest first; empty without the extension. */
+  majorIncidents: MajorIncidentSummary[];
   catalogShortcuts: Array<{ id: string; label: string; description: string; icon: string }>;
   changeCalendar: Array<{ id: string; ref: string; title: string; scheduledAt: string; risk: string }>;
   knowledgeArticles: Array<{ id: string; title: string; views: number }>;
 }
 
 /** One queue of the caller's own work: the rows shown, and how many there are. */
+/** A queue row; `pending` says why and until when it is on hold. */
+export interface AssignmentTicket extends TicketDto {
+  pending?: PendingInfo;
+}
+
 export interface AssignmentQueue {
-  items: TicketDto[];
+  items: AssignmentTicket[];
   total: number;
+}
+
+/** An open major incident, for the dashboard banner. */
+export interface MajorIncidentSummary {
+  id: string;
+  ref: string;
+  summary: string;
+  status: TicketDto["status"];
+  priority: TicketDto["priority"];
+  createdAt: string;
 }
 
 /**
@@ -139,6 +157,8 @@ export class DashboardService {
     private readonly navigation?: Navigation,
     private readonly currentContact?: CurrentContact,
     private readonly schema?: CmdbSchema,
+    /** Pending reasons, next-action dates and the major flag (arcus-incident-extras). */
+    private readonly extras?: TicketExtras,
   ) {}
 
   /**
@@ -173,12 +193,14 @@ export class DashboardService {
       const result = await rows(key, TICKET_FIELDS);
       if (!result) return EMPTY_QUEUE;
       // Most urgent first, then newest -- the order an agent works a queue in.
-      const items = result.items
-        .map((item) => toTicket(item))
-        .sort(
-          (a, b) =>
-            PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority] || Number(b.id) - Number(a.id),
-        );
+      const tickets = result.items.map((item) => toTicket(item));
+      const items = (await this.withPending(key, tickets)).sort(
+        (a, b) =>
+          // A hold past its next-action date is the first thing to pick up.
+          Number(Boolean(b.pending?.overdue)) - Number(Boolean(a.pending?.overdue)) ||
+          PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority] ||
+          Number(b.id) - Number(a.id),
+      );
       return { items, total: result.total };
     };
 
@@ -204,6 +226,45 @@ export class DashboardService {
       changes(),
     ]);
     return { incidents, requests, problems, changes: changeQueue };
+  }
+
+  /** Incident and request rows with why and until when they are on hold. */
+  private async withPending(
+    key: "incidents" | "requests" | "problems",
+    tickets: TicketDto[],
+  ): Promise<AssignmentTicket[]> {
+    const pendingIds = tickets.filter((t) => t.status === "pending").map((t) => t.id);
+    if (!this.extras || key === "problems" || pendingIds.length === 0) return tickets;
+    try {
+      const extras = await this.extras.read(key === "incidents" ? "Incident" : "UserRequest", pendingIds);
+      return tickets.map((t) => {
+        const pending = extras.get(t.id)?.pending;
+        return pending ? { ...t, pending } : t;
+      });
+    } catch {
+      // The queue still shows without the hold details.
+      return tickets;
+    }
+  }
+
+  /** Open major incidents, newest first. Empty without the extension. */
+  async majorIncidents(): Promise<MajorIncidentSummary[]> {
+    if (!this.extras) return [];
+    try {
+      if (!(await this.extras.available("Incident"))) return [];
+      const result = await this.objects.list("Incident", {
+        page: 1,
+        limit: 10,
+        oql: `SELECT Incident WHERE major_incident = 'yes' AND status IN (${OPEN_STATES})`,
+        fields: TICKET_FIELDS,
+      });
+      return result.items
+        .map((item) => toTicket(item))
+        .sort((a, b) => Number(b.id) - Number(a.id))
+        .map(({ id, ref, summary, status, priority, createdAt }) => ({ id, ref, summary, status, priority, createdAt }));
+    } catch {
+      return [];
+    }
   }
 
   /** A Change row, its status labelled as iTop labels it for that class. */
@@ -310,6 +371,7 @@ export class DashboardService {
       changes,
       faqs,
       myAssignments,
+      majorIncidents,
     ] = await Promise.all([
       this.count("Incident", sinceOql),
       this.count("Incident", `status IN (${OPEN_STATES})`),
@@ -344,6 +406,7 @@ export class DashboardService {
       ),
       this.fetch("FAQ", "id > 0", "id,title,summary", 4),
       this.myAssignments(),
+      this.majorIncidents(),
     ]);
 
     // ── Trend ──────────────────────────────────────────────────────────────
@@ -401,6 +464,7 @@ export class DashboardService {
       sla: { compliance, onTime, atRisk, breached },
       recentIncidents: recent.map((item) => toTicket(item)),
       myAssignments,
+      majorIncidents,
       catalogShortcuts: subcategories.map((item) => ({
         id: String(item.id),
         label: str(item.fields["name"]),

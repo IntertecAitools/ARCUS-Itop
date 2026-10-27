@@ -38,6 +38,8 @@ export function useIncidentFilters() {
       assignee: params.get('assignee') || undefined,
       sort: SORTS.includes(sortRaw as IncidentSort) ? (sortRaw as IncidentSort) : undefined,
       order: orderRaw === 'asc' || orderRaw === 'desc' ? orderRaw : undefined,
+      major: params.get('major') === 'true' || undefined,
+      overdue: params.get('overdue') === 'true' || undefined,
     };
   }, [params]);
 
@@ -69,7 +71,9 @@ export function useIncidentFilters() {
     (filters.q ? 1 : 0) +
     (filters.status?.length ? 1 : 0) +
     (filters.priority?.length ? 1 : 0) +
-    (filters.assignee ? 1 : 0);
+    (filters.assignee ? 1 : 0) +
+    (filters.major ? 1 : 0) +
+    (filters.overdue ? 1 : 0);
 
   return { filters, update, clear, activeCount };
 }

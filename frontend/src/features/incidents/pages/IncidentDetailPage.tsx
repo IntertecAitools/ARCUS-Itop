@@ -1,15 +1,16 @@
 import { useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { AlertTriangle, ArrowLeft, Pencil } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Pencil, Siren } from 'lucide-react';
 import { PageHeader } from '@/components/layout';
-import { Avatar, Button, buttonClasses, Card, CardBody, CardHeader, Skeleton } from '@/components/ui';
-import { PriorityBadge, StatusPill, OperationalStatusPill } from '@/components/data-display';
+import { Avatar, Badge, Button, buttonClasses, Card, CardBody, CardHeader, Skeleton } from '@/components/ui';
+import { PendingNote, PriorityBadge, StatusPill, OperationalStatusPill } from '@/components/data-display';
 import { friendlyDateTime } from '@/lib/utils';
 import { humanise, toPlainText } from '../lib/itop-text';
 import { useIncident } from '../api/useIncidents';
 import { IncidentActions } from '../components/IncidentActions';
 import { IncidentCaseLog } from '../components/IncidentCaseLog';
 import { IncidentEditDialog } from '../components/IncidentEditDialog';
+import { MajorIncidentPanel } from '../components/MajorIncidentPanel';
 import type { IncidentDetail } from '../types';
 
 function Field({ label, children }: { label: string; children?: ReactNode }) {
@@ -39,6 +40,23 @@ function SlaBanner({ sla }: { sla: IncidentDetail['sla'] }) {
       <span>
         SLA breached on <span className="font-semibold">{breached.join(' and ')}</span>.
       </span>
+    </div>
+  );
+}
+
+/** On hold: why, and when someone acts on it again; louder once overdue. */
+function PendingBanner({ pending }: { pending: NonNullable<IncidentDetail['pending']> }) {
+  return (
+    <div
+      role={pending.overdue ? 'alert' : 'status'}
+      className={
+        pending.overdue
+          ? 'mb-4 rounded-card border border-critical/30 bg-critical-soft px-4 py-3'
+          : 'mb-4 rounded-card border border-line bg-surface-sunken px-4 py-3'
+      }
+    >
+      <p className="mb-1 text-[12px] font-semibold tracking-wide text-ink-secondary uppercase">On hold</p>
+      <PendingNote pending={pending} className="text-[13px]" />
     </div>
   );
 }
@@ -120,6 +138,11 @@ export function IncidentDetailPage() {
         description={
           <span className="flex flex-wrap items-center gap-2">
             <span className="font-medium text-ink-secondary">{incident.ref}</span>
+            {incident.major ? (
+              <Badge tone="critical" size="sm" icon={<Siren className="size-3" />}>
+                Major incident
+              </Badge>
+            ) : null}
             <StatusPill status={incident.status} size="sm" />
             <PriorityBadge priority={incident.priority} size="sm" />
             <span className="text-ink-muted">
@@ -130,6 +153,7 @@ export function IncidentDetailPage() {
         actions={actions}
       />
       <SlaBanner sla={incident.sla} />
+      {incident.pending ? <PendingBanner pending={incident.pending} /> : null}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <div className="space-y-4 xl:col-span-2">
           <Card>
@@ -176,6 +200,8 @@ export function IncidentDetailPage() {
               <IncidentActions incident={incident} />
             </CardBody>
           </Card>
+
+          <MajorIncidentPanel incident={incident} />
 
           <Card>
             <CardHeader title="Details" />
@@ -249,13 +275,6 @@ export function IncidentDetailPage() {
                 {incident.lastPendingDate && (
                   <Field label="Last Pending Date">{friendlyDateTime(incident.lastPendingDate)}</Field>
                 )}
-                {incident.parentIncident && (
-                  <Field label="Parent Incident">
-                    <Link to={`/incidents/${incident.parentIncident.id}`} className="text-brand-ink hover:underline">
-                      {incident.parentIncident.ref} - {incident.parentIncident.title}
-                    </Link>
-                  </Field>
-                )}
                 {incident.parentRequest && (
                   <Field label="Parent Request">
                     <Link to={`/requests/${incident.parentRequest.id}`} className="text-brand-ink hover:underline">
@@ -284,21 +303,6 @@ export function IncidentDetailPage() {
                         <li key={req.id}>
                           <Link to={`/requests/${req.id}`} className="text-brand-ink hover:underline">
                             {req.ref} - {req.title}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <span className="text-ink-muted">None</span>
-                  )}
-                </Field>
-                <Field label="Child Incidents">
-                  {incident.childIncidents && incident.childIncidents.length > 0 ? (
-                    <ul className="space-y-1">
-                      {incident.childIncidents.map((child) => (
-                        <li key={child.id}>
-                          <Link to={`/incidents/${child.id}`} className="text-brand-ink hover:underline">
-                            {child.ref} - {child.title}
                           </Link>
                         </li>
                       ))}

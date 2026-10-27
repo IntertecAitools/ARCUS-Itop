@@ -6,14 +6,20 @@ import {
   getIncident,
   getIncidentOptions,
   getIncidents,
+  getOpenMajorIncidents,
   getPeopleByOrganization,
+  linkChildIncidents,
+  postStakeholderUpdate,
+  setIncidentMajor,
   transitionIncident,
+  unlinkChildIncident,
   updateIncident,
 } from './incidents.api';
 import type {
   CreateIncidentInput,
   IncidentDetail,
   IncidentFilters,
+  StakeholderUpdateInput,
   TransitionInput,
   UpdateIncidentInput,
 } from '../types';
@@ -93,4 +99,35 @@ export function useTransitionIncident(id: string) {
 
 export function useAddLogEntry(id: string) {
   return useIncidentMutation((message: string) => addIncidentLogEntry(id, message));
+}
+
+export function useSetIncidentMajor(id: string) {
+  return useIncidentMutation((major: boolean) => setIncidentMajor(id, major));
+}
+
+export function useLinkChildIncidents(id: string) {
+  return useIncidentMutation((incidentIds: string[]) => linkChildIncidents(id, incidentIds));
+}
+
+export function useUnlinkChildIncident(id: string) {
+  return useIncidentMutation((childId: string) => unlinkChildIncident(id, childId));
+}
+
+/** Posting changes the incident's log; the answer carries the new detail. */
+export function usePostStakeholderUpdate(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: StakeholderUpdateInput) => postStakeholderUpdate(id, input),
+    onSuccess: (result) => {
+      queryClient.setQueryData(queryKeys.incidents.detail(id), result.incident);
+      queryClient.invalidateQueries({ queryKey: queryKeys.incidents.all() });
+    },
+  });
+}
+
+export function useOpenMajorIncidents() {
+  return useQuery({
+    queryKey: [...queryKeys.incidents.all(), 'major'],
+    queryFn: getOpenMajorIncidents,
+  });
 }

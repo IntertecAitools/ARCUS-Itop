@@ -20,7 +20,7 @@ Two folders contain the product's code; `itop-extensions/` holds the small iTop 
 | ------ | ---------- | ----- |
 | **`frontend/`** | React 19 + TypeScript + Vite. The entire UI. | ✅ **yes** |
 | **`backend/`** | Fastify + TypeScript. The BFF over iTop's REST API. | ✅ **yes** |
-| `itop-extensions/` | iTop extensions of our own (`arcus-problem-rca`, `arcus-change-cab`), installed into an iTop's `extensions/`. | ✅ yes |
+| `itop-extensions/` | iTop extensions of our own (`arcus-problem-rca`, `arcus-incident-extras`, `arcus-change-cab`), installed into an iTop's `extensions/`. | ✅ yes |
 | `cmdb-schema/` | Generator that extracts iTop's datamodel to JSON (146 classes). Run it, don't hand-edit the output. | tooling |
 | `iTop/` | Vendored upstream iTop. **Never edit.** | ❌ upstream |
 | `docker/` | Compose files, php.ini, install params for the iTop container. | infra |
