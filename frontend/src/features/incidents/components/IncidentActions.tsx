@@ -45,9 +45,14 @@ export function IncidentActions({ incident }: { incident: IncidentDetail }) {
   const actions = ORDER.filter((action) => incident.availableActions.includes(action));
 
   if (actions.length === 0) {
+    // Nothing offered on an open incident means the caller's iTop profiles
+    // grant no action at this stage (a Service Desk Agent may assign and
+    // close, but holding and resolving belong to support agents).
     return (
       <p className="text-[13px] text-ink-muted">
-        This incident is closed. No further actions are available.
+        {incident.status === 'closed'
+          ? 'This incident is closed. No further actions are available.'
+          : 'Your role has no actions on this incident at this stage. A support agent can put it on hold, resolve or reassign it.'}
       </p>
     );
   }

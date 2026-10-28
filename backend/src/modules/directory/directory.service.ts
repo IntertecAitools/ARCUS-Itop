@@ -20,7 +20,7 @@ import type {
 
 const ORG_FIELDS = "id,name,code,status,parent_id,parent_name";
 const PERSON_FIELDS =
-  "id,first_name,name,email,phone,mobile_phone,function,employee_number,status,org_id,org_name,manager_id,manager_name";
+  "id,first_name,name,email,phone,mobile_phone,function,employee_number,status,org_id,org_name,manager_id,manager_id_friendlyname";
 const TEAM_FIELDS = "id,name,email,phone,function,status,org_id,org_name";
 
 const optional = (value: unknown) => str(value) || undefined;
@@ -213,7 +213,7 @@ export class DirectoryService {
       employeeNumber: optional(f["employee_number"]),
       status: (str(f["status"]) || "active") as RecordStatus,
       organization: link(f, "org_id", "org_name") ?? { id: "", name: "" },
-      manager: link(f, "manager_id", "manager_name"),
+      manager: link(f, "manager_id", "manager_id_friendlyname"),
     };
   }
 
@@ -317,12 +317,12 @@ export class DirectoryService {
       page: 1,
       limit: 200,
       oql: `SELECT lnkPersonToTeam WHERE team_id = ${id}`,
-      fields: "id,person_id,person_name,role_id,role_name",
+      fields: "id,person_id,person_id_friendlyname,role_id,role_name",
     });
 
     const members = links.items.map((l) => ({
       id: str(l.fields["person_id"]),
-      name: str(l.fields["person_name"]),
+      name: str(l.fields["person_id_friendlyname"]).trim(),
       role: optional(l.fields["role_name"]),
     }));
 
