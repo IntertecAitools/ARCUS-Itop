@@ -34,6 +34,13 @@ export const queryKeys = {
     trends: (period: string, groupBy: string) => ['problems', 'trends', period, groupBy] as const,
   },
 
+  sla: {
+    all: () => ['sla'] as const,
+    dashboard: (type: string) => ['sla', 'dashboard', type] as const,
+    tickets: (query: object) => ['sla', 'tickets', query] as const,
+    businessHours: () => ['sla', 'business-hours'] as const,
+  },
+
   changes: {
     all: () => ['changes'] as const,
     governance: (id: string) => ['changes', 'governance', id] as const,

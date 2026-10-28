@@ -4,6 +4,43 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-10-28 — Contracts & SLAs: SLA dashboard, business hours and holidays
+
+Branch `claude/contracts-slas-2627c1`. This worktree's BFF on `:4040` (MFA on, account `e2e.chg.admin` under `"sla"` in the git-ignored `backend/e2e.local.json`) against the shared local iTop on `:8080`, which does **not** have Combodo's business-hours modules (see "Business hours install" below).
+
+| What ran | Result | Notes |
+| --- | --- | --- |
+| Backend `npm run typecheck` | ✅ | |
+| Backend `npm test` | ✅ 739 / 739 | new `test/sla.test.ts` (21: SLT target choice like iTop's `RESPONSE_TICKET_SLT_QUERY`, stopwatch states within / at risk / breached / met / paused / none, remaining time against the target so a resumed TTR is right, iTop-local deadlines, grouping and drill-down, 400s) and `test/business-hours.test.ts` (20: working seconds over nights, weekends, holidays, 24:00 and a DST day; overlap checks; SLA % in working time; the service's reads, writes, missing-extension 409s, window delete detaching contract services first; 400s) |
+| Live `npm run e2e:sla` | ✅ 26 / 26 | three services under SLAs with 600 / 1 / 2-minute TTOs; within, breached and at-risk incidents and a request with no SLT, breakdowns, every drill-down, 400s. Deletes its 19 records |
+| Live `npm run e2e:business-hours` | ✅ 5 / 5, then ✅ 17 / 17 | before the install, the "without the extension" path: `available: false`, writes 409 naming the modules, SLA dashboard still 200. After it, the full path: 400s for overlapping / inverted / empty hours; a window open only Friday 2026-10-30 09:00–17:00 on a contract service with a 60-minute TTO; iTop's TTO deadline for a new incident at 2026-10-30 10:00; the SLA dashboard 0% used, within; with a holiday on that Friday the next incident's deadline at 2026-11-06 10:00; deleting the window keeps the contract service, back on 24x7. Deletes its 10 records (checked in iTop afterwards: none left) |
+| Live `npm run e2e:sla`, after the install | ✅ 26 / 26 | tickets with no window still count 24x7 |
+| Frontend `tsc -b --noEmit` | ✅ | |
+| Frontend `npx vitest run` | ✅ 44 files, 211 tests | new: `SlaDashboardPage` (3), `BusinessHoursPage` (4), `lib/sla` (4), `lib/business-hours` (2); `modules.test` updated for the new nav item |
+| Frontend `npm run build` | ✅ | |
+
+Bugs found and fixed:
+
+- The first `e2e:sla` run lost its session: the laptop slept about 23 hours during the 95-second wait, past `SESSION_MAX_HOURS`, and its 19 records could not be deleted. They were deleted through iTop's REST API with the service account (checked by name first), and the script now signs in again on a 401 so the clean-up always runs.
+- On create, an iTop without the modules answers `Unknown class 'Holiday'`, not the `class '…' is not valid` a read gives: the live run got a 502 where a 409 was meant. The detection now matches both (and `Unknown filter code … 'coveragewindow_id'`), with unit tests on iTop's real messages.
+- `e2e:sla` checked the 2-minute incident as "at risk" ~25 s after the state check; under a concurrent unit-test run it had breached by then (25 / 26). That drill-down now runs straight after the state check, and later checks accept at risk or breached.
+- `BusinessHoursPage` "creates a window" passed alone but hit the 20 s test timeout in the full run; typing without delay and a 45 s timeout for that one test.
+
+Business hours install: the user approved (relayed by the parent session) installing Combodo's modules on the shared iTop. Backup taken first: `C:\Users\Venkatesh.V\itop-backups\itop_prod-before-combodo-sla-computation-20261028-1609.sql.gz` (112 KB, 235 tables, dump complete). Fetched `Combodo/combodo-sla-computation` 2.4.7 and `Combodo/combodo-coverage-windows-computation` 2.1.4 from GitHub. Copying them into the container was **refused by this session's permission check** (untrusted code integration), so nothing was copied, no setup ran, and iTop is unchanged (`extensions/` still holds only the arcus modules, no `data/.maintenance`). The steps and `docker/itop-business-hours-upgrade.xml` (the installed list plus the two modules) are ready in `backend/README.md`, "Business hours".
+
+Then the user asked in this session to install it, and it was installed on the shared local iTop (`:8080`, `itop_prod`) on 2026-10-28 (~12:08 UTC). Steps:
+1. Module lists compared: the 49 installed modules (all three arcus ones included) equal `docker/itop-business-hours-upgrade.xml` minus the two new ones. The parent session was told to hold the planned laptop restart.
+2. Fresh backup: `C:\Users\Venkatesh.V\itop-backups\itop_prod-before-combodo-sla-computation-20261028-1736.sql.gz` (115 KB, dump complete).
+3. Both modules `docker cp`'d into `extensions/` and `chown`ed to www-data. `config-itop.php` was made writable (640) for the setup.
+4. The unattended upgrade ran twice ("installed!" both times), then `apache2ctl graceful`. `config-itop.php` is back to 440. The setup wrote `coverage_oql` (window per contract service) and `holidays_oql` (`SELECT Holiday`) into it.
+5. Checks: iTop UI 200, no `data/.maintenance`, `core/get` answers for `CoverageWindow`, `CoverageWindowInterval`, `Holiday` and `HolidayCalendar`, and `lnkCustomerContractToService.coveragewindow_id` reads. `priv_module_install` lists 51 modules: the arcus three, `combodo-sla-computation` 2.4.7 and `combodo-coverage-windows-computation` 2.1.4. Problem `root_cause` (arcus-problem-rca) still reads.
+
+Logging: the hook wrote this session's 33 automatic entries to the main checkout's `docs/testing/TEST_LOG.md` (labelled `main@f5b5c708`); they are copied verbatim to the end of this file. Some are mislabelled by the hook (the e2e scripts as "Browser journeys"; the 11:28 typecheck as "637 passed"); the table above has the real results.
+
+After merging main (Lifecycle rights #32; conflicts only in `backend/package.json` scripts and this log, both sides kept): backend typecheck clean and `npm test` 755 / 755, frontend `tsc -b` clean and vitest 44 files / 213 tests.
+
+Not covered: an at-risk percentage in working time on a live ticket (the live run only sees 0%; the arithmetic is unit-tested); the new screens were not clicked through in a browser against the live BFF (component tests and mocks cover them); the Playwright journeys were not run.
+
 ### 2026-10-28 — Lifecycle rights (stimulus grants) for incidents, user requests and problems
 
 Branch `claude/lifecycle-rights-c18c7c`. This worktree's BFF on `:4030` against the shared local iTop on `:8080`, MFA on.
@@ -1111,3 +1148,89 @@ Not covered yet: approvals (extension not installed); load and concurrency beyon
   - command: `E2E_ORIGIN=http://localhost:5223 npm run e2e:problems`
 - **2026-10-23** · `claude/problems-install-followup` after merging `origin/main` · Typecheck + unit tests (backend) · ✅ 637 passed, 0 failed (added by hand)
   - command: `npm run typecheck; npm test`
+- **2026-10-27 10:53 UTC** · `main@f5b5c708` + uncommitted changes · Live end-to-end script (backend) · ran — no summary line in the output
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1"; ls backend/scripts 2>/dev/null; ls backend | head -30; ls backend/.env* ../../../backend/.env 2>/dev/n`
+- **2026-10-27 11:08 UTC** · `main@f5b5c708` + uncommitted changes · Typecheck (backend) · ❌ errors (see the session)
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1/backend"; node -e ' const fs=require("fs");let s=fs.readFileSync("src/services.ts","utf8"); s=s.replace(`
+- **2026-10-27 11:10 UTC** · `main@f5b5c708` + uncommitted changes · Typecheck (backend) · ✅ clean
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1/backend"; npx tsc -p tsconfig.json --noEmit 2>&1 | head -20; grep -rn "modules.length\|\"request-forms\"`
+- **2026-10-27 11:13 UTC** · `main@f5b5c708` + uncommitted changes · Unit tests (backend) · ran — no summary line in the output
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1/backend"; npx tsc -p tsconfig.json --noEmit 2>&1 | head; node --import tsx --test test/sla.test.ts 2>&1 `
+- **2026-10-27 11:14 UTC** · `main@f5b5c708` + uncommitted changes · Unit tests (backend) · ✅ 21 passed, 0 failed
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1/backend"; node --import tsx --test test/sla.test.ts 2>&1 | tail -n 40`
+- **2026-10-27 11:25 UTC** · `main@f5b5c708` + uncommitted changes · Typecheck (frontend) · ✅ clean
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1/frontend"; node -e ' const fs=require("fs");const f="src/mocks/handlers/index.ts";let s=fs.readFileSync(`
+- **2026-10-27 11:27 UTC** · `main@f5b5c708` + uncommitted changes · Frontend unit tests (vitest) (frontend) · ❌ 20 passed, 1 failed
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1/frontend"; timeout 300 npx vitest run src/features/sla src/config/modules.test.ts 2>&1 | tail -n 40`
+  - failed: hidden modules > keeps hidden modules out of the chrome 53ms
+  - failed: src/config/modules.test.ts > hidden modules > keeps hidden modules out of the chrome
+- **2026-10-27 11:28 UTC** · `main@f5b5c708` + uncommitted changes · Live end-to-end script (backend) · ran — no summary line in the output
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1/backend"; grep -rn "links/:attCode\|links/:" src/platform/objects/*.routes.ts | head; grep -n "linkBodyS`
+- **2026-10-27 11:28 UTC** · `main@f5b5c708` + uncommitted changes · Live end-to-end script (backend) · ran — no summary line in the output
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1/backend"; f=$(grep -ln "links/:attcode" src/platform/objects/*.ts | head -1); sed -n 325,356p $f; grep -`
+- **2026-10-27 11:30 UTC** · `main@f5b5c708` + uncommitted changes · Live end-to-end script (backend) · ran — no summary line in the output
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1/backend"; sed -i 's# "e2e:incidents": "node --import tsx scripts/e2e-incidents.mjs"# "e2e:incidents": "n`
+- **2026-10-27 11:30 UTC** · `main@f5b5c708` + uncommitted changes · Browser journeys, mock API (Playwright) (backend) · ⏳ started in the background — result not captured here; see the session entry
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1/backend"; npm run e2e:sla 2>&1 | tail -n 60`
+- **2026-10-27 11:32 UTC** · `main@f5b5c708` + uncommitted changes · Typecheck (frontend) · ✅ clean
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1/frontend"; grep -n '"typecheck"\|"lint"\|"test"' package.json; timeout 280 npm run typecheck 2>&1 | tail`
+- **2026-10-28 10:31 UTC** · `main@f5b5c708` + uncommitted changes · Browser journeys, mock API (Playwright) (backend) · ⏳ started in the background — result not captured here; see the session entry
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1/backend"; npm run e2e:sla 2>&1 | tail -n 60`
+- **2026-10-28 10:34 UTC** · `main@f5b5c708` + uncommitted changes · Typecheck (backend) · ✅ clean
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1/backend"; timeout 200 npm run typecheck 2>&1 | tail -n 5`
+- **2026-10-28 10:50 UTC** · `main@f5b5c708` + uncommitted changes · Typecheck (backend) · ✅ clean
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1/backend"; node - <<'EOF' const fs=require("fs");const f="src/modules/sla/sla.service.ts";let s=fs.readFi`
+- **2026-10-28 10:52 UTC** · `main@f5b5c708` + uncommitted changes · Unit tests (backend) · ❌ 40 passed, 1 failed
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1/backend"; node - <<'EOF' const fs=require("fs");const f="test/business-hours.test.ts";let s=fs.readFileS`
+  - failed: answers unavailable on an iTop without the modules, and refuses writes with 409
+  - failed: BusinessHoursService
+- **2026-10-28 10:53 UTC** · `main@f5b5c708` + uncommitted changes · Unit tests (backend) · ❌ 40 passed, 1 failed
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1/backend"; grep -n "export.*ItopResult" src/itop/types.ts | head -2; node - <<'EOF' const fs=require("fs"`
+  - failed: answers unavailable on an iTop without the modules, and refuses writes with 409
+  - failed: BusinessHoursService
+- **2026-10-28 10:54 UTC** · `main@f5b5c708` + uncommitted changes · Unit tests (backend) · ✅ 41 passed, 0 failed
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1/backend"; node --import tsx --test test/business-hours.test.ts test/sla.test.ts 2>&1 | grep -E "^ℹ (test`
+- **2026-10-28 11:00 UTC** · `main@f5b5c708` + uncommitted changes · Frontend unit tests (vitest) (frontend) · ✅ 27 passed, 0 failed
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1/frontend"; timeout 280 npx tsc -b --noEmit 2>&1 | head -20; timeout 300 npx vitest run src/features/sla `
+- **2026-10-28 11:01 UTC** · `main@f5b5c708` + uncommitted changes · Live end-to-end script (backend) · ran — no summary line in the output
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1/backend"; sed -n '/^let cookie = "";/,/^const sleep/p' scripts/e2e-sla.mjs > /tmp/e2e-common.txt; wc -l `
+- **2026-10-28 11:02 UTC** · `main@f5b5c708` + uncommitted changes · Live end-to-end script (backend) · ran — no summary line in the output
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1/backend"; node -e ' const fs=require("fs");const src=fs.readFileSync("scripts/e2e-sla.mjs","utf8"); cons`
+- **2026-10-28 11:03 UTC** · `main@f5b5c708` + uncommitted changes · Browser journeys, mock API (Playwright) (backend) · ❌ 3 passed, 2 failed
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1/backend"; timeout 300 npm run e2e:business-hours 2>&1 | tail -n 20`
+  - failed: writes are refused with 409 -- 502 {"error":{"code":"upstream_error","message":"Unknown class 'Holiday'","itopCode":100}}
+  - failed: and say what to install
+- **2026-10-28 11:04 UTC** · `main@f5b5c708` + uncommitted changes · Unit tests (backend) · ✅ 20 passed, 0 failed
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1/backend"; node --import tsx --test test/business-hours.test.ts 2>&1 | grep -E "^ℹ (tests|pass|fail)|✖" |`
+- **2026-10-28 11:05 UTC** · `main@f5b5c708` + uncommitted changes · Browser journeys, mock API (Playwright) (backend) · ✅ 5 passed, 0 failed
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1/backend"; for i in $(seq 1 30); do curl -s -m 2 -o /dev/null http://127.0.0.1:4040/health && break; node`
+- **2026-10-28 11:06 UTC** · `main@f5b5c708` + uncommitted changes · Browser journeys, mock API (Playwright) (backend) · ⏳ started in the background — result not captured here; see the session entry
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1/backend"; npm run e2e:sla 2>&1 | tail -n 40`
+- **2026-10-28 11:10 UTC** · `main@f5b5c708` + uncommitted changes · Unit tests (backend) · ✅ 739 passed, 0 failed
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1/backend"; timeout 580 npm test 2>&1 | grep -E "^ℹ (tests|suites|pass|fail|cancelled)|^✖|not ok" | head -`
+- **2026-10-28 11:14 UTC** · `main@f5b5c708` + uncommitted changes · Frontend unit tests (vitest) (frontend) · ❌ 210 passed, 1 failed
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1/frontend"; timeout 590 npx vitest run 2>&1 | grep -E "Test Files|Tests |FAIL|×" | head -20`
+  - failed: BusinessHoursPage > creates a window from a preset, refusing overlapping hours first, and assigns it 20708ms
+  - failed: src/features/sla/pages/BusinessHoursPage.test.tsx > BusinessHoursPage > creates a window from a preset, refusing overlapping hours first, and assigns it
+- **2026-10-28 11:15 UTC** · `main@f5b5c708` + uncommitted changes · Frontend unit tests (vitest) (frontend) · ❌ 25 passed, 1 failed
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1/frontend"; grep -E "PASS|FAIL|passed|failed" "C:/Users/VENKAT~1.V/AppData/Local/Temp/claude/C--Users-Ven`
+- **2026-10-28 11:16 UTC** · `main@f5b5c708` + uncommitted changes · Live end-to-end script (backend) · ran — no summary line in the output
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1/backend"; node - <<'EOF' const fs=require("fs");const f="scripts/e2e-sla.mjs";let s=fs.readFileSync(f,"u`
+- **2026-10-28 11:18 UTC** · `main@f5b5c708` + uncommitted changes · Frontend unit tests (vitest) (frontend) · ✅ 4 passed, 0 failed
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1/frontend"; f=src/features/sla/pages/BusinessHoursPage.test.tsx; sed -i '25s/userEvent.setup()/userEvent.`
+- **2026-10-28 11:24 UTC** · `main@f5b5c708` + uncommitted changes · Frontend unit tests (vitest) (frontend) · ✅ 211 passed, 0 failed
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1/frontend"; timeout 590 npx vitest run 2>&1 | grep -E "Test Files|Tests |FAIL|×" | head -10; timeout 300 `
+- **2026-10-28 11:28 UTC** · `main@f5b5c708` + uncommitted changes · Browser journeys, mock API (Playwright) (backend) · ✅ 26 passed, 0 failed
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1/backend"; timeout 400 npm run e2e:sla 2>&1 | grep -E "FAIL|passed|failed|ABORT|deleted"`
+- **2026-10-28 11:28 UTC** · `main@f5b5c708` + uncommitted changes · Typecheck (backend) · ✅ 637 passed, 0 failed
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1/backend"; timeout 200 npm run typecheck 2>&1 | tail -n 2; tail -n 30 ../docs/testing/TEST_LOG.md | cut -`
+- **2026-10-28 11:36 UTC** · `main@f5b5c708` + uncommitted changes · Unit tests (backend) · ✅ 755 passed, 0 failed
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1"; git add backend/package.json docs/testing/TEST_LOG.md && git commit -q --no-edit && git log --oneline `
+- **2026-10-28 11:42 UTC** · `main@f5b5c708` + uncommitted changes · Frontend unit tests (vitest) (frontend) · ✅ 213 passed, 0 failed
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1/frontend"; timeout 280 npx tsc -b --noEmit 2>&1 | tail -n 3; timeout 590 npx vitest run 2>&1 | grep -E "`
+- **2026-10-28 12:11 UTC** · `main@f5b5c708` + uncommitted changes · Browser journeys, mock API (Playwright) (backend) · ✅ 17 passed, 0 failed
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1/backend"; for i in $(seq 1 40); do curl -s -m 2 -o /dev/null http://127.0.0.1:4040/health && break; node`
+- **2026-10-28 12:13 UTC** · `main@f5b5c708` + uncommitted changes · Browser journeys, mock API (Playwright) (backend) · ✅ 26 passed, 0 failed
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1/backend"; timeout 400 npm run e2e:sla 2>&1 | grep -E "FAIL|passed|failed|ABORT|deleted"`
+- **2026-10-28 12:14 UTC** · `main@f5b5c708` + uncommitted changes · Browser journeys, mock API (Playwright) · ran — no summary line in the output
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1"; git status --short; grep -n "Business hours install:\|Live \'npm run e2e:business-hours\'\|Not covered`

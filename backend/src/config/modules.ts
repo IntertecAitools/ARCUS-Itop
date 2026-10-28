@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 
 import type { Services } from "../services.js";
+import { registerBusinessHoursRoutes } from "../modules/business-hours/index.js";
 import { registerChangeRoutes } from "../modules/changes/index.js";
 import { registerDashboardRoutes } from "../modules/dashboard/index.js";
 import { registerDirectoryRoutes } from "../modules/directory/index.js";
@@ -8,6 +9,7 @@ import { registerIncidentRoutes } from "../modules/incidents/index.js";
 import { registerMailIntakeRoutes } from "../modules/mail-intake/index.js";
 import { registerProblemRoutes } from "../modules/problems/index.js";
 import { registerRequestFormRoutes } from "../modules/request-forms/index.js";
+import { registerSlaRoutes } from "../modules/sla/index.js";
 
 /**
  * ════════════════════════════════════════════════════════════════════════════
@@ -56,6 +58,12 @@ export interface BackendModule {
 
 export const modules: BackendModule[] = [
   {
+    id: "business-hours",
+    basePath: "/api/admin/business-hours",
+    description: "Coverage windows (open hours), holidays, and which window each contract's service runs in, so TTO/TTR count working time.",
+    register: registerBusinessHoursRoutes,
+  },
+  {
     id: "changes",
     basePath: "/api/changes",
     description: "Plans each change type needs before Plan / Implement, CAB decisions, changes awaiting the CAB (rules under /api/admin/change-rules).",
@@ -96,6 +104,12 @@ export const modules: BackendModule[] = [
     basePath: "/api/request-forms",
     description: "The extra questions each catalogue item asks when a request is raised (edited under /api/admin/request-forms).",
     register: registerRequestFormRoutes,
+  },
+  {
+    id: "sla",
+    basePath: "/api/sla",
+    description: "Open incidents and requests by SLA state: within target, at risk, breached.",
+    register: registerSlaRoutes,
   },
 ];
 
