@@ -13,7 +13,7 @@ import { AdvancedSearch } from '../components/AdvancedSearch';
 import { ExportMenu } from '../components/ExportMenu';
 import { recordColumns } from '../components/RecordColumns';
 import { defaultColumns, listFields } from '../lib/list-cells';
-import { requiredForTransition, transitionPrompts } from '../lib/transitions';
+import { offeredActions, requiredForTransition, transitionPrompts } from '../lib/transitions';
 import type { BulkRequest, BulkResult, Criterion, RecordDto } from '../types';
 
 type BulkDialog = { kind: 'edit' } | { kind: 'delete' } | { kind: 'action'; action: string };
@@ -105,9 +105,7 @@ export function RecordListPage() {
     if (!info?.lifecycle || selected.size === 0) return [];
     let common: string[] | null = null;
     for (const row of selected.values()) {
-      const state = String(row.fields[info.lifecycle.attribute] ?? '');
-      const userActions = new Set(info.lifecycle.userActions ?? info.lifecycle.stimuli);
-      const available = (info.lifecycle.states[state] ?? []).filter((a) => userActions.has(a));
+      const available = offeredActions(info, String(row.fields[info.lifecycle.attribute] ?? ''));
       common = common === null ? available : common.filter((a) => available.includes(a));
     }
     return common ?? [];

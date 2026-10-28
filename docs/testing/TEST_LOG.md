@@ -4,6 +4,25 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-10-28 — Lifecycle rights (stimulus grants) for incidents, user requests and problems
+
+Branch `claude/lifecycle-rights-c18c7c`. This worktree's BFF on `:4030` against the shared local iTop on `:8080`, MFA on.
+
+iTop's REST API never checks per-action (stimulus) grants, only class modify rights. PR #30 enforced them for changes only, from a table inside the changes module. That table moved to `backend/src/shared/stimulus-rights.ts`. It is now keyed by iTop class group, as in `itop-profiles-itil` plus the Portal user's incident grants from `itop-incident-mgmt-itil`, and a group includes its subclasses. `ObjectsService.applyStimulus` checks it for every class, so single actions, bulk actions and the incident screen are all covered. For a class with subclasses (Change) it first asks iTop for the record's own class. The hold path (`TicketExtras.hold`) and the portal's close/reopen check it too. Offered actions follow the same function: `availableActions` on the incident screen, a new `lifecycle.allowedActions` on `GET /api/meta/classes/:class`, and the records screens' buttons (`offeredActions`).
+
+| What ran | Result | Notes |
+| --- | --- | --- |
+| Backend `tsc --noEmit` | ✅ | |
+| Backend `npm test` | ✅ 714 / 714 | new `test/stimulus-rights.test.ts` (grants per profile, subclass groups, refusal message, 403 before iTop on single and bulk actions, a Change addressed through its parent class, `allowedActions`); incidents (filtered `availableActions`, 403 on transition), hold refused, portal actions filtered. The change-grant cases moved from `changes.test.ts` to the new file |
+| Live `npm run e2e:rights` (new) | ✅ 32 / 32, twice | accounts `e2e.rights.{admin,desk,readonly,support,problem}` plus team "E2E rights team" kept on itop_prod (secrets in this worktree's git-ignored `backend/e2e.local.json`). Service Desk Agent vs Configuration ReadOnly vs Support Agent vs Problem Manager: offered actions, 403s that leave iTop's status unchanged (generic action, incident screen, hold, bulk), allowed actions applied. Deletes its tickets |
+| Live `npm run e2e:changes` (PR #30's) | ✅ 35 / 35 | regression check of the change grants after the move |
+| Frontend `tsc -b --noEmit` | ✅ | |
+| Frontend `npx vitest run` | ✅ 200 / 200 | full run: 199 / 200, with `ChangeGovernancePanel` timing out (22 s) under load; that file alone passed 5 / 5. New `offeredActions` tests |
+
+Bugs found: none. Messages name the profile each action needs, e.g. "Your profiles do not allow this action on an incident (it needs Support Agent)." Note: under iTop's own grants a Service Desk Agent may only *assign* incidents and requests. Ticketing's `ev_close` covers WorkOrder and the link classes, not tickets. Accounts with only that profile no longer see Resolve, Close or Hold.
+
+Not covered: the records screens were not clicked through in a browser (the unit test covers the filter, and the e2e covers the API it reads); the portal close/reopen live path (a Portal user always holds both grants); UserRequest approve/reject (no approval set up in this run).
+
 ### 2026-10-27 — Incidents: on-hold reason + next-action date, major incidents, email to ticket
 
 Branch `claude/incidents-400d8a`. This worktree's BFF on `:4010` against the shared local iTop on `:8080` (with the new `arcus-incident-extras` extension, installed this session) and the local Mailpit (`itop-mailpit`, SMTP 1025 / API 8025).

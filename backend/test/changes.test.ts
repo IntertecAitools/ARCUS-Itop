@@ -173,22 +173,6 @@ describe("ChangesService.guardTransition", () => {
     assert.equal(fake.calls.length, 0);
   });
 
-  it("applies iTop's change grants, which its REST API does not check", async () => {
-    const svc = service(itop(change("NormalChange", { status: "new" })));
-    await assert.rejects(
-      runAs(implementor, () => svc.guardTransition("NormalChange", 12, "ev_validate", {})),
-      (e: unknown) => e instanceof AppError && e.code === "forbidden" && /needs Change Supervisor/.test(e.message),
-    );
-    await runAs(staff(["Change Supervisor"]), () => svc.guardTransition("NormalChange", 12, "ev_validate", {}));
-    await runAs(implementor, () => svc.guardTransition("NormalChange", 12, "ev_assign", {}));
-    await assert.rejects(runAs(approver, () => svc.guardTransition("NormalChange", 12, "ev_assign", {})), /needs Change Supervisor or Change Implementor/);
-    await runAs(staff([], true), () => svc.guardTransition("NormalChange", 12, "ev_validate", {}));
-    // Implementing is the Implementor's, whatever the type.
-    const routine = service(itop(change("RoutineChange", { status: "plannedscheduled", implementation_plan: "x" })));
-    await assert.rejects(runAs(staff(["Change Supervisor"]), () => routine.guardTransition("RoutineChange", 12, "ev_implement", {})), /needs Change Implementor/);
-    await runAs(implementor, () => routine.guardTransition("RoutineChange", 12, "ev_implement", {}));
-  });
-
   it("blocks Plan on a normal change until every plan is written, naming them", async () => {
     await assert.rejects(
       service(itop(change("NormalChange"))).guardTransition("NormalChange", 12, "ev_plan", {}),

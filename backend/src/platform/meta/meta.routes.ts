@@ -62,7 +62,9 @@ export function registerMetaRoutes(app: FastifyInstance, services: Services): vo
       abstract: info.abstract,
       parent: info.parent,
       inherits: info.inherits,
-      lifecycle: info.lifecycle,
+      // `allowedActions`: the user actions the caller's iTop profiles grant
+      // (shared/stimulus-rights), so a screen offers only what will succeed.
+      lifecycle: info.lifecycle && { ...info.lifecycle, allowedActions: services.objects.allowedActions(info.name) },
       // iTop's own layout and wording, so a generic screen can render the form
       // iTop declares instead of inventing an order and labelling fields with
       // raw attribute codes.

@@ -16,7 +16,7 @@ import { ImpactTab } from '../components/ImpactTab';
 import { DeleteDialog } from '../components/DeleteDialog';
 import { TransitionDialog } from '../components/TransitionDialog';
 import { PendingBanner } from '../components/PendingBanner';
-import { asksNextActionDate, requiredForTransition, transitionPrompts } from '../lib/transitions';
+import { asksNextActionDate, offeredActions, requiredForTransition, transitionPrompts } from '../lib/transitions';
 
 /**
  * A problem's root-cause analysis and known errors, a tab of their own.
@@ -141,11 +141,7 @@ export function RecordDetailPage() {
    */
   const actions = useMemo(() => {
     if (!info?.lifecycle || !record) return [];
-    const state = String(record.fields[info.lifecycle.attribute] ?? '');
-    // Only people's actions: iTop also lists ev_timeout, ev_autoresolve and the
-    // like here, which it fires itself and its own console never offers.
-    const userActions = new Set(info.lifecycle.userActions ?? info.lifecycle.stimuli);
-    return (info.lifecycle.states[state] ?? []).filter((a) => userActions.has(a));
+    return offeredActions(info, String(record.fields[info.lifecycle.attribute] ?? ''));
   }, [info, record]);
 
   // Reset the draft whenever the record reloads, so a stale edit cannot be

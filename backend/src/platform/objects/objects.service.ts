@@ -6,6 +6,7 @@ import { assertIdentifier, buildOql } from "../../itop/oql.js";
 import type { CmdbSchema } from "../../schema/load.js";
 import type { ClassInfo } from "../../schema/types.js";
 import { DEFAULT_ITOP_TIMEZONE, itopFieldsToIso } from "../../shared/itop-time.js";
+import { assertMayApplyStimulus, mayApplyStimulus } from "../../shared/stimulus-rights.js";
 import { validateWrite } from "../../shared/write-validation.js";
 import { criterionToOql, type Criterion } from "./criteria.js";
 
@@ -655,6 +656,33 @@ export class ObjectsService {
     this.transitionGuards.push(guard);
   }
 
+  /**
+   * iTop's per-action grants (shared/stimulus-rights), which its REST API
+   * does not check. They depend on the record's own class: a Change is
+   * granted per subclass, so a class with subclasses asks iTop which one the
+   * record is.
+   */
+  private async assertMayApply(info: ClassInfo, id: number, stimulus: string): Promise<void> {
+    let leaf = info;
+    if (this.schema.descendants(info.name).length > 0) {
+      const result = await this.client.call("core/get", { class: info.name, key: id, output_fields: "id" });
+      const found = normalizeObjects(result.objects)[0];
+      if (!found) throw notFound(`${info.name}::${id} was not found.`);
+      leaf = this.schema.get(found.class) ?? info;
+    }
+    assertMayApplyStimulus(this.schema.lineage(leaf.name), stimulus, (leaf.labels.class || leaf.name).toLowerCase());
+  }
+
+  /** The lifecycle actions the caller may apply on this class (any of its subclasses, for one that has them). */
+  allowedActions(className: string): string[] {
+    const info = this.schema.require(className);
+    if (!info.lifecycle) return [];
+    const classes = [info, ...this.schema.descendants(info.name)];
+    return info.lifecycle.userActions.filter((s) =>
+      classes.some((c) => mayApplyStimulus(this.schema.lineage(c.name), s)),
+    );
+  }
+
   /** Applies a lifecycle stimulus. Only classes with a lifecycle accept these. */
   async applyStimulus(
     className: string,
@@ -689,6 +717,7 @@ export class ObjectsService {
       ? validateWrite(info, rawFields, { mode: "update", strict: true, timeZone: this.timeZone }).fields
       : {};
 
+    await this.assertMayApply(info, id, stimulus);
     for (const guard of this.transitionGuards) await guard(info.name, id, stimulus, fields);
 
     const result = await this.client.call("core/apply_stimulus", {

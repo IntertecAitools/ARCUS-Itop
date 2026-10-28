@@ -108,6 +108,11 @@ export interface ClassInfo {
     stimuli: string[];
     /** The actions people may take; the others are fired by iTop itself. */
     userActions: string[];
+    /**
+     * Of those, the ones the signed-in user's iTop profiles grant. The BFF
+     * refuses the rest, so only these are offered.
+     */
+    allowedActions?: string[];
     /** state -> action -> the state it leads to. */
     transitions: Record<string, Record<string, string>>;
     /** state -> attcode -> iTop's flags for it in that state. */
