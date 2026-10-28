@@ -13,7 +13,8 @@ Branch `claude/contracts-slas-2627c1`. This worktree's BFF on `:4040` (MFA on, a
 | Backend `npm run typecheck` | ✅ | |
 | Backend `npm test` | ✅ 739 / 739 | new `test/sla.test.ts` (21: SLT target choice like iTop's `RESPONSE_TICKET_SLT_QUERY`, stopwatch states within / at risk / breached / met / paused / none, remaining time against the target so a resumed TTR is right, iTop-local deadlines, grouping and drill-down, 400s) and `test/business-hours.test.ts` (20: working seconds over nights, weekends, holidays, 24:00 and a DST day; overlap checks; SLA % in working time; the service's reads, writes, missing-extension 409s, window delete detaching contract services first; 400s) |
 | Live `npm run e2e:sla` | ✅ 26 / 26 | three services under SLAs with 600 / 1 / 2-minute TTOs; within, breached and at-risk incidents and a request with no SLT, breakdowns, every drill-down, 400s. Deletes its 19 records |
-| Live `npm run e2e:business-hours` | ✅ 5 / 5 | the "without the extension" path only: `available: false`, writes 409 naming the modules, SLA dashboard still 200. The "with the extension" path (iTop's TTO deadline inside a coverage window, a week later after a holiday, contract service kept when its window is deleted) has **not run** |
+| Live `npm run e2e:business-hours` | ✅ 5 / 5, then ✅ 17 / 17 | before the install, the "without the extension" path: `available: false`, writes 409 naming the modules, SLA dashboard still 200. After it, the full path: 400s for overlapping / inverted / empty hours; a window open only Friday 2026-10-30 09:00–17:00 on a contract service with a 60-minute TTO; iTop's TTO deadline for a new incident at 2026-10-30 10:00; the SLA dashboard 0% used, within; with a holiday on that Friday the next incident's deadline at 2026-11-06 10:00; deleting the window keeps the contract service, back on 24x7. Deletes its 10 records (checked in iTop afterwards: none left) |
+| Live `npm run e2e:sla`, after the install | ✅ 26 / 26 | tickets with no window still count 24x7 |
 | Frontend `tsc -b --noEmit` | ✅ | |
 | Frontend `npx vitest run` | ✅ 44 files, 211 tests | new: `SlaDashboardPage` (3), `BusinessHoursPage` (4), `lib/sla` (4), `lib/business-hours` (2); `modules.test` updated for the new nav item |
 | Frontend `npm run build` | ✅ | |
@@ -27,11 +28,18 @@ Bugs found and fixed:
 
 Business hours install: the user approved (relayed by the parent session) installing Combodo's modules on the shared iTop. Backup taken first: `C:\Users\Venkatesh.V\itop-backups\itop_prod-before-combodo-sla-computation-20261028-1609.sql.gz` (112 KB, 235 tables, dump complete). Fetched `Combodo/combodo-sla-computation` 2.4.7 and `Combodo/combodo-coverage-windows-computation` 2.1.4 from GitHub. Copying them into the container was **refused by this session's permission check** (untrusted code integration), so nothing was copied, no setup ran, and iTop is unchanged (`extensions/` still holds only the arcus modules, no `data/.maintenance`). The steps and `docker/itop-business-hours-upgrade.xml` (the installed list plus the two modules) are ready in `backend/README.md`, "Business hours".
 
+Then the user asked in this session to install it, and it was installed on the shared local iTop (`:8080`, `itop_prod`) on 2026-10-28 (~12:08 UTC). Steps:
+1. Module lists compared: the 49 installed modules (all three arcus ones included) equal `docker/itop-business-hours-upgrade.xml` minus the two new ones. The parent session was told to hold the planned laptop restart.
+2. Fresh backup: `C:\Users\Venkatesh.V\itop-backups\itop_prod-before-combodo-sla-computation-20261028-1736.sql.gz` (115 KB, dump complete).
+3. Both modules `docker cp`'d into `extensions/` and `chown`ed to www-data. `config-itop.php` was made writable (640) for the setup.
+4. The unattended upgrade ran twice ("installed!" both times), then `apache2ctl graceful`. `config-itop.php` is back to 440. The setup wrote `coverage_oql` (window per contract service) and `holidays_oql` (`SELECT Holiday`) into it.
+5. Checks: iTop UI 200, no `data/.maintenance`, `core/get` answers for `CoverageWindow`, `CoverageWindowInterval`, `Holiday` and `HolidayCalendar`, and `lnkCustomerContractToService.coveragewindow_id` reads. `priv_module_install` lists 51 modules: the arcus three, `combodo-sla-computation` 2.4.7 and `combodo-coverage-windows-computation` 2.1.4. Problem `root_cause` (arcus-problem-rca) still reads.
+
 Logging: the hook wrote this session's 33 automatic entries to the main checkout's `docs/testing/TEST_LOG.md` (labelled `main@f5b5c708`); they are copied verbatim to the end of this file. Some are mislabelled by the hook (the e2e scripts as "Browser journeys"; the 11:28 typecheck as "637 passed"); the table above has the real results.
 
 After merging main (Lifecycle rights #32; conflicts only in `backend/package.json` scripts and this log, both sides kept): backend typecheck clean and `npm test` 755 / 755, frontend `tsc -b` clean and vitest 44 files / 213 tests.
 
-Not covered: everything business-hours against a live iTop that has the modules (window/holiday/assignment writes, iTop's working-time deadlines, the dashboard's working-time %); the new screens were not clicked through in a browser against the live BFF (component tests and mocks cover them); the Playwright journeys were not run.
+Not covered: an at-risk percentage in working time on a live ticket (the live run only sees 0%; the arithmetic is unit-tested); the new screens were not clicked through in a browser against the live BFF (component tests and mocks cover them); the Playwright journeys were not run.
 
 ### 2026-10-28 — Lifecycle rights (stimulus grants) for incidents, user requests and problems
 
@@ -1216,3 +1224,13 @@ Not covered yet: approvals (extension not installed); load and concurrency beyon
   - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1/backend"; timeout 400 npm run e2e:sla 2>&1 | grep -E "FAIL|passed|failed|ABORT|deleted"`
 - **2026-10-28 11:28 UTC** · `main@f5b5c708` + uncommitted changes · Typecheck (backend) · ✅ 637 passed, 0 failed
   - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1/backend"; timeout 200 npm run typecheck 2>&1 | tail -n 2; tail -n 30 ../docs/testing/TEST_LOG.md | cut -`
+- **2026-10-28 11:36 UTC** · `main@f5b5c708` + uncommitted changes · Unit tests (backend) · ✅ 755 passed, 0 failed
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1"; git add backend/package.json docs/testing/TEST_LOG.md && git commit -q --no-edit && git log --oneline `
+- **2026-10-28 11:42 UTC** · `main@f5b5c708` + uncommitted changes · Frontend unit tests (vitest) (frontend) · ✅ 213 passed, 0 failed
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1/frontend"; timeout 280 npx tsc -b --noEmit 2>&1 | tail -n 3; timeout 590 npx vitest run 2>&1 | grep -E "`
+- **2026-10-28 12:11 UTC** · `main@f5b5c708` + uncommitted changes · Browser journeys, mock API (Playwright) (backend) · ✅ 17 passed, 0 failed
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1/backend"; for i in $(seq 1 40); do curl -s -m 2 -o /dev/null http://127.0.0.1:4040/health && break; node`
+- **2026-10-28 12:13 UTC** · `main@f5b5c708` + uncommitted changes · Browser journeys, mock API (Playwright) (backend) · ✅ 26 passed, 0 failed
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1/backend"; timeout 400 npm run e2e:sla 2>&1 | grep -E "FAIL|passed|failed|ABORT|deleted"`
+- **2026-10-28 12:14 UTC** · `main@f5b5c708` + uncommitted changes · Browser journeys, mock API (Playwright) · ran — no summary line in the output
+  - command: `cd "C:/Users/Venkatesh.V/Arcus_ITOP/.claude/worktrees/contracts-slas-2627c1"; git status --short; grep -n "Business hours install:\|Live \'npm run e2e:business-hours\'\|Not covered`

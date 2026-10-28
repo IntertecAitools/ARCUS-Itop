@@ -1115,6 +1115,10 @@ GitHub; the iTop Hub store sells (for free) the same code as a package:
 
 Any later upgrade of that iTop must keep both modules in its list.
 
+Installed on the shared local iTop (`:8080`, `itop_prod`) on 2026-10-28, after
+a dump to `C:\Users\Venkatesh.V\itop-backups\` (`config-itop.php` made
+writable for the setup and put back to read-only after).
+
 `npm run e2e:business-hours` (BFF on `:4040`, the `"sla"` account, an
 administrator): without the extension it checks the 409s; with it, it makes
 a window open on one weekday only, puts a contract service in it, and
