@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 
 import type { Services } from "../services.js";
+import { registerBusinessHoursRoutes } from "../modules/business-hours/index.js";
 import { registerChangeRoutes } from "../modules/changes/index.js";
 import { registerDashboardRoutes } from "../modules/dashboard/index.js";
 import { registerDirectoryRoutes } from "../modules/directory/index.js";
@@ -56,6 +57,12 @@ export interface BackendModule {
 }
 
 export const modules: BackendModule[] = [
+  {
+    id: "business-hours",
+    basePath: "/api/admin/business-hours",
+    description: "Coverage windows (open hours), holidays, and which window each contract's service runs in, so TTO/TTR count working time.",
+    register: registerBusinessHoursRoutes,
+  },
   {
     id: "changes",
     basePath: "/api/changes",

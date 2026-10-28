@@ -25,7 +25,8 @@
     "e2e:changes": "node --import tsx scripts/e2e-changes.mjs",
     "e2e:requests": "node --import tsx scripts/e2e-requests.mjs",
     "e2e:incidents": "node --import tsx scripts/e2e-incidents.mjs",
-    "e2e:sla": "node --import tsx scripts/e2e-sla.mjs"
+    "e2e:sla": "node --import tsx scripts/e2e-sla.mjs",
+    "e2e:business-hours": "node --import tsx scripts/e2e-business-hours.mjs"
   },
   "dependencies": {
     "@fastify/multipart": "^10.1.3",

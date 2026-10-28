@@ -292,6 +292,16 @@ async function main() {
     ids.indexOf(String(breachId)) < ids.indexOf(String(riskId)) && ids.indexOf(String(riskId)) < ids.indexOf(String(withinId)),
   );
 
+  // Straight away: the 2-minute incident is at risk only until 120 s after it
+  // opened. Later checks allow for it having breached since (a slow machine).
+  const drill = async (qs) => {
+    const r = await request("GET", `/api/sla/tickets?${qs}`);
+    if (r.status !== 200) throw new Error(`tickets?${qs}: ${r.status} ${r.text.slice(0, 200)}`);
+    return r.json.items.map((x) => x.id);
+  };
+  let got = await drill("state=at_risk");
+  check("state=at_risk has the at-risk incident, not the breach", got.includes(String(riskId)) && !got.includes(String(breachId)));
+
   console.log("\nDashboard");
   res = await request("GET", "/api/sla/dashboard");
   const d = res.json;
@@ -299,13 +309,13 @@ async function main() {
   const t = d?.totals ?? {};
   check(
     "totals add up and count at least our tickets",
-    t.total === t.within + t.atRisk + t.breached + t.none && t.breached >= 1 && t.atRisk >= 1 && t.within >= 1 && t.none >= 1,
+    t.total === t.within + t.atRisk + t.breached + t.none && t.atRisk + t.breached >= 2 && t.within >= 1 && t.none >= 1,
     JSON.stringify(t),
   );
   const customer = d?.byCustomer?.find((g) => g.key === String(orgId));
   check("the customer breakdown has our organisation with its breach", customer?.breached >= 1 && customer.total >= 4, JSON.stringify(customer));
   const prio = d?.byPriority?.find((g) => g.key === priority);
-  check("the priority breakdown has our priority", prio?.atRisk >= 1, JSON.stringify(prio));
+  check("the priority breakdown has our priority", prio?.atRisk + prio?.breached >= 2, JSON.stringify(prio));
   const noTeam = d?.byTeam?.find((g) => g.key === "");
   check("tickets without a team are grouped as No team", noTeam?.label === "No team" && noTeam.total >= 4, JSON.stringify(noTeam));
   check("at risk means 75%", d?.atRiskPercent === 75);
@@ -317,15 +327,8 @@ async function main() {
   );
 
   console.log("\nDrill-down");
-  const drill = async (qs) => {
-    const r = await request("GET", `/api/sla/tickets?${qs}`);
-    if (r.status !== 200) throw new Error(`tickets?${qs}: ${r.status} ${r.text.slice(0, 200)}`);
-    return r.json.items.map((x) => x.id);
-  };
-  let got = await drill("state=breached");
-  check("state=breached has the breach and not the others", got.includes(String(breachId)) && !got.includes(String(riskId)) && !got.includes(String(withinId)));
-  got = await drill("state=at_risk");
-  check("state=at_risk has the at-risk incident", got.includes(String(riskId)) && !got.includes(String(breachId)));
+  got = await drill("state=breached");
+  check("state=breached has the breach, not the 10-hour incident", got.includes(String(breachId)) && !got.includes(String(withinId)));
   got = await drill(`team=none&priority=${priority}&org=${orgId}&type=incident`);
   check(
     "team=none + priority + customer + incidents has our three incidents, not the request",

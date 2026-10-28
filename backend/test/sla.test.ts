@@ -289,7 +289,7 @@ function stub() {
       return { items, total: items.length, truncated: false };
     },
   } as unknown as ObjectsService;
-  return { service: new SlaService(objects, TZ, () => new Date(NOW)), calls };
+  return { service: new SlaService(objects, TZ, undefined, () => new Date(NOW)), calls };
 }
 
 describe("SlaService", () => {

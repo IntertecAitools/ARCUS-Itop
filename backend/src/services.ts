@@ -7,6 +7,7 @@ import { DirectoryService } from "./modules/directory/index.js";
 import { IncidentsService, TicketExtras } from "./modules/incidents/index.js";
 import { ProblemsService } from "./modules/problems/index.js";
 import { SlaService } from "./modules/sla/index.js";
+import { BusinessHoursService } from "./modules/business-hours/index.js";
 import { createMailSource, type MailSource, MailIntakeService } from "./modules/mail-intake/index.js";
 import {
   ChangesService,
@@ -97,6 +98,8 @@ export interface Services {
   ticketExtras: TicketExtras;
   problems: ProblemsService;
   sla: SlaService;
+  /** Coverage windows and holidays (Combodo's business-hours modules). */
+  businessHours: BusinessHoursService;
   changes: ChangesService;
   /** Present when MAIL_INTAKE_SOURCE is set. */
   mailIntake?: MailIntakeService;
@@ -216,6 +219,7 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
   const dashboards =
     options.dashboards ?? Dashboards.fromFile(config.dashboardsPath, objects, schema);
   const transfer = new TransferService(client, schema);
+  const businessHours = new BusinessHoursService(client);
   const changes = new ChangesService(
     client,
     options.planRules ?? (stores?.pool ? new MySqlPlanRuleStore(stores.pool) : new MemoryPlanRuleStore()),
@@ -278,7 +282,8 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     ...(mailIntake ? { mailIntake } : {}),
     ticketExtras,
     problems: new ProblemsService(objects, client, config.itop.timezone),
-    sla: new SlaService(objects, config.itop.timezone),
+    sla: new SlaService(objects, config.itop.timezone, businessHours),
+    businessHours,
     changes,
     requestForms: new RequestFormsService(
       client,

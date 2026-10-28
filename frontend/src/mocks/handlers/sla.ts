@@ -1,6 +1,9 @@
 import { http, HttpResponse } from 'msw';
 import { env } from '@/config/env';
 import type {
+  BusinessHours,
+  CoverageWindowInput,
+  HolidayInput,
   SlaCounts,
   SlaDashboard,
   SlaGroup,
@@ -144,5 +147,124 @@ export const slaHandlers = [
         (!p.get('org') || t.orgId === p.get('org')),
     );
     return HttpResponse.json({ items, total: items.length, truncated: false });
+  }),
+];
+
+/* ------------------------------------------------------------------------- *
+ * Business hours (admin): a mutable store, so writes show on the next read
+ * ------------------------------------------------------------------------- */
+
+const office = (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as const).map((weekday) => ({
+  weekday,
+  start: '09:00',
+  end: '17:00',
+}));
+
+let nextId = 100;
+const hours: BusinessHours = {
+  available: true,
+  coverageWindows: [{ id: '1', name: 'Office hours', description: 'Mon–Fri, 09:00–17:00', intervals: office, usedBy: 1 }],
+  calendars: [{ id: '3', name: 'France', holidayCount: 1 }],
+  holidays: [
+    { id: '5', name: 'Christmas Day', date: `${new Date().getFullYear() + 1}-12-25`, calendarId: '3', calendarName: 'France' },
+  ],
+  assignments: [
+    {
+      id: '20',
+      contractId: '8',
+      contractName: 'Support 2026',
+      customerName: 'Demo Customer',
+      serviceId: '7',
+      serviceName: 'Email',
+      slaId: '4',
+      slaName: 'Gold',
+      coverageWindowId: '1',
+      coverageWindowName: 'Office hours',
+    },
+    {
+      id: '21',
+      contractId: '8',
+      contractName: 'Support 2026',
+      customerName: 'Demo Customer',
+      serviceId: '9',
+      serviceName: 'VPN',
+      slaId: '4',
+      slaName: 'Gold',
+      coverageWindowId: '',
+      coverageWindowName: '',
+    },
+  ],
+};
+
+/** Recomputes the derived counts after a write, as the BFF's next read would. */
+function recount() {
+  for (const w of hours.coverageWindows) w.usedBy = hours.assignments.filter((a) => a.coverageWindowId === w.id).length;
+  for (const c of hours.calendars) c.holidayCount = hours.holidays.filter((h) => h.calendarId === c.id).length;
+  for (const a of hours.assignments) {
+    a.coverageWindowName = hours.coverageWindows.find((w) => w.id === a.coverageWindowId)?.name ?? '';
+  }
+}
+
+const BH = (path = '') => url(`/admin/business-hours${path}`);
+
+export const businessHoursHandlers = [
+  http.get(BH(), () => HttpResponse.json(hours)),
+
+  http.post(BH('/coverage-windows'), async ({ request }) => {
+    const input = (await request.json()) as CoverageWindowInput;
+    const id = String((nextId += 1));
+    hours.coverageWindows.push({ id, ...input, usedBy: 0 });
+    return HttpResponse.json({ id }, { status: 201 });
+  }),
+  http.put(BH('/coverage-windows/:id'), async ({ params, request }) => {
+    const input = (await request.json()) as CoverageWindowInput;
+    const w = hours.coverageWindows.find((x) => x.id === params['id']);
+    if (!w) return HttpResponse.json({ error: { code: 'not_found', message: 'Not found' } }, { status: 404 });
+    Object.assign(w, input);
+    recount();
+    return HttpResponse.json({ ok: true });
+  }),
+  http.delete(BH('/coverage-windows/:id'), ({ params }) => {
+    const detached = hours.assignments.filter((a) => a.coverageWindowId === params['id']);
+    for (const a of detached) a.coverageWindowId = '';
+    hours.coverageWindows = hours.coverageWindows.filter((w) => w.id !== params['id']);
+    recount();
+    return HttpResponse.json({ detached: detached.length });
+  }),
+
+  http.post(BH('/calendars'), async ({ request }) => {
+    const input = (await request.json()) as { name: string };
+    const id = String((nextId += 1));
+    hours.calendars.push({ id, name: input.name, holidayCount: 0 });
+    return HttpResponse.json({ id }, { status: 201 });
+  }),
+  http.delete(BH('/calendars/:id'), ({ params }) => {
+    hours.calendars = hours.calendars.filter((c) => c.id !== params['id']);
+    hours.holidays = hours.holidays.filter((h) => h.calendarId !== params['id']);
+    return HttpResponse.json({ ok: true });
+  }),
+
+  http.post(BH('/holidays'), async ({ request }) => {
+    const input = (await request.json()) as HolidayInput;
+    const id = String((nextId += 1));
+    const calendarName = hours.calendars.find((c) => c.id === input.calendarId)?.name ?? '';
+    hours.holidays.push({ id, ...input, calendarName });
+    hours.holidays.sort((a, b) => a.date.localeCompare(b.date));
+    recount();
+    return HttpResponse.json({ id }, { status: 201 });
+  }),
+  http.delete(BH('/holidays/:id'), ({ params }) => {
+    hours.holidays = hours.holidays.filter((h) => h.id !== params['id']);
+    recount();
+    return HttpResponse.json({ ok: true });
+  }),
+
+  http.put(BH('/assignments/:id'), async ({ params, request }) => {
+    const input = (await request.json()) as { coverageWindowId: string };
+    const a = hours.assignments.find((x) => x.id === params['id']);
+    if (!a) return HttpResponse.json({ error: { code: 'not_found', message: 'Not found' } }, { status: 404 });
+    a.coverageWindowId = input.coverageWindowId;
+    recount();
+    return HttpResponse.json({ ok: true });
   }),
 ];

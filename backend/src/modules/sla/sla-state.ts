@@ -24,8 +24,9 @@ import type {
  * service (RESPONSE_TICKET_SLT_QUERY in itop-tickets). The same choice is
  * made here from three small link tables.
  *
- * Remaining time is deadline − now, i.e. wall-clock: exact under iTop's
- * default 24x7 computation, which is what this iTop runs.
+ * Time is counted the way iTop counts it: wall clock by default (24x7), or,
+ * with Combodo's business-hours modules, only the open hours of the coverage
+ * window of the ticket's contract service, holidays left out (`span`).
  */
 
 export const AT_RISK_PERCENT = 75;
@@ -166,10 +167,15 @@ export interface MetricInput {
   timeSpent: number;
   goal: number | null;
   nowMs: number;
+  /** Seconds that count between two instants; wall clock when absent. */
+  span?: ((fromMs: number, toMs: number) => number) | undefined;
 }
+
+const wallClock = (fromMs: number, toMs: number) => (toMs - fromMs) / 1000;
 
 export function metricState(input: MetricInput): SlaMetric {
   const { deadlineMs, goal, nowMs } = input;
+  const span = input.span ?? wallClock;
   const deadline = deadlineMs === null ? null : new Date(deadlineMs).toISOString();
   const result = (state: SlaMetricState, percentUsed: number | null): SlaMetric => ({
     state,
@@ -179,15 +185,19 @@ export function metricState(input: MetricInput): SlaMetric {
   });
 
   if (deadlineMs !== null) {
-    const remaining = (deadlineMs - nowMs) / 1000;
+    const remaining = span(nowMs, deadlineMs);
     let percent: number | null = null;
     if (goal) percent = ((goal - remaining) / goal) * 100;
     else if (input.startMs !== null && deadlineMs > input.startMs) {
       // A deadline without a target we can match (the SLTs changed since it
-      // was set): fall back to the share of the wall-clock window.
-      percent = ((nowMs - input.startMs) / (deadlineMs - input.startMs)) * 100;
+      // was set): fall back to the share of the window from start to deadline.
+      const window = span(input.startMs, deadlineMs);
+      if (window > 0) percent = (span(input.startMs, nowMs) / window) * 100;
     }
-    if (input.passed || remaining <= 0) return result("breached", Math.max(percent ?? 100, 100));
+    if (input.passed || nowMs >= deadlineMs) return result("breached", Math.max(percent ?? 100, 100));
+    // Before the deadline it is not breached, even with no open time left
+    // (the deadline sits at the next opening, say).
+    if (percent !== null) percent = Math.min(percent, 99);
     return result(percent === null ? "within" : byPercent(percent), percent);
   }
 
@@ -234,7 +244,16 @@ export interface TicketRow {
   fields: Record<string, unknown>;
 }
 
-export function toSlaTicket(row: TicketRow, goals: GoalLookup, nowMs: number, timeZone: string): SlaTicket {
+/** Seconds that count between two instants for a ticket of this organisation and service; null for wall clock. */
+export type SpanLookup = (orgId: string, serviceId: string) => ((fromMs: number, toMs: number) => number) | null;
+
+export function toSlaTicket(
+  row: TicketRow,
+  goals: GoalLookup,
+  nowMs: number,
+  timeZone: string,
+  spanFor: SpanLookup = () => null,
+): SlaTicket {
   const f = row.fields;
   const status = str(f["status"]);
   const priority = str(f["priority"]);
@@ -242,6 +261,7 @@ export function toSlaTicket(row: TicketRow, goals: GoalLookup, nowMs: number, ti
   const serviceId = str(f["service_id"]);
   const requestType = row.className === "Incident" ? "incident" : "service_request";
   const startMs = instant(f["start_date"], timeZone);
+  const span = spanFor(orgId, serviceId) ?? undefined;
   const metric = (m: Metric): SlaMetric =>
     metricState({
       metric: m,
@@ -253,6 +273,7 @@ export function toSlaTicket(row: TicketRow, goals: GoalLookup, nowMs: number, ti
       timeSpent: Number(f[`${m}_time_spent`]) || 0,
       goal: goals(orgId, serviceId, requestType, priority, m),
       nowMs,
+      span,
     });
   const tto = metric("tto");
   const ttr = metric("ttr");

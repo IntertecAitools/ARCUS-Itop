@@ -1,3 +1,4 @@
+import { workingSeconds, type WorkingCalendar } from "../business-hours/index.js";
 import type { ObjectsService } from "../../platform/objects/objects.service.js";
 import { str } from "../../shared/ticket-mapping.js";
 import {
@@ -12,6 +13,7 @@ import {
   TICKET_FIELDS,
   toSlaTicket,
   type GoalLookup,
+  type SpanLookup,
 } from "./sla-state.js";
 import type {
   SlaDashboard,
@@ -45,8 +47,20 @@ export class SlaService {
   constructor(
     private readonly objects: ObjectsService,
     private readonly timeZone: string,
+    /** Coverage windows and holidays; absent, or null from it, means 24x7. */
+    private readonly calendar?: { workingCalendar(): Promise<WorkingCalendar | null> },
     private readonly now: () => Date = () => new Date(),
   ) {}
+
+  /** How time counts for each ticket: the open hours of its coverage window, else wall clock. */
+  private async spans(): Promise<SpanLookup> {
+    const calendar = await this.calendar?.workingCalendar();
+    if (!calendar) return () => null;
+    return (orgId, serviceId) => {
+      const hours = calendar.windowFor(orgId, serviceId);
+      return hours ? (from, to) => workingSeconds(from, to, hours, calendar.holidays, this.timeZone) : null;
+    };
+  }
 
   private async goals(): Promise<GoalLookup> {
     const [contracts, contractServices, slaSlts] = await Promise.all([
@@ -83,8 +97,9 @@ export class SlaService {
   /** Every open ticket of the type, with its SLA state. */
   private async openTickets(type: SlaTicketType): Promise<{ tickets: SlaTicket[]; truncated: boolean }> {
     const classes = CLASSES[type];
-    const [goals, ...lists] = await Promise.all([
+    const [goals, spans, ...lists] = await Promise.all([
       this.goals(),
+      this.spans(),
       ...classes.map((className) =>
         this.objects.listAll(
           className,
@@ -99,7 +114,7 @@ export class SlaService {
     const nowMs = this.now().getTime();
     const tickets = lists.flatMap((list, i) =>
       list.items.map((item) =>
-        toSlaTicket({ className: classes[i]!, id: item.id, fields: item.fields }, goals, nowMs, this.timeZone),
+        toSlaTicket({ className: classes[i]!, id: item.id, fields: item.fields }, goals, nowMs, this.timeZone, spans),
       ),
     );
     return { tickets, truncated: lists.some((l) => l.truncated) };

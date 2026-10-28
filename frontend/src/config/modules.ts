@@ -2,6 +2,7 @@ import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
 import {
   BellRing,
   CalendarCheck2,
+  CalendarClock,
   ClipboardCheck,
   ClipboardList,
   Database,
@@ -363,6 +364,16 @@ export const modules: ModuleDefinition[] = [
         ),
       },
     ],
+  },
+  {
+    id: 'business-hours',
+    label: 'Business hours',
+    path: 'business-hours',
+    icon: CalendarClock,
+    group: 'administration',
+    description: 'Open hours and holidays, so TTO and TTR count working time only.',
+    adminOnly: true,
+    component: lazy(() => import('@/features/sla').then((m) => ({ default: m.BusinessHoursPage }))),
   },
   {
     id: 'change-rules',

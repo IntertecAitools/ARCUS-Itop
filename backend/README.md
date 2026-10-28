@@ -1049,11 +1049,10 @@ How a ticket is classed, from iTop's own stopwatches (`tto`, `ttr`):
 - **within target**: anything else with an SLT; a TTO stopped in time counts as met;
 - **no SLA**: no SLT applies.
 
-The ticket's state is the worse of its two stopwatches. Remaining time is wall
-clock, which is exact under iTop's default 24x7 SLA computation, the one this
-iTop runs. **Business hours are not installed:** the local iTop has no
-`CoverageWindow` / `Holiday` classes (Combodo's working-hours extension), so
-TTO/TTR count every hour of every day.
+The ticket's state is the worse of its two stopwatches. Time is counted the
+way iTop counts it: wall clock under iTop's default 24x7 computation, or, once
+business hours are installed (below), only the open hours of the ticket's
+coverage window with holidays left out.
 
 `npm run e2e:sla` checks it live: it builds three services under SLAs with
 TTO targets of 600, 1 and 2 minutes on a contract of the account's
@@ -1062,6 +1061,66 @@ about 95 seconds, and expects within / breached / at risk / no SLA, the
 breakdowns and every drill-down. The account is `{ "sla": { "login",
 "password", "totpSecret" } }` in `backend/e2e.local.json`; it must be able to
 create services, contracts, SLAs and SLTs. Everything is deleted at the end.
+
+### Business hours
+
+So that TTO and TTR count working time only (`modules/business-hours/`; in
+the frontend: **Business hours** under administration, `/business-hours`).
+iTop does the counting itself once Combodo's free "SLA considering business
+hours" extension is installed; we only manage its data:
+
+- **coverage windows** (`CoverageWindow`): open hours per weekday, several
+  periods a day allowed, `24:00` for midnight (`CoverageWindowInterval`);
+- **holidays** (`Holiday`, grouped in `HolidayCalendar`s): with the default
+  `holidays_oql` (`SELECT Holiday`) every holiday applies to every window;
+- **which window each customer contract's service runs in**
+  (`lnkCustomerContractToService.coveragewindow_id`). A ticket counts in the
+  window of its organisation's contract for its service; with none, 24x7.
+  iTop sets a deadline when the stopwatch starts, so a change applies to
+  tickets opened (or resumed) after it.
+
+| | |
+| --- | --- |
+| `GET /api/admin/business-hours` | Windows with their hours and use, calendars, holidays, every contract service with its SLA and window. `available: false` without the extension |
+| `POST` / `PUT /api/admin/business-hours/coverage-windows[/:id]` | `{ name, description, intervals: [{ weekday, start, end }] }`; overlapping or inverted periods are a 400. The intervals replace the window's whole set |
+| `DELETE /api/admin/business-hours/coverage-windows/:id` | Moves the contract services in it to 24x7 first (iTop would otherwise delete them with it, `DEL_AUTO`); answers `{ detached }` |
+| `POST` / `PUT` / `DELETE /api/admin/business-hours/calendars[/:id]` | `{ name }`. Deleting a calendar deletes its holidays (iTop's `DEL_AUTO`) |
+| `POST` / `PUT` / `DELETE /api/admin/business-hours/holidays[/:id]` | `{ name, date: "YYYY-MM-DD", calendarId }` (`""` for none) |
+| `PUT /api/admin/business-hours/assignments/:id` | `{ coverageWindowId }` (`""` for 24x7) on one contract service (the lnkCustomerContractToService id) |
+
+Without the extension every write is a 409 saying what to install, and the
+SLA dashboard counts 24x7. The SLA dashboard reads windows and holidays as
+the service account (configuration every agent's dashboard needs).
+
+**Installing the extension** (an upgrade, like the arcus extensions above;
+back up first). The modules are Combodo's, AGPL like iTop, published on
+GitHub; the iTop Hub store sells (for free) the same code as a package:
+
+1. Fetch the tagged sources and unpack them as the module names:
+   `https://github.com/Combodo/combodo-sla-computation/archive/refs/tags/2.4.7.tar.gz` →
+   `combodo-sla-computation/`, and
+   `https://github.com/Combodo/combodo-coverage-windows-computation/archive/refs/tags/2.1.4.tar.gz` →
+   `combodo-coverage-windows-computation/`.
+2. Back up the database (on the local iTop the dump runs inside the
+   container: `mysqldump -h host.docker.internal -u root itop_prod`, password
+   from `conf/production/config-itop.php`, into `C:\Users\Venkatesh.V\itop-backups\`).
+3. `docker cp` both folders to `<container>:/var/www/html/extensions/`, then
+   `chown -R www-data:www-data` them.
+4. `docker cp docker/itop-business-hours-upgrade.xml <container>:/tmp/` (its
+   module list is the local iTop's, every arcus module included, plus the two
+   new ones) and run the unattended upgrade **twice**:
+   `docker exec -u www-data -w /var/www/html/setup/unattended-install <container> php unattended-install.php --param-file=/tmp/itop-business-hours-upgrade.xml`.
+5. `docker exec <container> apache2ctl graceful`, then check iTop answers 200
+   and `npm run e2e:business-hours` takes the "with the extension" path.
+
+Any later upgrade of that iTop must keep both modules in its list.
+
+`npm run e2e:business-hours` (BFF on `:4040`, the `"sla"` account, an
+administrator): without the extension it checks the 409s; with it, it makes
+a window open on one weekday only, puts a contract service in it, and
+expects iTop's TTO deadline for a new incident an hour into that day, a week
+later once that day is a holiday, the SLA dashboard counting it in working
+time, and the contract service kept when the window is deleted.
 
 ## What this layer is actually for
 
@@ -1461,6 +1520,7 @@ finding out via a 404.
 | `npm run e2e:changes` | live change management: plan rules, CAB decisions, profile rights (BFF on :4020, MFA on; accounts created on the first run, see "Changes"). Creates and deletes its own changes |
 | `npm run e2e:incidents` | live holds with next-action date, major incidents and stakeholder updates, email to ticket via Mailpit (BFF on :4010 with `MAIL_INTAKE_SOURCE=mailpit`; see "Incidents: on hold, major incidents"). Creates and deletes its own records and mail |
 | `npm run e2e:sla` | live SLA dashboard: within / at risk / breached from real stopwatches, breakdowns, drill-down (BFF on :4040, MFA on; account in `backend/e2e.local.json` under `"sla"`, see "SLA dashboard"). Creates and deletes its own records; takes about two minutes |
+| `npm run e2e:business-hours` | live business hours: coverage windows, holidays and contract services, and iTop's deadlines in working time (BFF on :4040; checks the 409s only on an iTop without Combodo's business-hours modules; see "Business hours") |
 | `npm run e2e:requests` | live request forms + target date check (BFF on :4040 with `MFA_REQUIRED=off`, or `E2E_STAFF_TOTP_SECRET`; `E2E_STAFF_PASSWORD`) |
 
 ## Known limitations
