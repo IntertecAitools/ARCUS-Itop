@@ -2,6 +2,7 @@ import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
 import {
   BellRing,
   CalendarCheck2,
+  CalendarClock,
   ClipboardCheck,
   ClipboardList,
   Database,
@@ -12,6 +13,7 @@ import {
   ListFilter,
   Repeat,
   ShieldCheck,
+  Timer,
   UsersRound,
   type LucideIcon,
 } from 'lucide-react';
@@ -198,6 +200,15 @@ export const modules: ModuleDefinition[] = [
     ),
   },
   {
+    id: 'sla',
+    label: 'SLA dashboard',
+    path: 'sla',
+    icon: Timer,
+    group: 'operations',
+    description: 'Open tickets within target, at risk or breached, by team, priority and customer.',
+    component: lazy(() => import('@/features/sla').then((m) => ({ default: m.SlaDashboardPage }))),
+  },
+  {
     id: 'records',
     label: 'Records',
     path: 'records',
@@ -353,6 +364,16 @@ export const modules: ModuleDefinition[] = [
         ),
       },
     ],
+  },
+  {
+    id: 'business-hours',
+    label: 'Business hours',
+    path: 'business-hours',
+    icon: CalendarClock,
+    group: 'administration',
+    description: 'Open hours and holidays, so TTO and TTR count working time only.',
+    adminOnly: true,
+    component: lazy(() => import('@/features/sla').then((m) => ({ default: m.BusinessHoursPage }))),
   },
   {
     id: 'change-rules',
