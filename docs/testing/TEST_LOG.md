@@ -29,6 +29,8 @@ Business hours install: the user approved (relayed by the parent session) instal
 
 Logging: the hook wrote this session's 33 automatic entries to the main checkout's `docs/testing/TEST_LOG.md` (labelled `main@f5b5c708`); they are copied verbatim to the end of this file. Some are mislabelled by the hook (the e2e scripts as "Browser journeys"; the 11:28 typecheck as "637 passed"); the table above has the real results.
 
+After merging main (Lifecycle rights #32; conflicts only in `backend/package.json` scripts and this log, both sides kept): backend typecheck clean and `npm test` 755 / 755, frontend `tsc -b` clean and vitest 44 files / 213 tests.
+
 Not covered: everything business-hours against a live iTop that has the modules (window/holiday/assignment writes, iTop's working-time deadlines, the dashboard's working-time %); the new screens were not clicked through in a browser against the live BFF (component tests and mocks cover them); the Playwright journeys were not run.
 
 ### 2026-10-28 — Lifecycle rights (stimulus grants) for incidents, user requests and problems
