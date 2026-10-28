@@ -101,12 +101,22 @@ export interface TicketDto {
 }
 
 /** The output_fields a ticket row needs. Keep in step with `toTicket`. */
-export const TICKET_FIELDS = "id,ref,title,status,priority,agent_id,agent_name,start_date";
+export const TICKET_FIELDS = "id,ref,title,status,priority,agent_id,agent_id_friendlyname,start_date";
+
+/**
+ * A linked person's full name. iTop's `<key>_name` holds only the surname
+ * (Person.name); `<key>_id_friendlyname` is "first last". A link to "none"
+ * comes back as " ", hence the trim. Falls back to the surname field for rows
+ * fetched with the older field list.
+ */
+export function personName(f: Record<string, unknown>, key: string): string {
+  return str(f[`${key}_id_friendlyname`]).trim() || str(f[`${key}_name`]).trim();
+}
 
 export function toTicket(item: ObjectDto): TicketDto {
   const f = item.fields;
   const agentId = str(f["agent_id"]);
-  const agentName = str(f["agent_name"]);
+  const agentName = personName(f, "agent");
   return {
     id: String(item.id),
     ref: str(f["ref"]) || `#${item.id}`,

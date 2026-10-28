@@ -11,6 +11,7 @@ import {
   IMPACT_MAP,
   isTrue,
   ORIGINS,
+  personName,
   PRIORITY_TO_ITOP,
   RESOLUTION_CODES,
   STATUS_TO_ITOP,
@@ -43,7 +44,7 @@ const DETAIL_FIELDS = [
   TICKET_FIELDS,
   "description",
   "caller_id",
-  "caller_name",
+  "caller_id_friendlyname",
   "org_id",
   "org_name",
   "team_id",
@@ -250,7 +251,10 @@ export class IncidentsService {
     return {
       ...toTicket(item),
       description: str(f["description"]),
-      caller: link("caller_id", "caller_name"),
+      caller: (() => {
+        const id = str(f["caller_id"]);
+        return id && id !== "0" ? { id, name: personName(f, "caller") } : undefined;
+      })(),
       organization: link("org_id", "org_name"),
       team: link("team_id", "team_name"),
       service: optional("service_name"),

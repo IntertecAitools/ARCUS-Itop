@@ -4,6 +4,24 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-10-28 — Incident links reach the incident screen; people shown by full name
+
+Reported: the new incident features (on hold with next-action date, major incident) could not be found, and people showed as "My first name My last name" or by surname only.
+
+| What ran | Result |
+|---|---|
+| Backend typecheck + unit tests (`npm test`, incl. new `test/person-name.test.ts`) | 714/714 pass before the new file; new file 5/5 |
+| Frontend typecheck + vitest (incl. new `records/lib/dedicated.test.ts`) | 41 files, 203/203 pass; incidents + redirect re-run 18/18 |
+| Live, BFF :4000 + local iTop, as `e2e.rights.desk` (Service Desk Agent) | `/records/Incident/9` redirects to `/incidents/9`; Major incident panel shown; assignee/caller "System Administrator" |
+| Live, as `e2e.rights.support` (Support Agent), API | I-000009 offers hold, resolve, reassign |
+
+Bugs found and fixed (branch `claude/incident-pages-full-names`):
+- The sidebar's iTop menus open `/records/Incident/<id>`, the generic page, so the dedicated incident screen (where the new features live) was never reached. `/records/Incident/<id>` and `/records/Incident/new` now redirect to `/incidents/<id>` and `/incidents/new`.
+- Tickets, the dashboard, the directory (manager) and team members used iTop's `<key>_name`, which is the surname only. They now use `<key>_id_friendlyname` (first name + surname).
+- After lifecycle rights (PR #32), a Service Desk Agent correctly gets no actions on an assigned incident, but the card said "This incident is closed". It now says the role has no actions at this stage.
+- Data: the local iTop admin's contact (Person 1) still had iTop's setup placeholder name; renamed to "System Administrator".
+
+Not covered: the Support Agent flow was checked through the API, not clicked through in the browser.
 ### 2026-10-28 — Contracts & SLAs: SLA dashboard, business hours and holidays
 
 Branch `claude/contracts-slas-2627c1`. This worktree's BFF on `:4040` (MFA on, account `e2e.chg.admin` under `"sla"` in the git-ignored `backend/e2e.local.json`) against the shared local iTop on `:8080`, which does **not** have Combodo's business-hours modules (see "Business hours install" below).

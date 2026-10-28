@@ -394,7 +394,7 @@ export class DashboardService {
       this.latest(
         "Incident",
         "id > 0",
-        "id,ref,title,status,priority,start_date,agent_id,agent_name",
+        "id,ref,title,status,priority,start_date,agent_id,agent_id_friendlyname",
         5,
       ),
       this.fetch("ServiceSubcategory", "id > 0", "id,name,service_name", 4),

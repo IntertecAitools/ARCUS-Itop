@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Pencil, Trash2, X } from 'lucide-react';
 import { PageHeader } from '@/components/layout';
 import { Button, buttonClasses, Card, Skeleton } from '@/components/ui';
@@ -17,6 +17,7 @@ import { DeleteDialog } from '../components/DeleteDialog';
 import { TransitionDialog } from '../components/TransitionDialog';
 import { PendingBanner } from '../components/PendingBanner';
 import { asksNextActionDate, offeredActions, requiredForTransition, transitionPrompts } from '../lib/transitions';
+import { dedicatedRecordPath } from '../lib/dedicated';
 
 /**
  * A problem's root-cause analysis and known errors, a tab of their own.
@@ -47,8 +48,17 @@ const CAB_ACTIONS = new Set(['ev_approve', 'ev_notapprove']);
  *
  * Edits write straight through the BFF to iTop, so a change made here IS the
  * change in the system of record — there is no second step in iTop's console.
+ *
+ * A class with a screen of its own (an Incident) is sent on to that screen.
  */
 export function RecordDetailPage() {
+  const { className = '', id = '' } = useParams();
+  const dedicated = dedicatedRecordPath(className, id);
+  if (dedicated) return <Navigate to={dedicated} replace />;
+  return <GenericRecordDetail />;
+}
+
+function GenericRecordDetail() {
   const { className = '', id = '' } = useParams();
   const { data: info, isLoading: schemaLoading } = useClassInfo(className);
   const { data: record, isLoading, isError, error } = useRecord(className, id);
