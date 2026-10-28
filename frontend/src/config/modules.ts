@@ -12,6 +12,7 @@ import {
   ListFilter,
   Repeat,
   ShieldCheck,
+  Timer,
   UsersRound,
   type LucideIcon,
 } from 'lucide-react';
@@ -196,6 +197,15 @@ export const modules: ModuleDefinition[] = [
     component: lazy(() =>
       import('@/features/problems').then((m) => ({ default: m.ProblemTrendsPage })),
     ),
+  },
+  {
+    id: 'sla',
+    label: 'SLA dashboard',
+    path: 'sla',
+    icon: Timer,
+    group: 'operations',
+    description: 'Open tickets within target, at risk or breached, by team, priority and customer.',
+    component: lazy(() => import('@/features/sla').then((m) => ({ default: m.SlaDashboardPage }))),
   },
   {
     id: 'records',

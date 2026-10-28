@@ -8,6 +8,7 @@ import { registerIncidentRoutes } from "../modules/incidents/index.js";
 import { registerMailIntakeRoutes } from "../modules/mail-intake/index.js";
 import { registerProblemRoutes } from "../modules/problems/index.js";
 import { registerRequestFormRoutes } from "../modules/request-forms/index.js";
+import { registerSlaRoutes } from "../modules/sla/index.js";
 
 /**
  * ════════════════════════════════════════════════════════════════════════════
@@ -96,6 +97,12 @@ export const modules: BackendModule[] = [
     basePath: "/api/request-forms",
     description: "The extra questions each catalogue item asks when a request is raised (edited under /api/admin/request-forms).",
     register: registerRequestFormRoutes,
+  },
+  {
+    id: "sla",
+    basePath: "/api/sla",
+    description: "Open incidents and requests by SLA state: within target, at risk, breached.",
+    register: registerSlaRoutes,
   },
 ];
 

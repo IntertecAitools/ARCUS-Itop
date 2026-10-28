@@ -1022,6 +1022,47 @@ in MFA and keeps logins, passwords and TOTP secrets in `backend/e2e.local.json`
 (git-ignored) under `"changes"`. The changes it raises are deleted at the
 end; the plan rules are put back as they were.
 
+## SLA dashboard
+
+Open incidents and user requests against their SLAs (`modules/sla/`). In the
+frontend: **SLA dashboard** in the sidebar (`/sla`), with totals, breakdowns by
+team, priority and customer, and every count opening the tickets behind it
+(the drill-down is in the URL, e.g. `/sla?state=breached&team=5`). Read-only:
+contracts, SLAs and SLTs themselves are edited on the generic record screens.
+
+| | |
+| --- | --- |
+| `GET /api/sla/dashboard?type=all\|incident\|request` | Counts per state (`within`, `atRisk`, `breached`, `none`) overall, `byTeam`, `byPriority`, `byCustomer` (worst group first; priorities in order). Reads at most 5,000 open tickets per class, else `truncated: true` |
+| `GET /api/sla/tickets?type=&state=within\|at_risk\|breached\|none&team=<id>\|none&priority=1-4&org=<id>` | The tickets behind a count, most urgent first (at most 500), each with its TTO and TTR: state, deadline, share of the target used, the target |
+
+How a ticket is classed, from iTop's own stopwatches (`tto`, `ttr`):
+
+- **breached**: `sla_tto_passed` / `sla_ttr_passed` is yes, or the 100% deadline
+  (`tto_escalation_deadline`, `ttr_escalation_deadline`) is behind us and iTop's
+  cron has not flagged it yet;
+- **at risk**: 75% or more of a TTO or TTR target used. iTop has a 75% threshold
+  but does not expose it over REST, so the BFF works out the target itself the
+  way iTop does (`RESPONSE_TICKET_SLT_QUERY`: the shortest SLT for the metric,
+  request type and priority among the SLAs of the ticket organisation's
+  customer contracts covering its service) and computes `1 − (deadline − now) / target`.
+  A paused TTR (ticket pending) is judged on the time spent so far;
+- **within target**: anything else with an SLT; a TTO stopped in time counts as met;
+- **no SLA**: no SLT applies.
+
+The ticket's state is the worse of its two stopwatches. Remaining time is wall
+clock, which is exact under iTop's default 24x7 SLA computation, the one this
+iTop runs. **Business hours are not installed:** the local iTop has no
+`CoverageWindow` / `Holiday` classes (Combodo's working-hours extension), so
+TTO/TTR count every hour of every day.
+
+`npm run e2e:sla` checks it live: it builds three services under SLAs with
+TTO targets of 600, 1 and 2 minutes on a contract of the account's
+organisation, opens an incident on each and a request with no SLT, waits
+about 95 seconds, and expects within / breached / at risk / no SLA, the
+breakdowns and every drill-down. The account is `{ "sla": { "login",
+"password", "totpSecret" } }` in `backend/e2e.local.json`; it must be able to
+create services, contracts, SLAs and SLTs. Everything is deleted at the end.
+
 ## What this layer is actually for
 
 Five upstream behaviours make a direct browser-to-iTop integration painful.
@@ -1419,6 +1460,7 @@ finding out via a 404.
 | `npm run e2e:problems` | live problem management: root cause, known error, trends (BFF on :4050, MFA on; account and TOTP secret in `backend/e2e.local.json`, see "Problems"). Creates and deletes its own records |
 | `npm run e2e:changes` | live change management: plan rules, CAB decisions, profile rights (BFF on :4020, MFA on; accounts created on the first run, see "Changes"). Creates and deletes its own changes |
 | `npm run e2e:incidents` | live holds with next-action date, major incidents and stakeholder updates, email to ticket via Mailpit (BFF on :4010 with `MAIL_INTAKE_SOURCE=mailpit`; see "Incidents: on hold, major incidents"). Creates and deletes its own records and mail |
+| `npm run e2e:sla` | live SLA dashboard: within / at risk / breached from real stopwatches, breakdowns, drill-down (BFF on :4040, MFA on; account in `backend/e2e.local.json` under `"sla"`, see "SLA dashboard"). Creates and deletes its own records; takes about two minutes |
 | `npm run e2e:requests` | live request forms + target date check (BFF on :4040 with `MFA_REQUIRED=off`, or `E2E_STAFF_TOTP_SECRET`; `E2E_STAFF_PASSWORD`) |
 
 ## Known limitations

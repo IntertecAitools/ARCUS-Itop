@@ -6,6 +6,7 @@ import { DashboardService } from "./modules/dashboard/index.js";
 import { DirectoryService } from "./modules/directory/index.js";
 import { IncidentsService, TicketExtras } from "./modules/incidents/index.js";
 import { ProblemsService } from "./modules/problems/index.js";
+import { SlaService } from "./modules/sla/index.js";
 import { createMailSource, type MailSource, MailIntakeService } from "./modules/mail-intake/index.js";
 import {
   ChangesService,
@@ -95,6 +96,7 @@ export interface Services {
   /** The arcus-incident-extras fields: next-action date, major flag. */
   ticketExtras: TicketExtras;
   problems: ProblemsService;
+  sla: SlaService;
   changes: ChangesService;
   /** Present when MAIL_INTAKE_SOURCE is set. */
   mailIntake?: MailIntakeService;
@@ -276,6 +278,7 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     ...(mailIntake ? { mailIntake } : {}),
     ticketExtras,
     problems: new ProblemsService(objects, client, config.itop.timezone),
+    sla: new SlaService(objects, config.itop.timezone),
     changes,
     requestForms: new RequestFormsService(
       client,

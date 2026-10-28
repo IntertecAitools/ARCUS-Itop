@@ -10,6 +10,7 @@ import { portalHandlers } from './portal';
 import { problemHandlers } from './problems';
 import { recordHandlers } from './records';
 import { requestFormHandlers } from './request-forms';
+import { slaHandlers } from './sla';
 
 /** Every mock handler in the app. Append a module's handlers as it lands. */
-export const handlers = [...approvalHandlers, ...authHandlers, ...changeHandlers, ...dashboardHandlers, ...inboxHandlers, ...incidentHandlers, ...mailIntakeHandlers, ...notificationHandlers, ...portalHandlers, ...problemHandlers, ...recordHandlers, ...requestFormHandlers];
+export const handlers = [...approvalHandlers, ...authHandlers, ...changeHandlers, ...dashboardHandlers, ...inboxHandlers, ...incidentHandlers, ...mailIntakeHandlers, ...notificationHandlers, ...portalHandlers, ...problemHandlers, ...recordHandlers, ...requestFormHandlers, ...slaHandlers];
