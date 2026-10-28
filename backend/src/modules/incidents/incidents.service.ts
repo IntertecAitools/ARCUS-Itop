@@ -2,6 +2,7 @@ import { badRequest, notFound } from "../../core/errors.js";
 import type { Mailer } from "../../platform/auth/mailer.js";
 import { likeContains } from "../../itop/oql.js";
 import type { CmdbSchema } from "../../schema/load.js";
+import { assertMayApplyStimulus, mayApplyStimulus } from "../../shared/stimulus-rights.js";
 import type { DefaultOrganization } from "../../shared/default-organization.js";
 import type { ObjectDto, ObjectsService } from "../../platform/objects/objects.service.js";
 import {
@@ -85,6 +86,9 @@ const options = (values: readonly string[]) =>
  * (`status: "open"`, `action: "resolve"`) and get our DTOs back; iTop's
  * `assigned`, `ev_resolve` and numeric priorities never cross this boundary.
  */
+/** Incident and its parent, for the stimulus grants (shared/stimulus-rights). */
+const INCIDENT_LINEAGE = ["Incident", "Ticket"];
+
 /** Most organisations, teams or services a form lists. */
 const FORM_OPTION_CAP = 1000;
 /** Most agents a form lists. */
@@ -266,7 +270,10 @@ export class IncidentsService {
       resolution: optional("solution"),
       resolutionCode: optional("resolution_code"),
       log: toCaseLog(f["public_log"]),
-      availableActions: actionsForState(rawStatus, lifecycle),
+      // Only the actions the caller's profiles grant, so the buttons match.
+      availableActions: actionsForState(rawStatus, lifecycle).filter((action) =>
+        mayApplyStimulus(INCIDENT_LINEAGE, TRANSITIONS[action].stimulus),
+      ),
     };
   }
 
@@ -354,6 +361,8 @@ export class IncidentsService {
    */
   async transition(id: string, input: TransitionInput): Promise<IncidentDetail> {
     const current = await this.get(id);
+    // A 403 naming the profile it needs, rather than "not available".
+    assertMayApplyStimulus(INCIDENT_LINEAGE, TRANSITIONS[input.action].stimulus, "incident");
 
     if (!current.availableActions.includes(input.action)) {
       throw badRequest(

@@ -191,6 +191,16 @@ export class CmdbSchema {
     return this.classes.get(name);
   }
 
+  /** The class itself, then its ancestors nearest first. */
+  lineage(name: string): string[] {
+    return [name, ...[...(this.classes.get(name)?.inherits ?? [])].reverse()];
+  }
+
+  /** Every class below this one, at any depth. */
+  descendants(name: string): ClassInfo[] {
+    return this.list().filter((c) => c.inherits.includes(name));
+  }
+
   /** Concrete (instantiable) CI classes. */
   ciClasses(): ClassInfo[] {
     return this.list().filter((c) => c.isCi && !c.abstract);

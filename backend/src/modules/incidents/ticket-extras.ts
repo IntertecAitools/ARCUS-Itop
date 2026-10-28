@@ -2,6 +2,7 @@ import { AppError, badRequest, notFound } from "../../core/errors.js";
 import type { ItopClient } from "../../itop/client.js";
 import { normalizeObjects } from "../../itop/normalize.js";
 import { itopDay } from "../../shared/itop-time.js";
+import { assertMayApplyStimulus } from "../../shared/stimulus-rights.js";
 import { str } from "../../shared/ticket-mapping.js";
 
 /**
@@ -168,6 +169,7 @@ export class TicketExtras {
     if (input.nextActionDate < this.today()) {
       throw badRequest("The next-action date cannot be in the past.", { field: "nextActionDate" });
     }
+    assertMayApplyStimulus([className, "Ticket"], "ev_pending", className === "Incident" ? "incident" : "user request");
     if (!(await this.available(className))) throw extrasMissing();
 
     const fields: Record<string, unknown> = {

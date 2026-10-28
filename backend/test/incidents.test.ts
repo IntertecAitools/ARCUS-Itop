@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
+import type { AppError } from "../src/core/errors.js";
+import { runAs, type Caller } from "../src/core/request-context.js";
 import { IncidentsService } from "../src/modules/incidents/index.js";
 import {
   createIncidentSchema,
@@ -244,6 +246,32 @@ describe("available actions", () => {
     const actions = await actionsFor("assigned");
     assert.ok(!actions.some((a) => String(a).includes("timeout")));
     assert.ok(!actions.some((a) => String(a).includes("auto")));
+  });
+});
+
+describe("available actions follow the caller's iTop profiles", () => {
+  const as = (profiles: string[]) =>
+    ({ userId: 5, login: "a", kind: "staff", profiles, isAdmin: false, allowedOrgIds: [] }) as unknown as Caller;
+
+  it("a Service Desk Agent may only assign, a read-only profile nothing", async () => {
+    const { svc } = stub([row({ status: "new" })]);
+    assert.deepEqual((await runAs(as(["Service Desk Agent"]), () => svc.get("7"))).availableActions, ["assign"]);
+    const assigned = stub([row({ status: "assigned" })]).svc;
+    assert.deepEqual((await runAs(as(["Service Desk Agent"]), () => assigned.get("7"))).availableActions, []);
+    assert.deepEqual((await runAs(as(["Configuration ReadOnly"]), () => svc.get("7"))).availableActions, []);
+    assert.deepEqual(
+      (await runAs(as(["Support Agent"]), () => assigned.get("7"))).availableActions.sort(),
+      ["hold", "reassign", "resolve"],
+    );
+  });
+
+  it("refuses an action the profiles do not grant with a 403, not 'not available'", async () => {
+    const { svc, calls } = stub([row({ status: "assigned" })]);
+    await assert.rejects(
+      runAs(as(["Service Desk Agent"]), () => svc.transition("7", { action: "resolve", solution: "x" })),
+      (e: AppError) => e.code === "forbidden" && /needs Support Agent/.test(e.message),
+    );
+    assert.equal(calls.some((c) => c.op === "applyStimulus"), false);
   });
 });
 

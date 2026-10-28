@@ -122,6 +122,11 @@ describe("PortalService actions", () => {
     assert.deepEqual((await service(assigned).getTicket(jane, 5)).actions, []);
   });
 
+  it("offers only what the user's own profiles grant", async () => {
+    const resolved = new FakeItopClient().on("core/get", ticket("resolved"));
+    assert.deepEqual((await service(resolved).getTicket({ ...jane, profiles: [] }, 5)).actions, []);
+  });
+
   it("refuses an action the ticket cannot take now", async () => {
     const fake = new FakeItopClient().on("core/get", ticket("assigned"));
     await assert.rejects(

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import { AppError } from "../src/core/errors.js";
+import { runAs, type Caller } from "../src/core/request-context.js";
 import { IncidentsService, TicketExtras } from "../src/modules/incidents/index.js";
 import { stakeholderMail } from "../src/modules/incidents/stakeholder-mail.js";
 import { isDay } from "../src/modules/incidents/ticket-extras.js";
@@ -105,6 +106,16 @@ describe("TicketExtras", () => {
     assert.match(await status({ reason: "x", nextActionDate: "30/10/2026" }), /YYYY-MM-DD/);
     assert.match(await status({ reason: "x", nextActionDate: "2026-10-26" }), /past/);
     assert.equal(fake.calls.filter((c) => c.verb === "core/apply_stimulus").length, 0);
+  });
+
+  it("refuses a hold the caller's profiles do not grant, before asking iTop", async () => {
+    const fake = new FakeItopClient().on("core/get", getResponse([]));
+    const desk = { userId: 5, login: "desk", kind: "staff", profiles: ["Service Desk Agent"], isAdmin: false } as Caller;
+    await assert.rejects(
+      runAs(desk, () => extrasWith(fake).hold("Incident", "1", { reason: "x", nextActionDate: "2099-10-30" })),
+      (error: AppError) => error.code === "forbidden" && /needs Support Agent/.test(error.message),
+    );
+    assert.equal(fake.calls.length, 0);
   });
 
   it("answers 409 naming the extension when iTop lacks it", async () => {
