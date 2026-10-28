@@ -13,6 +13,7 @@ import {
   type TicketStatus,
 } from "../../shared/ticket-mapping.js";
 import { itopFieldsToIso } from "../../shared/itop-time.js";
+import { allowedStimuli } from "../../shared/stimulus-rights.js";
 
 /** iTop's profile that widens an end user's view to their organisation. */
 export const POWER_USER_PROFILE = "Portal power user";
@@ -182,7 +183,8 @@ export class PortalService {
     const row = await this.loadInScope(caller, id, DETAIL_FIELDS);
     const f = this.fieldsOf(row);
     const lifecycle = this.schema.get(row.class)?.lifecycle;
-    const offered = lifecycle?.states[str(f["status"])] ?? [];
+    // Only what the user's own profiles grant (Portal user: close, reopen).
+    const offered = allowedStimuli(this.schema.lineage(row.class), lifecycle?.states[str(f["status"])] ?? [], caller);
 
     return {
       ...this.toTicket(row),

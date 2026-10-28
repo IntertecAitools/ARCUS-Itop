@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ClassInfo, RecordDto } from '../types';
-import { asksNextActionDate, requiredForTransition, transitionPrompts } from './transitions';
+import { asksNextActionDate, offeredActions, requiredForTransition, transitionPrompts } from './transitions';
 
 /**
  * The rule iTop's stimulus form follows: prompt for what the TARGET state
@@ -88,5 +88,24 @@ describe('asksNextActionDate', () => {
     expect(asksNextActionDate(info, assigned, 'ev_resolve')).toBe(false);
     expect(asksNextActionDate(info, record({ status: 'new' }), 'ev_pending')).toBe(false);
     expect(asksNextActionDate({ ...info, name: 'Change' } as ClassInfo, assigned, 'ev_pending')).toBe(false);
+  });
+});
+
+describe('offeredActions', () => {
+  const withLifecycle = (extra: Partial<NonNullable<ClassInfo['lifecycle']>>) =>
+    ({ ...info, lifecycle: { ...info.lifecycle!, ...extra } }) as ClassInfo;
+
+  it("offers the state's user actions when the BFF sends no grants", () => {
+    expect(offeredActions(withLifecycle({ userActions: ['ev_resolve', 'ev_pending'] }), 'assigned')).toEqual([
+      'ev_resolve',
+      'ev_pending',
+    ]);
+  });
+
+  it("offers only what the user's iTop profiles grant", () => {
+    const desk = withLifecycle({ userActions: ['ev_assign', 'ev_resolve', 'ev_pending'], allowedActions: ['ev_assign'] });
+    expect(offeredActions(desk, 'new')).toEqual(['ev_assign']);
+    expect(offeredActions(desk, 'assigned')).toEqual([]);
+    expect(offeredActions(withLifecycle({ allowedActions: [] }), 'resolved')).toEqual([]);
   });
 });

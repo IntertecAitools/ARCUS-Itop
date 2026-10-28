@@ -70,55 +70,6 @@ const GATE_OF_STIMULUS: Record<string, PlanGate> = {
 const CAB_STIMULI = new Set(["ev_approve", "ev_notapprove"]);
 
 /**
- * Which change actions each ITIL profile may take, per change type: iTop's
- * own grants (datamodels/2.x/itop-profiles-itil, the "Change" group plus the
- * per-class groups, combined). iTop's REST API checks only that the caller
- * may modify the class, never these per-action grants, so the BFF applies
- * them. Administrators may do everything.
- */
-const ALL_CHANGE_ACTIONS = [
-  "ev_validate", "ev_reject", "ev_assign", "ev_reopen", "ev_plan", "ev_approve",
-  "ev_replan", "ev_notapprove", "ev_implement", "ev_monitor", "ev_finish",
-];
-const IMPLEMENTOR = ["ev_assign", "ev_plan", "ev_reopen", "ev_finish", "ev_replan", "ev_implement", "ev_monitor"];
-const STIMULUS_GRANTS: Record<string, Record<ChangeType, string[]>> = {
-  "Change Implementor": { routine: IMPLEMENTOR, normal: IMPLEMENTOR, emergency: IMPLEMENTOR },
-  "Change Supervisor": {
-    routine: ["ev_assign", "ev_reopen", "ev_finish"],
-    normal: ["ev_assign", "ev_reopen", "ev_finish", "ev_validate", "ev_reject"],
-    emergency: ["ev_assign", "ev_reopen", "ev_finish"],
-  },
-  "Change Approver": {
-    routine: ["ev_approve", "ev_reject"],
-    normal: ["ev_approve", "ev_reject", "ev_notapprove"],
-    emergency: ["ev_approve", "ev_reject", "ev_notapprove"],
-  },
-  SuperUser: { routine: ALL_CHANGE_ACTIONS, normal: ALL_CHANGE_ACTIONS, emergency: ALL_CHANGE_ACTIONS },
-};
-
-/** The profile that grants each action first, for the refusal message. */
-const PROFILE_FOR: Record<string, string> = {
-  ev_validate: "Change Supervisor",
-  ev_reject: "Change Supervisor",
-  ev_assign: "Change Supervisor or Change Implementor",
-  ev_reopen: "Change Supervisor or Change Implementor",
-  ev_finish: "Change Supervisor or Change Implementor",
-  ev_plan: "Change Implementor",
-  ev_replan: "Change Implementor",
-  ev_implement: "Change Implementor",
-  ev_monitor: "Change Implementor",
-  ev_approve: "Change Approver",
-  ev_notapprove: "Change Approver",
-};
-
-/** Without sign-in (development) the BFF acts as its own administrator. */
-function mayApply(type: ChangeType, stimulus: string): boolean {
-  const caller = currentCaller();
-  if (!caller || caller.isAdmin) return true;
-  return caller.profiles.some((p) => STIMULUS_GRANTS[p]?.[type].includes(stimulus));
-}
-
-/**
  * Where each plan lives on Change. `fallback` is iTop's own; the other two
  * come from the arcus-change-cab extension and, like the problem RCA fields,
  * are not in the published schema: this service alone reads and writes them.
@@ -400,14 +351,6 @@ export class ChangesService {
   ): Promise<void> {
     if (!CHANGE_CLASSES.has(className)) return;
     const change = await this.change(id);
-    if (!mayApply(change.type, stimulus)) {
-      throw new AppError(
-        "forbidden",
-        `Your profiles do not allow this action on a ${TYPE_LABEL[change.type]} change` +
-          (PROFILE_FOR[stimulus] ? ` (it needs ${PROFILE_FOR[stimulus]}).` : "."),
-        { details: { reason: "profile_not_allowed", stimulus } },
-      );
-    }
 
     const gate = GATE_OF_STIMULUS[stimulus];
     if (!gate && !CAB_STIMULI.has(stimulus)) return;

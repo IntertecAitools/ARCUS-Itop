@@ -52,6 +52,19 @@ export function requiredForTransition(info: ClassInfo, record: RecordDto, action
   );
 }
 
+/**
+ * The actions to offer on a record in `state`: those iTop's lifecycle allows
+ * there, that people take (not ev_timeout, ev_autoresolve and the like, which
+ * iTop fires itself), and that the user's iTop profiles grant. The BFF
+ * refuses the rest, so a button for one would always fail.
+ */
+export function offeredActions(info: ClassInfo, state: string): string[] {
+  const lifecycle = info.lifecycle;
+  if (!lifecycle) return [];
+  const mayTake = new Set(lifecycle.allowedActions ?? lifecycle.userActions ?? lifecycle.stimuli);
+  return (lifecycle.states[state] ?? []).filter((a) => mayTake.has(a));
+}
+
 /** Tickets whose hold also records the day someone acts on them again. */
 const HOLD_WITH_DATE = new Set(['Incident', 'UserRequest']);
 

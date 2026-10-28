@@ -24,7 +24,8 @@
     "e2e:problems": "node --import tsx scripts/e2e-problems.mjs",
     "e2e:changes": "node --import tsx scripts/e2e-changes.mjs",
     "e2e:requests": "node --import tsx scripts/e2e-requests.mjs",
-    "e2e:incidents": "node --import tsx scripts/e2e-incidents.mjs"
+    "e2e:incidents": "node --import tsx scripts/e2e-incidents.mjs",
+    "e2e:rights": "node --import tsx scripts/e2e-lifecycle-rights.mjs"
   },
   "dependencies": {
     "@fastify/multipart": "^10.1.3",
