@@ -202,7 +202,7 @@ function LandingFooter() {
         </nav>
       </div>
       <div aria-hidden className="mx-auto max-w-7xl px-5 sm:px-8">
-        <p className="footer-wordmark text-center text-[22vw] leading-[0.85] font-semibold tracking-[-0.06em] uppercase select-none lg:text-[260px]">
+        <p className="footer-wordmark text-center text-[18vw] leading-[0.85] font-semibold tracking-[-0.06em] uppercase select-none lg:text-[260px]">
           {env.appName}
         </p>
       </div>
@@ -295,7 +295,7 @@ function Hero() {
             </Link>
           </Reveal>
 
-          <Reveal delay={1000} className="mt-7 flex items-center justify-center gap-3 text-[13px] text-ink-secondary">
+          <Reveal delay={1000} className="mt-7 flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-[13px] text-ink-secondary">
             <span className="flex -space-x-2">
               <Face initials="LA" hue={0} className="size-7" />
               <Face initials="OK" hue={1} className="size-7" />
@@ -898,13 +898,13 @@ function Faq() {
           <p className="mt-4 max-w-md text-[16px] leading-7 text-ink-secondary">
             More answers are in the help articles once you have signed in.
           </p>
-          <div className="glass mt-10 flex flex-wrap items-center gap-4 rounded-card border border-line bg-surface p-4 lg:mt-auto">
+          <div className="glass mt-10 flex flex-col items-start gap-4 rounded-card border border-line bg-surface p-4 sm:flex-row sm:items-center lg:mt-auto">
             <span className="flex -space-x-2">
               <Face initials="SD" hue={0} />
               <Face initials="IT" hue={2} />
               <Face initials="HD" hue={1} />
             </span>
-            <p className="min-w-0 flex-1 text-[14px] text-ink">Still stuck? The service desk is a request away.</p>
+            <p className="min-w-0 text-[14px] text-ink sm:flex-1">Still stuck? The service desk is a request away.</p>
             <Link to={RAISE} className={buttonClasses({ size: 'md' })}>
               Raise a request
             </Link>
