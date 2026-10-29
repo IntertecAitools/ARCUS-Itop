@@ -8,5 +8,6 @@ export type {
   ImportRequest,
   SyncSource,
   SyncSourceDetail,
+  SyncSourceInput,
   UploadedTable,
 } from './types';
