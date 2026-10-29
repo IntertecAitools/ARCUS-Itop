@@ -13,6 +13,12 @@ export const analysisSchema = z.object({
   rootCause: text,
   workaround: text,
   resolution: text,
+  /** Present when the text started as an AI draft the caller reviewed. */
+  aiDraft: z.object({ model: z.string().trim().min(1).max(100) }).optional(),
+});
+
+export const rcaQuerySchema = z.object({
+  lookbackHours: z.coerce.number().int().min(1).max(24 * 30).optional(),
 });
 
 export const createKnownErrorSchema = z

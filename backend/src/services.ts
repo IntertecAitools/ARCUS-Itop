@@ -5,10 +5,22 @@ import { AttachmentsService } from "./modules/attachments/attachments.service.js
 import { DashboardService } from "./modules/dashboard/index.js";
 import { DirectoryService } from "./modules/directory/index.js";
 import { IncidentsService, TicketExtras } from "./modules/incidents/index.js";
-import { ProblemsService } from "./modules/problems/index.js";
+import {
+  AnthropicRcaModel,
+  ProblemsService,
+  RcaEvidenceService,
+  RcaService,
+  type RcaModel,
+} from "./modules/problems/index.js";
 import { SlaService } from "./modules/sla/index.js";
 import { BusinessHoursService } from "./modules/business-hours/index.js";
 import { createMailSource, type MailSource, MailIntakeService } from "./modules/mail-intake/index.js";
+import {
+  type AssignmentRuleStore,
+  DispatchService,
+  MemoryAssignmentRuleStore,
+  MySqlAssignmentRuleStore,
+} from "./modules/dispatch/index.js";
 import {
   ChangesService,
   MemoryPlanRuleStore,
@@ -104,10 +116,14 @@ export interface Services {
   /** The arcus-incident-extras fields: next-action date, major flag. */
   ticketExtras: TicketExtras;
   problems: ProblemsService;
+  /** Root-cause evidence and the AI draft on problems. */
+  rca: RcaService;
   sla: SlaService;
   /** Coverage windows and holidays (Combodo's business-hours modules). */
   businessHours: BusinessHoursService;
   changes: ChangesService;
+  /** Team dispatch: the team queue, "Take it", the assignment rules. */
+  dispatch: DispatchService;
   /** Present when MAIL_INTAKE_SOURCE is set. */
   mailIntake?: MailIntakeService;
   requestForms: RequestFormsService;
@@ -138,12 +154,16 @@ export interface BuildServicesOptions {
   requestForms?: RequestFormStore;
   /** Change plan rules for tests; otherwise in the BFF database, or memory. */
   planRules?: PlanRuleStore;
+  /** Assignment rules for tests; otherwise in the BFF database, or memory. */
+  assignmentRules?: AssignmentRuleStore;
   /** Import reports for tests; otherwise in the BFF database, or memory. */
   importReports?: ImportReportStore;
   /** Stands in for SMTP in tests; otherwise built from PASSWORD_RESET settings. */
   mailer?: Mailer;
   /** Stands in for the support mailbox in tests. */
   mailSource?: MailSource;
+  /** Stands in for the Claude API in tests. */
+  rcaModel?: RcaModel;
   logger?: Logger;
 }
 
@@ -243,7 +263,34 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     changes.guardTransition(className, id, stimulus, fields),
   );
   const ticketExtras = new TicketExtras(client, config.itop.timezone);
+  const relations = new RelationsService(client, schema);
+  const rcaConfig = config.rca ?? { lookbackHours: 72 };
+  const rcaModel =
+    options.rcaModel ??
+    (rcaConfig.ai ? new AnthropicRcaModel(rcaConfig.ai.apiKey, rcaConfig.ai.model, rcaConfig.ai.effort) : undefined);
+  // The evidence asks the service whether to offer the AI button; the service needs the evidence.
+  let rca: RcaService | undefined;
+  const rcaEvidence = new RcaEvidenceService(objects, relations, client, schema, config.itop.timezone, () =>
+    rca ? rca.aiEnabled() : false,
+  );
+  rca = new RcaService(rcaEvidence, objects, rcaConfig, rcaModel);
   const incidents = new IncidentsService(objects, schema, defaultOrganization, ticketExtras, mailer);
+  const dispatch = new DispatchService(
+    client,
+    objects,
+    options.assignmentRules ??
+      (stores?.pool ? new MySqlAssignmentRuleStore(stores.pool) : new MemoryAssignmentRuleStore()),
+    currentContact,
+    config.appBaseUrl ?? "",
+    mailer,
+    options.logger,
+  );
+  // Every new ticket, from any screen, the portal or the mailbox, meets the
+  // assignment rules; every dispatch can email the team.
+  objects.addCreateListener((className, object) => dispatch.route(className, object));
+  objects.addTransitionGuard((className, _id, stimulus) => dispatch.guard(className, stimulus));
+  objects.addStimulusListener((className, object, stimulus) => dispatch.afterStimulus(className, object, stimulus));
+  incidents.useDispatchCheck(() => dispatch.available());
   const mailIntake = config.mailIntake
     ? new MailIntakeService(
         config.mailIntake,
@@ -266,7 +313,7 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     objects,
     attachments: new AttachmentsService(objects, schema),
     lookups: new LookupsService(client, schema, config.lookupCacheTtlMs),
-    relations: new RelationsService(client, schema),
+    relations,
     history: new HistoryService(client, schema, config.itop.timezone),
     transfer,
     queries: new QueriesService(client, schema, objects, transfer),
@@ -295,9 +342,11 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     ...(mailIntake ? { mailIntake } : {}),
     ticketExtras,
     problems: new ProblemsService(objects, client, config.itop.timezone),
+    rca,
     sla: new SlaService(objects, config.itop.timezone, businessHours),
     businessHours,
     changes,
+    dispatch,
     requestForms: new RequestFormsService(
       client,
       options.requestForms ?? (stores?.pool ? new MySqlRequestFormStore(stores.pool) : new MemoryRequestFormStore()),

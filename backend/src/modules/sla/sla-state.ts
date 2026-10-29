@@ -33,10 +33,13 @@ export const AT_RISK_PERCENT = 75;
 
 export type Metric = "tto" | "ttr";
 
-/** States in which each class's TTO stopwatch runs; outside them a stopped TTO was met. */
+/**
+ * States in which each class's TTO stopwatch runs; outside them a stopped TTO
+ * was met. `dispatched` is the arcus-ticket-dispatch extension's.
+ */
 const TTO_RUNNING: Record<SlaTicketClass, readonly string[]> = {
-  Incident: ["new", "escalated_tto"],
-  UserRequest: ["new", "escalated_tto", "approved"],
+  Incident: ["new", "escalated_tto", "dispatched"],
+  UserRequest: ["new", "escalated_tto", "approved", "dispatched"],
 };
 
 /** Statuses that are no longer open, per class. */

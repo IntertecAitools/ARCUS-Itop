@@ -4,6 +4,46 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-10-29 — Problems: root-cause evidence and likely causes, AI-drafted RCA
+
+Branch `claude/auto-rca-04065e`. This worktree's BFF on `:4090` (MFA on, accounts `e2e.rights.admin` and `e2e.rights.problem` under `"rca"` in the git-ignored `backend/e2e.local.json`) against the shared local iTop on `:8080` (has `arcus-problem-rca`). No `ANTHROPIC_API_KEY` was available, so the AI call itself ran only against a mocked model.
+
+| What ran | Result |
+|---|---|
+| Backend typecheck (`tsc --noEmit`) | clean |
+| New `test/rca.test.ts` (scoring, title similarity, computed-CI filter, redaction, prompt building, citations, audit line, `RcaService.draft` over a fake model, tenant off switch, `AnthropicRcaModel` request shape / refusal / cut-off over a fake SDK client, AI-drafted save note) | 16/16 pass |
+| Backend `npm test` (whole suite) | 776/776 pass |
+| Frontend typecheck (`tsc -p tsconfig.app.json`) | clean |
+| Frontend vitest `src/features/problems` (incl. 3 new panel tests: likely causes + links, AI draft fills the form and saves only on Save with `aiDraft`, no button without AI) | 13/13 pass |
+| Live `npm run e2e:rca`, run 1 | 22/27 — see bug below |
+| Live `npm run e2e:rca`, run 2 (after the fix) | 27/27 pass; every seeded record deleted |
+
+Bug found by the live e2e and fixed (same branch): iTop adds every CI a ticket's CIs impact to its `functionalcis_list` with `impact_code = computed`. The evidence counted those as "affected", so the application solution downstream of the database server showed as affected, an earlier problem "shared" it, and the change on the power source looked like it touched the database server. Only CIs linked by hand now count; the computed ones come in through the impact graph as downstream. With that, the CI weight was lowered (60 → 45 max) so a CI the incidents cluster on ranks below the change that touched it shortly before.
+
+Not covered: a real call to the Claude API (no key here: check once with a key set, `npm run dev` + the Root cause tab); the evidence for a caller without read rights on changes (the code lists it in `unavailable`; unit-level only); the tab clicked through in a browser against the live BFF (vitest with MSW covers the UI).
+
+### 2026-10-29 — Team dispatch: Dispatched state, team queue, Take it, assignment rules (iTop extension arcus-ticket-dispatch)
+
+Branch `claude/gallant-zhukovsky-4d0b7b`. These runs used PowerShell (the Bash tool was not available), so the hook recorded none of them below; this table is the record.
+
+| What ran | Result |
+|---|---|
+| Backend typecheck (`npm run typecheck`) | clean |
+| Backend unit tests (`npm test`, incl. new `test/dispatch.test.ts`, 18 tests) | 778/778 pass (4 failures before updating `stimulus-rights.test.ts` for the new `ev_dispatch` grant) |
+| Frontend typecheck (`npm run typecheck`) | clean |
+| Frontend vitest (`npm test`, incl. new `dispatch/pages/DispatchPages.test.tsx`) | 219/219 pass after updating `config/modules.test.ts` for the new nav item |
+| Live `npm run e2e:dispatch` (BFF :4050, MFA on, local iTop :8080 with the extension, Mailpit :8025) | 32/32 pass |
+| Live `npm run e2e:rights` against the same BFF (expectations updated for `ev_dispatch`) | 32/32 pass |
+
+Install: `arcus-ticket-dispatch` installed on the shared `itop-local` (`itop_prod`) after a dump to `C:\Users\Venkatesh.V\itop-backups\itop_prod-before-arcus-ticket-dispatch-20261029-1003.sql.gz`; module list checked equal to the installed 51 + the new one.
+
+Bugs found and fixed (all in commit `120ecdf0` or the one after):
+- The first install changed nothing in iTop although it reported success: the datamodel file began with a comment before `<itop_design>`, and iTop's `ModelFactory::LoadModule` takes the document's first node as the delta, so it silently skipped the file. Comment moved inside the root; reinstalled (two more passes); columns, enum value, lifecycle and grants verified. Documented in `backend/README.md`.
+- `AssignmentRulesPage.tsx` had its curly quotes and ellipses mangled by a PowerShell read (Windows-1252) and write; repaired, found by the page test.
+- e2e: the "unmatched" incident first picked a person of an obsolete organisation (iTop refused `org_id`); it now picks an active organisation.
+
+Not covered: the screens were checked by the vitest page tests and the API e2e, not clicked through in a browser against the live BFF. Portal and email-to-ticket routing go through the same create listener and are covered by unit tests, not live. A TTO timeout while Dispatched (→ Escalated TTO) was not waited for live.
+
 ### 2026-10-29 — Data import wizard and sync sources (iTop Data Synchro)
 
 | What ran | Result |

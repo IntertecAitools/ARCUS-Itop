@@ -43,16 +43,17 @@ describe("stimulus grants (itop-profiles-itil)", () => {
   const request = schema.lineage("UserRequest");
   const problem = schema.lineage("Problem");
 
-  it("a Service Desk Agent only assigns incidents and requests", () => {
-    assert.deepEqual(allowedStimuli(incident, schema.require("Incident").lifecycle!.userActions, deskAgent), ["ev_assign"]);
-    assert.deepEqual(allowedStimuli(request, schema.require("UserRequest").lifecycle!.userActions, deskAgent), ["ev_assign"]);
+  it("a Service Desk Agent only assigns and dispatches incidents and requests", () => {
+    // ev_dispatch: the arcus-ticket-dispatch extension (schema/load.ts adds it).
+    assert.deepEqual(allowedStimuli(incident, schema.require("Incident").lifecycle!.userActions, deskAgent), ["ev_assign", "ev_dispatch"]);
+    assert.deepEqual(allowedStimuli(request, schema.require("UserRequest").lifecycle!.userActions, deskAgent), ["ev_assign", "ev_dispatch"]);
     assert.deepEqual(allowedStimuli(problem, schema.require("Problem").lifecycle!.userActions, deskAgent), []);
   });
 
   it("a Support Agent works incidents and requests but approves nothing", () => {
     assert.deepEqual(
       allowedStimuli(incident, schema.require("Incident").lifecycle!.userActions, supportAgent).sort(),
-      ["ev_assign", "ev_close", "ev_pending", "ev_reassign", "ev_resolve"],
+      ["ev_assign", "ev_close", "ev_dispatch", "ev_pending", "ev_reassign", "ev_resolve"],
     );
     assert.ok(mayApplyStimulus(request, "ev_wait_for_approval", supportAgent));
     assert.ok(!mayApplyStimulus(request, "ev_approve", supportAgent));
@@ -96,7 +97,8 @@ describe("stimulus grants (itop-profiles-itil)", () => {
   it("names the profiles that grant an action, leaving SuperUser out when others do", () => {
     assert.deepEqual(profilesGranting(incident, "ev_assign"), ["Service Desk Agent", "Support Agent"]);
     assert.deepEqual(profilesGranting(problem, "ev_resolve"), ["Problem Manager"]);
-    assert.deepEqual(profilesGranting(incident, "ev_dispatch"), ["SuperUser"]);
+    assert.deepEqual(profilesGranting(incident, "ev_dispatch"), ["Service Desk Agent", "Support Agent"]);
+    assert.deepEqual(profilesGranting(incident, "ev_reopen"), ["Portal user"]);
   });
 });
 
@@ -165,7 +167,7 @@ describe("ObjectsService.applyStimulus refuses what the caller's profiles do not
 
   it("allowedActions lists only the granted user actions, for the records screens", () => {
     const objects = objectsWith(new FakeItopClient());
-    assert.deepEqual(runAs(deskAgent, () => objects.allowedActions("Incident")), ["ev_assign"]);
+    assert.deepEqual(runAs(deskAgent, () => objects.allowedActions("Incident")), ["ev_assign", "ev_dispatch"]);
     assert.deepEqual(runAs(readOnly, () => objects.allowedActions("Problem")), []);
     assert.deepEqual(runAs(problemManager, () => objects.allowedActions("Problem")).sort(), ["ev_assign", "ev_close", "ev_reassign", "ev_resolve"]);
     // A parent class offers what any of its types grants.

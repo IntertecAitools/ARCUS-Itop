@@ -31,6 +31,7 @@ export const queryKeys = {
   problems: {
     all: () => ['problems'] as const,
     analysis: (id: string) => ['problems', 'analysis', id] as const,
+    rcaEvidence: (id: string, lookbackHours: number) => ['problems', 'rca-evidence', id, lookbackHours] as const,
     trends: (period: string, groupBy: string) => ['problems', 'trends', period, groupBy] as const,
   },
 
@@ -55,6 +56,12 @@ export const queryKeys = {
     governance: (id: string) => ['changes', 'governance', id] as const,
     cab: () => ['changes', 'cab'] as const,
     rules: () => ['changes', 'rules'] as const,
+  },
+
+  dispatch: {
+    all: () => ['dispatch'] as const,
+    queue: () => ['dispatch', 'queue'] as const,
+    rules: () => ['dispatch', 'rules'] as const,
   },
 
   approvals: {
