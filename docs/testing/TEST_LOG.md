@@ -4,19 +4,27 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
-### 2026-10-29 — New incident uses the full form again
+### 2026-10-29 — Incidents open and are created on the full record screen again
 
-Reported: after the redesign, creating an incident showed far fewer fields than before. Cause: not the redesign. PR #34 also redirected `/records/Incident/new` (iTop's "New incident" menu, the full schema form) to `/incidents/new`, the short incident form (subject, description, source, urgency, impact, priority, date, service, category, team, agent). Organisation, caller, contacts, CIs and parent links were gone.
+Reported: after the redesign, creating and opening an incident showed far fewer fields than before. Cause: not the redesign. The redesign (PR #38) changed 20 frontend files (landing, sign-in, layout shell, two portal files) and no data screen; its portal deletions were restyled, not dropped. The cause was PR #34, which redirected `/records/Incident/new` and `/records/Incident/<id>` (the full, schema-driven screens) to the shorter dedicated incident form and page. They had no organisation/caller on create, and no CIs, contacts, work orders, parent incident, attachments, history or editing on view. Only Incident had such a redirect, so no other class was affected.
 
 | What ran | Result |
 |---|---|
+| `git diff` of PR #38 over `frontend/src` | 20 files; no data screen changed |
 | Frontend typecheck | clean |
-| vitest `src/features/records` + `src/features/incidents` (incl. updated `dedicated.test.ts`) | 13 files, 69/69 pass |
-| Live, BFF :4000 + local iTop, as `e2e.rights.desk`: `GET /api/meta/classes/Incident` | 200; the full form's schema offers org (required), caller, contacts, functional CIs, parent incident/problem/change/request and the rest |
+| vitest, whole frontend (incl. new `IncidentRecordRedirect.test.tsx`) | 51 files, 248/248 pass |
+| Live, BFF :4000 + local iTop, as `e2e.rights.desk`: `GET /api/meta/classes/Incident` | 200; org (required), caller, contacts, CIs, parent links and the rest |
+| Live, browser: `/incidents/9` | lands on `/records/Incident/9`; all fields, Edit/Delete, tabs Details, Major incident, Attachments, CIs, Contacts, Child incidents, Child requests, Work orders, Public/Private log, History; Major incident tab shows "Linked incidents" and "Declare major" |
 
-Fix (branch `claude/restore-full-incident-form`): `/records/Incident/new` is no longer redirected, and the incidents list's "New incident" buttons open it. Viewing an incident still redirects to `/incidents/<id>`, so a saved incident opens on its own screen.
+Fix (branch `claude/restore-full-incident-form`):
+- No redirect from `/records/Incident/...` (the `dedicated.ts` helper removed).
+- `/incidents/<id>` now redirects to `/records/Incident/<id>`, so links from the dashboard, search and the incidents list open the full screen.
+- The major-incident panel is a "Major incident" tab there.
+- The incidents list's "New incident" buttons open the full form.
+- On hold with a reason and next-action date was already on the full screen (PR #31).
 
-Not covered: the form was not clicked through in the browser (the browser pane stopped responding); checked through the schema API and tests instead.
+Not covered: the new incident form was checked through the schema API, not filled in in the browser.
+
 ### 2026-10-29 — Change calendar, risk questionnaire, PIR; knowledge article workflow and feedback
 
 Branch `claude/change-knowledge-a7889d`. The record-test-run hook logged none of these runs below, so this table is the record. No iTop extension: the new data (risk answers, reviews, blackout windows, article state, votes) lives in the BFF's own MySQL (`bff_documents`).

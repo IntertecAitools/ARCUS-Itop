@@ -181,9 +181,11 @@ export const modules: ModuleDefinition[] = [
         ),
       },
       {
+        // An incident opens on the generic record screen: every field iTop
+        // offers, plus the incident's own features as tabs.
         path: ':id',
         component: lazy(() =>
-          import('@/features/incidents').then((m) => ({ default: m.IncidentDetailPage })),
+          import('@/features/incidents').then((m) => ({ default: m.IncidentRecordRedirect })),
         ),
       },
     ],
