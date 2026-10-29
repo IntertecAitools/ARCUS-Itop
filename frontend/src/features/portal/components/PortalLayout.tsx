@@ -76,10 +76,10 @@ export function PortalLayout() {
     <PublicTheme className="flex flex-col">
       <SkipLink />
       <header className="sticky top-0 z-30 border-b border-line bg-canvas/75 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-6xl items-center gap-8 px-5 sm:px-8">
+        <div className="mx-auto flex h-16 max-w-6xl items-center gap-6 px-5 sm:px-8">
           <Link to="/portal" className="flex items-center gap-3" aria-label={`${env.appName} ${env.platformName}`}>
             <Logo collapsed />
-            <span className="hidden text-[15px] font-medium tracking-tight text-ink sm:inline">
+            <span className="hidden text-[15px] font-medium tracking-tight whitespace-nowrap text-ink sm:inline">
               {env.appName} {env.platformName}
             </span>
           </Link>
@@ -93,12 +93,12 @@ export function PortalLayout() {
               linkFor={(r) => (r.type === 'UserRequest' ? `/portal/requests/${r.id}` : null)}
               approvalLink={(id) => `/portal/approvals/${id}`}
             />
-            <span className="ms-2 hidden text-ink-secondary md:inline">{user?.name}</span>
+            <span className="ms-2 hidden whitespace-nowrap text-ink-secondary xl:inline">{user?.name}</span>
             <button
               type="button"
               disabled={signOut.isPending}
               onClick={doSignOut}
-              className="ms-2 hidden items-center gap-1.5 px-2 py-1.5 text-ink-secondary hover:bg-surface-hover hover:text-ink sm:inline-flex"
+              className="ms-2 hidden items-center gap-1.5 rounded-control px-2 py-1.5 whitespace-nowrap text-ink-secondary hover:bg-surface-hover hover:text-ink sm:inline-flex"
             >
               <LogOut className="size-4" aria-hidden />
               Sign out

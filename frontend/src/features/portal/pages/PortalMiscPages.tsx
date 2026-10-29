@@ -65,7 +65,7 @@ export function PortalHomePage() {
       <section aria-labelledby="open-requests-heading">
         <div className="flex items-end justify-between gap-4 border-b border-line pb-4">
           <h2 id="open-requests-heading" className="display text-[28px] sm:text-[32px]">Your open requests</h2>
-          <Link to="/portal/requests" className="inline-flex items-center gap-2 text-[13px] font-semibold tracking-[0.14em] text-ink uppercase underline-offset-[6px] hover:underline">
+          <Link to="/portal/requests" className="inline-flex shrink-0 items-center gap-2 text-[13px] font-semibold whitespace-nowrap tracking-[0.14em] text-ink uppercase underline-offset-[6px] hover:underline">
             See all
             <ArrowRight className="size-4 rtl:-scale-x-100" aria-hidden />
           </Link>

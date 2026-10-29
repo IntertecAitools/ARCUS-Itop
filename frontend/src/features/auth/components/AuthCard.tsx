@@ -26,10 +26,10 @@ export function AuthCard({
     <PublicTheme className="relative grid overflow-hidden lg:grid-cols-[1.05fr_1fr]">
       {/* Wide screens: the horizon glow and a glimpse of the desk beside the form. */}
       <aside className="relative hidden overflow-hidden border-e border-line lg:block" aria-hidden>
-        <div className="hero-arc" style={{ ['--arc-size' as string]: '1500px', ['--arc-top' as string]: '78vh' }} />
-        <div className="relative flex h-full flex-col justify-between p-12">
+        <div className="hero-arc" style={{ ['--arc-size' as string]: '1500px', ['--arc-top' as string]: '97vh' }} />
+        <div className="relative flex h-full flex-col p-12">
           <Chip className="self-start">{env.platformName}</Chip>
-          <div className="reveal is-in max-w-md">
+          <div className="reveal is-in my-auto max-w-md pb-16">
             <p className="display text-[44px] text-ink">Help is one request away.</p>
             <p className="mt-4 text-[16px] leading-7 text-ink-secondary">
               Raise it, follow it and get it fixed, with every update in one place.
