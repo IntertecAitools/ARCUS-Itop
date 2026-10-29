@@ -2,6 +2,7 @@ import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
 import {
   BellRing,
   BookOpen,
+  FilePen,
   CalendarCheck2,
   CalendarDays,
   CalendarOff,
@@ -196,6 +197,24 @@ export const modules: ModuleDefinition[] = [
     group: 'operations',
     description: 'Tickets sent to your teams that nobody has taken yet.',
     component: lazy(() => import('@/features/dispatch').then((m) => ({ default: m.TeamQueuePage }))),
+  },
+  {
+    id: 'drafts',
+    label: 'My drafts',
+    path: 'drafts',
+    icon: FilePen,
+    group: 'operations',
+    description: 'New incidents and requests you started and saved, to finish later.',
+    component: lazy(() => import('@/features/ticket-handling').then((m) => ({ default: m.MyDraftsPage }))),
+  },
+  {
+    id: 'time-logged',
+    label: 'Time logged',
+    path: 'time-logged',
+    icon: Timer,
+    group: 'operations',
+    description: 'Time agents logged on incidents and requests, per agent and per ticket.',
+    component: lazy(() => import('@/features/ticket-handling').then((m) => ({ default: m.TimeReportPage }))),
   },
   {
     id: 'cab',

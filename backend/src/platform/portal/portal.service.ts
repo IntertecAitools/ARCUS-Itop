@@ -13,14 +13,18 @@ import {
   type TicketStatus,
 } from "../../shared/ticket-mapping.js";
 import { itopFieldsToIso } from "../../shared/itop-time.js";
-import { allowedStimuli } from "../../shared/stimulus-rights.js";
+import { allowedStimuli, mayApplyStimulus } from "../../shared/stimulus-rights.js";
 
 /** iTop's profile that widens an end user's view to their organisation. */
 export const POWER_USER_PROFILE = "Portal power user";
 
 /** The lifecycle actions iTop's portal offers end users (itop-tickets portal forms). */
 const PORTAL_ACTIONS: Record<string, PortalAction> = { ev_close: "close", ev_reopen: "reopen" };
-export type PortalAction = "close" | "reopen";
+/** `cancel` is ours: withdraw an open ticket (resolved and closed with the reason, by TicketHandlingService). */
+export type PortalAction = "close" | "reopen" | "cancel";
+
+/** States in which a requester may still withdraw a ticket. */
+const DONE_STATES = ["resolved", "closed", "rejected"];
 
 /** The ticket classes an end user deals with, as iTop's portal scope names them. */
 const TICKET_CLASSES = ["UserRequest", "Incident"] as const;
@@ -208,7 +212,13 @@ export class PortalService {
       satisfaction: str(f["user_satisfaction"]),
       userComment: str(f["user_comment"]),
       log: toCaseLog(f["public_log"]),
-      actions: offered.flatMap((s) => (PORTAL_ACTIONS[s] ? [PORTAL_ACTIONS[s]!] : [])),
+      actions: [
+        ...offered.flatMap((s) => (PORTAL_ACTIONS[s] ? [PORTAL_ACTIONS[s]!] : [])),
+        // Withdrawing ends in a close, so it needs the close grant.
+        ...(!DONE_STATES.includes(str(f["status"])) && mayApplyStimulus(this.schema.lineage(row.class), "ev_close", caller)
+          ? (["cancel"] as const)
+          : []),
+      ],
     };
   }
 

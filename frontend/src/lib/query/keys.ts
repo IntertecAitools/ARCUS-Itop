@@ -91,4 +91,14 @@ export const queryKeys = {
     list: (filters: Record<string, unknown>) => ['user-requests', 'list', filters] as const,
     detail: (id: string) => ['user-requests', 'detail', id] as const,
   },
+
+  ticketHandling: {
+    all: () => ['ticket-handling'] as const,
+    summary: (cls: string, id: string) => ['ticket-handling', 'summary', cls, id] as const,
+    worklog: (cls: string, id: string) => ['ticket-handling', 'worklog', cls, id] as const,
+    suggestions: (query: object) => ['ticket-handling', 'suggestions', query] as const,
+    report: (query: object) => ['ticket-handling', 'report', query] as const,
+    drafts: (kind?: string) => ['ticket-handling', 'drafts', kind ?? 'all'] as const,
+    draft: (id: string) => ['ticket-handling', 'draft', id] as const,
+  },
 } as const;

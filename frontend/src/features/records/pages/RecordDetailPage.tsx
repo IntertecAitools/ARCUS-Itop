@@ -7,6 +7,7 @@ import { EmptyState } from '@/components/feedback';
 import { cn } from '@/lib/utils';
 import { AttachmentsPanel } from '@/features/attachments';
 import { RequestApprovalCard } from '@/features/approvals';
+import { TicketHandlingPanel } from '@/features/ticket-handling';
 import { useApplyStimulus, useClassInfo, useRecord, useUpdateRecord } from '../api/useRecords';
 import { fieldLabel, layoutFor, RecordForm } from '../components/RecordForm';
 import { RelatedTab } from '../components/RelatedTab';
@@ -360,6 +361,10 @@ function GenericRecordDetail() {
 
       {className === 'UserRequest' && tab === 'details' ? (
         <RequestApprovalCard audience="staff" requestId={id} className="mb-4" />
+      ) : null}
+
+      {className === 'UserRequest' && tab === 'details' ? (
+        <TicketHandlingPanel ticketClass="UserRequest" id={id} className="mb-4" />
       ) : null}
 
       {(className === 'UserRequest' || className === 'Incident') && tab === 'details' ? (

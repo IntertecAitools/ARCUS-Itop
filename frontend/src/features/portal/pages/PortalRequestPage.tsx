@@ -42,13 +42,15 @@ function plain(html: string) {
 export function PortalRequestPage() {
   const { id = '' } = useParams();
   const { data: ticket, isLoading, isError, error } = useMyRequest(id);
-  const { comment, close, reopen } = useRequestActions(id);
+  const { comment, close, reopen, cancel } = useRequestActions(id);
   const [message, setMessage] = useState('');
   const [closing, setClosing] = useState(false);
   const [satisfaction, setSatisfaction] = useState('');
   const [closeComment, setCloseComment] = useState('');
   const [reopening, setReopening] = useState(false);
   const [reason, setReason] = useState('');
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
 
   if (isLoading) return <Skeleton className="h-96" />;
   if (isError || !ticket) {
@@ -59,7 +61,7 @@ export function PortalRequestPage() {
     );
   }
 
-  const actionError = (close.error ?? reopen.error) as Error | null;
+  const actionError = (close.error ?? reopen.error ?? cancel.error) as Error | null;
 
   return (
     <>
@@ -84,6 +86,11 @@ export function PortalRequestPage() {
           {ticket.actions.includes('reopen') ? (
             <Button size="sm" variant="secondary" onClick={() => setReopening((r) => !r)}>
               Reopen
+            </Button>
+          ) : null}
+          {ticket.actions.includes('cancel') ? (
+            <Button size="sm" variant="ghost" onClick={() => setCancelling((c) => !c)}>
+              Cancel request
             </Button>
           ) : null}
         </div>
@@ -129,6 +136,35 @@ export function PortalRequestPage() {
                 }
               >
                 Close request
+              </Button>
+            </div>
+          </CardBody>
+        </Card>
+      ) : null}
+
+      {cancelling ? (
+        <Card className="mb-4">
+          <CardHeader title="Cancel this request" subtitle="If you no longer need it, say why; it is closed and the support team stops work on it." />
+          <CardBody className="space-y-3">
+            <textarea
+              rows={3}
+              className={TEXTAREA}
+              aria-label="Why cancel it?"
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setCancelling(false)}>
+                Keep it
+              </Button>
+              <Button
+                size="sm"
+                variant="danger"
+                disabled={cancelReason.trim().length < 3}
+                loading={cancel.isPending}
+                onClick={() => cancel.mutate(cancelReason.trim(), { onSuccess: () => setCancelling(false) })}
+              >
+                Cancel request
               </Button>
             </div>
           </CardBody>

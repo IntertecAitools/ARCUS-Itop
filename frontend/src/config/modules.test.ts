@@ -58,6 +58,8 @@ describe('hidden modules', () => {
       'dashboard',
       'approvals',
       'team-queue',
+      'drafts',
+      'time-logged',
       'cab',
       'change-calendar',
       'pir-due',
