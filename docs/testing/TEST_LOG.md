@@ -24,6 +24,8 @@ Found and fixed while comparing (same branch): Inter is wider than Hanken Grotes
 
 No selectors or snapshots had to change: every role, label and route the journeys use is unchanged.
 
+Follow-up, same day: the Intertec logo (ring, blades, red dot) replaced the old mark in `Logo.tsx` and the favicon. Typecheck clean; vitest `src/features/auth src/components src/app` 13/13; Playwright journeys 13/13; logo checked in dark and light on the landing header and sign-in.
+
 Not covered: the live journeys (`npm run e2e:live`) against the BFF and iTop; RTL (`dir="rtl"`) by eye; a formal contrast audit with a tool (tokens were chosen by computed ratio, ≥ 4.5:1 for text, ≥ 3:1 for input borders, and are listed in `public-theme.css`); Safari and Firefox.
 
 ### 2026-10-29 — Problems: root-cause evidence and likely causes, AI-drafted RCA

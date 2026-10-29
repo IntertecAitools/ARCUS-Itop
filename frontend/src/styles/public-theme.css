@@ -102,10 +102,9 @@
   --arcus-glow: 0 0 0 1px rgb(124 92 255 / 0.35), 0 10px 40px -10px rgb(124 92 255 / 0.55);
   --arcus-brand-gradient: linear-gradient(180deg, #7d55ff 0%, #5530d0 100%);
 
-  /* The Logo mark: a violet tile with white brackets. */
-  --arcus-mark-from: #9768ff;
-  --arcus-mark-to: #5e37d6;
-  --arcus-mark-fg: #ffffff;
+  /* The Intertec mark: near-white ring and blades, brand-red dot. */
+  --arcus-logo-ink: #f2f0f8;
+  --arcus-logo-dot: #e0564a;
 }
 
 [data-public-theme='light'],
@@ -166,9 +165,9 @@
   --arcus-glow: 0 0 0 1px rgb(109 74 255 / 0.3), 0 10px 32px -12px rgb(109 74 255 / 0.4);
   --arcus-brand-gradient: linear-gradient(180deg, #7d55ff 0%, #5530d0 100%);
 
-  --arcus-mark-from: #8a63ff;
-  --arcus-mark-to: #5530d0;
-  --arcus-mark-fg: #ffffff;
+  /* The Intertec mark as printed: charcoal with the red dot. */
+  --arcus-logo-ink: #3d3d3d;
+  --arcus-logo-dot: #d0453a;
 }
 
 /* Focus ring, offset so it reads on the violet button too. In the base

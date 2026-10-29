@@ -11,6 +11,7 @@ import {
   Timer,
   Wrench,
 } from 'lucide-react';
+import { LogoMark } from '@/components/layout';
 import { cn } from '@/lib/utils';
 import { env } from '@/config/env';
 
@@ -64,7 +65,7 @@ export function DashboardMock({ className }: { className?: string }) {
         {/* Sidebar */}
         <div className="hidden w-[150px] shrink-0 flex-col border-e border-line bg-surface p-3 sm:flex">
           <div className="mb-4 flex items-center gap-2">
-            <span className="size-5 rounded-md bg-[image:var(--arcus-brand-gradient)]" />
+            <LogoMark className="h-5 w-4" />
             <span className="text-[11px] font-semibold text-ink">{env.appName}</span>
           </div>
           <div className="space-y-0.5">
