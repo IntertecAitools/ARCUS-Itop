@@ -1,9 +1,11 @@
 import { http, HttpResponse } from 'msw';
 import { env } from '@/config/env';
 import type {
+  AnalysisSaveInput,
   ProblemAnalysis,
+  RcaDraft,
+  RcaEvidence,
   ProblemTrends,
-  RootCauseAnalysis,
   TrendGroupBy,
   TrendPeriod,
 } from '@/features/problems';
@@ -39,6 +41,81 @@ function analysisOf(id: string): ProblemAnalysis {
     analyses.set(id, a);
   }
   return a;
+}
+
+/** Problem 998 answers as a BFF without ANTHROPIC_API_KEY: no "Draft with AI". */
+const WITHOUT_AI = '998';
+
+/** The last save of each problem, so tests can see what the screen sent. */
+export const lastAnalysisSave = new Map<string, AnalysisSaveInput>();
+
+const hoursAgo = (h: number) => new Date(Date.now() - h * 3_600_000).toISOString();
+
+/** Nine incidents, seven on db-01, and a change on it two hours before the first. */
+function evidenceOf(id: string, lookbackHours: number): RcaEvidence {
+  const a = analysisOf(id);
+  const incidents = Array.from({ length: 9 }, (_, i) => ({
+    id: String(700 + i),
+    ref: `I-${String(700 + i).padStart(6, '0')}`,
+    title: 'Mail queue stalls',
+    status: 'assigned',
+    startDate: hoursAgo(48 - i),
+    serviceId: '1',
+    serviceName: 'Email',
+    subcategoryId: '5',
+    subcategoryName: 'Mailbox access',
+    cis: [i < 7 ? { id: '7', name: 'db-01' } : { id: '8', name: 'mail-01' }],
+  }));
+  const change = {
+    id: '123',
+    ref: 'C-000123',
+    title: 'Patch database engine',
+    class: 'NormalChange',
+    status: 'closed',
+    startDate: hoursAgo(52),
+    endDate: hoursAgo(50),
+    hoursBeforeFirstIncident: 2,
+    cis: [{ id: '7', name: 'db-01', role: 'affected' as const }],
+    linkedIncidents: 0,
+    relatedToProblem: false,
+  };
+  return {
+    problemId: a.problemId,
+    ref: a.ref,
+    title: a.title,
+    generatedAt: new Date().toISOString(),
+    lookbackHours,
+    anchor: { at: incidents[0]!.startDate, source: 'incident', ref: incidents[0]!.ref },
+    linkedIncidents: incidents,
+    similarIncidents: [],
+    cis: [
+      { id: '7', name: 'db-01', class: 'DBServer', role: 'affected', incidentCount: 7 },
+      { id: '8', name: 'mail-01', class: 'Server', role: 'affected', incidentCount: 2 },
+      { id: '9', name: 'san-01', class: 'StorageSystem', role: 'upstream', incidentCount: 0, via: 'db-01' },
+    ],
+    changes: lookbackHours >= 24 ? [change] : [],
+    problems: [],
+    knownErrors: [],
+    candidates:
+      lookbackHours >= 24
+        ? [
+            {
+              kind: 'change',
+              record: { class: 'NormalChange', id: '123', label: 'C-000123' },
+              score: 66,
+              confidence: 'medium',
+              summary: 'Change C-000123 on db-01, 2h before the first incident',
+              reasons: [
+                { text: `Finished 2h before ${incidents[0]!.ref}`, points: 39 },
+                { text: 'Touches db-01, named by 7 of 9 incidents', points: 27 },
+              ],
+              related: [{ class: 'DBServer', id: '7', label: 'db-01' }],
+            },
+          ]
+        : [],
+    unavailable: [],
+    ai: { enabled: id !== WITHOUT_AI },
+  };
 }
 
 const DAYS: Record<TrendPeriod, number> = { '30d': 30, '90d': 90, '180d': 180, '365d': 365 };
@@ -134,7 +211,8 @@ export const problemHandlers = [
   ),
 
   http.put(url('/problems/:id/analysis'), async ({ params, request }) => {
-    const body = (await request.json()) as RootCauseAnalysis;
+    const body = (await request.json()) as AnalysisSaveInput;
+    lastAnalysisSave.set(String(params.id), body);
     const current = analysisOf(String(params.id));
     if (!current.available) {
       return HttpResponse.json(
@@ -150,6 +228,31 @@ export const problemHandlers = [
     };
     analyses.set(current.problemId, next);
     return HttpResponse.json(next);
+  }),
+
+  http.get(url('/problems/:id/rca-evidence'), ({ params, request }) => {
+    const hours = Number(new URL(request.url).searchParams.get('lookbackHours') ?? 72);
+    return HttpResponse.json(evidenceOf(String(params.id), hours));
+  }),
+
+  http.post(url('/problems/:id/rca-draft'), ({ params }) => {
+    if (String(params.id) === WITHOUT_AI) {
+      return HttpResponse.json({ error: { code: 'forbidden', message: 'Drafting with AI is not turned on here.' } }, { status: 403 });
+    }
+    const draft: RcaDraft = {
+      rootCause: 'The database engine patch in C-000123 lowered the connection limit on db-01.',
+      workaround: 'Restart the mail queue service after raising the pool size.',
+      resolution: 'Restore the connection limit and add it to the patch checklist.',
+      confidence: 'medium',
+      confidenceNote: 'C-000123 finished 2h before the first incident and 7 of 9 incidents name db-01.',
+      citations: [
+        { class: 'NormalChange', id: '123', label: 'C-000123' },
+        { class: 'DBServer', id: '7', label: 'db-01' },
+      ],
+      model: 'claude-opus-5-5',
+      redactions: { emails: 1, phones: 0 },
+    };
+    return HttpResponse.json(draft);
   }),
 
   http.post(url('/problems/:id/known-errors'), async ({ params, request }) => {

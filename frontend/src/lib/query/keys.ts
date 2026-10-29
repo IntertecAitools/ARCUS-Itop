@@ -31,6 +31,7 @@ export const queryKeys = {
   problems: {
     all: () => ['problems'] as const,
     analysis: (id: string) => ['problems', 'analysis', id] as const,
+    rcaEvidence: (id: string, lookbackHours: number) => ['problems', 'rca-evidence', id, lookbackHours] as const,
     trends: (period: string, groupBy: string) => ['problems', 'trends', period, groupBy] as const,
   },
 

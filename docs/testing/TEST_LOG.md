@@ -4,6 +4,24 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-10-29 — Problems: root-cause evidence and likely causes, AI-drafted RCA
+
+Branch `claude/auto-rca-04065e`. This worktree's BFF on `:4090` (MFA on, accounts `e2e.rights.admin` and `e2e.rights.problem` under `"rca"` in the git-ignored `backend/e2e.local.json`) against the shared local iTop on `:8080` (has `arcus-problem-rca`). No `ANTHROPIC_API_KEY` was available, so the AI call itself ran only against a mocked model.
+
+| What ran | Result |
+|---|---|
+| Backend typecheck (`tsc --noEmit`) | clean |
+| New `test/rca.test.ts` (scoring, title similarity, computed-CI filter, redaction, prompt building, citations, audit line, `RcaService.draft` over a fake model, tenant off switch, `AnthropicRcaModel` request shape / refusal / cut-off over a fake SDK client, AI-drafted save note) | 16/16 pass |
+| Backend `npm test` (whole suite) | 776/776 pass |
+| Frontend typecheck (`tsc -p tsconfig.app.json`) | clean |
+| Frontend vitest `src/features/problems` (incl. 3 new panel tests: likely causes + links, AI draft fills the form and saves only on Save with `aiDraft`, no button without AI) | 13/13 pass |
+| Live `npm run e2e:rca`, run 1 | 22/27 — see bug below |
+| Live `npm run e2e:rca`, run 2 (after the fix) | 27/27 pass; every seeded record deleted |
+
+Bug found by the live e2e and fixed (same branch): iTop adds every CI a ticket's CIs impact to its `functionalcis_list` with `impact_code = computed`. The evidence counted those as "affected", so the application solution downstream of the database server showed as affected, an earlier problem "shared" it, and the change on the power source looked like it touched the database server. Only CIs linked by hand now count; the computed ones come in through the impact graph as downstream. With that, the CI weight was lowered (60 → 45 max) so a CI the incidents cluster on ranks below the change that touched it shortly before.
+
+Not covered: a real call to the Claude API (no key here: check once with a key set, `npm run dev` + the Root cause tab); the evidence for a caller without read rights on changes (the code lists it in `unavailable`; unit-level only); the tab clicked through in a browser against the live BFF (vitest with MSW covers the UI).
+
 ### 2026-10-28 — Incident links reach the incident screen; people shown by full name
 
 Reported: the new incident features (on hold with next-action date, major incident) could not be found, and people showed as "My first name My last name" or by surname only.

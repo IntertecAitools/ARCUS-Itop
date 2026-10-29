@@ -5,7 +5,13 @@ import { AttachmentsService } from "./modules/attachments/attachments.service.js
 import { DashboardService } from "./modules/dashboard/index.js";
 import { DirectoryService } from "./modules/directory/index.js";
 import { IncidentsService, TicketExtras } from "./modules/incidents/index.js";
-import { ProblemsService } from "./modules/problems/index.js";
+import {
+  AnthropicRcaModel,
+  ProblemsService,
+  RcaEvidenceService,
+  RcaService,
+  type RcaModel,
+} from "./modules/problems/index.js";
 import { SlaService } from "./modules/sla/index.js";
 import { BusinessHoursService } from "./modules/business-hours/index.js";
 import { createMailSource, type MailSource, MailIntakeService } from "./modules/mail-intake/index.js";
@@ -97,6 +103,8 @@ export interface Services {
   /** The arcus-incident-extras fields: next-action date, major flag. */
   ticketExtras: TicketExtras;
   problems: ProblemsService;
+  /** Root-cause evidence and the AI draft on problems. */
+  rca: RcaService;
   sla: SlaService;
   /** Coverage windows and holidays (Combodo's business-hours modules). */
   businessHours: BusinessHoursService;
@@ -131,6 +139,8 @@ export interface BuildServicesOptions {
   mailer?: Mailer;
   /** Stands in for the support mailbox in tests. */
   mailSource?: MailSource;
+  /** Stands in for the Claude API in tests. */
+  rcaModel?: RcaModel;
   logger?: Logger;
 }
 
@@ -230,6 +240,17 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     changes.guardTransition(className, id, stimulus, fields),
   );
   const ticketExtras = new TicketExtras(client, config.itop.timezone);
+  const relations = new RelationsService(client, schema);
+  const rcaConfig = config.rca ?? { lookbackHours: 72 };
+  const rcaModel =
+    options.rcaModel ??
+    (rcaConfig.ai ? new AnthropicRcaModel(rcaConfig.ai.apiKey, rcaConfig.ai.model, rcaConfig.ai.effort) : undefined);
+  // The evidence asks the service whether to offer the AI button; the service needs the evidence.
+  let rca: RcaService | undefined;
+  const rcaEvidence = new RcaEvidenceService(objects, relations, client, schema, config.itop.timezone, () =>
+    rca ? rca.aiEnabled() : false,
+  );
+  rca = new RcaService(rcaEvidence, objects, rcaConfig, rcaModel);
   const incidents = new IncidentsService(objects, schema, defaultOrganization, ticketExtras, mailer);
   const mailIntake = config.mailIntake
     ? new MailIntakeService(
@@ -253,7 +274,7 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     objects,
     attachments: new AttachmentsService(objects, schema),
     lookups: new LookupsService(client, schema, config.lookupCacheTtlMs),
-    relations: new RelationsService(client, schema),
+    relations,
     history: new HistoryService(client, schema, config.itop.timezone),
     transfer,
     queries: new QueriesService(client, schema, objects, transfer),
@@ -282,6 +303,7 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     ...(mailIntake ? { mailIntake } : {}),
     ticketExtras,
     problems: new ProblemsService(objects, client, config.itop.timezone),
+    rca,
     sla: new SlaService(objects, config.itop.timezone, businessHours),
     businessHours,
     changes,
