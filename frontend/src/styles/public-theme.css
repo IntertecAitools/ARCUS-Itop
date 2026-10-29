@@ -360,3 +360,168 @@
     transform: none;
   }
 }
+
+/* ----------------------------------------------------------------------------
+   Landing page set pieces (features/landing)
+   ------------------------------------------------------------------------- */
+[data-public-theme] {
+  --arcus-violet: 124 92 255; /* the accent as an rgb triplet, for glows */
+}
+
+/* The horizon: a huge circle whose rim glows violet, centred above the fold
+   so only its lower edge shows, like a planet rising behind the hero. */
+.hero-arc {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--arc-top, 680px) - var(--arc-size, 1400px));
+  width: var(--arc-size, 1400px);
+  height: var(--arc-size, 1400px);
+  translate: -50% 0;
+  border-radius: 9999px;
+  background:
+    radial-gradient(50% 50% at 50% 50%, transparent 97.6%, rgb(255 255 255 / 0.85) 99.6%, transparent 100%),
+    radial-gradient(56% 50% at 50% 50%, var(--arcus-canvas) 84%, rgb(var(--arcus-violet)) 100%);
+  box-shadow:
+    0 30px 80px 10px rgb(var(--arcus-violet) / 0.55),
+    0 60px 220px 60px rgb(var(--arcus-violet) / 0.28);
+  pointer-events: none;
+  animation: arcus-arc-in 1.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@keyframes arcus-arc-in {
+  from {
+    opacity: 0;
+    translate: -50% 60px;
+  }
+}
+@media (max-width: 767px) {
+  .hero-arc {
+    --arc-size: 900px;
+    --arc-top: 600px;
+  }
+}
+
+.star {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 9999px;
+  background: #fff;
+  opacity: 0.7;
+  animation: arcus-twinkle var(--twinkle, 4s) ease-in-out infinite;
+  animation-delay: var(--twinkle-delay, 0s);
+}
+
+/* The product mockup tilts back and rises as it enters. */
+.mockup-in {
+  transform: perspective(1400px) rotateX(18deg) translateY(60px) scale(0.96);
+  opacity: 0;
+  transition:
+    transform 1.4s cubic-bezier(0.2, 0.7, 0.2, 1),
+    opacity 1.2s ease;
+}
+.mockup-in.is-in {
+  transform: none;
+  opacity: 1;
+}
+
+/* A panel washed in violet light from one corner (the bento cards). */
+.violet-panel {
+  background:
+    radial-gradient(120% 90% at 100% 100%, rgb(var(--arcus-violet) / 0.55), transparent 60%),
+    radial-gradient(80% 60% at 0% 0%, rgb(var(--arcus-violet) / 0.12), transparent 60%),
+    var(--arcus-surface);
+}
+
+/* The highlighted edition card. */
+.violet-sweep {
+  background:
+    linear-gradient(135deg, transparent 20%, rgb(var(--arcus-violet) / 0.75) 55%, transparent 85%),
+    var(--arcus-surface);
+}
+
+/* The closing call to action: a violet band with drifting light. */
+.cta-band {
+  background:
+    radial-gradient(60% 120% at 80% 100%, rgb(var(--arcus-violet) / 0.9), transparent 70%),
+    radial-gradient(50% 100% at 15% 0%, rgb(var(--arcus-violet) / 0.6), transparent 70%),
+    #120d26;
+  color: #fff;
+}
+
+/* The oversized footer wordmark, fading out at the bottom. */
+.footer-wordmark {
+  background: linear-gradient(180deg, rgb(var(--arcus-violet) / 0.75), rgb(var(--arcus-violet) / 0.04));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.pulse-dot {
+  animation: arcus-pulse-dot 1.6s ease-out infinite;
+}
+.float {
+  animation: arcus-float 6s ease-in-out infinite;
+}
+.grow-bar {
+  transform-origin: bottom;
+  animation: arcus-grow 1.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.fill-bar {
+  transform-origin: left;
+  animation: arcus-fill 1.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+[dir='rtl'] .fill-bar {
+  transform-origin: right;
+}
+.feed-in {
+  animation: arcus-feed-in 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+/* Accordion: the answer's row grows from 0fr to 1fr, so height animates. */
+.accordion-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.4s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.accordion-panel[data-open='true'] {
+  grid-template-rows: 1fr;
+}
+.accordion-panel > div {
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-arc,
+  .star,
+  .pulse-dot,
+  .float,
+  .grow-bar,
+  .fill-bar,
+  .feed-in {
+    animation: none;
+  }
+  .mockup-in {
+    transform: none;
+    opacity: 1;
+    transition: none;
+  }
+}
+/* The band is violet in both themes, so its controls are fixed light-on-dark. */
+.cta-band .cta-solid {
+  background: #fff;
+  color: #120d26;
+}
+.cta-band .cta-solid:hover {
+  background: #ece7ff;
+}
+.cta-band .cta-glass {
+  border: 1px solid rgb(255 255 255 / 0.25);
+  background: rgb(255 255 255 / 0.1);
+  color: #fff;
+}
+.cta-band .cta-glass:hover {
+  background: rgb(255 255 255 / 0.2);
+}
+.cta-band .cta-sub {
+  color: rgb(255 255 255 / 0.82);
+}

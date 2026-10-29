@@ -103,3 +103,17 @@ export function SkipLink() {
     </a>
   );
 }
+
+/** A section label as a small outlined pill: "SOLUTIONS", "FEATURES"… */
+export function Chip({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <p
+      className={cn(
+        'inline-flex items-center rounded-pill border border-brand/40 bg-brand-soft px-3 py-1.5 text-[12px] leading-none font-medium tracking-[0.08em] text-brand-ink uppercase',
+        className,
+      )}
+    >
+      {children}
+    </p>
+  );
+}
