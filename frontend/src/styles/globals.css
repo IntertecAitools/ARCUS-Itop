@@ -22,7 +22,7 @@
   color-scheme: light;
 
   /* --- Surfaces ---------------------------------------------------------- */
-  --arcus-canvas: #f3f6fb; /* page plane behind the cards */
+  --arcus-canvas: #f6f5fb; /* page plane behind the cards */
   --arcus-surface: #ffffff; /* card / panel */
   --arcus-surface-raised: #ffffff; /* popovers, dropdowns, modals */
   --arcus-surface-sunken: #f8fafc; /* table headers, inset wells */
@@ -111,7 +111,7 @@
 :root[data-theme='dark'] {
   color-scheme: dark;
 
-  --arcus-canvas: #0b1220;
+  --arcus-canvas: #050507;
   --arcus-surface: #111827;
   --arcus-surface-raised: #161f33;
   --arcus-surface-sunken: #0e1626;

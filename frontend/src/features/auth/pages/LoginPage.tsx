@@ -89,7 +89,7 @@ export function LoginPage() {
         <>
           <a
             href={ssoStartUrl(next)}
-            className="flex h-12 w-full items-center justify-center rounded-control bg-brand text-[14px] font-medium text-on-brand shadow-xs hover:bg-brand-hover"
+            className="btn-brand flex h-12 w-full items-center justify-center rounded-control bg-brand text-[14px] font-medium text-on-brand shadow-xs hover:bg-brand-hover"
           >
             {sso.label}
           </a>

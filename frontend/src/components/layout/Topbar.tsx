@@ -136,7 +136,7 @@ export function Topbar() {
   return (
     <header
       className={cn(
-        'fixed inset-x-0 top-0 z-20 flex h-topbar items-center gap-3 border-b border-line bg-surface px-4',
+        'fixed inset-x-0 top-0 z-20 flex h-topbar items-center gap-3 border-b border-line bg-surface/80 px-4 backdrop-blur-xl',
         'transition-[padding] duration-200 ease-out',
         collapsed ? 'lg:ps-[calc(var(--spacing-sidebar-collapsed)+1.5rem)]' : 'lg:ps-[calc(var(--spacing-sidebar)+1.5rem)]',
       )}
@@ -148,7 +148,7 @@ export function Topbar() {
         aria-expanded={mobileNavOpen}
         aria-controls="app-sidebar"
         aria-label="Open menu"
-        className="inline-flex size-9 shrink-0 items-center justify-center text-ink hover:bg-surface-hover lg:hidden"
+        className="inline-flex size-9 shrink-0 items-center justify-center rounded-control text-ink hover:bg-surface-hover lg:hidden"
       >
         <Menu className="size-5" aria-hidden />
       </button>
@@ -157,7 +157,7 @@ export function Topbar() {
         type="button"
         onClick={() => setCommandPaletteOpen(true)}
         className={cn(
-          'flex h-9 w-full min-w-0 max-w-3xl items-center gap-2.5 rounded-control border border-line-strong bg-surface-sunken px-3',
+          'flex h-9 w-full min-w-0 max-w-3xl items-center gap-2.5 rounded-control border border-line bg-surface-sunken px-3',
           'text-start transition-colors duration-150 hover:border-line-strong hover:bg-surface-hover',
           'focus-visible:border-brand',
         )}
@@ -166,7 +166,7 @@ export function Topbar() {
         <span className="flex-1 truncate text-sm text-ink-muted">
           Search incidents, requests, assets, knowledge articles…
         </span>
-        <kbd className="hidden shrink-0 border border-line-strong bg-surface px-1.5 py-0.5 text-[11px] font-medium text-ink-muted sm:block">
+        <kbd className="hidden shrink-0 rounded-md border border-line bg-surface px-1.5 py-0.5 text-[11px] font-medium text-ink-muted sm:block">
           Ctrl K
         </kbd>
       </button>

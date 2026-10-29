@@ -1,47 +1,37 @@
+import { useId } from 'react';
 import { cn } from '@/lib/utils';
 import { env } from '@/config/env';
 
-/** The brackets' colour; the public look inverts the tile (see public-theme.css). */
-const MARK_FG = 'var(--arcus-mark-fg, white)';
-
 /**
- * The Intertec mark.
+ * The Intertec mark: a ring opened by a needle rising to a red dot.
  *
- * Two interlocking brackets around a core — a system being held together,
- * which is what a service desk does. Drawn rather than imported so it inherits
- * `currentColor` and stays crisp at any size; a raster asset would need a
- * second file per theme and would blur on a high-DPI rail.
+ * Drawn rather than imported so it takes the theme's ink (charcoal on light,
+ * near-white on dark, `--arcus-logo-ink`) and stays crisp at any size. The
+ * dot keeps the brand red in both themes (`--arcus-logo-dot`).
  */
-function Mark({ className }: { className?: string }) {
+export function LogoMark({ className }: { className?: string }) {
+  // Unique per instance: the logo appears more than once on some pages.
+  const mask = `intertec-gap-${useId().replace(/:/g, '')}`;
   return (
-    <svg viewBox="0 0 32 32" className={className} role="img" aria-hidden focusable="false">
+    <svg viewBox="0 0 400 470" className={className} role="img" aria-hidden focusable="false">
       <defs>
-        <linearGradient id="arcus-mark" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" style={{ stopColor: 'var(--arcus-mark-from, var(--arcus-brand))' }} />
-          <stop offset="100%" style={{ stopColor: 'var(--arcus-mark-to, var(--arcus-brand-active))' }} />
-        </linearGradient>
+        <mask id={mask}>
+          <rect width="400" height="470" fill="#fff" />
+          {/* The slit between the two blades, cut through the ring. */}
+          <path d="M245 68 L83 514 L157 538 Z" fill="#000" />
+        </mask>
       </defs>
-      <rect width="32" height="32" rx="9" fill="url(#arcus-mark)" />
-      {/* Left bracket */}
-      <path
-        d="M13 8.5 A8.5 8.5 0 0 0 13 23.5"
-        fill="none"
-        style={{ stroke: MARK_FG }}
-        strokeWidth="2.6"
-        strokeLinecap="round"
-        opacity="0.95"
-      />
-      {/* Right bracket, mirrored */}
-      <path
-        d="M19 8.5 A8.5 8.5 0 0 1 19 23.5"
-        fill="none"
-        style={{ stroke: MARK_FG }}
-        strokeWidth="2.6"
-        strokeLinecap="round"
-        opacity="0.6"
-      />
-      {/* The core being held */}
-      <circle cx="16" cy="16" r="3.1" style={{ fill: MARK_FG }} />
+      <g style={{ fill: 'var(--arcus-logo-ink, currentColor)' }}>
+        {/* Ring: thin at the top, thickening towards the base. */}
+        <path
+          mask={`url(#${mask})`}
+          fillRule="evenodd"
+          d="M7 272a184 184 0 1 0 368 0a184 184 0 1 0 -368 0Z M19 264a172 172 0 1 0 344 0a172 172 0 1 0 -344 0Z"
+        />
+        <path d="M245 68 L78 395 L110 440 Z" />
+        <path d="M245 68 L172 460 L218 437 Z" />
+      </g>
+      <circle cx="265" cy="32" r="31" style={{ fill: 'var(--arcus-logo-dot, #d0453a)' }} />
     </svg>
   );
 }
@@ -55,7 +45,7 @@ function Mark({ className }: { className?: string }) {
 export function Logo({ collapsed = false, className }: { collapsed?: boolean; className?: string }) {
   return (
     <div className={cn('flex items-center gap-2.5', className)}>
-      <Mark className="size-9 shrink-0 drop-shadow-xs" />
+      <LogoMark className="h-10 w-[34px] shrink-0" />
 
       {!collapsed ? (
         <span className="min-w-0 leading-none">

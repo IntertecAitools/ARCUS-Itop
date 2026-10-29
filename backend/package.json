@@ -28,11 +28,13 @@
     "e2e:sla": "node --import tsx scripts/e2e-sla.mjs",
     "e2e:business-hours": "node --import tsx scripts/e2e-business-hours.mjs",
     "e2e:rights": "node --import tsx scripts/e2e-lifecycle-rights.mjs",
+    "e2e:rca": "node --import tsx scripts/e2e-rca.mjs",
     "e2e:dispatch": "node --import tsx scripts/e2e-dispatch.mjs",
     "e2e:data-import": "node --import tsx scripts/e2e-data-import.mjs",
     "e2e:change-knowledge": "node --import tsx scripts/e2e-change-knowledge.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.3.0",
     "@fastify/multipart": "^10.1.3",
     "fastify": "^5.2.1",
     "imapflow": "^2.9.1",

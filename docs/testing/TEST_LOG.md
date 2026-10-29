@@ -23,6 +23,48 @@ Bugs found and fixed: none in the live run. During the build the PIR form was ch
 
 Not covered: the screens were checked by vitest against MSW mocks and the API by the live e2e, not clicked through in a browser against the live BFF. Service clashes (CIs linked to the same service) are unit-tested only; the live run clashes on a shared CI. Tenancy (TENANCY=on) keys every row by tenant but was not run live. Editing a published article's text does not send it back to review.
 
+### 2026-10-29 — UI redesign: near-black and violet look, new landing page, sign-in, staff app and portal restyle
+
+Branch `claude/ui-redesign-f7d932`. Mock mode only (Vite on `:5253`, the e2e build on `:5254`); no BFF or iTop needed, since the change is styling and layout only.
+
+| What ran | Result |
+|---|---|
+| Frontend typecheck (`npm run typecheck`), before and after merging `main` | clean |
+| Frontend vitest (`npm test`), before merging `main` | 222/222 pass |
+| Frontend vitest after merging `main`, run 1 | 227/228 (one failure under heavy machine load; only the summary was kept, so the test is not named) |
+| Frontend vitest after merging `main`, run 2 | 228/228 pass |
+| Playwright journeys (`npm run e2e`, `E2E_MOCK_URL=http://localhost:5254`), run 1 | 12/13: `records → advanced search → open a record` timed out waiting for "Filter classes" (the records chunk was still on "Loading module") |
+| `records.spec.ts` on its own | pass |
+| Playwright journeys, final run on the merged branch | 13/13 pass |
+| Before/after screenshots (landing, sign-in, dashboard, an incident, portal home at 1440 and 390 px), `docs/screenshots/ui-redesign/` | captured with a Playwright script against the mock dev server |
+| Side-by-side with the reference Framer site at 1440 and 390 px (built-in browser) | hero, marquee, feature cards, bento, carousels, editions, FAQ, CTA and footer checked by eye |
+
+Found and fixed while comparing (same branch): Inter is wider than Hanken Grotesk, so the portal nav, user name and "Sign out" wrapped onto two lines (now `whitespace-nowrap`, name only from `xl`); the sign-in side panel's arc crossed the headline (moved below the copy); the landing's rating line, footer wordmark and FAQ help card overflowed or cramped at 390 px.
+
+No selectors or snapshots had to change: every role, label and route the journeys use is unchanged.
+
+Follow-up, same day: the Intertec logo (ring, blades, red dot) replaced the old mark in `Logo.tsx` and the favicon. Typecheck clean; vitest `src/features/auth src/components src/app` 13/13; Playwright journeys 13/13; logo checked in dark and light on the landing header and sign-in.
+
+Not covered: the live journeys (`npm run e2e:live`) against the BFF and iTop; RTL (`dir="rtl"`) by eye; a formal contrast audit with a tool (tokens were chosen by computed ratio, ≥ 4.5:1 for text, ≥ 3:1 for input borders, and are listed in `public-theme.css`); Safari and Firefox.
+
+### 2026-10-29 — Problems: root-cause evidence and likely causes, AI-drafted RCA
+
+Branch `claude/auto-rca-04065e`. This worktree's BFF on `:4090` (MFA on, accounts `e2e.rights.admin` and `e2e.rights.problem` under `"rca"` in the git-ignored `backend/e2e.local.json`) against the shared local iTop on `:8080` (has `arcus-problem-rca`). No `ANTHROPIC_API_KEY` was available, so the AI call itself ran only against a mocked model.
+
+| What ran | Result |
+|---|---|
+| Backend typecheck (`tsc --noEmit`) | clean |
+| New `test/rca.test.ts` (scoring, title similarity, computed-CI filter, redaction, prompt building, citations, audit line, `RcaService.draft` over a fake model, tenant off switch, `AnthropicRcaModel` request shape / refusal / cut-off over a fake SDK client, AI-drafted save note) | 16/16 pass |
+| Backend `npm test` (whole suite) | 776/776 pass |
+| Frontend typecheck (`tsc -p tsconfig.app.json`) | clean |
+| Frontend vitest `src/features/problems` (incl. 3 new panel tests: likely causes + links, AI draft fills the form and saves only on Save with `aiDraft`, no button without AI) | 13/13 pass |
+| Live `npm run e2e:rca`, run 1 | 22/27 — see bug below |
+| Live `npm run e2e:rca`, run 2 (after the fix) | 27/27 pass; every seeded record deleted |
+
+Bug found by the live e2e and fixed (same branch): iTop adds every CI a ticket's CIs impact to its `functionalcis_list` with `impact_code = computed`. The evidence counted those as "affected", so the application solution downstream of the database server showed as affected, an earlier problem "shared" it, and the change on the power source looked like it touched the database server. Only CIs linked by hand now count; the computed ones come in through the impact graph as downstream. With that, the CI weight was lowered (60 → 45 max) so a CI the incidents cluster on ranks below the change that touched it shortly before.
+
+Not covered: a real call to the Claude API (no key here: check once with a key set, `npm run dev` + the Root cause tab); the evidence for a caller without read rights on changes (the code lists it in `unavailable`; unit-level only); the tab clicked through in a browser against the live BFF (vitest with MSW covers the UI).
+
 ### 2026-10-29 — Team dispatch: Dispatched state, team queue, Take it, assignment rules (iTop extension arcus-ticket-dispatch)
 
 Branch `claude/gallant-zhukovsky-4d0b7b`. These runs used PowerShell (the Bash tool was not available), so the hook recorded none of them below; this table is the record.

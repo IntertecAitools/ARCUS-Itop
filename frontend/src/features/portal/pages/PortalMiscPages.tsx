@@ -18,7 +18,7 @@ export function PortalHomePage() {
   const user = useSessionStore((s) => s.user);
   const { data: open, isLoading } = useMyRequests('open', 1, '');
   const { data: pendingApprovals = 0 } = usePendingApprovalCount();
-  const tile = 'group flex flex-col border-t border-line pt-6 pb-2 transition-colors hover:border-ink';
+  const tile = 'lift glass group flex flex-col rounded-card border border-line bg-surface p-6';
 
   return (
     <>
@@ -38,21 +38,25 @@ export function PortalHomePage() {
         </Link>
       ) : null}
 
-      <div className="mb-16 grid grid-cols-1 gap-x-10 gap-y-8 sm:grid-cols-3">
+      <div className="mb-16 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Link to="/portal/new" className={tile}>
-          <Plus className="mb-6 size-7 stroke-[1.25] text-ink" aria-hidden />
+          <span className="mb-6 inline-flex size-11 items-center justify-center rounded-xl border border-brand/30 bg-brand-soft text-brand-ink">
+            <Plus className="size-5" aria-hidden />
+          </span>
           <p className="text-[20px] text-ink">Raise a request</p>
           <p className="mt-1 mb-6 text-[14px] text-ink-secondary">Report a problem or ask for something.</p>
           <ArrowRight className="mt-auto size-4 text-ink transition-transform group-hover:translate-x-1 rtl:-scale-x-100 rtl:group-hover:-translate-x-1" aria-hidden />
         </Link>
         <Link to="/portal/requests" className={tile}>
-          <p className="display mb-4 text-[44px] leading-none text-ink tabular-nums">{isLoading ? '…' : compactNumber(open?.total ?? 0)}</p>
+          <p className="display mb-4 h-11 text-[44px] leading-none text-ink tabular-nums">{isLoading ? '…' : compactNumber(open?.total ?? 0)}</p>
           <p className="text-[20px] text-ink">Open requests</p>
           <p className="mt-1 mb-6 text-[14px] text-ink-secondary">Follow what is in progress.</p>
           <ArrowRight className="mt-auto size-4 text-ink transition-transform group-hover:translate-x-1 rtl:-scale-x-100 rtl:group-hover:-translate-x-1" aria-hidden />
         </Link>
         <Link to="/portal/help" className={tile}>
-          <Search className="mb-6 size-7 stroke-[1.25] text-ink" aria-hidden />
+          <span className="mb-6 inline-flex size-11 items-center justify-center rounded-xl border border-brand/30 bg-brand-soft text-brand-ink">
+            <Search className="size-5" aria-hidden />
+          </span>
           <p className="text-[20px] text-ink">Knowledge base</p>
           <p className="mt-1 mb-6 text-[14px] text-ink-secondary">Answers to common questions.</p>
           <ArrowRight className="mt-auto size-4 text-ink transition-transform group-hover:translate-x-1 rtl:-scale-x-100 rtl:group-hover:-translate-x-1" aria-hidden />
@@ -62,7 +66,7 @@ export function PortalHomePage() {
       <section aria-labelledby="open-requests-heading">
         <div className="flex items-end justify-between gap-4 border-b border-line pb-4">
           <h2 id="open-requests-heading" className="display text-[28px] sm:text-[32px]">Your open requests</h2>
-          <Link to="/portal/requests" className="inline-flex items-center gap-2 text-[13px] font-semibold tracking-[0.14em] text-ink uppercase underline-offset-[6px] hover:underline">
+          <Link to="/portal/requests" className="inline-flex shrink-0 items-center gap-2 text-[13px] font-semibold whitespace-nowrap tracking-[0.14em] text-ink uppercase underline-offset-[6px] hover:underline">
             See all
             <ArrowRight className="size-4 rtl:-scale-x-100" aria-hidden />
           </Link>

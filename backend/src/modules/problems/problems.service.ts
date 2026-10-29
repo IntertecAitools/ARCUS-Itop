@@ -1,4 +1,5 @@
 import { AppError, badRequest, notFound } from "../../core/errors.js";
+import { currentCaller } from "../../core/request-context.js";
 import type { ItopClient } from "../../itop/client.js";
 import { normalizeObjects } from "../../itop/normalize.js";
 import type { ObjectsService } from "../../platform/objects/objects.service.js";
@@ -7,6 +8,7 @@ import { str } from "../../shared/ticket-mapping.js";
 import { htmlToText } from "./text.js";
 import { buildTrends, type TrendRow, windowStart } from "./trends.js";
 import type {
+  AnalysisSaveInput,
   CreateKnownErrorInput,
   KnownErrorCreated,
   KnownErrorSummary,
@@ -165,8 +167,13 @@ export class ProblemsService {
     return this.toAnalysis(problem, knownErrors);
   }
 
-  /** Writes the changed fields only; saving what is already there writes nothing. */
-  async saveAnalysis(id: string, input: RootCauseAnalysis): Promise<ProblemAnalysis> {
+  /**
+   * Writes the changed fields only; saving what is already there writes nothing.
+   * Text that started as an AI draft is saved the same way, with a note in the
+   * problem's private log (and the History comment) naming the model and the
+   * person who reviewed it.
+   */
+  async saveAnalysis(id: string, input: AnalysisSaveInput): Promise<ProblemAnalysis> {
     const current = await this.getAnalysis(id);
     if (!current.available) throw extensionMissing();
 
@@ -177,12 +184,20 @@ export class ProblemsService {
     }
     if (Object.keys(fields).length === 0) return current;
 
+    let comment = "Root-cause analysis updated via ARCUS";
+    if (input.aiDraft) {
+      const caller = currentCaller();
+      const reviewer = caller?.name || caller?.login || "the ARCUS service account";
+      comment = `Root-cause analysis drafted with AI (${input.aiDraft.model}), reviewed by ${reviewer} via ARCUS`;
+      fields["private_log"] = `${comment}.`;
+    }
+
     try {
       await this.client.call("core/update", {
         class: "Problem",
         key: Number(id),
         fields,
-        comment: "Root-cause analysis updated via ARCUS",
+        comment,
         output_fields: "id",
       });
     } catch (error) {
