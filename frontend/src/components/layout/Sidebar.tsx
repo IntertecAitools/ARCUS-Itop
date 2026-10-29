@@ -47,7 +47,7 @@ function NavItem({
           <span
             aria-hidden
             className={cn(
-              'absolute top-1/2 start-0 h-5 w-0.5 -translate-y-1/2 bg-brand transition-opacity duration-150',
+              'absolute top-1/2 start-0 h-5 w-[3px] -translate-y-1/2 rounded-full bg-brand shadow-[0_0_12px_var(--arcus-brand)] transition-opacity duration-150',
               isActive ? 'opacity-100' : 'opacity-0',
             )}
           />
@@ -116,7 +116,7 @@ export function Sidebar({ counts = {} }: SidebarProps) {
             type="button"
             onClick={() => setMobileNavOpen(false)}
             aria-label="Close menu"
-            className="inline-flex size-9 items-center justify-center text-ink-secondary hover:bg-surface-hover hover:text-ink"
+            className="inline-flex size-9 items-center justify-center rounded-control text-ink-secondary hover:bg-surface-hover hover:text-ink"
           >
             <X className="size-5" aria-hidden />
           </button>

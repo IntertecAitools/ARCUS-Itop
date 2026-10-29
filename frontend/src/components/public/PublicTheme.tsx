@@ -44,7 +44,7 @@ export function PublicThemeToggle({ className }: { className?: string }) {
       aria-label={`Switch to ${next} theme`}
       title={`Switch to ${next} theme`}
       className={cn(
-        'inline-flex size-9 items-center justify-center text-ink-secondary transition-colors hover:bg-surface-hover hover:text-ink',
+        'inline-flex size-9 items-center justify-center rounded-control text-ink-secondary transition-colors hover:bg-surface-hover hover:text-ink',
         className,
       )}
     >

@@ -6,10 +6,11 @@ export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'subtle' | 'dang
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
 const variantClasses: Record<ButtonVariant, string> = {
+  // btn-brand (public-theme.css) lays the violet gradient and its glow over the fill.
   primary:
-    'bg-brand text-on-brand shadow-xs hover:bg-brand-hover active:bg-brand-active disabled:bg-brand/50',
+    'btn-brand bg-brand text-on-brand shadow-xs hover:bg-brand-hover active:bg-brand-active disabled:bg-brand/50',
   secondary:
-    'bg-surface text-ink border border-line-strong shadow-xs hover:bg-surface-hover active:bg-surface-sunken',
+    'bg-surface-raised text-ink border border-line shadow-xs hover:bg-surface-hover hover:border-line-strong active:bg-surface-sunken',
   ghost: 'text-ink-secondary hover:bg-surface-hover hover:text-ink',
   subtle: 'bg-brand-soft text-brand-ink hover:bg-brand-soft-hover',
   danger: 'bg-critical text-on-critical shadow-xs hover:brightness-95 active:brightness-90',
@@ -41,7 +42,7 @@ export function buttonClasses({
 } = {}) {
   return cn(
     'inline-flex shrink-0 items-center justify-center rounded-control font-medium',
-    'transition-colors duration-150 select-none',
+    'transition-[color,background-color,border-color,box-shadow,filter] duration-200 select-none',
     'disabled:cursor-not-allowed disabled:opacity-60',
     variantClasses[variant],
     sizeClasses[size],
