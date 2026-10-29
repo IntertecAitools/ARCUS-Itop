@@ -10,6 +10,12 @@ import { SlaService } from "./modules/sla/index.js";
 import { BusinessHoursService } from "./modules/business-hours/index.js";
 import { createMailSource, type MailSource, MailIntakeService } from "./modules/mail-intake/index.js";
 import {
+  type AssignmentRuleStore,
+  DispatchService,
+  MemoryAssignmentRuleStore,
+  MySqlAssignmentRuleStore,
+} from "./modules/dispatch/index.js";
+import {
   ChangesService,
   MemoryPlanRuleStore,
   MySqlPlanRuleStore,
@@ -108,6 +114,8 @@ export interface Services {
   /** Coverage windows and holidays (Combodo's business-hours modules). */
   businessHours: BusinessHoursService;
   changes: ChangesService;
+  /** Team dispatch: the team queue, "Take it", the assignment rules. */
+  dispatch: DispatchService;
   /** Present when MAIL_INTAKE_SOURCE is set. */
   mailIntake?: MailIntakeService;
   requestForms: RequestFormsService;
@@ -138,6 +146,8 @@ export interface BuildServicesOptions {
   requestForms?: RequestFormStore;
   /** Change plan rules for tests; otherwise in the BFF database, or memory. */
   planRules?: PlanRuleStore;
+  /** Assignment rules for tests; otherwise in the BFF database, or memory. */
+  assignmentRules?: AssignmentRuleStore;
   /** Import reports for tests; otherwise in the BFF database, or memory. */
   importReports?: ImportReportStore;
   /** Stands in for SMTP in tests; otherwise built from PASSWORD_RESET settings. */
@@ -244,6 +254,22 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
   );
   const ticketExtras = new TicketExtras(client, config.itop.timezone);
   const incidents = new IncidentsService(objects, schema, defaultOrganization, ticketExtras, mailer);
+  const dispatch = new DispatchService(
+    client,
+    objects,
+    options.assignmentRules ??
+      (stores?.pool ? new MySqlAssignmentRuleStore(stores.pool) : new MemoryAssignmentRuleStore()),
+    currentContact,
+    config.appBaseUrl ?? "",
+    mailer,
+    options.logger,
+  );
+  // Every new ticket, from any screen, the portal or the mailbox, meets the
+  // assignment rules; every dispatch can email the team.
+  objects.addCreateListener((className, object) => dispatch.route(className, object));
+  objects.addTransitionGuard((className, _id, stimulus) => dispatch.guard(className, stimulus));
+  objects.addStimulusListener((className, object, stimulus) => dispatch.afterStimulus(className, object, stimulus));
+  incidents.useDispatchCheck(() => dispatch.available());
   const mailIntake = config.mailIntake
     ? new MailIntakeService(
         config.mailIntake,
@@ -298,6 +324,7 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     sla: new SlaService(objects, config.itop.timezone, businessHours),
     businessHours,
     changes,
+    dispatch,
     requestForms: new RequestFormsService(
       client,
       options.requestForms ?? (stores?.pool ? new MySqlRequestFormStore(stores.pool) : new MemoryRequestFormStore()),

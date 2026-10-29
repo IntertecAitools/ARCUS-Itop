@@ -100,6 +100,76 @@ function relaxFlags(
   return out;
 }
 
+/**
+ * The arcus-ticket-dispatch extension's Dispatched state on Incident and
+ * UserRequest (with a team, nobody in it has taken it yet). The extracted
+ * schema comes from iTop's own datamodel, which lacks it, so it is added
+ * here as the extension's XML defines it. On an iTop without the extension
+ * the modules/dispatch guard refuses ev_dispatch with a clear 409, and no
+ * record is ever in this state.
+ */
+const DISPATCH_FROM: Record<string, string[]> = {
+  Incident: ["new", "escalated_tto"],
+  UserRequest: ["new", "escalated_tto", "approved"],
+};
+const DISPATCHED_STIMULI: Record<string, string> = {
+  ev_assign: "assigned",
+  ev_dispatch: "dispatched",
+  ev_timeout: "escalated_tto",
+  ev_autoresolve: "resolved",
+};
+
+export function withTicketDispatch(name: string, rawClass: RawClass): RawClass {
+  const from = DISPATCH_FROM[name];
+  const lifecycle = rawClass.lifecycle;
+  if (!from || !lifecycle || lifecycle.states["dispatched"]) return rawClass;
+
+  const states: Record<string, string[]> = { ...lifecycle.states };
+  const transitions: Record<string, Record<string, string>> = { ...(lifecycle.transitions ?? {}) };
+  for (const state of from.filter((s) => states[s])) {
+    states[state] = [...states[state]!, "ev_dispatch"];
+    transitions[state] = { ...transitions[state], ev_dispatch: "dispatched" };
+  }
+  states["dispatched"] = Object.keys(DISPATCHED_STIMULI);
+  transitions["dispatched"] = { ...DISPATCHED_STIMULI };
+
+  const flags = { ...(lifecycle.flags ?? {}) };
+  // Inherits New's flags; the team is asked for and required, the agent shown.
+  const dispatched: Record<string, StateFlag[]> = { ...(flags["new"] ?? {}) };
+  delete dispatched["agent_id"];
+  dispatched["team_id"] = ["mandatory", "must_prompt"];
+  flags["dispatched"] = dispatched;
+
+  const status = rawClass.fields[lifecycle.attribute];
+  const labels = rawClass.labels;
+  return {
+    ...rawClass,
+    fields: status?.values
+      ? { ...rawClass.fields, [lifecycle.attribute]: { ...status, values: [...status.values, "dispatched"] } }
+      : rawClass.fields,
+    lifecycle: {
+      ...lifecycle,
+      states,
+      transitions,
+      flags,
+      stimuli: [...(lifecycle.stimuli ?? []), "ev_dispatch"],
+      ...(lifecycle.user_stimuli ? { user_stimuli: [...lifecycle.user_stimuli, "ev_dispatch"] } : {}),
+    },
+    ...(labels
+      ? {
+          labels: {
+            ...labels,
+            values: {
+              ...labels.values,
+              [lifecycle.attribute]: { ...labels.values[lifecycle.attribute], dispatched: "Dispatched" },
+            },
+            stimuli: { ...labels.stimuli, ev_dispatch: "Dispatch to team" },
+          },
+        }
+      : {}),
+  };
+}
+
 /** Attributes preferred as the display label, in order. */
 const LABEL_CANDIDATES = ["friendlyname", "name", "code", "fullname", "label", "ref"];
 
@@ -122,7 +192,7 @@ export class CmdbSchema {
     const diagnostics: CmdbSchema["diagnostics"] = [];
 
     for (const [name, rawClass] of Object.entries(raw)) {
-      classes.set(name, buildClass(name, rawClass, knownClasses, diagnostics));
+      classes.set(name, buildClass(name, withTicketDispatch(name, rawClass), knownClasses, diagnostics));
     }
 
     return new CmdbSchema(classes, diagnostics);

@@ -1022,6 +1022,87 @@ in MFA and keeps logins, passwords and TOTP secrets in `backend/e2e.local.json`
 (git-ignored) under `"changes"`. The changes it raises are deleted at the
 end; the plan rules are put back as they were.
 
+## Team dispatch and assignment rules
+
+A ticket can go to a team before anyone in it is chosen; anyone in the team
+then takes it (`modules/dispatch/`). In the frontend: **Dispatch to team**
+next to Assign on `/incidents/:id` (and `ev_dispatch` on a request's record
+screen), **My team's queue** (`/team-queue`) with **Take it**, and
+**Assignment rules** under administration (`/assignment-rules`).
+
+| | |
+| --- | --- |
+| `POST /api/incidents/:id/transitions` `{ action: "dispatch", teamId }` | Sends the incident to a team; `availableActions` offers `dispatch` from New, Escalated TTO and Dispatched (re-dispatch) |
+| `POST /api/objects/UserRequest/:id/stimulus` `{ stimulus: "ev_dispatch", fields: { team_id } }` | The same for a request (also from Approved) |
+| `GET /api/dispatch/queue` | `{ teams, items, available, truncated }`: tickets of the caller's teams that are Dispatched (or Escalated TTO, its TTO having run out while waiting) with no agent, oldest dispatch first |
+| `POST /api/dispatch/:type/:id/take` | `type` = `incident` \| `request`. Assigns it to the caller with iTop's `ev_assign`: 403 `not_in_team` unless they are in its team, 409 `already_taken` once someone has, 400 if it waits in no queue |
+| `GET` / `PUT /api/admin/assignment-rules` | `{ rules: [{ id, name, enabled, ticketType?, organizationId?, serviceId?, serviceSubcategoryId?, teamId }], notifyTeam }`, plus `available`, `mailConfigured`, `updatedAt`, `updatedBy` on read |
+| `POST /api/admin/assignment-rules/test` | `{ ticketType, organizationId?, serviceId?, serviceSubcategoryId? }` → `{ rule? }`: which rule would route it |
+
+**The rules.** Tried in order; the first enabled rule whose every set
+criterion equals the new ticket's (category = incident or service request,
+organisation, service, subcategory) dispatches it to its team. Unset criteria
+match anything. A ticket nothing matches stays New for the service desk, and
+so does one its creator already gave a team or an agent. They apply to every
+create, whichever way the ticket arrives (staff form, records form, portal,
+email to ticket): `ObjectsService.addCreateListener`. The rule acts, not the
+person who raised the ticket, so `ev_dispatch` goes out as the service account
+without a stimulus-rights check; a routing failure is logged and leaves the
+ticket New. Stored per tenant in the BFF database (`bff_assignment_rules`), or
+in memory with `SESSION_STORE=memory`.
+
+**Notifying the team.** With `notifyTeam` on, every dispatch (by a rule or
+by hand) emails the team through the BFF's mailer (SMTP, Mailpit locally): the
+team's own `email`, or each member's when it has none. The subject starts with
+`[ref]`, so a reply lands on the ticket (email to ticket).
+
+### The arcus-ticket-dispatch iTop extension
+
+iTop's lifecycle goes from New straight to Assigned, which needs a team and an
+agent. `itop-extensions/arcus-ticket-dispatch/` adds, on Incident and
+UserRequest:
+
+- a `dispatched` state: New (and Escalated TTO; Approved for a request) →
+  Dispatched by `ev_dispatch`, the team required and prompted, the agent not.
+  From Dispatched: `ev_assign` → Assigned (an agent of that team, as usual),
+  `ev_dispatch` again (another team), `ev_timeout` → Escalated TTO and
+  `ev_autoresolve` → Resolved, as from New. TTO and TTR keep running in it.
+- `dispatch_date`, set on every dispatch (the queue's "since").
+- `ev_dispatch` for Service Desk Agent and Support Agent (iTop's SuperUser
+  profile already had it); `shared/stimulus-rights.ts` carries the same.
+
+Like the other arcus fields, none of this is in `cmdb-schema.json`; the BFF
+adds the state at schema load (`withTicketDispatch` in `schema/load.ts`), so
+the records screens offer it and prompt for the team. Our status vocabulary
+gains `dispatched` ("With team"). Without the extension, `ev_dispatch` is a
+409 saying what to install, the incident screen does not offer it, the queue
+is empty and the rules route nothing.
+
+Installing it is an upgrade like the others: back up the database, `docker cp`
+the folder to `<container>:/var/www/html/extensions/` and `chown -R
+www-data:www-data` it, copy `docker/itop-ticket-dispatch-upgrade.xml` (the
+local iTop's full list, every arcus and Combodo business-hours module
+included, plus `arcus-ticket-dispatch`), run the unattended upgrade twice and
+`apache2ctl graceful`. Check: `SHOW COLUMNS FROM ticket_incident LIKE
+'dispatch_date'`, and `status` lists `dispatched`. Any later upgrade must keep
+`arcus-ticket-dispatch` in its list. Installed on the shared local iTop
+(`:8080`) on 2026-10-29.
+
+> **Nothing may precede `<itop_design>` in a `datamodel.*.xml`, not even a
+> comment.** iTop takes the document's first node as the delta
+> (`ModelFactory::LoadModule`: `childNodes->item(0)`), so a leading comment
+> makes it skip the whole file without an error: the module is recorded as
+> installed and its dictionary loads, but no class changes.
+
+`npm run e2e:dispatch` (BFF on `:4050`, MFA on, Mailpit on `:8025`) checks it
+live: rules saved, tried and applied to an incident (staff form) and a request
+(records form) of its own organisation, a ticket of another staying New, each
+team's queue, Take it (outsider 403, second taker 409), dispatch by hand,
+re-dispatch, Assign from Dispatched, and the team emails. Its accounts
+`e2e.dispatch.{admin,desk,a1,a2,b1}`, the "E2E dispatch org" and teams A / B
+are made on the first run and kept (`"dispatch"` in `backend/e2e.local.json`);
+its tickets are deleted and the rules put back at the end.
+
 ## SLA dashboard
 
 Open incidents and user requests against their SLAs (`modules/sla/`). In the

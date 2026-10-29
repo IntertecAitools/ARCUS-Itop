@@ -5,6 +5,7 @@
  */
 export { registerIncidentRoutes } from "./incidents.routes.js";
 export { IncidentsService } from "./incidents.service.js";
+export { escapeHtml } from "./stakeholder-mail.js";
 export { HOLDABLE_CLASSES, isHoldable, TicketExtras, type PendingInfo } from "./ticket-extras.js";
 export type {
   CaseLogEntry,

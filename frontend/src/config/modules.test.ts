@@ -54,7 +54,7 @@ describe('hidden modules', () => {
   it('keeps hidden modules out of the chrome', () => {
     const navigable = navigableModules().map((m) => m.id);
 
-    expect(navigable).toEqual(['dashboard', 'approvals', 'cab', 'problem-trends', 'sla', 'queries']);
+    expect(navigable).toEqual(['dashboard', 'approvals', 'team-queue', 'cab', 'problem-trends', 'sla', 'queries']);
     for (const id of ['incidents', 'records', 'modules']) {
       expect(navigable).not.toContain(id);
     }

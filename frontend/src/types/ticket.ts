@@ -9,6 +9,8 @@
 
 export const TICKET_STATUSES = [
   'new',
+  // Sent to a team, nobody in it has taken it yet.
+  'dispatched',
   'open',
   'in_progress',
   'pending',

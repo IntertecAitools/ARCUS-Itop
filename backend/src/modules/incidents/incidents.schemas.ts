@@ -126,6 +126,8 @@ export const updateIncidentSchema = z
 export const transitionSchema = z.object({
   action: z.enum(TRANSITION_ACTIONS as [string, ...string[]]),
   agentId: idString.optional(),
+  /** `dispatch` only, required: the team it goes to. */
+  teamId: idString.optional(),
   solution: z.string().trim().min(1).max(10_000).optional(),
   resolutionCode: z.enum(RESOLUTION_CODES).optional(),
   pendingReason: z.string().trim().max(1_000).optional(),
