@@ -4,6 +4,31 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-10-29 — Ticket handling: priority override, duplicates, cancel, worklogs, drafts
+
+Branch `claude/ticket-handling-f68a08`. No iTop extension and nothing installed on `itop-local`. The test hook recorded none of these runs (no entries appeared below), so this table is the record.
+
+| What ran | Result |
+|---|---|
+| Backend typecheck (`npm run typecheck`) | clean |
+| Backend unit tests (`npm test`, incl. new `test/ticket-handling.test.ts`, 20 tests) | 815/816 on the first run; 816/816 after updating `test/portal.test.ts` (an open ticket now offers `cancel` to its requester) |
+| Live `npm run e2e:ticket-handling` (BFF :4070, MFA on, local iTop :8080 with arcus-ticket-dispatch) | first run 43/46 (two script mistakes, see below); then 46/46 |
+| Frontend typecheck (`tsc -p tsconfig.app.json`) | clean |
+| Frontend vitest, new `features/ticket-handling/TicketHandling.test.tsx` | 10/10 |
+| Frontend vitest, whole suite | 233/235: `config/modules.test.ts` needed the two new nav items (fixed); `ProblemAnalysisPanel` timed out at 21 s under the full-suite load and passes when run alone (17/17 for both files after the fix) |
+| Frontend `npm run build` | builds (the usual chunk-size warning) |
+
+Probes against the live iTop before building (scratch script, tickets deleted):
+- A `priority` written with `core/update` is put back: iTop recomputes it from impact × urgency in `ComputeValues` on every write. Hence the override changes urgency (impact only where needed).
+- `ev_autoresolve` resolves from `new` (and every open state, Dispatched included) with no service set, and `ev_close` follows. Duplicate and cancel use it.
+
+Bugs found and fixed:
+- e2e script: read the incident screen's `urgency` (a label) instead of iTop's value, and the generic stimulus answer's shape (`fields`, not `object.fields`), so two "is Dispatched" checks failed although the tickets were dispatched. Fixed in the script (commit `d981c6fb`).
+
+Test data: the e2e deletes its tickets, worklog entries and drafts at the end. It reuses `e2e:dispatch`'s accounts and made one portal account, `e2e.handling.portal` (person 59, org "E2E dispatch org"), kept for the next run; its password is in this worktree's git-ignored `backend/e2e.local.json`.
+
+Not covered: the screens were tested with vitest on mock data, not clicked through in a browser (the browser pane did not render the dev server in time on this machine). The override's impact change (when the matrix row has no such priority) is unit-tested, not live. The time report's organisation filter under `TENANCY=on` is unit-tested only.
+
 ### 2026-10-29 — Team dispatch: Dispatched state, team queue, Take it, assignment rules (iTop extension arcus-ticket-dispatch)
 
 Branch `claude/gallant-zhukovsky-4d0b7b`. These runs used PowerShell (the Bash tool was not available), so the hook recorded none of them below; this table is the record.
