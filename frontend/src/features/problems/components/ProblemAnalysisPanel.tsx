@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BookMarked } from 'lucide-react';
-import { Button, Card, CardBody, CardHeader, Skeleton } from '@/components/ui';
-import { useProblemAnalysis, useSaveAnalysis } from '../api/useProblems';
-import type { RootCauseAnalysis } from '../types';
+import { BookMarked, Sparkles } from 'lucide-react';
+import { Badge, Button, Card, CardBody, CardHeader, Skeleton } from '@/components/ui';
+import { useDraftRca, useProblemAnalysis, useRcaEvidence, useSaveAnalysis } from '../api/useProblems';
+import type { RcaDraft, RootCauseAnalysis } from '../types';
 import { CreateKnownErrorDialog } from './CreateKnownErrorDialog';
+import { RcaEvidenceSection, RecordLink } from './RcaEvidenceSection';
 
 const FIELDS: Array<{ key: keyof RootCauseAnalysis; label: string; hint: string }> = [
   { key: 'rootCause', label: 'Root cause', hint: 'Why it happens: the underlying fault, not the symptom.' },
@@ -38,6 +39,12 @@ export function ProblemAnalysisPanel({ id }: { id: string }) {
   const [draft, setDraft] = useState<RootCauseAnalysis>(EMPTY);
   const [raising, setRaising] = useState(false);
   const [created, setCreated] = useState<{ id: string; name: string } | null>(null);
+  const [lookbackHours, setLookbackHours] = useState<number | undefined>(undefined);
+  // Shares the evidence query with the section below; only `ai.enabled` is read here.
+  const evidence = useRcaEvidence(id, lookbackHours);
+  const drafting = useDraftRca(id);
+  /** The AI draft now in the form, until it is saved or discarded. */
+  const [aiDraft, setAiDraft] = useState<RcaDraft | null>(null);
 
   // Load the saved version into the form, and again after every save.
   useEffect(() => {
@@ -57,6 +64,15 @@ export function ProblemAnalysisPanel({ id }: { id: string }) {
   const saved = pick(data);
   const dirty = !sameAs(draft, saved);
   const canRaise = data.available && Boolean(saved.rootCause || saved.workaround) && !dirty;
+  const aiEnabled = Boolean(evidence.data?.ai.enabled) && data.available;
+
+  const draftWithAi = () =>
+    drafting.mutate(lookbackHours, {
+      onSuccess: (d) => {
+        setDraft({ rootCause: d.rootCause, workaround: d.workaround, resolution: d.resolution });
+        setAiDraft(d);
+      },
+    });
 
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
@@ -70,6 +86,20 @@ export function ProblemAnalysisPanel({ id }: { id: string }) {
                 ? 'Changes are recorded in the History tab.'
                 : 'Not analysed yet'
           }
+          action={
+            aiEnabled ? (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                leadingIcon={<Sparkles className="size-4" />}
+                loading={drafting.isPending}
+                onClick={draftWithAi}
+              >
+                Draft with AI
+              </Button>
+            ) : null
+          }
         />
         <CardBody>
           {!data.available ? (
@@ -78,11 +108,47 @@ export function ProblemAnalysisPanel({ id }: { id: string }) {
               arcus-problem-rca extension to turn them on.
             </div>
           ) : null}
+          {drafting.isError ? (
+            <div role="alert" className="mb-4 rounded-card border border-critical/30 bg-critical-soft px-3 py-2 text-[13px] text-critical-ink">
+              {drafting.error instanceof Error ? drafting.error.message : 'The AI draft could not be made.'}
+            </div>
+          ) : null}
+          {aiDraft ? (
+            <div role="status" aria-label="AI draft" className="mb-4 space-y-1.5 rounded-card border border-brand/30 bg-brand-soft px-3 py-2 text-[13px] text-ink">
+              <p className="flex flex-wrap items-center gap-2 font-medium">
+                <Sparkles className="size-4" /> Drafted with AI: review and edit before saving.
+                <Badge tone={aiDraft.confidence === 'high' ? 'good' : aiDraft.confidence === 'medium' ? 'warning' : 'neutral'} dot>
+                  {aiDraft.confidence} confidence
+                </Badge>
+              </p>
+              {aiDraft.confidenceNote ? <p>{aiDraft.confidenceNote}</p> : null}
+              {aiDraft.citations.length ? (
+                <p className="text-[12px] text-ink-muted">
+                  Based on{' '}
+                  {aiDraft.citations.map((c, i) => (
+                    <span key={`${c.class}:${c.id}`}>
+                      {i ? ', ' : ''}
+                      <RecordLink record={c}>{c.label}</RecordLink>
+                    </span>
+                  ))}
+                </p>
+              ) : null}
+              <p className="text-[12px] text-ink-muted">
+                Nothing is saved until you click Save analysis; the problem's log will note it was drafted with AI
+                and reviewed by you.
+                {aiDraft.redactions.emails + aiDraft.redactions.phones
+                  ? ` Personal data removed before sending: ${aiDraft.redactions.emails} email(s), ${aiDraft.redactions.phones} phone number(s).`
+                  : ''}
+              </p>
+            </div>
+          ) : null}
           <form
             className="space-y-4"
             onSubmit={(e) => {
               e.preventDefault();
-              save.mutate(draft);
+              save.mutate(aiDraft ? { ...draft, aiDraft: { model: aiDraft.model } } : draft, {
+                onSuccess: () => setAiDraft(null),
+              });
             }}
           >
             {FIELDS.map(({ key, label, hint }) => (
@@ -110,7 +176,15 @@ export function ProblemAnalysisPanel({ id }: { id: string }) {
 
             <div className="flex items-center justify-end gap-2">
               {dirty ? (
-                <Button type="button" variant="secondary" size="sm" onClick={() => setDraft(saved)}>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    setDraft(saved);
+                    setAiDraft(null);
+                  }}
+                >
                   Discard changes
                 </Button>
               ) : null}
@@ -173,6 +247,8 @@ export function ProblemAnalysisPanel({ id }: { id: string }) {
           ) : null}
         </CardBody>
       </Card>
+
+      <RcaEvidenceSection id={id} lookbackHours={lookbackHours} onLookbackChange={setLookbackHours} />
 
       {raising ? (
         <CreateKnownErrorDialog

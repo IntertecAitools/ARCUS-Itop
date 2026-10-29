@@ -128,6 +128,8 @@ export interface Config {
   tenancy?: TenancyConfig;
   /** Email-to-ticket from a support mailbox (modules/mail-intake). Off when absent. */
   mailIntake?: MailIntakeConfig;
+  /** Root-cause help on problems (modules/problems). Defaults apply when absent. */
+  rca?: RcaConfig;
   auth: {
     /**
      * When true (the default) every /api route except sign-in needs a session,
@@ -326,6 +328,55 @@ function tenancyConfig(sessionStore: SessionStoreConfig): TenancyConfig {
       .map((l) => l.trim())
       .filter(Boolean),
     ...(file ? { tenantsFile: resolve(PACKAGE_ROOT, file) } : {}),
+  };
+}
+
+export const RCA_AI_EFFORTS = ["low", "medium", "high", "xhigh", "max"] as const;
+
+export interface RcaConfig {
+  /** How far before the first incident a change still counts as a suspect. */
+  lookbackHours: number;
+  /**
+   * "Draft with AI": present only with ANTHROPIC_API_KEY set and RCA_AI not
+   * off. The key stays in the BFF; the browser never sees it.
+   */
+  ai?: {
+    apiKey: string;
+    model: string;
+    effort: (typeof RCA_AI_EFFORTS)[number];
+    /** Send incidents' private logs too (RCA_AI_PRIVATE_LOGS=on). Public logs only by default. */
+    privateLogs: boolean;
+    /** Tenant ids (TENANCY=on) that turned it off. */
+    disabledTenants: string[];
+  };
+}
+
+function rcaConfig(): RcaConfig {
+  const lookbackHours = integer("RCA_LOOKBACK_HOURS", 72, 1, 24 * 30);
+  const mode = optional("RCA_AI", "on").toLowerCase();
+  if (mode !== "on" && mode !== "off") throw new Error(`RCA_AI must be "on" or "off", not "${mode}".`);
+  const apiKey = optional("ANTHROPIC_API_KEY", "");
+  if (mode === "off" || !apiKey) return { lookbackHours };
+  const effort = optional("RCA_AI_EFFORT", "high").toLowerCase();
+  if (!(RCA_AI_EFFORTS as readonly string[]).includes(effort)) {
+    throw new Error(`RCA_AI_EFFORT must be one of ${RCA_AI_EFFORTS.join(", ")}, not "${effort}".`);
+  }
+  const privateLogs = optional("RCA_AI_PRIVATE_LOGS", "off").toLowerCase();
+  if (privateLogs !== "on" && privateLogs !== "off") {
+    throw new Error(`RCA_AI_PRIVATE_LOGS must be "on" or "off", not "${privateLogs}".`);
+  }
+  return {
+    lookbackHours,
+    ai: {
+      apiKey,
+      model: optional("RCA_AI_MODEL", "claude-opus-5-5"),
+      effort: effort as (typeof RCA_AI_EFFORTS)[number],
+      privateLogs: privateLogs === "on",
+      disabledTenants: optional("RCA_AI_DISABLED_TENANTS", "")
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean),
+    },
   };
 }
 
@@ -569,6 +620,7 @@ export function loadConfig(envFile = resolve(PACKAGE_ROOT, ".env")): Config {
     ...(optional("ITOP_DEFAULT_ORG_ID", "") ? { defaultOrgId: optional("ITOP_DEFAULT_ORG_ID", "") } : {}),
     tenancy: tenancyConfig(sessionStore),
     ...(mailIntakeConfig() ? { mailIntake: mailIntakeConfig()! } : {}),
+    rca: rcaConfig(),
     auth: {
       required: optional("AUTH_REQUIRED", "true").toLowerCase() !== "false",
       sessionIdleMs: integer("SESSION_IDLE_MINUTES", 60, 5, 24 * 60) * 60_000,

@@ -697,9 +697,90 @@ and **Problem trends** in the sidebar.
 | | |
 | --- | --- |
 | `GET /api/problems/:id/analysis` | Root cause, workaround, resolution; the known errors raised from the problem; `available: false` when the iTop lacks the extension below |
-| `PUT /api/problems/:id/analysis` | `{ rootCause, workaround, resolution }`; writes only what changed. 409 without the extension |
+| `PUT /api/problems/:id/analysis` | `{ rootCause, workaround, resolution, aiDraft?: { model } }`; writes only what changed. With `aiDraft` (the text started as an AI draft) the History comment and a private-log entry say "drafted with AI (model), reviewed by <name>". 409 without the extension |
+| `GET /api/problems/:id/rca-evidence?lookbackHours=72` | The correlation assistant: evidence and ranked likely causes (below) |
+| `POST /api/problems/:id/rca-draft` | `{ lookbackHours? }` → an AI draft of the analysis (below). Saves nothing. 403 when AI drafting is off |
 | `POST /api/problems/:id/known-errors` | `{ name?, symptom?, domain?, errorCode? }` → 201. Creates a KnownError with the analysis copied (resolution as its `solution`), `problem_id` pointing back, the problem's CIs linked, and the symptom taken from the problem's description unless given. 400 until a root cause or workaround is saved; 409 without the extension |
 | `GET /api/problems/trends?period=30d\|90d\|180d\|365d&groupBy=service\|ci\|category` | Incidents and problems opened in the period, per week (up to 90 days) or month, and per service, CI or service subcategory: how many incidents are linked to a problem, the problems involved, and whether the group is **recurring** (3+ incidents in 2+ buckets). Reads at most 5,000 of each, else `truncated: true` |
+
+### Root-cause help: evidence, likely causes, AI draft
+
+The Root cause tab has an **Evidence & likely causes** section and, when
+configured, a **Draft with AI** button. Both are help for the problem
+manager; neither writes anything.
+
+**Evidence** (`modules/problems/rca-evidence.ts`, no AI). For the problem it
+reads, through the caller's own iTop account and the tenant guard (so it
+holds only what the caller could open):
+
+- the incidents linked to it, and open or recent (30 days) incidents not
+  linked that share a CI, the service subcategory, or a similar title;
+- the CIs those tickets name **by hand** (iTop also adds every CI they impact,
+  `impact_code = computed`; those are left out as "affected"), and what those
+  CIs depend on and what depends on them, from iTop's `impacts` relation
+  (`core/get_related`, depth 3, up and down);
+- changes on any of these CIs implemented in the look-back before the first
+  linked incident (started before it, and ended — or, with no planned end,
+  started — after the look-back began), plus the problem's related change
+  and changes its incidents are linked to;
+- earlier problems on the same CIs or service (with their recorded root
+  cause), and known errors recorded on the affected CIs.
+
+A source the caller may not read (no rights to changes, say) is listed in
+`unavailable` and the rest still answers. Every query is capped.
+
+**Likely causes** (`rca-scoring.ts`) are scored 0–100, and every point is a
+plain reason on screen, e.g. "Finished 2h before I-000123 (+39)", "Touches
+SRV-DB-01, named by 7 of 9 incidents (+27)":
+
+| Candidate | Points |
+| --- | --- |
+| Change | timing up to 40 (still running at the first incident: 40; else 40 × (1 − hours before / look-back)); its CI: up to 35 × the share of incidents naming it (15 for a CI an affected CI depends on, 5 for one that depends on it); up to 25 when iTop links it already (the problem's related change, or incidents raised against it) |
+| CI | up to 45 × the share of incidents naming it (2+ incidents), +15 when a change in the window touched it, +10 when a known error is on it |
+| Known error | 25 for sitting on an affected CI, up to 35 × that CI's share of incidents |
+| Earlier problem | up to 30 for shared CIs, +10 same service, +10 when it has a recorded root cause |
+
+70+ is "high", 40+ "medium". Up to 10 candidates of 10+ points are shown.
+
+**AI draft** (`rca-ai.ts`, `rca.service.ts`). Sends the evidence above, the
+problem's description, and the description and **public** log of the first
+25 linked incidents to the Claude API, from the BFF only (the key never
+reaches the browser), with the official SDK (`@anthropic-ai/sdk`), adaptive
+thinking, a JSON schema for the answer, and server-side refusal fallbacks
+(`fallbacks: "default"`). Before sending:
+
+- email addresses and phone numbers are replaced by `[email]` / `[phone]`;
+  case-log authors are dropped; long texts are cut with a marker;
+- one `rca_ai_request` log line records who asked, for which problem and
+  tenant, the model, the redaction counts, a SHA-256, and the exact
+  (redacted) text sent; `rca_ai_response` records the model that answered
+  and the token usage. The API key is never logged.
+
+The draft (root cause, workaround, resolution, a confidence with a note,
+and the records it cites, linked on screen) fills the form. Nothing is saved
+until the problem manager clicks **Save analysis**; that save is then marked
+"drafted with AI (model), reviewed by <name>" in the problem's private log
+and History.
+
+| Variable | Default | |
+| --- | --- | --- |
+| `RCA_LOOKBACK_HOURS` | `72` | How far before the first incident a change still counts (1–720). The screen can pick 24 h – 14 days per view |
+| `ANTHROPIC_API_KEY` | — | The Claude API key. **Without it the AI button is hidden** and the evidence still works. Keep it in `.env` or the environment, never in a committed file |
+| `RCA_AI` | `on` | `off` turns AI drafting off even with a key |
+| `RCA_AI_MODEL` | `claude-opus-5-5` | The Claude model |
+| `RCA_AI_EFFORT` | `high` | `low`, `medium`, `high`, `xhigh` or `max`: how hard the model thinks (cost and time grow with it) |
+| `RCA_AI_PRIVATE_LOGS` | `off` | `on` also sends the incidents' and the problem's **private** logs |
+| `RCA_AI_DISABLED_TENANTS` | — | Comma-separated tenant ids (`TENANCY=on`) for which AI drafting is off |
+
+`npm run e2e:rca` checks the evidence live: it builds CIs with an impact
+chain (power source → server → application solution), changes inside and
+outside the look-back, a problem with four incidents, a similar unlinked
+incident, an earlier problem and a known error; reads the evidence as an
+administrator and as a Problem Manager; checks that drafting is refused
+without a key; and deletes everything it made. Accounts (MFA on, already
+enrolled) go in `backend/e2e.local.json` under `"rca"`:
+`{ "orgId": 1, "accounts": { "admin": { "login", "password", "totpSecret" }, "problem": { … } } }`
+(on the local iTop, the `e2e.rights.admin` and `e2e.rights.problem` accounts).
 
 ### The arcus-problem-rca iTop extension
 
@@ -1668,6 +1749,7 @@ finding out via a 404.
 | `npm run e2e:problems` | live problem management: root cause, known error, trends (BFF on :4050, MFA on; account and TOTP secret in `backend/e2e.local.json`, see "Problems"). Creates and deletes its own records |
 | `npm run e2e:changes` | live change management: plan rules, CAB decisions, profile rights (BFF on :4020, MFA on; accounts created on the first run, see "Changes"). Creates and deletes its own changes |
 | `npm run e2e:incidents` | live holds with next-action date, major incidents and stakeholder updates, email to ticket via Mailpit (BFF on :4010 with `MAIL_INTAKE_SOURCE=mailpit`; see "Incidents: on hold, major incidents"). Creates and deletes its own records and mail |
+| `npm run e2e:rca` | live root-cause evidence: impact chain, changes in and out of the look-back, ranking, rights (BFF on :4090, MFA on; accounts in `backend/e2e.local.json` under `"rca"`, see "Problems"). Creates and deletes its own records |
 | `npm run e2e:sla` | live SLA dashboard: within / at risk / breached from real stopwatches, breakdowns, drill-down (BFF on :4040, MFA on; account in `backend/e2e.local.json` under `"sla"`, see "SLA dashboard"). Creates and deletes its own records; takes about two minutes |
 | `npm run e2e:business-hours` | live business hours: coverage windows, holidays and contract services, and iTop's deadlines in working time (BFF on :4040; checks the 409s only on an iTop without Combodo's business-hours modules; see "Business hours") |
 | `npm run e2e:requests` | live request forms + target date check (BFF on :4040 with `MFA_REQUIRED=off`, or `E2E_STAFF_TOTP_SECRET`; `E2E_STAFF_PASSWORD`) |
