@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Check, CircleSlash, PauseCircle, RotateCcw, UserPlus } from 'lucide-react';
+import { Check, CircleSlash, PauseCircle, RotateCcw, Send, UserPlus } from 'lucide-react';
 import { Button, Input, Select } from '@/components/ui';
+import { TakeItButton } from '@/features/dispatch';
 import { useIncidentOptions, useTransitionIncident } from '../api/useIncidents';
 import type { IncidentDetail, TransitionAction } from '../types';
 
@@ -10,6 +11,7 @@ const ACTION_META: Record<
   { label: string; icon: typeof Check; variant: 'primary' | 'secondary' }
 > = {
   assign: { label: 'Assign', icon: UserPlus, variant: 'primary' },
+  dispatch: { label: 'Dispatch to team', icon: Send, variant: 'secondary' },
   reassign: { label: 'Reassign', icon: UserPlus, variant: 'secondary' },
   hold: { label: 'Put on hold', icon: PauseCircle, variant: 'secondary' },
   resolve: { label: 'Resolve', icon: Check, variant: 'primary' },
@@ -17,7 +19,7 @@ const ACTION_META: Record<
   reopen: { label: 'Reopen', icon: RotateCcw, variant: 'secondary' },
 };
 
-const ORDER: TransitionAction[] = ['assign', 'reassign', 'resolve', 'hold', 'close', 'reopen'];
+const ORDER: TransitionAction[] = ['assign', 'dispatch', 'reassign', 'resolve', 'hold', 'close', 'reopen'];
 
 /** Today as `YYYY-MM-DD` on this computer's calendar: the earliest next-action date. */
 export function todayInput(now = new Date()) {
@@ -37,14 +39,17 @@ export function IncidentActions({ incident }: { incident: IncidentDetail }) {
   const { data: options } = useIncidentOptions();
   const [pending, setPending] = useState<TransitionAction | null>(null);
   const [agentId, setAgentId] = useState('');
+  const [teamId, setTeamId] = useState('');
   const [solution, setSolution] = useState('');
   const [resolutionCode, setResolutionCode] = useState('');
   const [pendingReason, setPendingReason] = useState('');
   const [nextActionDate, setNextActionDate] = useState('');
 
   const actions = ORDER.filter((action) => incident.availableActions.includes(action));
+  // Waiting in a team's queue: anyone in that team may take it.
+  const takeable = incident.status === 'dispatched' && !incident.assignee;
 
-  if (actions.length === 0) {
+  if (actions.length === 0 && !takeable) {
     // Nothing offered on an open incident means the caller's iTop profiles
     // grant no action at this stage (a Service Desk Agent may assign and
     // close, but holding and resolving belong to support agents).
@@ -58,21 +63,25 @@ export function IncidentActions({ incident }: { incident: IncidentDetail }) {
   }
 
   const needsAgent = pending === 'assign' || pending === 'reassign';
+  const needsTeam = pending === 'dispatch';
   const needsSolution = pending === 'resolve';
   // On hold needs both: why it waits, and the day someone acts on it again.
   const needsHold = pending === 'hold';
   const today = todayInput();
   const canSubmit = needsAgent
     ? Boolean(agentId)
-    : needsSolution
-      ? Boolean(solution.trim())
-      : needsHold
-        ? Boolean(pendingReason.trim()) && nextActionDate >= today
-        : true;
+    : needsTeam
+      ? Boolean(teamId)
+      : needsSolution
+        ? Boolean(solution.trim())
+        : needsHold
+          ? Boolean(pendingReason.trim()) && nextActionDate >= today
+          : true;
 
   const reset = () => {
     setPending(null);
     setAgentId('');
+    setTeamId('');
     setSolution('');
     setResolutionCode('');
     setPendingReason('');
@@ -85,6 +94,7 @@ export function IncidentActions({ incident }: { incident: IncidentDetail }) {
       {
         action: pending,
         ...(needsAgent ? { agentId } : {}),
+        ...(needsTeam ? { teamId } : {}),
         ...(needsSolution ? { solution, ...(resolutionCode ? { resolutionCode } : {}) } : {}),
         ...(needsHold ? { pendingReason: pendingReason.trim(), nextActionDate } : {}),
       },
@@ -95,6 +105,7 @@ export function IncidentActions({ incident }: { incident: IncidentDetail }) {
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap gap-2">
+        {takeable ? <TakeItButton type="incident" id={incident.id} /> : null}
         {actions.map((action) => {
           const meta = ACTION_META[action];
           const Icon = meta.icon;
@@ -124,6 +135,20 @@ export function IncidentActions({ incident }: { incident: IncidentDetail }) {
                 ...(options?.agents ?? []),
               ]}
             />
+          ) : null}
+
+          {needsTeam ? (
+            <>
+              <Select
+                aria-label="Team"
+                value={teamId}
+                onChange={(e) => setTeamId(e.target.value)}
+                options={[{ value: '', label: 'Select a team…' }, ...(options?.teams ?? [])]}
+              />
+              <p className="text-[12.5px] text-ink-muted">
+                Nobody is chosen yet: anyone in the team takes it from their team’s queue.
+              </p>
+            </>
           ) : null}
 
           {needsSolution ? (

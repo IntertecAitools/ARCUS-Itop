@@ -11,6 +11,7 @@ import type { TicketStatus } from '@/types/ticket';
  */
 const statusMeta: Record<TicketStatus, { tone: BadgeTone; label: string }> = {
   new: { tone: 'brand', label: 'New' },
+  dispatched: { tone: 'brand', label: 'With team' },
   open: { tone: 'info', label: 'Open' },
   in_progress: { tone: 'info', label: 'In Progress' },
   pending: { tone: 'warning', label: 'Pending' },

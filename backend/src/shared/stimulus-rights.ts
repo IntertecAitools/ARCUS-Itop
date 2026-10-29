@@ -45,15 +45,18 @@ const STIMULUS_GRANTS: Record<string, Record<string, string[]>> = {
     ],
     Problem: ["ev_reassign", "ev_assign", "ev_resolve", "ev_close"],
   },
+  // ev_dispatch for these two comes from the arcus-ticket-dispatch extension.
   "Service Desk Agent": {
     Ticketing: ["ev_close"],
-    Incident: ["ev_assign"],
-    UserRequest: ["ev_assign"],
+    Incident: ["ev_assign", "ev_dispatch"],
+    UserRequest: ["ev_assign", "ev_dispatch"],
   },
   "Support Agent": {
     Ticketing: ["ev_close"],
-    Incident: ["ev_assign", "ev_reassign", "ev_resolve", "ev_close", "ev_pending"],
-    UserRequest: ["ev_assign", "ev_reassign", "ev_resolve", "ev_close", "ev_pending", "ev_wait_for_approval"],
+    Incident: ["ev_assign", "ev_dispatch", "ev_reassign", "ev_resolve", "ev_close", "ev_pending"],
+    UserRequest: [
+      "ev_assign", "ev_dispatch", "ev_reassign", "ev_resolve", "ev_close", "ev_pending", "ev_wait_for_approval",
+    ],
   },
   "Problem Manager": {
     Ticketing: ["ev_close"],

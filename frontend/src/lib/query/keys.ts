@@ -48,6 +48,12 @@ export const queryKeys = {
     rules: () => ['changes', 'rules'] as const,
   },
 
+  dispatch: {
+    all: () => ['dispatch'] as const,
+    queue: () => ['dispatch', 'queue'] as const,
+    rules: () => ['dispatch', 'rules'] as const,
+  },
+
   approvals: {
     all: () => ['approvals'] as const,
     list: (state: string) => ['approvals', 'list', state] as const,

@@ -19,6 +19,20 @@ export type TransitionGuard = (
 ) => Promise<void>;
 
 /**
+ * See ObjectsService.addCreateListener. Answers true when it changed the
+ * record, so the caller gets it as it now is.
+ */
+export type CreateListener = (className: string, object: ObjectDto) => Promise<boolean>;
+
+/** See ObjectsService.addStimulusListener. */
+export type StimulusListener = (
+  className: string,
+  object: ObjectDto,
+  stimulus: string,
+  fields: Record<string, unknown>,
+) => Promise<void>;
+
+/**
  * Upper bound on rows the BFF will pull in order to sort.
  *
  * iTop cannot sort: OQL has no ORDER BY production and core/get hardcodes
@@ -543,7 +557,42 @@ export class ObjectsService {
     if (!created) {
       throw new AppError("upstream_error", `iTop reported success but returned no object.`);
     }
-    return { object: this.toDto(created), rejected: validated.rejected };
+    let object = this.toDto(created);
+    let changed = false;
+    for (const listener of this.createListeners) {
+      if (await listener(info.name, object)) changed = true;
+    }
+    if (changed) {
+      const again = await this.client.call("core/get", {
+        class: info.name,
+        key: object.id,
+        output_fields: this.outputFields(info, options.fields, "full"),
+      }, { asService: options.asService ?? false });
+      const reread = normalizeObjects(again.objects)[0];
+      if (reread) object = this.toDto(reread);
+    }
+    return { object, rejected: validated.rejected };
+  }
+
+  /**
+   * What a domain module does once a record exists, whichever screen made
+   * it (dispatch: the assignment rules route a new ticket). A listener must
+   * not throw: the record is made, and a failure there is its to report.
+   */
+  private readonly createListeners: CreateListener[] = [];
+
+  addCreateListener(listener: CreateListener): void {
+    this.createListeners.push(listener);
+  }
+
+  /**
+   * What a domain module does once a lifecycle action went through
+   * (dispatch: email the team). Same rule: never throws.
+   */
+  private readonly stimulusListeners: StimulusListener[] = [];
+
+  addStimulusListener(listener: StimulusListener): void {
+    this.stimulusListeners.push(listener);
   }
 
   async update(
@@ -736,7 +785,9 @@ export class ObjectsService {
         `iTop accepted the stimulus "${stimulus}" but returned no object.`,
       );
     }
-    return this.toDto(updated);
+    const object = this.toDto(updated);
+    for (const listener of this.stimulusListeners) await listener(info.name, object, stimulus, fields);
+    return object;
   }
 
   /**

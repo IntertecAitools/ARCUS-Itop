@@ -20,7 +20,8 @@ const SEEDED = false;
 
 /** Mirrors the backend's lifecycle, so the mock offers the same actions. */
 const ACTIONS_BY_STATUS: Record<string, TransitionAction[]> = {
-  new: ['assign'],
+  new: ['assign', 'dispatch'],
+  dispatched: ['assign', 'dispatch'],
   open: ['hold', 'resolve', 'reassign'],
   in_progress: ['hold', 'resolve', 'reassign'],
   pending: ['assign'],
@@ -30,6 +31,7 @@ const ACTIONS_BY_STATUS: Record<string, TransitionAction[]> = {
 
 const RESULT_STATUS: Record<TransitionAction, IncidentDetail['status']> = {
   assign: 'open',
+  dispatch: 'dispatched',
   reassign: 'open',
   hold: 'pending',
   resolve: 'resolved',
@@ -198,8 +200,9 @@ export const incidentHandlers = [
         { value: '1', label: 'admin' },
         { value: '2', label: 'Ravi' },
       ],
-      teams: [],
-      services: [],
+      teams: [{ value: '7', label: 'Network' }],
+      services: [{ value: '3', label: 'Network access' }],
+      serviceSubcategories: [{ value: '31', label: 'VPN', serviceId: '3' }],
     }),
   ),
 
@@ -338,6 +341,7 @@ export const incidentHandlers = [
 
     const body = (await request.json()) as {
       action: TransitionAction;
+      teamId?: string;
       solution?: string;
       pendingReason?: string;
       nextActionDate?: string;
@@ -362,6 +366,11 @@ export const incidentHandlers = [
       if (!body.nextActionDate) return badRequest('"hold" requires a next-action date.');
       if (body.nextActionDate < today()) return badRequest('The next-action date cannot be in the past.');
       incident.pending = { reason: body.pendingReason.trim(), nextActionDate: body.nextActionDate, overdue: false };
+    }
+
+    if (body.action === 'dispatch') {
+      if (!body.teamId) return badRequest('"dispatch" requires team_id.');
+      incident.team = { id: body.teamId, name: `Team ${body.teamId}` };
     }
 
     incident.status = RESULT_STATUS[body.action];

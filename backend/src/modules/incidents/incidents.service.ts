@@ -105,6 +105,13 @@ export class IncidentsService {
     private readonly mailer?: Mailer,
   ) {}
 
+  /** Whether iTop can dispatch to a team (modules/dispatch); until told, it cannot. */
+  private dispatchAvailable: () => Promise<boolean> = async () => false;
+
+  useDispatchCheck(check: () => Promise<boolean>): void {
+    this.dispatchAvailable = check;
+  }
+
   /* --------------------------------------------------------------------- *
    * Read
    * --------------------------------------------------------------------- */
@@ -207,14 +214,19 @@ export class IncidentsService {
   private async detail(item: ObjectDto): Promise<IncidentDetail> {
     const id = String(item.id);
     const parentId = str(item.fields["parent_incident_id"]);
-    const [extras, available, children, parents] = await Promise.all([
+    const [extras, available, children, parents, dispatchable] = await Promise.all([
       this.extras.read("Incident", [id]),
       this.extras.available("Incident"),
       this.linked(`parent_incident_id = ${Number(id)}`),
       parentId && parentId !== "0" ? this.linked(`id = ${Number(parentId)}`) : Promise.resolve([]),
+      this.dispatchAvailable(),
     ]);
+    const detail = this.toDetail(item);
     return {
-      ...this.toDetail(item),
+      ...detail,
+      availableActions: dispatchable
+        ? detail.availableActions
+        : detail.availableActions.filter((action) => action !== "dispatch"),
       ...extras.get(id),
       ...(parents[0] ? { parentIncident: parents[0] } : {}),
       childIncidents: children,
@@ -392,6 +404,7 @@ export class IncidentsService {
     const fields: Record<string, unknown> = {};
 
     if (input.agentId) fields["agent_id"] = Number(input.agentId);
+    if (input.teamId) fields["team_id"] = Number(input.teamId);
     if (input.solution) fields["solution"] = input.solution;
     if (input.resolutionCode) fields["resolution_code"] = input.resolutionCode;
     if (input.comment) fields["public_log"] = input.comment;

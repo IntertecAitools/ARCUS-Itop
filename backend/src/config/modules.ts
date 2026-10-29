@@ -5,6 +5,7 @@ import { registerBusinessHoursRoutes } from "../modules/business-hours/index.js"
 import { registerChangeRoutes } from "../modules/changes/index.js";
 import { registerDashboardRoutes } from "../modules/dashboard/index.js";
 import { registerDirectoryRoutes } from "../modules/directory/index.js";
+import { registerDispatchRoutes } from "../modules/dispatch/index.js";
 import { registerIncidentRoutes } from "../modules/incidents/index.js";
 import { registerMailIntakeRoutes } from "../modules/mail-intake/index.js";
 import { registerProblemRoutes } from "../modules/problems/index.js";
@@ -80,6 +81,12 @@ export const modules: BackendModule[] = [
     basePath: "/api/directory",
     description: "Organisations, people and teams — onboarded before any ticket exists.",
     register: registerDirectoryRoutes,
+  },
+  {
+    id: "dispatch",
+    basePath: "/api/dispatch",
+    description: "Tickets sent to a team before anyone takes them: the team's queue, Take it, and the assignment rules that route new tickets (under /api/admin/assignment-rules).",
+    register: registerDispatchRoutes,
   },
   {
     id: "incidents",

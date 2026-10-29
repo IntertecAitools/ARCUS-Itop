@@ -3,7 +3,7 @@
  * grants, which iTop's REST API does not check, on incidents, user requests
  * and problems. Each step runs as an iTop profile from itop-profiles-itil:
  *
- *   - Service Desk Agent: may assign incidents and requests, nothing else
+ *   - Service Desk Agent: may assign and dispatch incidents and requests, nothing else
  *     (no resolve, reassign or hold; no problem actions);
  *   - Configuration ReadOnly: may apply no action at all;
  *   - Support Agent: reassigns an incident, may not assign a problem;
@@ -244,15 +244,15 @@ async function refused(name, res, needs, cls, id, before) {
 
 async function offered() {
   console.log("\nActions offered match the grants");
-  check("Service Desk Agent: Incident offers Assign only", same(await allowed("desk", "Incident"), ["ev_assign"]), JSON.stringify(await allowed("desk", "Incident")));
-  check("Service Desk Agent: UserRequest offers Assign only", same(await allowed("desk", "UserRequest"), ["ev_assign"]));
+  check("Service Desk Agent: Incident offers Assign and Dispatch only", same(await allowed("desk", "Incident"), ["ev_assign", "ev_dispatch"]), JSON.stringify(await allowed("desk", "Incident")));
+  check("Service Desk Agent: UserRequest offers Assign and Dispatch only", same(await allowed("desk", "UserRequest"), ["ev_assign", "ev_dispatch"]));
   check("Service Desk Agent: Problem offers nothing", same(await allowed("desk", "Problem"), []));
   for (const cls of ["Incident", "UserRequest", "Problem"]) {
     check(`Configuration ReadOnly: ${cls} offers nothing`, same(await allowed("readonly", cls), []), JSON.stringify(await allowed("readonly", cls)));
   }
   check(
-    "Support Agent: Incident offers assign, reassign, hold, resolve, close (not reopen)",
-    same(await allowed("support", "Incident"), ["ev_assign", "ev_reassign", "ev_pending", "ev_resolve", "ev_close"]),
+    "Support Agent: Incident offers assign, dispatch, reassign, hold, resolve, close (not reopen)",
+    same(await allowed("support", "Incident"), ["ev_assign", "ev_dispatch", "ev_reassign", "ev_pending", "ev_resolve", "ev_close"]),
     JSON.stringify(await allowed("support", "Incident")),
   );
   check("Problem Manager: Problem offers its four actions", same(await allowed("problem", "Problem"), ["ev_assign", "ev_reassign", "ev_resolve", "ev_close"]));
@@ -266,7 +266,7 @@ async function incident() {
   const assignTo = { team_id: teamId, agent_id: accounts.desk.personId };
   const id = await create("Incident", { org_id: orgId, caller_id: accounts.desk.personId, title: `${TAG} incident`, description: "<p>rights</p>" });
   let res = await request("desk", "GET", `/api/incidents/${id}`);
-  check("incident screen offers the Service Desk Agent Assign on a new incident", res.status === 200 && same(res.json.availableActions, ["assign"]), `${res.status} ${JSON.stringify(res.json?.availableActions)}`);
+  check("incident screen offers the Service Desk Agent Assign and Dispatch on a new incident", res.status === 200 && same(res.json.availableActions, ["assign", "dispatch"]), `${res.status} ${JSON.stringify(res.json?.availableActions)}`);
   await refused("Configuration ReadOnly may not assign (403)", await act("readonly", "Incident", id, "ev_assign", assignTo), /needs Service Desk Agent or Support Agent/, "Incident", id, "new");
   res = await act("desk", "Incident", id, "ev_assign", assignTo);
   check("Service Desk Agent assigns the incident", res.status === 200 && res.json.fields?.status === "assigned", `${res.status} ${message(res)}`);
