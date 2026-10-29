@@ -322,7 +322,8 @@ export interface PirInput {
   outcome: PirOutcome;
   wentWell: string;
   wentBadly: string;
-  incidentIds: string[];
+  /** Incident refs (I-000123) or ids. */
+  incidents: string[];
   followUps: PirFollowUp[];
 }
 

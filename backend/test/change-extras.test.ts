@@ -272,7 +272,7 @@ describe("ChangePirService", () => {
         outcome: "partial",
         wentWell: "Done in the window",
         wentBadly: "Mail queued for 20 minutes",
-        incidentIds: ["30"],
+        incidents: ["I-30"],
         followUps: [{ text: "Add a queue alert", owner: "Ops", due: "2026-11-15", done: false }, { text: " ", owner: "", due: "", done: false }],
       }),
     );
@@ -287,12 +287,12 @@ describe("ChangePirService", () => {
     const early = new ChangePirService(fake("approved").asClient(), new MemoryDocStore(), TZ);
     assert.equal((await early.get(12)).allowed, false);
     await assert.rejects(
-      early.save(12, { outcome: "successful", wentWell: "", wentBadly: "", incidentIds: [], followUps: [] }),
+      early.save(12, { outcome: "successful", wentWell: "", wentBadly: "", incidents: [], followUps: [] }),
       conflictWith("not_implemented"),
     );
     const pir = new ChangePirService(fake("closed").asClient(), new MemoryDocStore(), TZ);
     await assert.rejects(
-      pir.save(12, { outcome: "rolled_back", wentWell: "", wentBadly: "", incidentIds: [], followUps: [] }),
+      pir.save(12, { outcome: "rolled_back", wentWell: "", wentBadly: "", incidents: [], followUps: [] }),
       /did not go well/,
     );
   });

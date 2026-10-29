@@ -2,6 +2,7 @@ import { AppError, badRequest } from "../../core/errors.js";
 import { currentCaller } from "../../core/request-context.js";
 import type { ItopClient } from "../../itop/client.js";
 import { normalizeObjects } from "../../itop/normalize.js";
+import { quoteString } from "../../itop/oql.js";
 import type { DocStore } from "../../shared/doc-store.js";
 import { itopTimeToIso, toItopTime } from "../../shared/itop-time.js";
 import { str } from "../../shared/ticket-mapping.js";
@@ -68,7 +69,7 @@ export class ChangePirService {
       outcome: input.outcome,
       wentWell: input.wentWell.trim(),
       wentBadly: input.wentBadly.trim(),
-      incidents: await this.incidents(input.incidentIds),
+      incidents: await this.incidents(input.incidents),
       followUps: input.followUps
         .map((f) => ({ text: f.text.trim(), owner: f.owner.trim(), due: f.due, done: f.done }))
         .filter((f) => f.text),
@@ -80,13 +81,19 @@ export class ChangePirService {
     return this.get(id);
   }
 
-  /** The incidents named, read as the caller (so only ones they can see). */
-  private async incidents(ids: string[]): Promise<PirIncident[]> {
-    const wanted = [...new Set(ids.map(Number))];
+  /** The incidents named by ref or id, read as the caller (so only ones they can see). */
+  private async incidents(names: string[]): Promise<PirIncident[]> {
+    const wanted = [...new Set(names.map((n) => n.trim()).filter(Boolean))];
     if (wanted.length === 0) return [];
+    const ids = wanted.filter((n) => /^\d+$/.test(n));
+    const refs = wanted.filter((n) => !/^\d+$/.test(n));
+    const where = [
+      ids.length ? `id IN (${ids.join(",")})` : "",
+      refs.length ? `ref IN (${refs.map(quoteString).join(",")})` : "",
+    ].filter(Boolean);
     const result = await this.client.call("core/get", {
       class: "Incident",
-      key: `SELECT Incident WHERE id IN (${wanted.join(",")})`,
+      key: `SELECT Incident WHERE ${where.join(" OR ")}`,
       output_fields: "ref,title",
     });
     const found = normalizeObjects(result.objects).map((r) => ({
@@ -94,7 +101,7 @@ export class ChangePirService {
       ref: str(r.fields["ref"]),
       title: str(r.fields["title"]),
     }));
-    const missing = wanted.filter((id) => !found.some((f) => f.id === String(id)));
+    const missing = wanted.filter((n) => !found.some((f) => f.id === n || f.ref.toLowerCase() === n.toLowerCase()));
     if (missing.length > 0) throw badRequest(`Incident ${missing.join(", ")} was not found.`);
     return found;
   }

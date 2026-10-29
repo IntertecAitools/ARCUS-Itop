@@ -83,7 +83,7 @@ export const pirSchema = z.object({
   outcome: z.enum(["successful", "partial", "failed", "rolled_back"]),
   wentWell: text.default(""),
   wentBadly: text.default(""),
-  incidentIds: z.array(numericId).max(50).default([]),
+  incidents: z.array(z.string().trim().min(1).max(40)).max(50).default([]),
   followUps: z
     .array(
       z.object({

@@ -7,7 +7,8 @@ import { Eyebrow, PageIntro, SectionTitle } from '@/components/public';
 import { ChangePasswordDialog } from '@/features/auth';
 import { useSessionStore } from '@/stores/session.store';
 import { compactNumber } from '@/lib/utils';
-import { useFaq, useFaqs, useMyRequests, useProfile, useUpdateProfile } from '../api/portal.api';
+import { useFaq, useFaqs, useMyRequests, useProfile, useRateFaq, useUpdateProfile } from '../api/portal.api';
+import { ArticleFeedback } from '@/features/knowledge-base';
 import { usePendingApprovalCount } from '@/features/approvals';
 
 const stripHtml = (html: string) => html.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
@@ -137,6 +138,7 @@ export function PortalFaqsPage() {
 export function PortalFaqPage() {
   const { id = '' } = useParams();
   const { data: faq, isLoading, error } = useFaq(id);
+  const rate = useRateFaq(id);
   return (
     <>
       <Link to="/portal/help" className="mb-8 inline-flex items-center gap-1.5 text-[14px] text-ink-secondary hover:text-ink">
@@ -152,6 +154,7 @@ export function PortalFaqPage() {
           <PageIntro eyebrow={faq.category || 'Knowledge base'} title={faq.title} className="mb-8" />
           {faq.summary ? <p className="mb-6 text-[19px] leading-8 text-ink">{stripHtml(faq.summary)}</p> : null}
           <p className="text-[16px] leading-8 whitespace-pre-wrap text-ink-secondary">{stripHtml(faq.description ?? '') || '—'}</p>
+          <ArticleFeedback key={id} className="mt-10" onSubmit={(input) => rate.mutateAsync(input)} />
         </article>
       )}
     </>

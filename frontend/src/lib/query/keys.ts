@@ -55,6 +55,19 @@ export const queryKeys = {
     governance: (id: string) => ['changes', 'governance', id] as const,
     cab: () => ['changes', 'cab'] as const,
     rules: () => ['changes', 'rules'] as const,
+    calendar: (filters: Record<string, unknown>) => ['changes', 'calendar', filters] as const,
+    risk: (id: string) => ['changes', 'risk', id] as const,
+    riskModel: () => ['changes', 'risk-model'] as const,
+    blackouts: () => ['changes', 'blackouts'] as const,
+    pir: (id: string) => ['changes', 'pir', id] as const,
+    pirDue: () => ['changes', 'pir-due'] as const,
+  },
+
+  knowledge: {
+    all: () => ['knowledge'] as const,
+    list: (filters: Record<string, unknown>) => ['knowledge', 'list', filters] as const,
+    article: (kind: string, id: string) => ['knowledge', 'article', kind, id] as const,
+    settings: () => ['knowledge', 'settings'] as const,
   },
 
   dispatch: {

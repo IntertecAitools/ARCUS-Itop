@@ -153,7 +153,7 @@ export class ChangeRiskService {
     ) {
       throw new AppError(
         "conflict",
-        `Answer the risk questionnaire before planning this ${type} change (the Risk tab).`,
+        `Answer the risk questionnaire before planning this ${type} change (the CAB & plans tab).`,
         { details: { reason: "risk_missing" } },
       );
     }
