@@ -21,6 +21,13 @@ import {
   RequestFormsService,
   type RequestFormStore,
 } from "./modules/request-forms/index.js";
+import {
+  DataImportService,
+  MemoryImportReportStore,
+  MySqlImportReportStore,
+  type ImportReportStore,
+  SyncSourcesService,
+} from "./modules/data-import/index.js";
 import { LookupsService } from "./platform/lookups/lookups.service.js";
 import { Navigation } from "./platform/navigation/navigation.service.js";
 import { Dashboards } from "./platform/dashboards/dashboards.service.js";
@@ -104,6 +111,10 @@ export interface Services {
   /** Present when MAIL_INTAKE_SOURCE is set. */
   mailIntake?: MailIntakeService;
   requestForms: RequestFormsService;
+  /** The admin import wizard (REST, previewed) and its kept reports. */
+  dataImport: DataImportService;
+  /** Recurring feeds: iTop's Data Synchro sources. */
+  syncSources: SyncSourcesService;
   directory: DirectoryService;
   defaultOrganization: DefaultOrganization;
   currentContact: CurrentContact;
@@ -127,6 +138,8 @@ export interface BuildServicesOptions {
   requestForms?: RequestFormStore;
   /** Change plan rules for tests; otherwise in the BFF database, or memory. */
   planRules?: PlanRuleStore;
+  /** Import reports for tests; otherwise in the BFF database, or memory. */
+  importReports?: ImportReportStore;
   /** Stands in for SMTP in tests; otherwise built from PASSWORD_RESET settings. */
   mailer?: Mailer;
   /** Stands in for the support mailbox in tests. */
@@ -289,6 +302,13 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
       client,
       options.requestForms ?? (stores?.pool ? new MySqlRequestFormStore(stores.pool) : new MemoryRequestFormStore()),
     ),
+    dataImport: new DataImportService(
+      client,
+      schema,
+      options.importReports ?? (stores?.pool ? new MySqlImportReportStore(stores.pool) : new MemoryImportReportStore()),
+      config.itop.timezone,
+    ),
+    syncSources: new SyncSourcesService(client, schema),
     directory: new DirectoryService(objects),
     tenancy,
     tenantStore,

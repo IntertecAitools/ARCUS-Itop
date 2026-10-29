@@ -1126,6 +1126,70 @@ expects iTop's TTO deadline for a new incident an hour into that day, a week
 later once that day is a holiday, the SLA dashboard counting it in working
 time, and the contract service kept when the window is deleted.
 
+## Data import and sync
+
+`modules/data-import`, under `/api/admin/data-import` (administrators only).
+The screens are **Data import** and **Sync sources** in the Administration
+menu. Admins never need iTop's CSV import or Synchro screens.
+
+**Import wizard** (Person, Organization, Team, Location, Server, PC,
+NetworkDevice, ApplicationSolution, the software instances and Software):
+
+| Route | Does |
+| ----- | ---- |
+| `POST /read` | `{ fileName, content: base64 }` → headings and rows. CSV (separator guessed, BOM dropped) or `.xlsx` (first sheet; dates as `YYYY-MM-DD[ HH:MM:SS]`). Read in the BFF, no library. Nothing is kept. |
+| `POST /:class/preview` | The dry run: `{ columns, rows, keys }` → per row `create` / `update` (with each field's old → new value) / `unchanged` / `error` (why). Writes nothing. |
+| `POST /:class/run` | Plans again against iTop as it is now, then writes with REST `core/create` / `core/update` (changed fields only), four at a time. One failing row never stops the others. |
+| `GET /reports`, `/reports/:id`, `/reports/:id/download` | The last 50 runs per tenant, kept in `bff_import_reports` (memory without MySQL); the download is CSV. |
+
+A column target is an attribute code, `org_id` by id, or a reference matched
+on a field of its target (`org_id->name`, `manager_id->friendlyname`,
+`manager_id->email`). References are looked up in batches of 50; a value no
+record has, or several have, is that row's error. Keys default to email for
+people, name for organisations, name + organisation for the rest (name +
+system for a software instance); a key that differs only in case matches
+and is not an update. An empty cell leaves the field as it is. Most rows per
+import: 2,000 (one REST call per written row).
+
+Rights and tenancy: every call runs as the signed-in admin through the
+tenant guard, so iTop's profiles apply and a tenant's admin finds only their
+organisations (another tenant's organisation is "not found"). Rights errors
+show at the run, row by row; REST has no dry run of a write.
+
+**Sync sources** are iTop's own Data Synchro (`SynchroDataSource`), so a feed
+behaves exactly as one fed by a Combodo collector:
+
+| Route | Does |
+| ----- | ---- |
+| `GET/POST /sync-sources`, `GET/PUT/DELETE /sync-sources/:id` | Define a source: target class, columns the feed provides (the rest are left alone), keys (`reconcile`), how a reference is given (`reconciliation_attcode`, e.g. org by name), what happens with no / several matches, and the delete policy (ignore, update e.g. `status:obsolete`, delete, update then delete after N days). Deleting a source drops its data table; the records stay. |
+| `POST /sync-sources/:id/run` | `{ columns, rows, simulate }`: one column is `primary_key` (the feed's own id). Loads the file and synchronizes through `synchro/synchro_import.php`; `simulate` runs it all and rolls back. |
+| `GET /sync-sources/:id/logs/:logId` | A run's `SynchroLog`, with iTop's trace when `synchro_trace` is on. |
+
+What REST can't do, and the closest workable version:
+
+- **Loading data and running the synchro** have no REST verb. The BFF calls
+  `synchro/synchro_import.php` (iTop's HTTP entry point for collectors) with
+  the caller's credentials, the way the CSV import calls `import.php`.
+- **Scheduling** is not iTop's either: a synchro runs when a feed is posted.
+  A recurring feed is a cron job or collector posting the file to
+  `synchro_import.php` (or to `POST /sync-sources/:id/run`); runs from any
+  sender show in the source's run list. `full_load_periodicity` only tells
+  iTop how often to expect a full load.
+- **Logs can't be sorted** by REST: the BFF reads the source's log ids and
+  fetches the newest.
+- Under tenancy a source spans every organisation, so sync sources are the
+  platform operator's: a tenant's admin gets 403 (the class is not published
+  and the script is refused to tenants).
+
+`npm run e2e:data-import` (BFF on `:4060`, the `"dataImport"` account in
+`e2e.local.json`, else `"sla"`; an administrator) imports a throwaway
+organisation, servers (from `.xlsx`) and people, checks every preview
+outcome and the kept report, defines a sync source, simulates and runs it,
+checks the delete policy obsoletes a server that left the feed, and reads
+the logs. With `E2E_TENANT_BFF` (a second BFF with `TENANCY=on` and the
+`npm run tenants -- seed-test` tenants) it adds the tenant checks.
+Everything it creates is deleted at the end.
+
 ## What this layer is actually for
 
 Five upstream behaviours make a direct browser-to-iTop integration painful.
