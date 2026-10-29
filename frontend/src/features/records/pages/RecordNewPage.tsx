@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Database } from 'lucide-react';
 
 import { PageHeader } from '@/components/layout';
@@ -9,7 +9,6 @@ import { useClasses, useClassInfo, useCreateRecord } from '../api/useRecords';
 import { humaniseAttcode } from '../components/FieldControls';
 import { layoutFor, mustSupply, RecordForm } from '../components/RecordForm';
 import type { RecordDto } from '../types';
-import { dedicatedRecordPath } from '../lib/dedicated';
 import { RequestFormSection, answersFor, missingRequired, type FormAnswers, type FormField } from '@/features/request-forms';
 
 /** What the BFF returns from a create: the row, plus anything iTop refused. */
@@ -26,16 +25,12 @@ interface CreateResult {
  * exist. The record is created in iTop through the BFF, so there is no second
  * step in iTop's console.
  *
- * A class with a create form of its own (an Incident) is sent on to that form.
+ * Incidents are created here too, not on the shorter incident form: this one
+ * carries every field iTop's schema offers (organisation, caller, CIs,
+ * contacts…). The saved incident still opens on its own screen, because
+ * `/records/Incident/<id>` redirects there.
  */
 export function RecordNewPage() {
-  const { className = '' } = useParams();
-  const dedicated = dedicatedRecordPath(className, 'new');
-  if (dedicated) return <Navigate to={dedicated} replace />;
-  return <GenericRecordNew />;
-}
-
-function GenericRecordNew() {
   const { className = '' } = useParams();
   const navigate = useNavigate();
   const { data: info, isLoading, isError, error } = useClassInfo(className);
