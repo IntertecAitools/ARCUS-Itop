@@ -34,6 +34,16 @@ import {
   type ImportReportStore,
   SyncSourcesService,
 } from "./modules/data-import/index.js";
+import {
+  DraftsService,
+  type DraftStore,
+  MemoryDraftStore,
+  MemoryTicketHandlingStore,
+  MySqlDraftStore,
+  MySqlTicketHandlingStore,
+  type TicketHandlingStore,
+  TicketHandlingService,
+} from "./modules/ticket-handling/index.js";
 import { LookupsService } from "./platform/lookups/lookups.service.js";
 import { Navigation } from "./platform/navigation/navigation.service.js";
 import { Dashboards } from "./platform/dashboards/dashboards.service.js";
@@ -123,6 +133,10 @@ export interface Services {
   dataImport: DataImportService;
   /** Recurring feeds: iTop's Data Synchro sources. */
   syncSources: SyncSourcesService;
+  /** Priority override, duplicates, cancel, worklogs on incidents and requests. */
+  ticketHandling: TicketHandlingService;
+  /** Each user's drafts of the new-ticket forms. */
+  drafts: DraftsService;
   directory: DirectoryService;
   defaultOrganization: DefaultOrganization;
   currentContact: CurrentContact;
@@ -150,6 +164,10 @@ export interface BuildServicesOptions {
   assignmentRules?: AssignmentRuleStore;
   /** Import reports for tests; otherwise in the BFF database, or memory. */
   importReports?: ImportReportStore;
+  /** Overrides and worklogs for tests; otherwise in the BFF database, or memory. */
+  ticketHandling?: TicketHandlingStore;
+  /** Drafts for tests; otherwise in the BFF database, or memory. */
+  drafts?: DraftStore;
   /** Stands in for SMTP in tests; otherwise built from PASSWORD_RESET settings. */
   mailer?: Mailer;
   /** Stands in for the support mailbox in tests. */
@@ -336,6 +354,15 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
       config.itop.timezone,
     ),
     syncSources: new SyncSourcesService(client, schema),
+    ticketHandling: new TicketHandlingService(
+      client,
+      options.ticketHandling ??
+        (stores?.pool ? new MySqlTicketHandlingStore(stores.pool) : new MemoryTicketHandlingStore()),
+      config.itop.timezone,
+    ),
+    drafts: new DraftsService(
+      options.drafts ?? (stores?.pool ? new MySqlDraftStore(stores.pool) : new MemoryDraftStore()),
+    ),
     directory: new DirectoryService(objects),
     tenancy,
     tenantStore,

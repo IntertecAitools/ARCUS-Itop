@@ -12,6 +12,7 @@ import { registerMailIntakeRoutes } from "../modules/mail-intake/index.js";
 import { registerProblemRoutes } from "../modules/problems/index.js";
 import { registerRequestFormRoutes } from "../modules/request-forms/index.js";
 import { registerSlaRoutes } from "../modules/sla/index.js";
+import { registerTicketHandlingRoutes } from "../modules/ticket-handling/index.js";
 
 /**
  * ════════════════════════════════════════════════════════════════════════════
@@ -124,6 +125,12 @@ export const modules: BackendModule[] = [
     basePath: "/api/sla",
     description: "Open incidents and requests by SLA state: within target, at risk, breached.",
     register: registerSlaRoutes,
+  },
+  {
+    id: "ticket-handling",
+    basePath: "/api/ticket-handling",
+    description: "Priority override with a reason, duplicates (suggested, linked, resolved), cancel, and worklogs on incidents and requests; each user's drafts of the new-ticket forms (/api/me/drafts).",
+    register: registerTicketHandlingRoutes,
   },
 ];
 

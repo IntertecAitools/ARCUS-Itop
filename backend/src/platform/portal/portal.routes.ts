@@ -100,6 +100,18 @@ export function registerPortalRoutes(app: FastifyInstance, services: Services): 
     });
   });
 
+  /** The requester withdraws an open ticket, with a reason. */
+  app.post("/api/portal/requests/:id/cancel", async (request) => {
+    const { id } = parse(idParams, request.params, "path parameters");
+    const { reason } = parse(z.object({ reason: z.string().max(2_000) }), request.body, "request body");
+    const ticket = await portal.getTicket(caller(), id);
+    if (!ticket.actions.includes("cancel")) {
+      throw new AppError("bad_request", `This ${ticket.kind} can no longer be cancelled.`);
+    }
+    await services.ticketHandling.cancel(ticket.kind === "incident" ? "Incident" : "UserRequest", id, reason, caller());
+    return portal.getTicket(caller(), id);
+  });
+
   app.post("/api/portal/requests/:id/reopen", async (request) => {
     const { id } = parse(idParams, request.params, "path parameters");
     const { message } = parse(z.object({ message: z.string().max(20_000) }), request.body, "request body");
