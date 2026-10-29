@@ -113,3 +113,162 @@ export interface ProblemTrends {
   /** More records than the trend reads; the counts are a lower bound. */
   truncated: boolean;
 }
+
+/* ------------------------------------------------------------------------- *
+ * Root-cause evidence (correlation assistant) and the AI draft
+ * ------------------------------------------------------------------------- */
+
+/** A record the evidence points at, for a link on screen. */
+export interface RecordRef {
+  class: string;
+  id: string;
+  /** The ref (I-000123) or name (SRV-DB-01). */
+  label: string;
+}
+
+export interface EvidenceIncident {
+  id: string;
+  ref: string;
+  title: string;
+  /** iTop's status code. */
+  status: string;
+  /** ISO instant. */
+  startDate: string;
+  serviceId: string;
+  serviceName: string;
+  subcategoryId: string;
+  subcategoryName: string;
+  cis: Array<{ id: string; name: string }>;
+  /** The change the incident is linked to, when there is one. */
+  changeId?: string;
+  changeRef?: string;
+}
+
+export interface SimilarIncident extends EvidenceIncident {
+  /** Why it looks related: "same CI SRV-DB-01", "similar title (62%)". */
+  matches: string[];
+  /** The problem it is linked to already, if any. */
+  problemRef?: string;
+}
+
+export type CiRole = "affected" | "upstream" | "downstream";
+
+export interface EvidenceCi {
+  id: string;
+  name: string;
+  class: string;
+  /**
+   * affected: on the problem or one of its incidents. upstream: an affected CI
+   * depends on it (iTop's impact relation). downstream: it depends on one.
+   */
+  role: CiRole;
+  /** Linked incidents naming this CI. */
+  incidentCount: number;
+  /** For upstream and downstream: the affected CI it is related to. */
+  via?: string;
+}
+
+export interface EvidenceChange {
+  id: string;
+  ref: string;
+  title: string;
+  /** NormalChange, EmergencyChange, RoutineChange or Change. */
+  class: string;
+  status: string;
+  /** ISO instants; end may be empty. */
+  startDate: string;
+  endDate: string;
+  /** From the end (or start) of the change to the first incident; negative while it was still running. */
+  hoursBeforeFirstIncident: number;
+  cis: Array<{ id: string; name: string; role: CiRole }>;
+  /** Linked incidents iTop links to this change (Incident.parent_change_id). */
+  linkedIncidents: number;
+  /** The problem names this change as its related change. */
+  relatedToProblem: boolean;
+}
+
+export interface EvidenceProblem {
+  id: string;
+  ref: string;
+  title: string;
+  status: string;
+  startDate: string;
+  /** The analysis, when the iTop has the arcus-problem-rca fields and it was recorded. */
+  rootCause: string;
+  sharedCis: string[];
+  sameService: boolean;
+}
+
+export interface EvidenceKnownError {
+  id: string;
+  name: string;
+  problemRef: string;
+  rootCause: string;
+  workaround: string;
+  cis: Array<{ id: string; name: string }>;
+}
+
+export type CandidateKind = "change" | "ci" | "known_error" | "problem";
+
+/** One likely cause, with the arithmetic behind its score spelled out. */
+export interface CandidateCause {
+  kind: CandidateKind;
+  record: RecordRef;
+  /** 0-100. */
+  score: number;
+  confidence: "high" | "medium" | "low";
+  /** One-line headline. */
+  summary: string;
+  /** Plain-language reasons, each with the points it added. */
+  reasons: Array<{ text: string; points: number }>;
+  /** Other records the reasons mention. */
+  related: RecordRef[];
+}
+
+export interface RcaEvidence {
+  problemId: string;
+  ref: string;
+  title: string;
+  /** ISO instant. */
+  generatedAt: string;
+  lookbackHours: number;
+  /** The moment changes are measured against: the first linked incident, else the problem's start. */
+  anchor: { at: string; source: "incident" | "problem"; ref: string };
+  linkedIncidents: EvidenceIncident[];
+  similarIncidents: SimilarIncident[];
+  cis: EvidenceCi[];
+  changes: EvidenceChange[];
+  problems: EvidenceProblem[];
+  knownErrors: EvidenceKnownError[];
+  /** Best first. */
+  candidates: CandidateCause[];
+  /**
+   * Sources the caller could not read (no rights to the class, say), so the
+   * screen can say the picture is partial.
+   */
+  unavailable: Array<{ source: string; reason: string }>;
+  /** Whether "Draft with AI" is offered to this caller. */
+  ai: { enabled: boolean };
+}
+
+export interface RcaEvidenceQuery {
+  lookbackHours: number;
+}
+
+/** What the AI drafts. Nothing is saved until the problem manager saves it. */
+export interface RcaDraft extends RootCauseAnalysis {
+  confidence: "high" | "medium" | "low";
+  /** Why that confidence, citing the evidence. */
+  confidenceNote: string;
+  /** Records the draft relies on. */
+  citations: RecordRef[];
+  /** The model that wrote it. */
+  model: string;
+  /** Personal data removed before sending: counts by kind. */
+  redactions: { emails: number; phones: number };
+}
+
+/** Sent with a save when the text started as an AI draft. */
+export interface AnalysisSaveInput extends RootCauseAnalysis {
+  aiDraft?: { model: string };
+}

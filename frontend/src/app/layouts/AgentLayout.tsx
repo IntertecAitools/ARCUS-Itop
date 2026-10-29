@@ -57,7 +57,7 @@ export function AgentLayout() {
           collapsed ? 'lg:ps-sidebar-collapsed' : 'lg:ps-sidebar',
         )}
       >
-        <div className="mx-auto max-w-[1600px] px-4 py-8 sm:px-6 lg:px-10 lg:py-10">
+        <div className="page-in mx-auto max-w-[1600px] px-4 py-8 sm:px-6 lg:px-10 lg:py-10">
           {/* A module crash stays inside the content well — the shell survives. */}
           <ErrorBoundary>
             <Suspense fallback={<RouteFallback />}>

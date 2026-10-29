@@ -17,7 +17,7 @@
     "e2e:live": "node tests/journeys/support/run-live.mjs"
   },
   "dependencies": {
-    "@fontsource-variable/hanken-grotesk": "5.2.8",
+    "@fontsource-variable/inter": "5.2.8",
     "@fontsource-variable/noto-sans-arabic": "5.2.10",
     "@hookform/resolvers": "^3.10.0",
     "@tanstack/react-query": "^5.64.1",

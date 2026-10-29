@@ -1,43 +1,43 @@
 /* ============================================================================
-   The public look — landing page, sign-in / password reset, end-user portal
+   The public look — landing page, sign-in / password reset, end-user portal,
+   and (with `follow`) the staff app
    ----------------------------------------------------------------------------
-   Near-black deep green, white type, almost no colour, square corners and a
-   light-weight grotesque. It is the SAME token set as globals.css, re-pointed
-   under `[data-public-theme]`, so every shared component (Button, Input,
-   Card, Badge…) picks the look up with no per-component branching.
+   Near-black canvas, a violet accent, hairline white borders, glassy rounded
+   cards and Inter set tight. It is the SAME token set as globals.css,
+   re-pointed under `[data-public-theme]`, so every shared component (Button,
+   Input, Card, Badge…) picks the look up with no per-component branching.
 
-   The public layouts set it to `dark` (the default) or `light` (the reading/forms
-   variant a visitor can switch to). The staff shell sets `follow`, which takes
-   dark or light from the staff theme preference on `<html data-theme>`.
+   The public layouts set it to `dark` (the default) or `light` (a lavender-
+   white variant a visitor can switch to). The staff shell sets `follow`, which
+   takes dark or light from the staff theme preference on `<html data-theme>`.
 
    Direction: everything here is written with logical properties (ms-/me-,
    ps-/pe-, border-s, start/end) and arrows flip under `rtl:`, so setting
    dir="rtl" on <html> mirrors the layout with no other change.
 
    Contrast: every ink step below is ≥ 4.5:1 on canvas, surface and raised
-   surface in its own mode, and line-strong (input borders) is ≥ 3:1.
+   surface in its own mode; white on the brand fill (and on both ends of the
+   brand gradient) is ≥ 4.5:1; line-strong (input borders) is ≥ 3:1. Violet
+   TEXT always uses brand-ink, never brand.
    ========================================================================== */
 
-@import '@fontsource-variable/hanken-grotesk';
-/* Arabic: Hanken has no Arabic glyphs, so the browser takes them from Noto
+@import '@fontsource-variable/inter';
+/* Arabic: Inter has no Arabic glyphs, so the browser takes them from Noto
    Sans Arabic. Its @font-face rules carry an Arabic unicode-range, so the
    files only download when Arabic text is on the page. */
 @import '@fontsource-variable/noto-sans-arabic';
 
 [data-public-theme] {
   --arcus-font-sans:
-    'Hanken Grotesk Variable', 'Noto Sans Arabic Variable', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    'Inter Variable', 'Noto Sans Arabic Variable', 'Segoe UI', system-ui, -apple-system, sans-serif;
 
-  --arcus-radius-control: 0;
-  --arcus-radius-card: 0;
-  --arcus-radius-panel: 0;
-  --arcus-radius-pill: 0;
-
-  --arcus-shadow-xs: none;
-  --arcus-shadow-sm: none;
+  --arcus-radius-control: 0.75rem;
+  --arcus-radius-card: 1.25rem;
+  --arcus-radius-panel: 1.25rem;
+  --arcus-radius-pill: 9999px;
 
   font-family: var(--arcus-font-sans), sans-serif;
-  font-feature-settings: normal;
+  font-feature-settings: 'cv11', 'ss01';
   background-color: var(--arcus-canvas);
   color: var(--arcus-ink);
 }
@@ -46,91 +46,96 @@
 :root[data-theme='dark'] [data-public-theme='follow'] {
   color-scheme: dark;
 
-  --arcus-canvas: #121a15;
-  --arcus-surface: #18201a;
-  --arcus-surface-raised: #1e2820;
-  --arcus-surface-sunken: #141c16;
-  --arcus-surface-hover: #253128;
+  --arcus-canvas: #050507;
+  --arcus-surface: #0f0f14;
+  --arcus-surface-raised: #17161f;
+  --arcus-surface-sunken: #0a0a0e;
+  --arcus-surface-hover: #1d1b27;
 
   --arcus-ink: #ffffff;
-  --arcus-ink-secondary: #cdd5cf;
-  --arcus-ink-muted: #9eaaa2;
-  --arcus-ink-inverse: #121a15;
+  --arcus-ink-secondary: #c4bedb;
+  --arcus-ink-muted: #9d96b8;
+  --arcus-ink-inverse: #050507;
 
-  --arcus-line: #2e3a32;
-  --arcus-line-strong: #75827a;
-  --arcus-grid: #222c25;
+  --arcus-line: rgb(255 255 255 / 0.09);
+  --arcus-line-strong: #6b6880;
+  --arcus-grid: #1a1922;
 
-  /* "Brand" here is white: a white button with black type is the accent. */
-  --arcus-brand: #ffffff;
-  --arcus-brand-hover: #dfe6e1;
-  --arcus-brand-active: #c4cec7;
-  --arcus-brand-soft: #253128;
-  --arcus-brand-soft-hover: #2e3b31;
-  --arcus-brand-ink: #ffffff;
-  --arcus-on-brand: #0d130f;
-  --arcus-ring: #ffffff;
-  --arcus-scrim: rgb(0 0 0 / 0.6);
+  --arcus-brand: #6d4aff;
+  --arcus-brand-hover: #7c5cff;
+  --arcus-brand-active: #5e37d6;
+  --arcus-brand-soft: #1b1533;
+  --arcus-brand-soft-hover: #251c47;
+  --arcus-brand-ink: #b9a5ff;
+  --arcus-on-brand: #ffffff;
+  --arcus-ring: #a58bff;
+  --arcus-scrim: rgb(0 0 0 / 0.65);
   /* Critical is a light red here, so the text on it is dark. */
   --arcus-on-critical: #1f0a0a;
 
   --arcus-good: #4ade80;
-  --arcus-good-soft: #15291c;
+  --arcus-good-soft: #10261a;
   --arcus-good-ink: #86efac;
   --arcus-warning: #fbbf24;
-  --arcus-warning-soft: #2a2410;
+  --arcus-warning-soft: #2a2310;
   --arcus-warning-ink: #fcd34d;
   --arcus-serious: #fb923c;
-  --arcus-serious-soft: #2e1e12;
+  --arcus-serious-soft: #2e1d12;
   --arcus-serious-ink: #fdba74;
   --arcus-critical: #f87171;
-  --arcus-critical-soft: #2f1717;
+  --arcus-critical-soft: #2f1619;
   --arcus-critical-ink: #fca5a5;
-  --arcus-neutral: #9eaaa2;
-  --arcus-neutral-soft: #222c25;
-  --arcus-neutral-ink: #cdd5cf;
-  --arcus-info: #93c5fd;
-  --arcus-info-soft: #172331;
-  --arcus-info-ink: #bfdbfe;
+  --arcus-neutral: #9d96b8;
+  --arcus-neutral-soft: #1d1b27;
+  --arcus-neutral-ink: #c4bedb;
+  --arcus-info: #7dd3fc;
+  --arcus-info-soft: #0f2230;
+  --arcus-info-ink: #bae6fd;
 
-  --arcus-shadow-md: 0 2px 4px rgb(0 0 0 / 0.35), 0 4px 12px rgb(0 0 0 / 0.45);
-  --arcus-shadow-lg: 0 8px 24px rgb(0 0 0 / 0.55), 0 2px 6px rgb(0 0 0 / 0.4);
+  --arcus-shadow-xs: 0 1px 2px rgb(0 0 0 / 0.4);
+  --arcus-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4), inset 0 1px 0 rgb(255 255 255 / 0.04);
+  --arcus-shadow-md: 0 2px 4px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.5);
+  --arcus-shadow-lg: 0 16px 48px rgb(0 0 0 / 0.6), 0 2px 6px rgb(0 0 0 / 0.4);
 
-  /* The Logo mark, inverted: a white tile with the brackets in deep green. */
-  --arcus-mark-from: #ffffff;
-  --arcus-mark-to: #dfe6e1;
-  --arcus-mark-fg: #18201a;
+  /* Glass: a faint top-lit gradient over the surface; glow: the violet bloom on hover. */
+  --arcus-glass: linear-gradient(180deg, rgb(255 255 255 / 0.045) 0%, rgb(255 255 255 / 0) 55%);
+  --arcus-glow: 0 0 0 1px rgb(124 92 255 / 0.35), 0 10px 40px -10px rgb(124 92 255 / 0.55);
+  --arcus-brand-gradient: linear-gradient(180deg, #7d55ff 0%, #5530d0 100%);
+
+  /* The Intertec mark: near-white ring and blades, brand-red dot. */
+  --arcus-logo-ink: #f2f0f8;
+  --arcus-logo-dot: #e0564a;
 }
 
 [data-public-theme='light'],
 :root:not([data-theme='dark']) [data-public-theme='follow'] {
   color-scheme: light;
 
-  --arcus-canvas: #f5f5f1;
+  --arcus-canvas: #f6f5fb;
   --arcus-surface: #ffffff;
   --arcus-surface-raised: #ffffff;
-  --arcus-surface-sunken: #f0f0eb;
-  --arcus-surface-hover: #ebebe5;
+  --arcus-surface-sunken: #f1eff8;
+  --arcus-surface-hover: #eeebf7;
 
-  --arcus-ink: #101712;
-  --arcus-ink-secondary: #3b4540;
-  --arcus-ink-muted: #5c6660;
+  --arcus-ink: #0d0b1a;
+  --arcus-ink-secondary: #46425a;
+  --arcus-ink-muted: #5f5a74;
   --arcus-ink-inverse: #ffffff;
 
-  --arcus-line: #e0e0d9;
-  --arcus-line-strong: #868e89;
-  --arcus-grid: #ebebe5;
+  --arcus-line: #e6e3f0;
+  --arcus-line-strong: #8c87a0;
+  --arcus-grid: #efedf5;
 
-  /* Deep green does the job white does in the dark variant. */
-  --arcus-brand: #18201a;
-  --arcus-brand-hover: #2b372f;
-  --arcus-brand-active: #000000;
-  --arcus-brand-soft: #e9ece7;
-  --arcus-brand-soft-hover: #dde2dc;
-  --arcus-brand-ink: #18201a;
+  --arcus-brand: #6d4aff;
+  --arcus-brand-hover: #5e37d6;
+  --arcus-brand-active: #4c2bc0;
+  --arcus-brand-soft: #efeaff;
+  --arcus-brand-soft-hover: #e3dbff;
+  --arcus-brand-ink: #5126d9;
   --arcus-on-brand: #ffffff;
-  --arcus-ring: #18201a;
-  --arcus-scrim: rgb(16 23 18 / 0.35);
+  --arcus-ring: #6d4aff;
+  --arcus-scrim: rgb(13 11 26 / 0.35);
+  --arcus-on-critical: #ffffff;
 
   --arcus-good: #15803d;
   --arcus-good-soft: #e3f4e8;
@@ -144,22 +149,28 @@
   --arcus-critical: #b91c1c;
   --arcus-critical-soft: #fbe5e5;
   --arcus-critical-ink: #991b1b;
-  --arcus-neutral: #5c6660;
-  --arcus-neutral-soft: #ebebe5;
-  --arcus-neutral-ink: #3b4540;
-  --arcus-info: #1d4ed8;
-  --arcus-info-soft: #e5edfb;
-  --arcus-info-ink: #1e40af;
+  --arcus-neutral: #5f5a74;
+  --arcus-neutral-soft: #eeebf7;
+  --arcus-neutral-ink: #46425a;
+  --arcus-info: #0369a1;
+  --arcus-info-soft: #e0f2fe;
+  --arcus-info-ink: #075985;
 
-  --arcus-shadow-md: 0 2px 4px rgb(16 23 18 / 0.05), 0 4px 12px rgb(16 23 18 / 0.08);
-  --arcus-shadow-lg: 0 8px 24px rgb(16 23 18 / 0.1), 0 2px 6px rgb(16 23 18 / 0.06);
+  --arcus-shadow-xs: 0 1px 2px rgb(13 11 26 / 0.05);
+  --arcus-shadow-sm: 0 1px 2px rgb(13 11 26 / 0.04), 0 2px 8px rgb(13 11 26 / 0.04);
+  --arcus-shadow-md: 0 2px 4px rgb(13 11 26 / 0.05), 0 8px 24px rgb(13 11 26 / 0.08);
+  --arcus-shadow-lg: 0 16px 48px rgb(13 11 26 / 0.12), 0 2px 6px rgb(13 11 26 / 0.06);
 
-  --arcus-mark-from: #18201a;
-  --arcus-mark-to: #000000;
-  --arcus-mark-fg: #ffffff;
+  --arcus-glass: linear-gradient(180deg, rgb(109 74 255 / 0.025) 0%, rgb(109 74 255 / 0) 55%);
+  --arcus-glow: 0 0 0 1px rgb(109 74 255 / 0.3), 0 10px 32px -12px rgb(109 74 255 / 0.4);
+  --arcus-brand-gradient: linear-gradient(180deg, #7d55ff 0%, #5530d0 100%);
+
+  /* The Intertec mark as printed: charcoal with the red dot. */
+  --arcus-logo-ink: #3d3d3d;
+  --arcus-logo-dot: #d0453a;
 }
 
-/* Square focus ring, offset so it reads on the white button too. In the base
+/* Focus ring, offset so it reads on the violet button too. In the base
    layer, so a component that draws its own focus (outline-none plus a ring or
    a border, like the Input wrapper or the command palette) still wins. */
 @layer base {
@@ -168,10 +179,11 @@
     outline-offset: 3px;
   }
 
-  /* The native file picker's button, in the same square, outlined style. */
+  /* The native file picker's button, in the same rounded, outlined style. */
   [data-public-theme] input[type='file']::file-selector-button {
     margin-inline-end: 0.75rem;
     border: 1px solid var(--arcus-line-strong);
+    border-radius: var(--arcus-radius-control);
     background: transparent;
     color: var(--arcus-ink);
     padding: 0.4rem 0.9rem;
@@ -184,16 +196,16 @@
     background: var(--arcus-surface-hover);
   }
 
-  /* Native checkboxes and radios take the look's accent (white in dark). */
+  /* Native checkboxes and radios take the look's violet accent. */
   [data-public-theme] {
     accent-color: var(--arcus-brand);
   }
 }
-/* Display type: large, light, tightly tracked. */
+/* Display type: large, medium weight, tightly tracked. */
 [data-public-theme] .display {
-  font-weight: 300;
-  letter-spacing: -0.035em;
-  line-height: 1.04;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.08;
 }
 
 /* The Input wrapper already shows focus (border + ring); a second outline on
@@ -209,4 +221,306 @@
 [dir='rtl'] [data-public-theme] [class*='tracking-'],
 [data-public-theme] :lang(ar) {
   letter-spacing: normal;
+}
+
+/* ----------------------------------------------------------------------------
+   Glass, glow and motion
+   ------------------------------------------------------------------------- */
+
+/* A card: surface plus a faint top-lit gradient (dark) or violet wash (light). */
+[data-public-theme] .glass {
+  background-image: var(--arcus-glass);
+}
+
+/* The primary button: violet gradient with a soft inner highlight. */
+[data-public-theme] .btn-brand {
+  background-image: var(--arcus-brand-gradient);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.22),
+    0 6px 20px -8px rgb(109 74 255 / 0.7);
+}
+[data-public-theme] .btn-brand:hover:not(:disabled) {
+  filter: brightness(1.1);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.25),
+    0 10px 28px -8px rgb(124 92 255 / 0.85);
+}
+
+/* Hover lift for cards that are links or showcase tiles (never data rows). */
+[data-public-theme] .lift {
+  transition:
+    transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1),
+    box-shadow 0.35s ease,
+    border-color 0.35s ease;
+}
+[data-public-theme] .lift:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--arcus-glow);
+  border-color: rgb(124 92 255 / 0.35);
+}
+
+/* Scroll reveal (components/public/Reveal): fade, rise and un-blur. */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  filter: blur(10px);
+  transition:
+    opacity 0.9s cubic-bezier(0.2, 0.7, 0.2, 1),
+    transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1),
+    filter 0.9s cubic-bezier(0.2, 0.7, 0.2, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+  will-change: opacity, transform, filter;
+}
+.reveal.is-in {
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
+
+/* The staff app and portal: each new page fades up once as it mounts. Only
+   opacity and a few pixels, so data screens stay calm. */
+@keyframes arcus-page-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+[data-public-theme] .page-in > * {
+  animation: arcus-page-in 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+/* Infinite marquee: the track holds the items twice and slides by half. */
+@keyframes arcus-marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+.marquee {
+  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+}
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: arcus-marquee var(--marquee-duration, 40s) linear infinite;
+}
+.marquee:hover .marquee-track {
+  animation-play-state: paused;
+}
+[dir='rtl'] .marquee-track {
+  animation-direction: reverse;
+}
+
+@keyframes arcus-float {
+  50% {
+    transform: translateY(-6px);
+  }
+}
+@keyframes arcus-pulse-dot {
+  0% {
+    box-shadow: 0 0 0 0 rgb(124 92 255 / 0.6);
+  }
+  100% {
+    box-shadow: 0 0 0 8px rgb(124 92 255 / 0);
+  }
+}
+@keyframes arcus-grow {
+  from {
+    transform: scaleY(0.15);
+  }
+}
+@keyframes arcus-fill {
+  from {
+    transform: scaleX(0);
+  }
+}
+@keyframes arcus-feed-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+@keyframes arcus-twinkle {
+  50% {
+    opacity: 0.2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    filter: none;
+    transition: none;
+  }
+  .marquee-track {
+    animation: none;
+  }
+  [data-public-theme] .lift:hover {
+    transform: none;
+  }
+}
+
+/* ----------------------------------------------------------------------------
+   Landing page set pieces (features/landing)
+   ------------------------------------------------------------------------- */
+[data-public-theme] {
+  --arcus-violet: 124 92 255; /* the accent as an rgb triplet, for glows */
+}
+
+/* The horizon: a huge circle whose rim glows violet, centred above the fold
+   so only its lower edge shows, like a planet rising behind the hero. */
+.hero-arc {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--arc-top, 680px) - var(--arc-size, 1400px));
+  width: var(--arc-size, 1400px);
+  height: var(--arc-size, 1400px);
+  translate: -50% 0;
+  border-radius: 9999px;
+  background:
+    radial-gradient(50% 50% at 50% 50%, transparent 97.6%, rgb(255 255 255 / 0.85) 99.6%, transparent 100%),
+    radial-gradient(56% 50% at 50% 50%, var(--arcus-canvas) 84%, rgb(var(--arcus-violet)) 100%);
+  box-shadow:
+    0 30px 80px 10px rgb(var(--arcus-violet) / 0.55),
+    0 60px 220px 60px rgb(var(--arcus-violet) / 0.28);
+  pointer-events: none;
+  animation: arcus-arc-in 1.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@keyframes arcus-arc-in {
+  from {
+    opacity: 0;
+    translate: -50% 60px;
+  }
+}
+@media (max-width: 767px) {
+  .hero-arc {
+    --arc-size: 900px;
+    --arc-top: 600px;
+  }
+}
+
+.star {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 9999px;
+  background: #fff;
+  opacity: 0.7;
+  animation: arcus-twinkle var(--twinkle, 4s) ease-in-out infinite;
+  animation-delay: var(--twinkle-delay, 0s);
+}
+
+/* The product mockup tilts back and rises as it enters. */
+.mockup-in {
+  transform: perspective(1400px) rotateX(18deg) translateY(60px) scale(0.96);
+  opacity: 0;
+  transition:
+    transform 1.4s cubic-bezier(0.2, 0.7, 0.2, 1),
+    opacity 1.2s ease;
+}
+.mockup-in.is-in {
+  transform: none;
+  opacity: 1;
+}
+
+/* A panel washed in violet light from one corner (the bento cards). */
+.violet-panel {
+  background:
+    radial-gradient(120% 90% at 100% 100%, rgb(var(--arcus-violet) / 0.55), transparent 60%),
+    radial-gradient(80% 60% at 0% 0%, rgb(var(--arcus-violet) / 0.12), transparent 60%),
+    var(--arcus-surface);
+}
+
+/* The highlighted edition card. */
+.violet-sweep {
+  background:
+    linear-gradient(135deg, transparent 20%, rgb(var(--arcus-violet) / 0.75) 55%, transparent 85%),
+    var(--arcus-surface);
+}
+
+/* The closing call to action: a violet band with drifting light. */
+.cta-band {
+  background:
+    radial-gradient(60% 120% at 80% 100%, rgb(var(--arcus-violet) / 0.9), transparent 70%),
+    radial-gradient(50% 100% at 15% 0%, rgb(var(--arcus-violet) / 0.6), transparent 70%),
+    #120d26;
+  color: #fff;
+}
+
+/* The oversized footer wordmark, fading out at the bottom. */
+.footer-wordmark {
+  background: linear-gradient(180deg, rgb(var(--arcus-violet) / 0.75), rgb(var(--arcus-violet) / 0.04));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.pulse-dot {
+  animation: arcus-pulse-dot 1.6s ease-out infinite;
+}
+.float {
+  animation: arcus-float 6s ease-in-out infinite;
+}
+.grow-bar {
+  transform-origin: bottom;
+  animation: arcus-grow 1.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.fill-bar {
+  transform-origin: left;
+  animation: arcus-fill 1.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+[dir='rtl'] .fill-bar {
+  transform-origin: right;
+}
+.feed-in {
+  animation: arcus-feed-in 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+/* Accordion: the answer's row grows from 0fr to 1fr, so height animates. */
+.accordion-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.4s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.accordion-panel[data-open='true'] {
+  grid-template-rows: 1fr;
+}
+.accordion-panel > div {
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-arc,
+  .star,
+  .pulse-dot,
+  .float,
+  .grow-bar,
+  .fill-bar,
+  .feed-in {
+    animation: none;
+  }
+  .mockup-in {
+    transform: none;
+    opacity: 1;
+    transition: none;
+  }
+}
+/* The band is violet in both themes, so its controls are fixed light-on-dark. */
+.cta-band .cta-solid {
+  background: #fff;
+  color: #120d26;
+}
+.cta-band .cta-solid:hover {
+  background: #ece7ff;
+}
+.cta-band .cta-glass {
+  border: 1px solid rgb(255 255 255 / 0.25);
+  background: rgb(255 255 255 / 0.1);
+  color: #fff;
+}
+.cta-band .cta-glass:hover {
+  background: rgb(255 255 255 / 0.2);
+}
+.cta-band .cta-sub {
+  color: rgb(255 255 255 / 0.82);
 }

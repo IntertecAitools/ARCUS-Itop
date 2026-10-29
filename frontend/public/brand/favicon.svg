@@ -1,12 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-35 0 470 470">
   <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#2563eb"/>
-      <stop offset="100%" stop-color="#1e40af"/>
-    </linearGradient>
+    <mask id="m">
+      <rect x="-35" width="470" height="470" fill="#fff"/>
+      <path d="M245 68 L83 514 L157 538 Z" fill="#000"/>
+    </mask>
   </defs>
-  <rect width="32" height="32" rx="9" fill="url(#g)"/>
-  <path d="M13 8.5 A8.5 8.5 0 0 0 13 23.5" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" opacity=".95"/>
-  <path d="M19 8.5 A8.5 8.5 0 0 1 19 23.5" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" opacity=".6"/>
-  <circle cx="16" cy="16" r="3.1" fill="#fff"/>
+  <style>g{fill:#3d3d3d}@media (prefers-color-scheme:dark){g{fill:#f2f0f8}}</style>
+  <g>
+    <path mask="url(#m)" fill-rule="evenodd" d="M7 272a184 184 0 1 0 368 0a184 184 0 1 0 -368 0Z M19 264a172 172 0 1 0 344 0a172 172 0 1 0 -344 0Z"/>
+    <path d="M245 68 L78 395 L110 440 Z"/>
+    <path d="M245 68 L172 460 L218 437 Z"/>
+  </g>
+  <circle cx="265" cy="32" r="31" fill="#d0453a"/>
 </svg>

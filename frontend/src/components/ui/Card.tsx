@@ -7,7 +7,7 @@ export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
       className={cn(
         // min-w-0: in a grid or flex row, a wide table inside scrolls instead of
         // stretching the card (and the page) past the screen.
-        'min-w-0 rounded-card border border-line bg-surface shadow-card',
+        'glass min-w-0 rounded-card border border-line bg-surface shadow-card',
         'transition-shadow duration-200',
         className,
       )}

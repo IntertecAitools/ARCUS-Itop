@@ -5,7 +5,13 @@ import { AttachmentsService } from "./modules/attachments/attachments.service.js
 import { DashboardService } from "./modules/dashboard/index.js";
 import { DirectoryService } from "./modules/directory/index.js";
 import { IncidentsService, TicketExtras } from "./modules/incidents/index.js";
-import { ProblemsService } from "./modules/problems/index.js";
+import {
+  AnthropicRcaModel,
+  ProblemsService,
+  RcaEvidenceService,
+  RcaService,
+  type RcaModel,
+} from "./modules/problems/index.js";
 import { SlaService } from "./modules/sla/index.js";
 import { BusinessHoursService } from "./modules/business-hours/index.js";
 import { createMailSource, type MailSource, MailIntakeService } from "./modules/mail-intake/index.js";
@@ -16,6 +22,9 @@ import {
   MySqlAssignmentRuleStore,
 } from "./modules/dispatch/index.js";
 import {
+  ChangeCalendarService,
+  ChangePirService,
+  ChangeRiskService,
   ChangesService,
   MemoryPlanRuleStore,
   MySqlPlanRuleStore,
@@ -44,6 +53,8 @@ import {
   type TicketHandlingStore,
   TicketHandlingService,
 } from "./modules/ticket-handling/index.js";
+import { type DocStore, MemoryDocStore, MySqlDocStore } from "./shared/doc-store.js";
+import { KnowledgeService } from "./modules/knowledge/index.js";
 import { LookupsService } from "./platform/lookups/lookups.service.js";
 import { Navigation } from "./platform/navigation/navigation.service.js";
 import { Dashboards } from "./platform/dashboards/dashboards.service.js";
@@ -120,10 +131,20 @@ export interface Services {
   /** The arcus-incident-extras fields: next-action date, major flag. */
   ticketExtras: TicketExtras;
   problems: ProblemsService;
+  /** Root-cause evidence and the AI draft on problems. */
+  rca: RcaService;
   sla: SlaService;
   /** Coverage windows and holidays (Combodo's business-hours modules). */
   businessHours: BusinessHoursService;
   changes: ChangesService;
+  /** Changes by planned dates, clashes, blackout windows. */
+  changeCalendar: ChangeCalendarService;
+  /** The risk questionnaire and each change's answers. */
+  changeRisk: ChangeRiskService;
+  /** Post-implementation reviews and the changes still waiting for one. */
+  changePir: ChangePirService;
+  /** Article workflow and feedback on FAQs and known errors. */
+  knowledge: KnowledgeService;
   /** Team dispatch: the team queue, "Take it", the assignment rules. */
   dispatch: DispatchService;
   /** Present when MAIL_INTAKE_SOURCE is set. */
@@ -160,6 +181,8 @@ export interface BuildServicesOptions {
   requestForms?: RequestFormStore;
   /** Change plan rules for tests; otherwise in the BFF database, or memory. */
   planRules?: PlanRuleStore;
+  /** Risk answers, reviews, blackouts, article workflow for tests; otherwise in the BFF database, or memory. */
+  documents?: DocStore;
   /** Assignment rules for tests; otherwise in the BFF database, or memory. */
   assignmentRules?: AssignmentRuleStore;
   /** Import reports for tests; otherwise in the BFF database, or memory. */
@@ -172,6 +195,8 @@ export interface BuildServicesOptions {
   mailer?: Mailer;
   /** Stands in for the support mailbox in tests. */
   mailSource?: MailSource;
+  /** Stands in for the Claude API in tests. */
+  rcaModel?: RcaModel;
   logger?: Logger;
 }
 
@@ -266,11 +291,30 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     options.planRules ?? (stores?.pool ? new MySqlPlanRuleStore(stores.pool) : new MemoryPlanRuleStore()),
     config.itop.timezone,
   );
-  // Every action on a change, from any screen, meets the plan and CAB rules.
+  const documents = options.documents ?? (stores?.pool ? new MySqlDocStore(stores.pool) : new MemoryDocStore());
+  const changeRisk = new ChangeRiskService(client, documents);
+  changes.addGateCheck((id, type, gate) => changeRisk.check(id, type, gate));
+  // Every action on a change, from any screen, meets the plan, risk and CAB rules.
   objects.addTransitionGuard((className, id, stimulus, fields) =>
     changes.guardTransition(className, id, stimulus, fields),
   );
+  const knowledge = new KnowledgeService(client, documents, config.itop.timezone);
+  // A FAQ or known error made on any screen starts as a draft.
+  objects.addCreateListener((className, object) => knowledge.onCreate(className, object));
+  const portal = new PortalService(client, schema, objects);
+  portal.useFaqVisibility((ids) => knowledge.publishedFaqs(ids));
   const ticketExtras = new TicketExtras(client, config.itop.timezone);
+  const relations = new RelationsService(client, schema);
+  const rcaConfig = config.rca ?? { lookbackHours: 72 };
+  const rcaModel =
+    options.rcaModel ??
+    (rcaConfig.ai ? new AnthropicRcaModel(rcaConfig.ai.apiKey, rcaConfig.ai.model, rcaConfig.ai.effort) : undefined);
+  // The evidence asks the service whether to offer the AI button; the service needs the evidence.
+  let rca: RcaService | undefined;
+  const rcaEvidence = new RcaEvidenceService(objects, relations, client, schema, config.itop.timezone, () =>
+    rca ? rca.aiEnabled() : false,
+  );
+  rca = new RcaService(rcaEvidence, objects, rcaConfig, rcaModel);
   const incidents = new IncidentsService(objects, schema, defaultOrganization, ticketExtras, mailer);
   const dispatch = new DispatchService(
     client,
@@ -310,7 +354,7 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     objects,
     attachments: new AttachmentsService(objects, schema),
     lookups: new LookupsService(client, schema, config.lookupCacheTtlMs),
-    relations: new RelationsService(client, schema),
+    relations,
     history: new HistoryService(client, schema, config.itop.timezone),
     transfer,
     queries: new QueriesService(client, schema, objects, transfer),
@@ -330,7 +374,8 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     inbox: new InboxService(client, config.itop.timezone),
     audit: new AuditService(client, schema),
     users: new UsersService(client, objects, auth, sessions, tenancy),
-    portal: new PortalService(client, schema, objects),
+    portal,
+    knowledge,
     approvals: new ApprovalsService(client, config.itop.timezone),
     dashboard: new DashboardService(objects, navigation, currentContact, schema, ticketExtras),
     defaultOrganization,
@@ -339,9 +384,13 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     ...(mailIntake ? { mailIntake } : {}),
     ticketExtras,
     problems: new ProblemsService(objects, client, config.itop.timezone),
+    rca,
     sla: new SlaService(objects, config.itop.timezone, businessHours),
     businessHours,
     changes,
+    changeCalendar: new ChangeCalendarService(client, documents, config.itop.timezone, (ids) => changeRisk.levels(ids)),
+    changeRisk,
+    changePir: new ChangePirService(client, documents, config.itop.timezone),
     dispatch,
     requestForms: new RequestFormsService(
       client,

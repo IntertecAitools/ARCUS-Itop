@@ -92,6 +92,13 @@ export function useFaq(id: string) {
   });
 }
 
+/** "Was this helpful?" on an article. */
+export function useRateFaq(id: string) {
+  return useMutation({
+    mutationFn: (input: { helpful: boolean; comment: string }) => apiClient.post(`${base}/faqs/${id}/feedback`, input),
+  });
+}
+
 export function useProfile() {
   return useQuery({ queryKey: ['portal', 'profile'], queryFn: () => apiClient.get<PortalProfile>(`${base}/profile`) });
 }
