@@ -4,6 +4,7 @@ import type { Services } from "../services.js";
 import { registerBusinessHoursRoutes } from "../modules/business-hours/index.js";
 import { registerChangeRoutes } from "../modules/changes/index.js";
 import { registerDashboardRoutes } from "../modules/dashboard/index.js";
+import { registerDataImportRoutes } from "../modules/data-import/index.js";
 import { registerDirectoryRoutes } from "../modules/directory/index.js";
 import { registerDispatchRoutes } from "../modules/dispatch/index.js";
 import { registerIncidentRoutes } from "../modules/incidents/index.js";
@@ -75,6 +76,12 @@ export const modules: BackendModule[] = [
     basePath: "/api/dashboard",
     description: "Aggregated KPIs, trends and queues for the agent home screen.",
     register: registerDashboardRoutes,
+  },
+  {
+    id: "data-import",
+    basePath: "/api/admin/data-import",
+    description: "Load people, organisations, teams and CIs from CSV/Excel (mapped, previewed, written through REST), and recurring feeds as iTop Data Synchro sources.",
+    register: registerDataImportRoutes,
   },
   {
     id: "directory",

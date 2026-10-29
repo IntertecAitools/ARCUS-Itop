@@ -25,6 +25,25 @@ Bugs found and fixed (all in commit `120ecdf0` or the one after):
 - e2e: the "unmatched" incident first picked a person of an obsolete organisation (iTop refused `org_id`); it now picks an active organisation.
 
 Not covered: the screens were checked by the vitest page tests and the API e2e, not clicked through in a browser against the live BFF. Portal and email-to-ticket routing go through the same create listener and are covered by unit tests, not live. A TTO timeout while Dispatched (→ Escalated TTO) was not waited for live.
+
+### 2026-10-29 — Data import wizard and sync sources (iTop Data Synchro)
+
+| What ran | Result |
+|---|---|
+| Backend typecheck + unit tests (`npm test`, incl. new `test/data-import.test.ts`, 18 tests) | 778/778 pass |
+| Frontend typecheck + vitest (`src/config`, `src/features/records`, `src/features/data-import`) | 14 files, 78/78 pass |
+| Live `npm run e2e:data-import`, BFF :4060 + local iTop, account `e2e.chg.admin` | first run 27/33; after fixes 33/33 |
+| Same, with `E2E_TENANT_BFF` (second BFF :4061, `TENANCY=on`, `MFA_REQUIRED=off`) | first 33/36 (tenants not registered); after `npm run tenants -- seed-test` 36/36 |
+
+Bugs found and fixed (branch `claude/data-import-sync`):
+- `synchro_import.php` answers over HTTP with an HTML page (`#text<br/>` per remark), so no counts were read and every sync run came back as "iTop did not run the sync". The parser now turns the page back into lines.
+- A Person matched on email in another case ("ANN@…" vs "ann@…") was previewed as an update of the email. A key differing only in case is no longer a change.
+- The `arcus_bff` database had no tenants registered, so the tenant admin was refused at sign-in; seeded with `npm run tenants -- seed-test` (reuses the existing zz-mt-* test data, adds only the tenant rows).
+
+Test data: every record and the sync source the e2e made was deleted by its clean-up (7 records, 1 source per run).
+
+Not covered: the screens were tested with vitest on mock data, not clicked through against the live BFF; a scheduled feed (a cron job posting to the synchro) was not set up, only runs from an uploaded file; imports above a few rows were not timed.
+
 ### 2026-10-28 — Incident links reach the incident screen; people shown by full name
 
 Reported: the new incident features (on hold with next-action date, major incident) could not be found, and people showed as "My first name My last name" or by surname only.

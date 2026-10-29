@@ -41,6 +41,15 @@ export const queryKeys = {
     businessHours: () => ['sla', 'business-hours'] as const,
   },
 
+  dataImport: {
+    classes: () => ['data-import', 'classes'] as const,
+    reports: () => ['data-import', 'reports'] as const,
+    report: (id: string) => ['data-import', 'reports', id] as const,
+    sources: () => ['data-import', 'sources'] as const,
+    source: (id: string) => ['data-import', 'sources', id] as const,
+    log: (id: string, logId: number) => ['data-import', 'sources', id, 'logs', logId] as const,
+  },
+
   changes: {
     all: () => ['changes'] as const,
     governance: (id: string) => ['changes', 'governance', id] as const,

@@ -7,6 +7,7 @@ import {
   ClipboardList,
   Database,
   Inbox,
+  FileUp,
   LayoutDashboard,
   LayoutGrid,
   LifeBuoy,
@@ -373,6 +374,28 @@ export const modules: ModuleDefinition[] = [
         component: lazy(() =>
           import('@/features/request-forms').then((m) => ({ default: m.RequestFormEditorPage })),
         ),
+      },
+    ],
+  },
+  {
+    id: 'data-import',
+    label: 'Data import',
+    path: 'data-import',
+    icon: FileUp,
+    group: 'administration',
+    description: 'Load people, organisations, teams and CIs from CSV or Excel, and recurring sync feeds.',
+    adminOnly: true,
+    component: lazy(() => import('@/features/data-import').then((m) => ({ default: m.DataImportPage }))),
+    children: [
+      {
+        path: 'sync-sources',
+        label: 'Sync sources',
+        component: lazy(() => import('@/features/data-import').then((m) => ({ default: m.SyncSourcesPage }))),
+      },
+      {
+        path: 'sync-sources/:id',
+        label: 'Sync source',
+        component: lazy(() => import('@/features/data-import').then((m) => ({ default: m.SyncSourcePage }))),
       },
     ],
   },
