@@ -223,3 +223,140 @@
 [data-public-theme] :lang(ar) {
   letter-spacing: normal;
 }
+
+/* ----------------------------------------------------------------------------
+   Glass, glow and motion
+   ------------------------------------------------------------------------- */
+
+/* A card: surface plus a faint top-lit gradient (dark) or violet wash (light). */
+[data-public-theme] .glass {
+  background-image: var(--arcus-glass);
+}
+
+/* The primary button: violet gradient with a soft inner highlight. */
+[data-public-theme] .btn-brand {
+  background-image: var(--arcus-brand-gradient);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.22),
+    0 6px 20px -8px rgb(109 74 255 / 0.7);
+}
+[data-public-theme] .btn-brand:hover:not(:disabled) {
+  filter: brightness(1.1);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.25),
+    0 10px 28px -8px rgb(124 92 255 / 0.85);
+}
+
+/* Hover lift for cards that are links or showcase tiles (never data rows). */
+[data-public-theme] .lift {
+  transition:
+    transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1),
+    box-shadow 0.35s ease,
+    border-color 0.35s ease;
+}
+[data-public-theme] .lift:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--arcus-glow);
+  border-color: rgb(124 92 255 / 0.35);
+}
+
+/* Scroll reveal (components/public/Reveal): fade, rise and un-blur. */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  filter: blur(10px);
+  transition:
+    opacity 0.9s cubic-bezier(0.2, 0.7, 0.2, 1),
+    transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1),
+    filter 0.9s cubic-bezier(0.2, 0.7, 0.2, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+  will-change: opacity, transform, filter;
+}
+.reveal.is-in {
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
+
+/* The staff app and portal: each new page fades up once as it mounts. Only
+   opacity and a few pixels, so data screens stay calm. */
+@keyframes arcus-page-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+[data-public-theme] .page-in > * {
+  animation: arcus-page-in 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+/* Infinite marquee: the track holds the items twice and slides by half. */
+@keyframes arcus-marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+.marquee {
+  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+}
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: arcus-marquee var(--marquee-duration, 40s) linear infinite;
+}
+.marquee:hover .marquee-track {
+  animation-play-state: paused;
+}
+[dir='rtl'] .marquee-track {
+  animation-direction: reverse;
+}
+
+@keyframes arcus-float {
+  50% {
+    transform: translateY(-6px);
+  }
+}
+@keyframes arcus-pulse-dot {
+  0% {
+    box-shadow: 0 0 0 0 rgb(124 92 255 / 0.6);
+  }
+  100% {
+    box-shadow: 0 0 0 8px rgb(124 92 255 / 0);
+  }
+}
+@keyframes arcus-grow {
+  from {
+    transform: scaleY(0.15);
+  }
+}
+@keyframes arcus-fill {
+  from {
+    transform: scaleX(0);
+  }
+}
+@keyframes arcus-feed-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+@keyframes arcus-twinkle {
+  50% {
+    opacity: 0.2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    filter: none;
+    transition: none;
+  }
+  .marquee-track {
+    animation: none;
+  }
+  [data-public-theme] .lift:hover {
+    transform: none;
+  }
+}

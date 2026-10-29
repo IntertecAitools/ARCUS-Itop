@@ -75,7 +75,7 @@ export function PortalLayout() {
   return (
     <PublicTheme className="flex flex-col">
       <SkipLink />
-      <header className="border-b border-line">
+      <header className="sticky top-0 z-30 border-b border-line bg-canvas/75 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-6xl items-center gap-8 px-5 sm:px-8">
           <Link to="/portal" className="flex items-center gap-3" aria-label={`${env.appName} ${env.platformName}`}>
             <Logo collapsed />
@@ -105,7 +105,7 @@ export function PortalLayout() {
             </button>
             <button
               type="button"
-              className="ms-1 inline-flex size-9 items-center justify-center text-ink lg:hidden"
+              className="ms-1 inline-flex size-9 items-center justify-center rounded-control text-ink lg:hidden"
               aria-expanded={menuOpen}
               aria-controls="portal-menu"
               aria-label={menuOpen ? 'Close menu' : 'Open menu'}
@@ -135,7 +135,7 @@ export function PortalLayout() {
           </div>
         ) : null}
       </header>
-      <main id="main" tabIndex={-1} className="mx-auto w-full outline-none max-w-6xl flex-1 px-5 py-10 sm:px-8 md:py-14">
+      <main id="main" tabIndex={-1} className="page-in mx-auto w-full outline-none max-w-6xl flex-1 px-5 py-10 sm:px-8 md:py-14">
         <Outlet />
       </main>
       <footer className="border-t border-line">
