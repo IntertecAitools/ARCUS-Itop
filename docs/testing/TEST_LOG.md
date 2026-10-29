@@ -4,6 +4,20 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-10-29 — New incident uses the full form again
+
+Reported: after the redesign, creating an incident showed far fewer fields than before. Cause: not the redesign. PR #34 also redirected `/records/Incident/new` (iTop's "New incident" menu, the full schema form) to `/incidents/new`, the short incident form (subject, description, source, urgency, impact, priority, date, service, category, team, agent). Organisation, caller, contacts, CIs and parent links were gone.
+
+| What ran | Result |
+|---|---|
+| Frontend typecheck | clean |
+| vitest `src/features/records` + `src/features/incidents` (incl. updated `dedicated.test.ts`) | 13 files, 69/69 pass |
+| Live, BFF :4000 + local iTop, as `e2e.rights.desk`: `GET /api/meta/classes/Incident` | 200; the full form's schema offers org (required), caller, contacts, functional CIs, parent incident/problem/change/request and the rest |
+
+Fix (branch `claude/restore-full-incident-form`): `/records/Incident/new` is no longer redirected, and the incidents list's "New incident" buttons open it. Viewing an incident still redirects to `/incidents/<id>`, so a saved incident opens on its own screen.
+
+Not covered: the form was not clicked through in the browser (the browser pane stopped responding); checked through the schema API and tests instead.
+
 ### 2026-10-29 — UI redesign: near-black and violet look, new landing page, sign-in, staff app and portal restyle
 
 Branch `claude/ui-redesign-f7d932`. Mock mode only (Vite on `:5253`, the e2e build on `:5254`); no BFF or iTop needed, since the change is styling and layout only.
