@@ -97,6 +97,14 @@ export class PortalService {
     private readonly objects: ObjectsService,
   ) {}
 
+  /** Which FAQs end users may read; all of them until the knowledge workflow says otherwise. */
+  private visibleFaqs: (ids: number[]) => Promise<Set<number>> = async (ids) => new Set(ids);
+
+  /** The knowledge module's rule: only published articles reach the portal. */
+  useFaqVisibility(filter: (ids: number[]) => Promise<Set<number>>): void {
+    this.visibleFaqs = filter;
+  }
+
   /** The scope condition for this user's tickets. */
   private scope(caller: Caller): string {
     if (caller.contactId <= 0) {
@@ -381,8 +389,11 @@ export class PortalService {
       { class: "FAQ", key: `SELECT FAQ${where}`, output_fields: "id,title,summary,category_name", limit: 200 },
       { asService: true },
     );
+    const rows = normalizeObjects(result.objects);
+    const visible = await this.visibleFaqs(rows.map((r) => r.id));
     return {
-      items: normalizeObjects(result.objects)
+      items: rows
+        .filter((r) => visible.has(r.id))
         .map((r) => ({ id: r.id, title: str(r.fields["title"]), summary: str(r.fields["summary"]), category: str(r.fields["category_name"]) }))
         .sort((a, b) => a.category.localeCompare(b.category) || a.title.localeCompare(b.title)),
     };
@@ -395,7 +406,7 @@ export class PortalService {
       { asService: true },
     );
     const r = normalizeObjects(result.objects)[0];
-    if (!r) throw notFound(`FAQ ${id} was not found.`);
+    if (!r || !(await this.visibleFaqs([r.id])).has(r.id)) throw notFound(`FAQ ${id} was not found.`);
     return {
       id: r.id,
       title: str(r.fields["title"]),

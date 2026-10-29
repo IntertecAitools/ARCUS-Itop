@@ -8,6 +8,7 @@ import { registerDataImportRoutes } from "../modules/data-import/index.js";
 import { registerDirectoryRoutes } from "../modules/directory/index.js";
 import { registerDispatchRoutes } from "../modules/dispatch/index.js";
 import { registerIncidentRoutes } from "../modules/incidents/index.js";
+import { registerKnowledgeRoutes } from "../modules/knowledge/index.js";
 import { registerMailIntakeRoutes } from "../modules/mail-intake/index.js";
 import { registerProblemRoutes } from "../modules/problems/index.js";
 import { registerRequestFormRoutes } from "../modules/request-forms/index.js";
@@ -68,7 +69,7 @@ export const modules: BackendModule[] = [
   {
     id: "changes",
     basePath: "/api/changes",
-    description: "Plans each change type needs before Plan / Implement, CAB decisions, changes awaiting the CAB (rules under /api/admin/change-rules).",
+    description: "Plans each change type needs before Plan / Implement, CAB decisions, changes awaiting the CAB, the change calendar with clashes and blackout windows, the risk questionnaire, post-implementation reviews (rules under /api/admin/change-rules, change-risk, change-blackouts).",
     register: registerChangeRoutes,
   },
   {
@@ -100,6 +101,12 @@ export const modules: BackendModule[] = [
     basePath: "/api/incidents",
     description: "Unplanned interruptions to a service.",
     register: registerIncidentRoutes,
+  },
+  {
+    id: "knowledge",
+    basePath: "/api/knowledge",
+    description: "Knowledge articles (FAQs, known errors): draft, review, publish, retire; review-due dates; readers' helpfulness votes (reviewers under /api/admin/knowledge-settings).",
+    register: registerKnowledgeRoutes,
   },
   {
     id: "mail-intake",

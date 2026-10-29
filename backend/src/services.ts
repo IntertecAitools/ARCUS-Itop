@@ -38,6 +38,7 @@ import {
   SyncSourcesService,
 } from "./modules/data-import/index.js";
 import { type DocStore, MemoryDocStore, MySqlDocStore } from "./shared/doc-store.js";
+import { KnowledgeService } from "./modules/knowledge/index.js";
 import { LookupsService } from "./platform/lookups/lookups.service.js";
 import { Navigation } from "./platform/navigation/navigation.service.js";
 import { Dashboards } from "./platform/dashboards/dashboards.service.js";
@@ -124,6 +125,8 @@ export interface Services {
   changeRisk: ChangeRiskService;
   /** Post-implementation reviews and the changes still waiting for one. */
   changePir: ChangePirService;
+  /** Article workflow and feedback on FAQs and known errors. */
+  knowledge: KnowledgeService;
   /** Team dispatch: the team queue, "Take it", the assignment rules. */
   dispatch: DispatchService;
   /** Present when MAIL_INTAKE_SOURCE is set. */
@@ -267,6 +270,11 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
   objects.addTransitionGuard((className, id, stimulus, fields) =>
     changes.guardTransition(className, id, stimulus, fields),
   );
+  const knowledge = new KnowledgeService(client, documents, config.itop.timezone);
+  // A FAQ or known error made on any screen starts as a draft.
+  objects.addCreateListener((className, object) => knowledge.onCreate(className, object));
+  const portal = new PortalService(client, schema, objects);
+  portal.useFaqVisibility((ids) => knowledge.publishedFaqs(ids));
   const ticketExtras = new TicketExtras(client, config.itop.timezone);
   const incidents = new IncidentsService(objects, schema, defaultOrganization, ticketExtras, mailer);
   const dispatch = new DispatchService(
@@ -327,7 +335,8 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     inbox: new InboxService(client, config.itop.timezone),
     audit: new AuditService(client, schema),
     users: new UsersService(client, objects, auth, sessions, tenancy),
-    portal: new PortalService(client, schema, objects),
+    portal,
+    knowledge,
     approvals: new ApprovalsService(client, config.itop.timezone),
     dashboard: new DashboardService(objects, navigation, currentContact, schema, ticketExtras),
     defaultOrganization,
