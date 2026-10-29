@@ -17,6 +17,25 @@ Reported: after the redesign, creating an incident showed far fewer fields than 
 Fix (branch `claude/restore-full-incident-form`): `/records/Incident/new` is no longer redirected, and the incidents list's "New incident" buttons open it. Viewing an incident still redirects to `/incidents/<id>`, so a saved incident opens on its own screen.
 
 Not covered: the form was not clicked through in the browser (the browser pane stopped responding); checked through the schema API and tests instead.
+### 2026-10-29 — Change calendar, risk questionnaire, PIR; knowledge article workflow and feedback
+
+Branch `claude/change-knowledge-a7889d`. The record-test-run hook logged none of these runs below, so this table is the record. No iTop extension: the new data (risk answers, reviews, blackout windows, article state, votes) lives in the BFF's own MySQL (`bff_documents`).
+
+| What ran | Result |
+|---|---|
+| Backend typecheck | clean |
+| Backend unit tests (`npm test`, incl. new `test/change-extras.test.ts` 17 and `test/knowledge.test.ts` 8) | 821/821 pass |
+| Frontend typecheck (`npm run typecheck`) | clean |
+| Frontend vitest, whole suite (incl. new `changes/lib/calendar.test.ts`, `changes/pages/ChangeExtras.test.tsx`, `knowledge-base/pages/KnowledgePages.test.tsx`) | 51 files, 247/247 pass after updating `config/modules.test.ts` for the new nav items (3 failures before) |
+| Live `npm run e2e:change-knowledge` (BFF :4090, MFA on, local iTop :8080 with arcus-change-cab; accounts `e2e.chg.*` + new portal user `e2e.kb.reader`) | 61/61 pass, first run |
+| After merging main (#37 auto-RCA, #38 UI redesign): backend typecheck + `npm test`; frontend typecheck + vitest | clean, 837/837; clean, 51 files 250/250 |
+| Leftovers check after the run (iTop REST: Change / FAQ / Incident titled `e2e-chg-kb…`) | 0 / 0 / 0; 6 `bff_documents` rows removed by the script |
+
+Kept for the next run (like the other e2e scripts): portal user `e2e.kb.reader`, FAQ category "E2E knowledge", CI "E2E change calendar app" (ids in `backend/e2e.local.json`, git-ignored).
+
+Bugs found and fixed: none in the live run. During the build the PIR form was changed to name incidents by ref (I-000123) as well as id, so staff do not need iTop ids.
+
+Not covered: the screens were checked by vitest against MSW mocks and the API by the live e2e, not clicked through in a browser against the live BFF. Service clashes (CIs linked to the same service) are unit-tested only; the live run clashes on a shared CI. Tenancy (TENANCY=on) keys every row by tenant but was not run live. Editing a published article's text does not send it back to review.
 
 ### 2026-10-29 — UI redesign: near-black and violet look, new landing page, sign-in, staff app and portal restyle
 
