@@ -54,7 +54,18 @@ describe('hidden modules', () => {
   it('keeps hidden modules out of the chrome', () => {
     const navigable = navigableModules().map((m) => m.id);
 
-    expect(navigable).toEqual(['dashboard', 'approvals', 'team-queue', 'cab', 'problem-trends', 'sla', 'queries']);
+    expect(navigable).toEqual([
+      'dashboard',
+      'approvals',
+      'team-queue',
+      'cab',
+      'change-calendar',
+      'pir-due',
+      'problem-trends',
+      'sla',
+      'knowledge',
+      'queries',
+    ]);
     for (const id of ['incidents', 'records', 'modules']) {
       expect(navigable).not.toContain(id);
     }
@@ -88,8 +99,8 @@ describe('hidden modules', () => {
         expect(m.hidden).toBeFalsy();
       }
     }
-    // Records, dashboards and the modules index are hidden; Queries is offered.
-    expect(modulesInGroup('resources').map((m) => m.id)).toEqual(['queries']);
+    // Records, dashboards and the modules index are hidden; Knowledge and Queries are offered.
+    expect(modulesInGroup('resources').map((m) => m.id)).toEqual(['knowledge', 'queries']);
   });
 });
 
@@ -110,7 +121,7 @@ describe('isModuleRegistered', () => {
     // report as present — that is what stops the dashboard offering dead links.
     expect(isModuleRegistered('/problems')).toBe(false);
     expect(isModuleRegistered('/changes')).toBe(false);
-    expect(isModuleRegistered('/knowledge')).toBe(false);
+    expect(isModuleRegistered('/releases')).toBe(false);
   });
 });
 

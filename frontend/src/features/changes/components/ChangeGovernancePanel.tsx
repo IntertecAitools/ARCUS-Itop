@@ -12,6 +12,8 @@ import {
   TYPE_LABEL,
 } from '../lib/labels';
 import type { CabDecisionValue, ChangeGovernance, ChangePlans, PlanKind } from '../types';
+import { PirCard } from './PirCard';
+import { RiskCard } from './RiskCard';
 
 const CONTROL =
   'w-full rounded-control border border-line-strong bg-surface px-3 py-2 text-sm text-ink outline-none placeholder:text-ink-muted focus:border-brand focus:ring-2 focus:ring-ring/40';
@@ -34,7 +36,8 @@ const errorText = (error: unknown, fallback: string) => (error instanceof Error 
  * Which plans are required, and when, comes from the change type's rule
  * (Change plan rules, under administration); Plan and Implement are refused
  * until they are written. A normal or emergency change is approved or not
- * approved here, by recording the CAB's decision.
+ * approved here, by recording the CAB's decision. The risk questionnaire
+ * sits beside them, and the post-implementation review once the change is in.
  */
 export function ChangeGovernancePanel({ id }: { id: string }) {
   const governance = useChangeGovernance(id);
@@ -61,6 +64,10 @@ export function ChangeGovernancePanel({ id }: { id: string }) {
       <div className="grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <PlansCard id={id} data={data} />
         <CabCard id={id} data={data} />
+      </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <RiskCard id={id} />
+        <PirCard id={id} />
       </div>
     </div>
   );

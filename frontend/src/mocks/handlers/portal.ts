@@ -178,6 +178,10 @@ export const portalHandlers = [
       category: 'Network',
     }),
   ),
+  http.post(url('/portal/faqs/:id/feedback'), async ({ request }) => {
+    const body = (await request.json()) as { helpful: boolean };
+    return HttpResponse.json({ yes: body.helpful ? 1 : 0, no: body.helpful ? 0 : 1, score: body.helpful ? 100 : 0 });
+  }),
   http.get(url('/portal/profile'), () =>
     HttpResponse.json({
       firstName: 'Mock',

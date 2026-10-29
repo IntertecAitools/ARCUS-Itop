@@ -7,6 +7,7 @@ import { idParam, intParam, parse } from "../../core/validate.js";
 import type { Services } from "../../services.js";
 import { readUpload, sendAttachment } from "../../modules/attachments/attachments.routes.js";
 import { answersSchema } from "../../modules/request-forms/index.js";
+import { feedbackSchema } from "../../modules/knowledge/index.js";
 
 function caller(): Caller {
   const c = currentCaller();
@@ -22,7 +23,7 @@ const idParams = z.object({ id: idParam });
  * end-user sessions reach only this and /api/auth.
  */
 export function registerPortalRoutes(app: FastifyInstance, services: Services): void {
-  const { portal, attachments, requestForms } = services;
+  const { portal, attachments, requestForms, knowledge } = services;
 
   app.get("/api/portal/requests", async (request) => {
     const query = parse(
@@ -172,6 +173,15 @@ export function registerPortalRoutes(app: FastifyInstance, services: Services): 
   app.get("/api/portal/faqs/:id", async (request) => {
     const { id } = parse(idParams, request.params, "path parameters");
     return portal.faq(id);
+  });
+
+  /** "Was this helpful?": the FAQ must be one the portal shows. */
+  app.post("/api/portal/faqs/:id/feedback", async (request) => {
+    const { id } = parse(idParams, request.params, "path parameters");
+    const body = parse(feedbackSchema, request.body, "request body");
+    caller();
+    await portal.faq(id);
+    return knowledge.feedback("faq", id, body, "portal");
   });
 
   app.get("/api/portal/profile", async () => portal.profile(caller()));

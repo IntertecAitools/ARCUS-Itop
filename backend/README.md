@@ -1103,6 +1103,54 @@ in MFA and keeps logins, passwords and TOTP secrets in `backend/e2e.local.json`
 (git-ignored) under `"changes"`. The changes it raises are deleted at the
 end; the plan rules are put back as they were.
 
+## Change calendar, risk and reviews; knowledge workflow
+
+None of this needed an iTop extension. What iTop has no field for is kept in
+the BFF's own database, table `bff_documents` (tenant, kind, key, JSON body;
+`shared/doc-store.ts`, created on first use; memory with `SESSION_STORE=memory`).
+
+**Change calendar** — `GET /api/changes/calendar?from&to[&teamId&ciId&serviceId&orgId]`
+(at most 100 days). Changes whose planned start/end overlap the window, with
+their CIs (`lnkFunctionalCIToTicket`) and the services those CIs support
+(`lnkFunctionalCIToService`). Two changes **clash** when they overlap in time
+and share a CI or a service (rejected / not-approved ones never clash; a change
+with no end counts as one hour). Clashes are found before filtering. **Blackout
+windows** are set under `/api/admin/change-blackouts` and flagged on every
+change inside one. Screens: Change calendar (month / week / day), Change
+blackouts (admin).
+
+**Risk questionnaire** — weighted questions per change type, answers scored
+0–10; the change's score is the weighted share of the maximum (0–100) and the
+thresholds make it low / medium / high. `GET|PUT /api/changes/:id/risk`,
+model under `/api/admin/change-risk`. Enforced at Plan / Implement through the
+changes guard (`ChangesService.addGateCheck`): a **high-risk routine change**
+is refused (`risk_needs_cab`: raise it as a normal change, which goes to the
+CAB); with "required before plan" set for a type, Plan is refused until it is
+answered (`risk_missing`). Shown on the change's CAB & plans tab.
+
+**Post-implementation review** — `GET|PUT /api/changes/:id/pir` once the change
+is implemented, monitored or closed: outcome, what went well / badly (required
+unless successful), incidents caused (by ref or id, read as the caller),
+follow-up actions. `GET /api/changes/pir-due`: implemented or monitored
+changes, and those closed in the last 90 days, without a review.
+
+**Knowledge articles** — FAQs and known errors get a workflow:
+draft → in review → published → retired (`/api/knowledge/articles`,
+`…/:kind/:id`, `…/:kind/:id/actions`). Any FAQ or known error created through
+the BFF starts as its author's draft (a create listener); ones the workflow
+never saw count as published. Reviewers are holders of the profiles set under
+`/api/admin/knowledge-settings` (default Document author) and administrators;
+nobody but an administrator approves their own submission; sending back needs a
+comment. Approving or "mark reviewed" sets the next review date (default 180
+days); past it, the article is "review due". **Only published FAQs reach the
+portal** (`PortalService.useFaqVisibility`). "Was this helpful?" —
+`POST /api/portal/faqs/:id/feedback` and `POST /api/knowledge/articles/:kind/:id/feedback`,
+one vote per person (a new one replaces it), published articles only; the
+article page lists every vote and comment for the author.
+
+Live check: `npm run e2e:change-knowledge` (BFF on :4090 by default; reuses the
+`e2e:changes` accounts and makes a portal user once).
+
 ## Team dispatch and assignment rules
 
 A ticket can go to a team before anyone in it is chosen; anyone in the team
