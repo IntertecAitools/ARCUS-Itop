@@ -15,6 +15,7 @@ Branch `claude/change-knowledge-a7889d`. The record-test-run hook logged none of
 | Frontend typecheck (`npm run typecheck`) | clean |
 | Frontend vitest, whole suite (incl. new `changes/lib/calendar.test.ts`, `changes/pages/ChangeExtras.test.tsx`, `knowledge-base/pages/KnowledgePages.test.tsx`) | 51 files, 247/247 pass after updating `config/modules.test.ts` for the new nav items (3 failures before) |
 | Live `npm run e2e:change-knowledge` (BFF :4090, MFA on, local iTop :8080 with arcus-change-cab; accounts `e2e.chg.*` + new portal user `e2e.kb.reader`) | 61/61 pass, first run |
+| After merging main (#37 auto-RCA, #38 UI redesign): backend typecheck + `npm test`; frontend typecheck + vitest | clean, 837/837; clean, 51 files 250/250 |
 | Leftovers check after the run (iTop REST: Change / FAQ / Incident titled `e2e-chg-kb…`) | 0 / 0 / 0; 6 `bff_documents` rows removed by the script |
 
 Kept for the next run (like the other e2e scripts): portal user `e2e.kb.reader`, FAQ category "E2E knowledge", CI "E2E change calendar app" (ids in `backend/e2e.local.json`, git-ignored).
