@@ -125,3 +125,223 @@ export interface CabQueue {
   items: CabQueueItem[];
   available: boolean;
 }
+
+/* ------------------------------------------------------------------------- *
+ * Calendar and blackout windows
+ * ------------------------------------------------------------------------- */
+
+export interface NamedRef {
+  id: string;
+  name: string;
+}
+
+/** A period an administrator closes to changes (a freeze). Kept by the BFF. */
+export interface Blackout {
+  id: string;
+  name: string;
+  /** ISO instants. */
+  start: string;
+  end: string;
+  reason: string;
+  updatedBy: string;
+  updatedAt: string;
+}
+
+export interface BlackoutInput {
+  name: string;
+  start: string;
+  end: string;
+  reason: string;
+}
+
+/** Another change on the same CI or service at an overlapping time. */
+export interface ChangeClash {
+  changeId: string;
+  ref: string;
+  /** What both touch. */
+  on: Array<{ kind: "ci" | "service"; name: string }>;
+}
+
+export interface CalendarChange {
+  id: string;
+  ref: string;
+  title: string;
+  type: ChangeType;
+  status: ChangeStatus;
+  /** ISO; `end` is "" when the change has no planned end. */
+  start: string;
+  end: string;
+  organization: NamedRef;
+  team: NamedRef | null;
+  cis: NamedRef[];
+  services: NamedRef[];
+  outage: boolean;
+  /** The risk level from the questionnaire, when it was answered. */
+  risk: RiskLevel | null;
+  clashes: ChangeClash[];
+  /** Blackout windows the change overlaps. */
+  blackouts: NamedRef[];
+}
+
+export interface ChangeCalendar {
+  /** The window asked for, ISO. */
+  from: string;
+  to: string;
+  items: CalendarChange[];
+  /** Blackout windows overlapping the window. */
+  blackouts: Blackout[];
+  /** Every value the filters can take in this window (before filtering). */
+  options: { teams: NamedRef[]; cis: NamedRef[]; services: NamedRef[]; organizations: NamedRef[] };
+  /** More changes fall in the window than the calendar reads. */
+  truncated: boolean;
+}
+
+export interface CalendarQuery {
+  from: string;
+  to: string;
+  teamId?: string;
+  ciId?: string;
+  serviceId?: string;
+  orgId?: string;
+}
+
+/* ------------------------------------------------------------------------- *
+ * Risk questionnaire
+ * ------------------------------------------------------------------------- */
+
+export type RiskLevel = "low" | "medium" | "high";
+
+export interface RiskOption {
+  id: string;
+  label: string;
+  /** 0 (no risk) to 10 (most risk). */
+  score: number;
+}
+
+export interface RiskQuestion {
+  id: string;
+  text: string;
+  help: string;
+  /** 1 to 10: how much this question counts. */
+  weight: number;
+  options: RiskOption[];
+}
+
+export interface RiskModel {
+  questions: Record<ChangeType, RiskQuestion[]>;
+  /** Score (0–100) at which a change is medium, and high, risk. */
+  thresholds: { medium: number; high: number };
+  /** The questionnaire must be answered before the change is planned. */
+  requiredBeforePlan: Record<ChangeType, boolean>;
+}
+
+export interface RiskModelDto {
+  model: RiskModel;
+  defaults: RiskModel;
+  updatedAt: string;
+  updatedBy: string;
+}
+
+export interface RiskAssessment {
+  changeId: string;
+  ref: string;
+  type: ChangeType;
+  status: ChangeStatus;
+  /** This change type's questions, as they are now. */
+  questions: RiskQuestion[];
+  /** Question id -> option id. */
+  answers: Record<string, string>;
+  /** 0–100, null until every question is answered. */
+  score: number | null;
+  level: RiskLevel | null;
+  thresholds: { medium: number; high: number };
+  assessedBy: string;
+  /** ISO; "" until answered. */
+  assessedAt: string;
+  /** The answers no longer cover the questions (an administrator changed them). */
+  stale: boolean;
+  /** Must be answered before planning (the administrator's setting for this type). */
+  required: boolean;
+  /**
+   * High risk on a routine change: it cannot go ahead as pre-approved and must
+   * be raised as a normal change, which goes to the CAB.
+   */
+  forcesCab: boolean;
+  /** The caller may answer (the change is not yet implemented). */
+  canEdit: boolean;
+}
+
+export interface RiskAnswersInput {
+  answers: Record<string, string>;
+}
+
+/* ------------------------------------------------------------------------- *
+ * Post-implementation review
+ * ------------------------------------------------------------------------- */
+
+export type PirOutcome = "successful" | "partial" | "failed" | "rolled_back";
+
+export interface PirFollowUp {
+  text: string;
+  owner: string;
+  /** YYYY-MM-DD or "". */
+  due: string;
+  done: boolean;
+}
+
+export interface PirIncident {
+  id: string;
+  ref: string;
+  title: string;
+}
+
+export interface PirReview {
+  outcome: PirOutcome;
+  wentWell: string;
+  wentBadly: string;
+  incidents: PirIncident[];
+  followUps: PirFollowUp[];
+  completedBy: string;
+  completedAt: string;
+}
+
+export interface ChangePir {
+  changeId: string;
+  ref: string;
+  title: string;
+  type: ChangeType;
+  status: ChangeStatus;
+  /** Implemented, monitored or closed: a review can be written. */
+  allowed: boolean;
+  /** Allowed and not written yet. */
+  due: boolean;
+  review: PirReview | null;
+}
+
+export interface PirInput {
+  outcome: PirOutcome;
+  wentWell: string;
+  wentBadly: string;
+  incidentIds: string[];
+  followUps: PirFollowUp[];
+}
+
+export interface PirDueItem {
+  id: string;
+  ref: string;
+  title: string;
+  type: ChangeType;
+  status: ChangeStatus;
+  organization: string;
+  team: string;
+  /** ISO planned end, or "". */
+  endDate: string;
+  /** ISO close date, or "". */
+  closedAt: string;
+}
+
+export interface PirQueue {
+  items: PirDueItem[];
+  /** Closed changes older than this many days no longer ask for a review. */
+  lookbackDays: number;
+}

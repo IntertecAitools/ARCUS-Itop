@@ -27,37 +27,18 @@ import type {
   PlanRules,
   PlanRulesDto,
 } from "./changes.types.js";
+import { STATUS, TYPE_CLASS, TYPE_OF_CLASS } from "./change-model.js";
 
-/** iTop's change classes, and which of our types each is. */
-const TYPE_OF_CLASS: Record<string, ChangeType> = {
-  RoutineChange: "routine",
-  NormalChange: "normal",
-  EmergencyChange: "emergency",
-};
-
-const TYPE_CLASS: Record<ChangeType, string> = {
-  routine: "RoutineChange",
-  normal: "NormalChange",
-  emergency: "EmergencyChange",
-};
+/**
+ * A further check on Plan / Implement, from another part of change
+ * management (the risk questionnaire). Throws to refuse.
+ */
+export type GateCheck = (changeId: number, type: ChangeType, gate: PlanGate) => Promise<void>;
 
 /** Every class a change can be addressed as on /api/objects. */
 const CHANGE_CLASSES = new Set(["Change", "ApprovedChange", ...Object.keys(TYPE_OF_CLASS)]);
 
 const TYPE_LABEL: Record<ChangeType, string> = { routine: "routine", normal: "normal", emergency: "emergency" };
-
-const STATUS: Record<string, ChangeStatus> = {
-  new: "new",
-  validated: "validated",
-  rejected: "rejected",
-  assigned: "assigned",
-  plannedscheduled: "planned",
-  approved: "approved",
-  notapproved: "not_approved",
-  implemented: "implemented",
-  monitored: "monitored",
-  closed: "closed",
-};
 
 /** iTop stimulus -> the gate whose plans it needs. ev_replan plans again. */
 const GATE_OF_STIMULUS: Record<string, PlanGate> = {
@@ -141,6 +122,13 @@ export class ChangesService {
     private readonly store: PlanRuleStore,
     private readonly timeZone: string,
   ) {}
+
+  private readonly gateChecks: GateCheck[] = [];
+
+  /** See GateCheck. */
+  addGateCheck(check: GateCheck): void {
+    this.gateChecks.push(check);
+  }
 
   /* --------------------------------------------------------------------- *
    * Reading a change
@@ -363,6 +351,8 @@ export class ChangesService {
         { details: { reason: "cab_decision_required" } },
       );
     }
+
+    for (const check of this.gateChecks) await check(change.id, change.type, gate!);
 
     const plans = this.plansOf(change);
     const given = fields[PLAN_FIELDS.rollback];

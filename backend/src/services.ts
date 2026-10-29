@@ -16,6 +16,9 @@ import {
   MySqlAssignmentRuleStore,
 } from "./modules/dispatch/index.js";
 import {
+  ChangeCalendarService,
+  ChangePirService,
+  ChangeRiskService,
   ChangesService,
   MemoryPlanRuleStore,
   MySqlPlanRuleStore,
@@ -34,6 +37,7 @@ import {
   type ImportReportStore,
   SyncSourcesService,
 } from "./modules/data-import/index.js";
+import { type DocStore, MemoryDocStore, MySqlDocStore } from "./shared/doc-store.js";
 import { LookupsService } from "./platform/lookups/lookups.service.js";
 import { Navigation } from "./platform/navigation/navigation.service.js";
 import { Dashboards } from "./platform/dashboards/dashboards.service.js";
@@ -114,6 +118,12 @@ export interface Services {
   /** Coverage windows and holidays (Combodo's business-hours modules). */
   businessHours: BusinessHoursService;
   changes: ChangesService;
+  /** Changes by planned dates, clashes, blackout windows. */
+  changeCalendar: ChangeCalendarService;
+  /** The risk questionnaire and each change's answers. */
+  changeRisk: ChangeRiskService;
+  /** Post-implementation reviews and the changes still waiting for one. */
+  changePir: ChangePirService;
   /** Team dispatch: the team queue, "Take it", the assignment rules. */
   dispatch: DispatchService;
   /** Present when MAIL_INTAKE_SOURCE is set. */
@@ -146,6 +156,8 @@ export interface BuildServicesOptions {
   requestForms?: RequestFormStore;
   /** Change plan rules for tests; otherwise in the BFF database, or memory. */
   planRules?: PlanRuleStore;
+  /** Risk answers, reviews, blackouts, article workflow for tests; otherwise in the BFF database, or memory. */
+  documents?: DocStore;
   /** Assignment rules for tests; otherwise in the BFF database, or memory. */
   assignmentRules?: AssignmentRuleStore;
   /** Import reports for tests; otherwise in the BFF database, or memory. */
@@ -248,7 +260,10 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     options.planRules ?? (stores?.pool ? new MySqlPlanRuleStore(stores.pool) : new MemoryPlanRuleStore()),
     config.itop.timezone,
   );
-  // Every action on a change, from any screen, meets the plan and CAB rules.
+  const documents = options.documents ?? (stores?.pool ? new MySqlDocStore(stores.pool) : new MemoryDocStore());
+  const changeRisk = new ChangeRiskService(client, documents);
+  changes.addGateCheck((id, type, gate) => changeRisk.check(id, type, gate));
+  // Every action on a change, from any screen, meets the plan, risk and CAB rules.
   objects.addTransitionGuard((className, id, stimulus, fields) =>
     changes.guardTransition(className, id, stimulus, fields),
   );
@@ -324,6 +339,9 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     sla: new SlaService(objects, config.itop.timezone, businessHours),
     businessHours,
     changes,
+    changeCalendar: new ChangeCalendarService(client, documents, config.itop.timezone, (ids) => changeRisk.levels(ids)),
+    changeRisk,
+    changePir: new ChangePirService(client, documents, config.itop.timezone),
     dispatch,
     requestForms: new RequestFormsService(
       client,
