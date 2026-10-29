@@ -10,6 +10,7 @@ import { humaniseAttcode } from '../components/FieldControls';
 import { layoutFor, mustSupply, RecordForm } from '../components/RecordForm';
 import type { RecordDto } from '../types';
 import { dedicatedRecordPath } from '../lib/dedicated';
+import { DraftBar, DuplicateSuggestions, useTicketDraft } from '@/features/ticket-handling';
 import { RequestFormSection, answersFor, missingRequired, type FormAnswers, type FormField } from '@/features/request-forms';
 
 /** What the BFF returns from a create: the row, plus anything iTop refused. */
@@ -60,6 +61,15 @@ function GenericRecordNew() {
   const isRequest = className === 'UserRequest';
   const [formFields, setFormFields] = useState<FormField[]>([]);
   const [answers, setAnswers] = useState<FormAnswers>({});
+  // A half-filled request can be saved and picked up later (?draft=…).
+  const requestDraft = useTicketDraft(
+    'user-request',
+    () => ({ fields: draft, answers }),
+    (data) => {
+      setDraft((data['fields'] as Record<string, string> | undefined) ?? {});
+      setAnswers((data['answers'] as FormAnswers | undefined) ?? {});
+    },
+  );
   /**
    * Set only when the record was created but iTop refused some fields, which
    * is a real case: `priority` on a ticket is derived from impact and urgency,
@@ -122,6 +132,7 @@ function GenericRecordNew() {
           setPartial(result);
           return;
         }
+        if (isRequest) requestDraft.discard();
         navigate(`/records/${className}/${result.object.id}`);
       },
     });
@@ -278,6 +289,20 @@ function GenericRecordNew() {
           }
         />
       </Card>
+
+      {isRequest ? (
+        <>
+          <DraftBar draft={requestDraft} className="mb-4" />
+          <DuplicateSuggestions
+            ticketClass="UserRequest"
+            title={draft['title'] ?? ''}
+            orgId={draft['org_id']}
+            callerId={draft['caller_id']}
+            serviceId={draft['service_id']}
+            className="mb-4"
+          />
+        </>
+      ) : null}
 
       {isRequest ? (
         <RequestFormSection

@@ -11,6 +11,7 @@ import { IncidentActions } from '../components/IncidentActions';
 import { IncidentCaseLog } from '../components/IncidentCaseLog';
 import { IncidentEditDialog } from '../components/IncidentEditDialog';
 import { MajorIncidentPanel } from '../components/MajorIncidentPanel';
+import { TicketHandlingPanel } from '@/features/ticket-handling';
 import type { IncidentDetail } from '../types';
 
 function Field({ label, children }: { label: string; children?: ReactNode }) {
@@ -202,6 +203,8 @@ export function IncidentDetailPage() {
           </Card>
 
           <MajorIncidentPanel incident={incident} />
+
+          <TicketHandlingPanel ticketClass="Incident" id={incident.id} />
 
           <Card>
             <CardHeader title="Details" />

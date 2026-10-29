@@ -52,6 +52,11 @@ export function useRequestActions(id: string) {
         apiClient.post<PortalTicketDetail>(`${base}/requests/${id}/reopen`, { message }),
       onSuccess,
     }),
+    cancel: useMutation({
+      mutationFn: (reason: string) =>
+        apiClient.post<PortalTicketDetail>(`${base}/requests/${id}/cancel`, { reason }),
+      onSuccess,
+    }),
   };
 }
 

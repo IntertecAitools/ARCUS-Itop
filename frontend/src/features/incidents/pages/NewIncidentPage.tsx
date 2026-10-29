@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button, buttonClasses, Card } from '@/components/ui';
 import { fromDateTimeInput } from '@/lib/utils';
+import { DraftBar, DuplicateSuggestions, useTicketDraft } from '@/features/ticket-handling';
 import { useCreateIncident, useIncidentOptions } from '../api/useIncidents';
 import { CONTROL, Field, SectionLabel, Select } from '../components/FormField';
 import { newIncidentSchema, type NewIncidentForm } from '../schemas';
@@ -31,11 +32,20 @@ export function NewIncidentPage() {
     handleSubmit,
     setValue,
     watch,
+    getValues,
+    reset,
     formState: { errors },
   } = useForm<NewIncidentForm>({
     resolver: zodResolver(newIncidentSchema),
     defaultValues: { origin: 'portal' },
   });
+
+  // A half-filled form can be saved and picked up later (?draft=…).
+  const draft = useTicketDraft(
+    'incident',
+    () => getValues(),
+    (data) => reset({ origin: 'portal', ...(data as Partial<NewIncidentForm>) }),
+  );
 
   const serviceId = watch('serviceId');
   const urgency = watch('urgency');
@@ -61,7 +71,12 @@ export function NewIncidentPage() {
     // The picker shows the viewer's wall clock; send the exact instant.
     if (payload.startDate) payload.startDate = fromDateTimeInput(payload.startDate);
 
-    create.mutate(payload, { onSuccess: (incident) => navigate(`/incidents/${incident.id}`) });
+    create.mutate(payload, {
+      onSuccess: (incident) => {
+        draft.discard();
+        navigate(`/incidents/${incident.id}`);
+      },
+    });
   });
 
   return (
@@ -88,6 +103,8 @@ export function NewIncidentPage() {
           </Button>
         </div>
       </div>
+
+      <DraftBar draft={draft} className="mb-4" />
 
       {create.isError ? (
         <p
@@ -220,29 +237,32 @@ export function NewIncidentPage() {
         </Card>
 
         {/* -------------------------------------------------------- sidebar */}
-        <Card className="p-5">
-          <SectionLabel>Details</SectionLabel>
-          <div className="space-y-4">
-            <Field label="Assignment group (optional)" htmlFor="teamId">
-              <Select
-                id="teamId"
-                placeholder={options?.teams.length ? 'Auto-assign by rules' : 'No teams configured'}
-                options={options?.teams ?? []}
-                disabled={!options?.teams.length}
-                {...register('teamId')}
-              />
-            </Field>
+        <div className="space-y-4">
+          <DuplicateSuggestions ticketClass="Incident" title={watch('title') ?? ''} serviceId={serviceId} />
+          <Card className="p-5">
+            <SectionLabel>Details</SectionLabel>
+            <div className="space-y-4">
+              <Field label="Assignment group (optional)" htmlFor="teamId">
+                <Select
+                  id="teamId"
+                  placeholder={options?.teams.length ? 'Auto-assign by rules' : 'No teams configured'}
+                  options={options?.teams ?? []}
+                  disabled={!options?.teams.length}
+                  {...register('teamId')}
+                />
+              </Field>
 
-            <Field label="Assignee (optional)" htmlFor="agentId">
-              <Select
-                id="agentId"
-                placeholder="Not assigned"
-                options={options?.agents ?? []}
-                {...register('agentId')}
-              />
-            </Field>
-          </div>
-        </Card>
+              <Field label="Assignee (optional)" htmlFor="agentId">
+                <Select
+                  id="agentId"
+                  placeholder="Not assigned"
+                  options={options?.agents ?? []}
+                  {...register('agentId')}
+                />
+              </Field>
+            </div>
+          </Card>
+        </div>
       </div>
     </form>
   );

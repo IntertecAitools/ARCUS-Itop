@@ -4,6 +4,7 @@ import { Button, Card, CardBody, CardHeader, Input, Skeleton } from '@/component
 import { cn } from '@/lib/utils';
 import { PageIntro, publicControl } from '@/components/public';
 import { RequestFormSection, answersFor, missingRequired, type FormAnswers, type FormField } from '@/features/request-forms';
+import { DraftBar, useTicketDraft } from '@/features/ticket-handling';
 import { useCatalog, useCreateRequest } from '../api/portal.api';
 
 const CONTROL = publicControl;
@@ -33,6 +34,19 @@ export function PortalNewRequestPage() {
   const [formFields, setFormFields] = useState<FormField[]>([]);
   const [answers, setAnswers] = useState<FormAnswers>({});
   const unanswered = missingRequired(formFields, answers);
+  // A half-written request can be saved and finished later (?draft=…).
+  const draft = useTicketDraft(
+    'portal-request',
+    () => ({ title, description, urgency, serviceId, subcategoryId, answers }),
+    (data) => {
+      setTitle(typeof data['title'] === 'string' ? data['title'] : '');
+      setDescription(typeof data['description'] === 'string' ? data['description'] : '');
+      setUrgency(typeof data['urgency'] === 'string' ? data['urgency'] : '4');
+      setServiceId(typeof data['serviceId'] === 'number' ? data['serviceId'] : null);
+      setSubcategoryId(typeof data['subcategoryId'] === 'number' ? data['subcategoryId'] : null);
+      setAnswers((data['answers'] as FormAnswers | undefined) ?? {});
+    },
+  );
 
   const families = useMemo(() => {
     const groups = new Map<string, NonNullable<typeof services>>();
@@ -54,7 +68,12 @@ export function PortalNewRequestPage() {
         ...(subcategoryId ? { subcategoryId } : {}),
         ...(formFields.length > 0 ? { answers: answersFor(formFields, answers) } : {}),
       },
-      { onSuccess: (ticket) => navigate(`/portal/requests/${ticket.id}`, { replace: true }) },
+      {
+        onSuccess: (ticket) => {
+          draft.discard();
+          navigate(`/portal/requests/${ticket.id}`, { replace: true });
+        },
+      },
     );
 
   return (
@@ -161,6 +180,7 @@ export function PortalNewRequestPage() {
       </Card>
 
       <div className="flex flex-wrap justify-end gap-3 border-t border-line pt-6">
+        <DraftBar draft={draft} className="me-auto" />
         {unanswered.length > 0 ? (
           <p className="me-auto self-center text-[13px] text-ink-secondary">Still to answer: {unanswered.map((f) => f.label).join(', ')}</p>
         ) : null}
