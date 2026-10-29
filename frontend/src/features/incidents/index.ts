@@ -2,6 +2,8 @@
 export { IncidentListPage } from './pages/IncidentListPage';
 export { IncidentDetailPage } from './pages/IncidentDetailPage';
 export { NewIncidentPage } from './pages/NewIncidentPage';
+export { IncidentRecordRedirect } from './pages/IncidentRecordRedirect';
+export { IncidentMajorTab } from './components/IncidentMajorTab';
 export { useIncident, useIncidents } from './api/useIncidents';
 export type {
   Incident,
