@@ -139,6 +139,8 @@ export interface UpdateIncidentInput {
 export interface TransitionInput {
   action: TransitionAction;
   agentId?: string;
+  /** `dispatch` only, required: the team it goes to. */
+  teamId?: string;
   solution?: string;
   resolutionCode?: string;
   /** `hold` only, required: why it waits. */

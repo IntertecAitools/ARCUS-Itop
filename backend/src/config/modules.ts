@@ -4,7 +4,9 @@ import type { Services } from "../services.js";
 import { registerBusinessHoursRoutes } from "../modules/business-hours/index.js";
 import { registerChangeRoutes } from "../modules/changes/index.js";
 import { registerDashboardRoutes } from "../modules/dashboard/index.js";
+import { registerDataImportRoutes } from "../modules/data-import/index.js";
 import { registerDirectoryRoutes } from "../modules/directory/index.js";
+import { registerDispatchRoutes } from "../modules/dispatch/index.js";
 import { registerIncidentRoutes } from "../modules/incidents/index.js";
 import { registerMailIntakeRoutes } from "../modules/mail-intake/index.js";
 import { registerProblemRoutes } from "../modules/problems/index.js";
@@ -76,10 +78,22 @@ export const modules: BackendModule[] = [
     register: registerDashboardRoutes,
   },
   {
+    id: "data-import",
+    basePath: "/api/admin/data-import",
+    description: "Load people, organisations, teams and CIs from CSV/Excel (mapped, previewed, written through REST), and recurring feeds as iTop Data Synchro sources.",
+    register: registerDataImportRoutes,
+  },
+  {
     id: "directory",
     basePath: "/api/directory",
     description: "Organisations, people and teams — onboarded before any ticket exists.",
     register: registerDirectoryRoutes,
+  },
+  {
+    id: "dispatch",
+    basePath: "/api/dispatch",
+    description: "Tickets sent to a team before anyone takes them: the team's queue, Take it, and the assignment rules that route new tickets (under /api/admin/assignment-rules).",
+    register: registerDispatchRoutes,
   },
   {
     id: "incidents",

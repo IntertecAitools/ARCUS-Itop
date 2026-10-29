@@ -69,7 +69,7 @@ export interface CaseLogEntry {
 export type OperationalStatus = 'operational' | 'degraded' | 'outage';
 
 /** The lifecycle actions the backend exposes. */
-export type TransitionAction = 'assign' | 'reassign' | 'hold' | 'resolve' | 'close' | 'reopen';
+export type TransitionAction = 'assign' | 'dispatch' | 'reassign' | 'hold' | 'resolve' | 'close' | 'reopen';
 
 export interface IncidentDetail extends Incident {
   description: string;
@@ -169,6 +169,8 @@ export interface UpdateIncidentInput {
 export interface TransitionInput {
   action: TransitionAction;
   agentId?: string;
+  /** `dispatch` only: the team it goes to. */
+  teamId?: string;
   solution?: string;
   resolutionCode?: string;
   pendingReason?: string;

@@ -14,20 +14,34 @@ export interface ImportTarget {
   label: string;
 }
 
+export interface MappingOptions {
+  /**
+   * The fields of the record a reference points at that a column can name
+   * it by, first one preferred: `{ value: 'name', label: 'name' }`. Default:
+   * its friendly name, which is what an export from the list writes (a
+   * person's is "First Last").
+   */
+  lookups?: (target: string | undefined) => { value: string; label: string }[];
+}
+
+const FRIENDLY_NAME = () => [{ value: 'friendlyname', label: 'name' }];
+
 /**
  * Where a column can go: `id` (to update a record by its id), any writable
  * field, and for a reference both the id of the record it points at and
- * that record's name -- its friendly name, which is what an export from
- * the list writes (a person's is "First Last").
+ * the fields that record can be found by (see MappingOptions.lookups).
  */
-export function importTargets(info: ClassInfo): ImportTarget[] {
+export function importTargets(info: ClassInfo, options: MappingOptions = {}): ImportTarget[] {
   const label = (code: string) => info.labels?.fields?.[code] ?? humaniseAttcode(code);
+  const lookups = options.lookups ?? FRIENDLY_NAME;
   const targets: ImportTarget[] = [{ value: 'id', label: 'ID' }];
   for (const code of info.writable) {
     const spec = info.fields[code];
     if (!spec || spec.type === 'CaseLog') continue;
     if (spec.ui === 'picker') {
-      targets.push({ value: `${code}->friendlyname`, label: `${label(code)} (name)` });
+      for (const lookup of lookups(spec.target)) {
+        targets.push({ value: `${code}->${lookup.value}`, label: `${label(code)} (${lookup.label})` });
+      }
       targets.push({ value: code, label: `${label(code)} (ID)` });
     } else if (spec.ui === 'scalar') {
       targets.push({ value: code, label: label(code) });
@@ -59,10 +73,12 @@ const norm = (text: string) => text.toLowerCase().replace(/[^a-z0-9]/g, '');
  * from this app writes it) is matched by name, since that is what an export
  * holds. A field is used at most once; the rest is left skipped.
  */
-export function suggestMapping(info: ClassInfo, headings: string[]): ImportMapping {
+export function suggestMapping(info: ClassInfo, headings: string[], options: MappingOptions = {}): ImportMapping {
   const used = new Set<string>();
   const label = (code: string) => info.labels?.fields?.[code] ?? humaniseAttcode(code);
   const candidates = importTargets(info).map((t) => t.value).filter((v) => !v.includes('->'));
+  const lookups = options.lookups ?? FRIENDLY_NAME;
+  const preferred = (code: string) => lookups(info.fields[code]?.target)[0]?.value ?? 'friendlyname';
 
   const guess = (heading: string): string | null => {
     if (isImportColumn(info, heading)) return heading;
@@ -81,7 +97,7 @@ export function suggestMapping(info: ClassInfo, headings: string[]): ImportMappi
       return isPicker && path.length === 1 && norm(path[0]!) === 'name' ? `${code}->name` : null;
     }
     const byId = byCode !== undefined || (qualifier !== undefined && norm(qualifier) === 'id');
-    return isPicker && !byId ? `${code}->friendlyname` : code;
+    return isPicker && !byId ? `${code}->${preferred(code)}` : code;
   };
 
   return headings.map((heading) => {

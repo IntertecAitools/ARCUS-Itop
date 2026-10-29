@@ -15,6 +15,7 @@ import {
   needsMapping,
   suggestMapping,
   type ImportMapping,
+  type MappingOptions,
 } from '../lib/import-mapping';
 import type { ClassInfo, ImportReport } from '../types';
 
@@ -281,13 +282,14 @@ const SKIP = '';
  * and labels; a column can be skipped. iTop gets the file with these
  * headings, so its own checks and the dry run still apply.
  */
-function MappingCard({
+export function MappingCard({
   info,
   headings,
   mapping,
   mustMap,
   onChange,
   onReset,
+  options,
 }: {
   info: ClassInfo;
   headings: string[];
@@ -295,8 +297,10 @@ function MappingCard({
   mustMap: boolean;
   onChange: (index: number, target: string | null) => void;
   onReset: () => void;
+  /** Which fields a reference column can name its record by (the data import's wizard). */
+  options?: MappingOptions;
 }) {
-  const targets = useMemo(() => importTargets(info), [info]);
+  const targets = useMemo(() => importTargets(info, options), [info, options]);
   return (
     <Card className="mb-4">
       <CardHeader

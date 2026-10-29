@@ -16,6 +16,8 @@ import { toItopTime } from "./itop-time.js";
 
 export type TicketStatus =
   | "new"
+  // With a team, nobody in it has taken it yet (arcus-ticket-dispatch).
+  | "dispatched"
   | "open"
   | "in_progress"
   | "pending"
@@ -31,6 +33,7 @@ export type TicketPriority = "critical" | "high" | "medium" | "low";
 /** iTop's Incident/UserRequest states, mapped onto the UI's vocabulary. */
 export const STATUS_MAP: Record<string, TicketStatus> = {
   new: "new",
+  dispatched: "dispatched",
   assigned: "open",
   // Escalation is an SLA concern, not a separate workflow state for the user.
   escalated_tto: "open",
@@ -46,6 +49,7 @@ export const STATUS_MAP: Record<string, TicketStatus> = {
 /** Our vocabulary back to iTop's, for filtering. One of ours can map to many. */
 export const STATUS_TO_ITOP: Record<TicketStatus, string[]> = {
   new: ["new"],
+  dispatched: ["dispatched"],
   open: ["assigned", "escalated_tto", "escalated_ttr"],
   in_progress: ["assigned"],
   pending: ["pending"],
@@ -71,8 +75,11 @@ export const PRIORITY_TO_ITOP: Record<TicketPriority, string> = {
   low: "4",
 };
 
-/** Statuses that mean "still being worked". Used for open/queue counts. */
-export const OPEN_STATES = "'new','assigned','escalated_tto','escalated_ttr','pending'";
+/**
+ * Statuses that mean "still being worked". Used for open/queue counts.
+ * `dispatched` matches nothing on an iTop without arcus-ticket-dispatch.
+ */
+export const OPEN_STATES = "'new','dispatched','assigned','escalated_tto','escalated_ttr','pending'";
 
 export const str = (value: unknown): string => (value == null ? "" : String(value));
 
@@ -150,6 +157,8 @@ export function oqlString(value: string): string {
  */
 export const TRANSITIONS = {
   assign: { stimulus: "ev_assign", label: "Assign", requires: ["agent_id"] },
+  // arcus-ticket-dispatch: to a team, nobody in it chosen yet.
+  dispatch: { stimulus: "ev_dispatch", label: "Dispatch to team", requires: ["team_id"] },
   reassign: { stimulus: "ev_reassign", label: "Reassign", requires: ["agent_id"] },
   hold: { stimulus: "ev_pending", label: "Put on hold", requires: [] },
   resolve: { stimulus: "ev_resolve", label: "Resolve", requires: ["solution"] },
