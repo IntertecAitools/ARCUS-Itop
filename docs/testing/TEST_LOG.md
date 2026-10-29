@@ -4,6 +4,28 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-10-29 — UI redesign: near-black and violet look, new landing page, sign-in, staff app and portal restyle
+
+Branch `claude/ui-redesign-f7d932`. Mock mode only (Vite on `:5253`, the e2e build on `:5254`); no BFF or iTop needed, since the change is styling and layout only.
+
+| What ran | Result |
+|---|---|
+| Frontend typecheck (`npm run typecheck`), before and after merging `main` | clean |
+| Frontend vitest (`npm test`), before merging `main` | 222/222 pass |
+| Frontend vitest after merging `main`, run 1 | 227/228 (one failure under heavy machine load; only the summary was kept, so the test is not named) |
+| Frontend vitest after merging `main`, run 2 | 228/228 pass |
+| Playwright journeys (`npm run e2e`, `E2E_MOCK_URL=http://localhost:5254`), run 1 | 12/13: `records → advanced search → open a record` timed out waiting for "Filter classes" (the records chunk was still on "Loading module") |
+| `records.spec.ts` on its own | pass |
+| Playwright journeys, final run on the merged branch | 13/13 pass |
+| Before/after screenshots (landing, sign-in, dashboard, an incident, portal home at 1440 and 390 px), `docs/screenshots/ui-redesign/` | captured with a Playwright script against the mock dev server |
+| Side-by-side with the reference Framer site at 1440 and 390 px (built-in browser) | hero, marquee, feature cards, bento, carousels, editions, FAQ, CTA and footer checked by eye |
+
+Found and fixed while comparing (same branch): Inter is wider than Hanken Grotesk, so the portal nav, user name and "Sign out" wrapped onto two lines (now `whitespace-nowrap`, name only from `xl`); the sign-in side panel's arc crossed the headline (moved below the copy); the landing's rating line, footer wordmark and FAQ help card overflowed or cramped at 390 px.
+
+No selectors or snapshots had to change: every role, label and route the journeys use is unchanged.
+
+Not covered: the live journeys (`npm run e2e:live`) against the BFF and iTop; RTL (`dir="rtl"`) by eye; a formal contrast audit with a tool (tokens were chosen by computed ratio, ≥ 4.5:1 for text, ≥ 3:1 for input borders, and are listed in `public-theme.css`); Safari and Firefox.
+
 ### 2026-10-29 — Problems: root-cause evidence and likely causes, AI-drafted RCA
 
 Branch `claude/auto-rca-04065e`. This worktree's BFF on `:4090` (MFA on, accounts `e2e.rights.admin` and `e2e.rights.problem` under `"rca"` in the git-ignored `backend/e2e.local.json`) against the shared local iTop on `:8080` (has `arcus-problem-rca`). No `ANTHROPIC_API_KEY` was available, so the AI call itself ran only against a mocked model.
