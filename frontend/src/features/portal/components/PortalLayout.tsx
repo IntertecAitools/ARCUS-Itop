@@ -54,11 +54,11 @@ export function PortalLayout() {
         end={link.end}
         className={({ isActive }) =>
           cn(
-            'text-[14px] transition-colors',
+            'text-[14px] whitespace-nowrap transition-colors',
             variant === 'bar'
               ? 'flex h-16 items-center border-b-2'
               : 'block border-s-2 py-2.5 ps-4',
-            isActive ? 'border-ink text-ink' : 'border-transparent text-ink-secondary hover:text-ink',
+            isActive ? 'border-brand text-ink' : 'border-transparent text-ink-secondary hover:text-ink',
           )
         }
       >
@@ -83,7 +83,7 @@ export function PortalLayout() {
               {env.appName} {env.platformName}
             </span>
           </Link>
-          <nav aria-label="Portal" className="hidden flex-1 gap-7 lg:flex">
+          <nav aria-label="Portal" className="hidden flex-1 gap-6 lg:flex">
             {links('bar')}
           </nav>
           <div className="ms-auto flex items-center gap-1 text-[13px] lg:ms-0">

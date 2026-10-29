@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 /** Small uppercase label: the eyebrow over a heading. */
 export function Eyebrow({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <p className={cn('text-[12px] font-medium tracking-[0.16em] text-ink-secondary uppercase', className)}>
+    <p className={cn('text-[12px] font-medium tracking-[0.16em] text-brand-ink uppercase', className)}>
       {children}
     </p>
   );
@@ -35,7 +35,7 @@ export function CheckList({ items, className }: { items: ReactNode[]; className?
     <ul className={cn('space-y-3', className)}>
       {items.map((item, i) => (
         <li key={i} className="flex gap-3 text-[15px] leading-6 text-ink-secondary">
-          <Check className="mt-1 size-4 shrink-0 text-ink" aria-hidden />
+          <Check className="mt-1 size-4 shrink-0 text-brand-ink" aria-hidden />
           <span>{item}</span>
         </li>
       ))}
