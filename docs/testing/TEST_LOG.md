@@ -29,6 +29,22 @@ Test data: the e2e deletes its tickets, worklog entries and drafts at the end. I
 
 Not covered: the screens were tested with vitest on mock data, not clicked through in a browser (the browser pane did not render the dev server in time on this machine). The override's impact change (when the matrix row has no such priority) is unit-tested, not live. The time report's organisation filter under `TENANCY=on` is unit-tested only.
 
+Merging main afterwards (PR #41 moved incident creation back to the full record form, `/records/Incident/new`): incident drafts and duplicate suggestions moved to that form, next to the request ones, and the short `/incidents/new` form was left as main has it. After the merge: backend typecheck clean, `npm test` 857/857; frontend typecheck clean, vitest on config, ticket-handling, portal, incidents, records and lib 107/107 (18 files).
+
+### 2026-10-29 — New incident uses the full form again
+
+Reported: after the redesign, creating an incident showed far fewer fields than before. Cause: not the redesign. PR #34 also redirected `/records/Incident/new` (iTop's "New incident" menu, the full schema form) to `/incidents/new`, the short incident form (subject, description, source, urgency, impact, priority, date, service, category, team, agent). Organisation, caller, contacts, CIs and parent links were gone.
+
+| What ran | Result |
+|---|---|
+| Frontend typecheck | clean |
+| vitest `src/features/records` + `src/features/incidents` (incl. updated `dedicated.test.ts`) | 13 files, 69/69 pass |
+| Live, BFF :4000 + local iTop, as `e2e.rights.desk`: `GET /api/meta/classes/Incident` | 200; the full form's schema offers org (required), caller, contacts, functional CIs, parent incident/problem/change/request and the rest |
+
+Fix (branch `claude/restore-full-incident-form`): `/records/Incident/new` is no longer redirected, and the incidents list's "New incident" buttons open it. Viewing an incident still redirects to `/incidents/<id>`, so a saved incident opens on its own screen.
+
+Not covered: the form was not clicked through in the browser (the browser pane stopped responding); checked through the schema API and tests instead.
+
 ### 2026-10-29 — Change calendar, risk questionnaire, PIR; knowledge article workflow and feedback
 
 Branch `claude/change-knowledge-a7889d`. The record-test-run hook logged none of these runs below, so this table is the record. No iTop extension: the new data (risk answers, reviews, blackout windows, article state, votes) lives in the BFF's own MySQL (`bff_documents`).

@@ -9,7 +9,7 @@ import type { DraftKind } from '../types';
 
 /** Where each kind of draft is resumed. */
 export const DRAFT_FORMS: Record<DraftKind, { label: string; path: string }> = {
-  incident: { label: 'Incident', path: '/incidents/new' },
+  incident: { label: 'Incident', path: '/records/Incident/new' },
   'user-request': { label: 'User request', path: '/records/UserRequest/new' },
   'portal-request': { label: 'Request', path: '/portal/new' },
 };

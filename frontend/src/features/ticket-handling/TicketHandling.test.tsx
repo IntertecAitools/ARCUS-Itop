@@ -130,7 +130,7 @@ describe('drafts', () => {
 
     renderWithProviders(<MyDraftsPage />);
     const link = await screen.findByRole('link', { name: /Printer half done/ });
-    expect(link.getAttribute('href')).toMatch(/^\/incidents\/new\?draft=[0-9a-f]{24}$/);
+    expect(link.getAttribute('href')).toMatch(/^\/records\/Incident\/new\?draft=[0-9a-f]{24}$/);
   });
 
   it('resumes a draft named in the address', async () => {
