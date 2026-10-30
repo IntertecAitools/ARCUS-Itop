@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
-import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Pencil, Trash2, X } from 'lucide-react';
 import { PageHeader } from '@/components/layout';
 import { Button, buttonClasses, Card, Skeleton } from '@/components/ui';
@@ -18,7 +18,6 @@ import { DeleteDialog } from '../components/DeleteDialog';
 import { TransitionDialog } from '../components/TransitionDialog';
 import { PendingBanner } from '../components/PendingBanner';
 import { asksNextActionDate, offeredActions, requiredForTransition, transitionPrompts } from '../lib/transitions';
-import { dedicatedRecordPath } from '../lib/dedicated';
 
 /**
  * A problem's root-cause analysis and known errors, a tab of their own.
@@ -35,6 +34,14 @@ const ChangeGovernancePanel = lazy(() =>
   import('@/features/changes').then((m) => ({ default: m.ChangeGovernancePanel })),
 );
 
+/**
+ * An incident's major-incident panel (declare, child incidents, stakeholder
+ * updates), a tab of its own. Lazy, as above.
+ */
+const IncidentMajorTab = lazy(() =>
+  import('@/features/incidents').then((m) => ({ default: m.IncidentMajorTab })),
+);
+
 /** Change classes with the CAB tab; on the CAB ones, approving happens there. */
 const CHANGE_CLASSES = new Set(['Change', 'RoutineChange', 'NormalChange', 'EmergencyChange']);
 const CAB_CLASSES = new Set(['NormalChange', 'EmergencyChange']);
@@ -49,17 +56,8 @@ const CAB_ACTIONS = new Set(['ev_approve', 'ev_notapprove']);
  *
  * Edits write straight through the BFF to iTop, so a change made here IS the
  * change in the system of record — there is no second step in iTop's console.
- *
- * A class with a screen of its own (an Incident) is sent on to that screen.
  */
 export function RecordDetailPage() {
-  const { className = '', id = '' } = useParams();
-  const dedicated = dedicatedRecordPath(className, id);
-  if (dedicated) return <Navigate to={dedicated} replace />;
-  return <GenericRecordDetail />;
-}
-
-function GenericRecordDetail() {
   const { className = '', id = '' } = useParams();
   const { data: info, isLoading: schemaLoading } = useClassInfo(className);
   const { data: record, isLoading, isError, error } = useRecord(className, id);
@@ -232,6 +230,7 @@ function GenericRecordDetail() {
 
   const tabs = [
     { id: 'details', label: 'Details' },
+    ...(info.name === 'Incident' ? [{ id: 'major', label: 'Major incident' }] : []),
     ...(info.name === 'Problem' ? [{ id: 'rca', label: 'Root cause' }] : []),
     ...(CHANGE_CLASSES.has(info.name) ? [{ id: 'cab', label: 'CAB & plans' }] : []),
     ...(supportsAttachments ? [{ id: 'attachments', label: 'Attachments' }] : []),
@@ -363,15 +362,19 @@ function GenericRecordDetail() {
         <RequestApprovalCard audience="staff" requestId={id} className="mb-4" />
       ) : null}
 
-      {className === 'UserRequest' && tab === 'details' ? (
-        <TicketHandlingPanel ticketClass="UserRequest" id={id} className="mb-4" />
+      {(className === 'UserRequest' || className === 'Incident') && tab === 'details' ? (
+        <TicketHandlingPanel ticketClass={className} id={id} className="mb-4" />
       ) : null}
 
       {(className === 'UserRequest' || className === 'Incident') && tab === 'details' ? (
         <PendingBanner className={className} id={id} status={String(record.fields['status'] ?? '')} />
       ) : null}
 
-      {tab === 'rca' ? (
+      {tab === 'major' ? (
+        <Suspense fallback={<Skeleton className="h-80 w-full" />}>
+          <IncidentMajorTab id={id} />
+        </Suspense>
+      ) : tab === 'rca' ? (
         <Suspense fallback={<Skeleton className="h-80 w-full" />}>
           <ProblemAnalysisPanel id={id} />
         </Suspense>
