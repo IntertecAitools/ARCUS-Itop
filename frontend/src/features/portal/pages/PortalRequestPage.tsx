@@ -107,7 +107,7 @@ export function PortalRequestPage() {
         <Card className="mb-4">
           <CardHeader title={t('portal.request.closeTitle')} subtitle={t('portal.request.closeLead')} />
           <CardBody className="space-y-3">
-            <div className="flex flex-wrap gap-4 text-[13px] text-ink">
+            <div role="radiogroup" aria-label={t('portal.request.closeLead')} className="flex flex-wrap gap-4 text-[13px] text-ink">
               {SATISFACTION.map((s) => (
                 <label key={s.value} className="flex items-center gap-2">
                   <input type="radio" name="satisfaction" checked={satisfaction === s.value} onChange={() => setSatisfaction(s.value)} />
@@ -115,7 +115,7 @@ export function PortalRequestPage() {
                 </label>
               ))}
             </div>
-            <textarea rows={3} className={TEXTAREA} placeholder={t('portal.request.anythingToAdd')} value={closeComment} onChange={(e) => setCloseComment(e.target.value)} />
+            <textarea rows={3} className={TEXTAREA} aria-label={t('portal.request.anythingToAdd')} placeholder={t('portal.request.anythingToAdd')} value={closeComment} onChange={(e) => setCloseComment(e.target.value)} />
             <div className="flex justify-end gap-2">
               <Button variant="ghost" size="sm" onClick={() => setClosing(false)}>
                 {t('common.cancel')}
@@ -141,7 +141,7 @@ export function PortalRequestPage() {
         <Card className="mb-4">
           <CardHeader title={t('portal.request.reopenTitle')} subtitle={t('portal.request.reopenLead')} />
           <CardBody className="space-y-3">
-            <textarea rows={3} className={TEXTAREA} value={reason} onChange={(e) => setReason(e.target.value)} />
+            <textarea rows={3} className={TEXTAREA} aria-label={t('portal.request.reopenTitle')} required value={reason} onChange={(e) => setReason(e.target.value)} />
             <div className="flex justify-end gap-2">
               <Button variant="ghost" size="sm" onClick={() => setReopening(false)}>
                 {t('common.cancel')}
@@ -179,7 +179,7 @@ export function PortalRequestPage() {
             <CardBody className="space-y-4">
               {!ticket.closed ? (
                 <div>
-                  <textarea rows={3} className={TEXTAREA} placeholder={t('portal.request.messagePlaceholder')} value={message} onChange={(e) => setMessage(e.target.value)} />
+                  <textarea rows={3} className={TEXTAREA} aria-label={t('portal.request.messagePlaceholder')} placeholder={t('portal.request.messagePlaceholder')} value={message} onChange={(e) => setMessage(e.target.value)} />
                   {comment.isError ? (
                     <p role="alert" className="mt-1 text-[12px] text-critical-ink">{(comment.error as Error).message}</p>
                   ) : null}

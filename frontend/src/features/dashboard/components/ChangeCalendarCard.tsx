@@ -83,13 +83,14 @@ export function ChangeCalendarCard({
                 <span
                   className={cn(
                     'text-[11px] leading-4',
-                    isSelected ? 'text-on-brand/80' : 'text-ink-muted',
+                    isSelected ? 'text-on-brand' : 'text-ink-muted',
                   )}
                 >
                   {format(day, 'EEE')}
                 </span>
                 {hasEvents && !isSelected ? (
                   <span
+                    role="img"
                     className="absolute bottom-1 size-1 rounded-full bg-brand"
                     aria-label={t('dashboard.calendar.hasChanges')}
                   />

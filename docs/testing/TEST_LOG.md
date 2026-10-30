@@ -4,6 +4,22 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-10-30 — Accessibility: WCAG 2.1 AA pass on the main flows, axe checks in the journeys
+
+Branch `claude/tenant-brand-rtl-c1514c`. Mock mode only (e2e build on `:5253`).
+
+| What ran | Result |
+|---|---|
+| New `tests/journeys/a11y.spec.ts`: axe-core (wcag2a, wcag2aa, wcag21a, wcag21aa) on sign-in (and after an empty submit), dashboard, account menu open, command palette open, records, an Organization list and record, an incident, users list and a user, portal home, my requests, a request, new request; dark, light and Arabic/RTL; plus keyboard checks (palette, account menu, visible focus on sign-in) | first run 3/12 (violations below); final 12/12 pass, on its own and inside the full suite |
+| New `src/components/ui/a11y.test.tsx` (axe-core in jsdom + keyboard): IconButton, Tabs, DataTable | 3/3 pass |
+| Frontend typecheck (`npx tsc -b --noEmit`) | clean |
+| Frontend vitest (`npx vitest run`) | 243/243 pass |
+| All mock journeys (`E2E_MOCK_URL=http://localhost:5253 npx playwright test`) | 26/29: the 3 failures are not from this work — `mfa.spec.ts` ×2 look for "Verify it's you" / "I've saved them, continue" with a straight apostrophe, and the translation commit 79313745 changed the strings to a curly one; `tenant.spec.ts` (`getByRole('cell', { name: 'Northwind Labs' })` matches two cells) belongs to the tenant-admin work in progress |
+
+Found and fixed: label-in-name mismatch on the logo link (missing space between wordmark and tagline) and on the account-menu button (aria-label left out the visible role); avatar initials in chart-series colours (2.6–4.4:1); "Mon/Tue" under the selected day in the change calendar at 80 % white on violet (3.9:1); the command palette's input had no label, its options nested buttons inside `role=option`, Tab left the modal and focus was not returned on close; the account menu did not move focus into the menu, had no arrow keys and dropped focus on Escape; tabs had every tab in the Tab order and no arrow keys; clickable table rows (portal "My requests" on desktop) could not be reached by keyboard; portal request textareas labelled only by a placeholder or not at all; low-contrast fallback tokens in `globals.css` (light muted ink 2.4:1, input borders 1.5:1, focus ring 1.8:1) and light `line-strong` 2.9:1 on hover.
+
+Not covered: the live journeys; screen readers by ear (NVDA/VoiceOver); the landing page and admin screens beyond users; mobile drawer focus handling; Safari and Firefox.
+
 ### 2026-10-29 — UI redesign: near-black and violet look, new landing page, sign-in, staff app and portal restyle
 
 Branch `claude/ui-redesign-f7d932`. Mock mode only (Vite on `:5253`, the e2e build on `:5254`); no BFF or iTop needed, since the change is styling and layout only.

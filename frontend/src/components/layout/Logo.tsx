@@ -56,7 +56,10 @@ export function Logo({ collapsed = false, className }: { collapsed?: boolean; cl
       {!collapsed ? (
         <span className="min-w-0 leading-none" aria-hidden>
           <span className="block truncate text-[17px] font-semibold tracking-tight text-ink">{name.wordmark}</span>
-          {/* Product tagline under the wordmark. */}
+          {/* Product tagline under the wordmark. The space keeps the two words
+              apart in the text a link around the logo is named by (WCAG 2.5.3,
+              label in name: "Intertec Servicedesk", not "IntertecServicedesk"). */}
+          {name.tagline ? ' ' : null}
           {name.tagline ? (
             <span className="mt-0.5 block text-[10px] font-medium tracking-[0.14em] text-ink-muted uppercase">
               {name.tagline}
