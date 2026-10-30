@@ -4,6 +4,8 @@ import { createRoot } from 'react-dom/client';
 import App from './App';
 import { env } from './config/env';
 import './styles/globals.css';
+// Before the first render: the language decides <html lang dir>.
+import './lib/i18n';
 
 /**
  * Removes a service worker left behind by an earlier `VITE_API_MODE=mock` run.

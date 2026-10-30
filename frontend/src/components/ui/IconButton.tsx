@@ -30,7 +30,10 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
       )}
       {...props}
     >
-      {icon}
+      {/* The label is the name; the glyph is decoration. */}
+      <span aria-hidden className="contents">
+        {icon}
+      </span>
     </button>
   );
 });

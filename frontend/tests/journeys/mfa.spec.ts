@@ -12,7 +12,7 @@ test('mfa: an enrolled account gives a code; a wrong one is refused @mock', asyn
   await page.getByLabel('Password').fill('mock-password');
   await page.getByRole('button', { name: 'Sign in' }).click();
 
-  await expect(page.getByRole('form', { name: "Verify it's you" })).toBeVisible();
+  await expect(page.getByRole('form', { name: /Verify it.s you/ })).toBeVisible();
   await page.getByLabel('Code').fill('000000');
   await page.getByRole('button', { name: 'Verify' }).click();
   await expect(page.getByRole('alert')).toContainText('That code is not right');
@@ -48,6 +48,6 @@ test('mfa: setting up an authenticator shows a QR code, then the recovery codes 
   await expect(codes.getByRole('listitem')).toHaveCount(10);
   // Not signed in until the codes have been seen.
   await expect(page).toHaveURL(/\/login$/);
-  await page.getByRole('button', { name: "I've saved them, continue" }).click();
+  await page.getByRole('button', { name: /I.ve saved them, continue/ }).click();
   await page.waitForURL((url) => url.pathname !== '/login');
 });

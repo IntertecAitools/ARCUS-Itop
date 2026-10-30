@@ -92,6 +92,7 @@ Totals: 10 iTop groups, 58 entries, plus the Dashboard item. 17 iTop menu nodes 
 |---|---|---|---|
 | 1 | Search bar button | Action → Overlay | Placeholder "Search incidents, requests, assets, knowledge articles…" plus a `Ctrl K` key hint. Opens the CommandPalette. Global Ctrl/Cmd+K shortcut |
 | 2 | **ThemeToggle** | Action (IconButton) | Switches light/dark (Moon/Sun icon) |
+| 2a | **LanguagePicker** (`features/auth`) | Action (native select) | English / العربية. Sets `<html lang dir>` (Arabic is right-to-left), saved on the device and on the account (`PUT /auth/language`). Also on sign-in and in the portal header |
 | 3 | Notifications | Action (IconButton) | Bell + red unread dot. **No panel is wired yet**, and the dot always shows |
 | 4 | Help and documentation | Action (IconButton) | CircleHelp icon. **Not wired yet** |
 | 5 | Divider | Layout | Vertical hairline |
@@ -307,6 +308,24 @@ A Card with a Compass icon, "Page not found", an explanation line and a **Go to 
 Feature-local components: `FormField` (Field, Select, SectionLabel, CONTROL) and `IncidentActions`, `IncidentCaseLog`, `IncidentEditDialog`, `IncidentFilterBar`, `IncidentPagination` in incidents; `FieldControls` (FieldValue, FieldInput), `RecordForm`, `RelatedTab` in records; `Dashlet` in itop-dashboards; `AttachmentsPanel` in attachments; nine dashboard cards plus `ViewAllLink` and `ticketColumns` in dashboard.
 
 **Scaffolded but empty feature folders** (no pages yet): auth, changes, cmdb, contacts, knowledge-base, notifications, problems, reports, search, service-catalog, settings, sla, tickets, user-requests.
+
+## A13a. Organisation admin — `/organisation` (`features/tenant-admin`, administrators)
+
+A customer's own administration with tenancy on; with it off the page says there is no customer to manage. A customer administrator sees only their tenant; the platform operator gets a customer picker.
+
+| Tab | What it does |
+|---|---|
+| Organisations | Table (name, code, parent, status select) and an "Add organisation" form (name, code, parent). A new one joins the tenant at once |
+| Teams | "Add team" form (name, email, organisation); a card per team with member chips (× removes) and a person search that adds a member |
+| Users | Explains the grant limit and links to **Users**, where Administrator is shown locked for a customer administrator |
+| Branding | Product name, brand colour (colour well + hex field), logo upload (PNG/JPEG/WebP/SVG ≤ 200 KB, remove), a live preview in the dark and light looks with the contrast fixes applied, Save, "Back to the default look" |
+| Domains | Email domains (domain → organisation, remove, add; public mail providers refused). Site host names: listed; editable by the platform operator only |
+
+Branding applies app-wide from `GET /branding` (`features/branding`): the accent colour re-points the brand tokens (`lib/branding/palette.ts`), the name and logo replace the Intertec lockup, the tab title and the favicon.
+
+## A13b. Create an account — `/register` (`features/auth`)
+
+First name, last name, work email → "Check your email". Offered on sign-in when `/auth/options` says `selfRegistration`.
 
 ## A14. Things this inventory turned up
 

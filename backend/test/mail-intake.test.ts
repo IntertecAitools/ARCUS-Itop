@@ -191,6 +191,19 @@ describe("MailIntakeService", () => {
     assert.match(String(h.created[0]?.["description"]), /From Neo &lt;new@else.com&gt;: no contact has this address/);
   });
 
+  it("files mail from an unknown address at a customer's email domain under that customer's organisation", async () => {
+    const h = harness();
+    h.svc.useSenderDomains(async (email) => (email.endsWith("@acme.com") ? "13" : undefined));
+    await h.svc.handle(mail({ messageId: "<acme-1@x>", from: { address: "pat@acme.com", name: "Pat" } }));
+    await h.svc.handle(mail({ messageId: "<else-1@x>", from: { address: "new@else.com", name: "Neo" } }));
+    assert.equal(h.created[0]?.["organizationId"], "13");
+    assert.equal(h.created[1]?.["organizationId"], "1");
+    // A known contact keeps their own organisation, whatever their domain.
+    h.svc.useSenderDomains(async () => "13");
+    await h.svc.handle(mail({ messageId: "<ana-1@x>" }));
+    assert.equal(h.created[2]?.["organizationId"], "3");
+  });
+
   it("leaves unknown senders alone when told to", async () => {
     const h = harness({ config: { unknownSenders: "ignore" } });
     const outcome = await h.svc.handle(mail({ from: { address: "new@else.com", name: "" } }));

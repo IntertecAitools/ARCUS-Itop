@@ -1,4 +1,5 @@
 import { CalendarClock } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { cn, dateTimeText, relativeTime } from '@/lib/utils';
 import type { PortalTicket } from '../types';
 
@@ -20,6 +21,7 @@ export const isOverdue = (t: Target, now = Date.now()) =>
  * request's own page.
  */
 export function TargetDate({ ticket, variant }: { ticket: Target; variant: 'cell' | 'panel' }) {
+  const { t } = useTranslation();
   if (!ticket.targetDate) return variant === 'cell' ? <span className="text-ink-muted">—</span> : null;
   const overdue = isOverdue(ticket);
   const when = dateTimeText(ticket.targetDate);
@@ -27,20 +29,20 @@ export function TargetDate({ ticket, variant }: { ticket: Target; variant: 'cell
   if (variant === 'cell') {
     if (done(ticket)) return <span className="text-ink-muted">—</span>;
     return (
-      <span className={cn('tabular-nums', overdue ? 'text-critical-ink' : 'text-ink')} title={overdue ? 'Past its target date' : undefined}>
+      <span className={cn('tabular-nums', overdue ? 'text-critical-ink' : 'text-ink')} title={overdue ? t('portal.target.past') : undefined}>
         {when}
-        {overdue ? <span className="sr-only"> (overdue)</span> : null}
+        {overdue ? <span className="sr-only">{t('portal.target.overdue')}</span> : null}
       </span>
     );
   }
 
   const text = done(ticket)
     ? ticket.targetMissed
-      ? `Resolved after its target date (${when}).`
-      : `Resolved within its target date (${when}).`
+      ? t('portal.target.resolvedAfter', { when })
+      : t('portal.target.resolvedWithin', { when })
     : overdue
-      ? `This was expected by ${when}. It is taking longer than planned; the support team has been alerted.`
-      : `Expected to be resolved by ${when} (${relativeTime(ticket.targetDate)}).`;
+      ? t('portal.target.late', { when })
+      : t('portal.target.expected', { when, relative: relativeTime(ticket.targetDate) });
 
   return (
     <p

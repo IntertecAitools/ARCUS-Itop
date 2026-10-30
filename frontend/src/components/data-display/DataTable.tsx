@@ -157,9 +157,25 @@ export function DataTable<T>({
                 <tr
                   key={row.id}
                   onClick={onRowClick ? () => onRowClick(row.original) : undefined}
+                  // A clickable row is a keyboard target too (WCAG 2.1.1): it
+                  // takes focus, and Enter opens it. Only when the row itself
+                  // has focus, so Enter on a link or checkbox inside keeps its
+                  // own meaning.
+                  tabIndex={onRowClick ? 0 : undefined}
+                  onKeyDown={
+                    onRowClick
+                      ? (e) => {
+                          if (e.key === 'Enter' && e.target === e.currentTarget) {
+                            e.preventDefault();
+                            onRowClick(row.original);
+                          }
+                        }
+                      : undefined
+                  }
                   className={cn(
                     'border-b border-line last:border-0',
-                    onRowClick && 'cursor-pointer transition-colors hover:bg-surface-hover',
+                    onRowClick &&
+                      'cursor-pointer transition-colors hover:bg-surface-hover focus-visible:bg-surface-hover focus-visible:-outline-offset-2',
                   )}
                 >
                   {row.getVisibleCells().map((cell) => (

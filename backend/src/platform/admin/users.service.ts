@@ -1,5 +1,5 @@
 import { AppError, badRequest, notFound } from "../../core/errors.js";
-import { currentCaller } from "../../core/request-context.js";
+import { currentCaller, currentTenant } from "../../core/request-context.js";
 import type { ItopClient } from "../../itop/client.js";
 import { normalizeObjects, parseFoundCount } from "../../itop/normalize.js";
 import { likeContains } from "../../itop/oql.js";
@@ -42,7 +42,17 @@ export interface Profile {
   id: number;
   name: string;
   description: string;
+  /** Whether the signed-in administrator may give or take away this profile. */
+  grantable: boolean;
 }
+
+/**
+ * Profiles only a platform operator gives or takes away. A customer's own
+ * administrator (one bound to a tenant) manages their people's other
+ * profiles, but cannot make or unmake an administrator, nor change another
+ * administrator's account (a password reset there would be a takeover).
+ */
+export const OPERATOR_PROFILES: readonly string[] = [ADMIN_PROFILE];
 
 export interface CreateUserInput {
   type: AccountType;
@@ -180,9 +190,39 @@ export class UsersService {
       key: "SELECT URP_Profiles",
       output_fields: "id,name,description",
     });
+    const limited = this.tenantAdmin();
     return normalizeObjects(result.objects)
-      .map((p) => ({ id: p.id, name: str(p.fields["name"]), description: str(p.fields["description"]) }))
+      .map((p) => {
+        const name = str(p.fields["name"]);
+        return { id: p.id, name, description: str(p.fields["description"]), grantable: !limited || !OPERATOR_PROFILES.includes(name) };
+      })
       .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  /** A customer's administrator: an administrator held to a tenant, rather than the platform operator. */
+  private tenantAdmin(): boolean {
+    return Boolean(this.tenancy?.enabled && currentTenant());
+  }
+
+  /** Refuses giving or taking away a profile the signed-in administrator may not grant. */
+  private async assertGrantable(changed: number[]): Promise<void> {
+    if (!this.tenantAdmin() || changed.length === 0) return;
+    const reserved = (await this.profiles()).filter((p) => !p.grantable && changed.includes(p.id));
+    if (reserved.length) {
+      throw new AppError(
+        "forbidden",
+        `Only the platform operator can give or take away ${reserved.map((p) => p.name).join(", ")}.`,
+      );
+    }
+  }
+
+  /** Refuses a customer administrator changing another administrator's account. */
+  private async assertNotOtherAdmin(target: UserDetail): Promise<void> {
+    if (!this.tenantAdmin() || currentCaller()?.userId === target.id) return;
+    const reserved = (await this.profiles()).filter((p) => !p.grantable).map((p) => p.id);
+    if (target.profileIds.some((id) => reserved.includes(id))) {
+      throw new AppError("forbidden", "Another administrator's account is changed by the platform operator.");
+    }
   }
 
   async create(input: CreateUserInput): Promise<UserDetail> {
@@ -194,6 +234,7 @@ export class UsersService {
       throw badRequest("A local account needs a password of at least 8 characters.");
     }
     if (input.profileIds.length === 0) throw badRequest("Give the account at least one profile.");
+    await this.assertGrantable(input.profileIds);
 
     if (!("id" in input.contact) && this.tenancy?.enabled) {
       // The new person's organisation decides the tenant: check before creating it.
@@ -231,6 +272,14 @@ export class UsersService {
   async update(id: number, input: UpdateUserInput): Promise<UserDetail> {
     const self = currentCaller()?.userId === id;
     const current = await this.get(id);
+    await this.assertNotOtherAdmin(current);
+    if (input.profileIds) {
+      const next = input.profileIds;
+      await this.assertGrantable([
+        ...next.filter((p) => !current.profileIds.includes(p)),
+        ...current.profileIds.filter((p) => !next.includes(p)),
+      ]);
+    }
 
     // An administrator cannot lock themselves out of administration.
     if (self && input.status === "disabled") throw badRequest("You cannot disable your own account.");
@@ -277,6 +326,7 @@ export class UsersService {
   /** An administrator sets a local account's password; the user is signed out everywhere. */
   async setPassword(id: number, password: string): Promise<void> {
     if (password.length < 8) throw badRequest("Choose a password of at least 8 characters.");
+    await this.assertNotOtherAdmin(await this.get(id));
     await this.auth.setLocalPassword(id, password, `Password reset by ${currentCaller()?.login ?? "an administrator"}`);
     if (currentCaller()?.userId !== id) await this.sessions.deleteForUser(id);
   }

@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Pencil, Trash2, X } from 'lucide-react';
 import { PageHeader } from '@/components/layout';
-import { Button, buttonClasses, Card, Skeleton } from '@/components/ui';
+import { Button, buttonClasses, Card, onTabListKeyDown, Skeleton } from '@/components/ui';
 import { EmptyState } from '@/components/feedback';
 import { cn } from '@/lib/utils';
 import { AttachmentsPanel } from '@/features/attachments';
@@ -337,13 +337,19 @@ export function RecordDetailPage() {
       ) : null}
 
       {tabs.length > 1 ? (
-        <div className="mb-4 flex flex-wrap gap-1 border-b border-line" role="tablist">
+        <div
+          className="mb-4 flex flex-wrap gap-1 border-b border-line"
+          role="tablist"
+          aria-label={`${info.labels.class} sections`}
+          onKeyDown={onTabListKeyDown}
+        >
           {tabs.map((t) => (
             <button
               key={t.id}
               type="button"
               role="tab"
               aria-selected={tab === t.id}
+              tabIndex={tab === t.id ? 0 : -1}
               onClick={() => setTab(t.id)}
               className={cn(
                 '-mb-px border-b-2 px-3 py-2 text-[13px] transition-colors',

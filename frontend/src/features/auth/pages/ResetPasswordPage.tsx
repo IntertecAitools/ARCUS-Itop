@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Button, buttonClasses, Input } from '@/components/ui';
 import { AuthCard, AuthNotice } from '../components/AuthCard';
 import { useResetPassword } from '../hooks/usePasswordReset';
@@ -7,6 +8,7 @@ import { newPasswordProblem, readResetToken } from '../lib/reset-token';
 
 /** Where a reset email's link lands: choose a new password, then sign in. */
 export function ResetPasswordPage() {
+  const { t } = useTranslation();
   // Read once, then dropped from the address bar so it does not linger in
   // history or get copied along with the URL.
   const [token] = useState(() => readResetToken(window.location.hash));
@@ -36,13 +38,13 @@ export function ResetPasswordPage() {
 
   if (!token) {
     return (
-      <AuthCard label="Reset password" intro="This link is not complete.">
+      <AuthCard label={t('auth.reset.title')} intro={t('auth.reset.incomplete')}>
         <p className="text-[15px] leading-6 text-ink-secondary">
-          Open the link from the email again, or ask for a new one.
+          {t('auth.reset.incompleteHelp')}
         </p>
         <p className="mt-6 text-[14px]">
           <Link to="/forgot-password" className="text-ink-secondary underline underline-offset-4 hover:text-ink">
-            Ask for a new link
+            {t('auth.reset.askNew')}
           </Link>
         </p>
       </AuthCard>
@@ -51,22 +53,22 @@ export function ResetPasswordPage() {
 
   if (reset.isSuccess) {
     return (
-      <AuthCard label="Reset password" intro="Your password has been changed.">
-        <AuthNotice>You were signed out everywhere. Sign in with your new password.</AuthNotice>
+      <AuthCard label={t('auth.reset.title')} intro={t('auth.reset.changed')}>
+        <AuthNotice>{t('auth.reset.signedOut')}</AuthNotice>
         <Link
           to="/login"
           className={buttonClasses({ fullWidth: true, className: 'mt-8 h-12 text-[14px]' })}
         >
-          Sign in
+          {t('auth.signIn')}
         </Link>
       </AuthCard>
     );
   }
 
   return (
-    <AuthCard label="Reset password" intro="Choose a new password." error={error} onSubmit={submit}>
+    <AuthCard label={t('auth.reset.title')} intro={t('auth.reset.intro')} error={error} onSubmit={submit}>
       <label htmlFor="new-password" className="mb-1.5 block text-[13px] font-medium text-ink">
-        New password
+        {t('auth.reset.newPassword')}
       </label>
       <Input
         id="new-password"
@@ -79,7 +81,7 @@ export function ResetPasswordPage() {
       />
 
       <label htmlFor="confirm-password" className="mt-5 mb-1.5 block text-[13px] font-medium text-ink">
-        Type it again
+        {t('auth.reset.again')}
       </label>
       <Input
         id="confirm-password"
@@ -91,13 +93,13 @@ export function ResetPasswordPage() {
       />
 
       <Button type="submit" className="mt-8 h-12 w-full text-[14px]" loading={reset.isPending}>
-        Set new password
+        {t('auth.reset.submit')}
       </Button>
 
       {reset.error ? (
         <p className="mt-6 text-[14px]">
           <Link to="/forgot-password" className="text-ink-secondary underline underline-offset-4 hover:text-ink">
-            Ask for a new link
+            {t('auth.reset.askNew')}
           </Link>
         </p>
       ) : null}

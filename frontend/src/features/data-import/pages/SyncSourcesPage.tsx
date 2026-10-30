@@ -26,6 +26,7 @@ import type {
   SyncSourceInput,
   UploadedTable,
 } from '../types';
+import { intlLocale } from '@/lib/i18n';
 
 const message = (error: unknown) => (error instanceof Error ? error.message : 'That did not work.');
 
@@ -597,7 +598,7 @@ function RunCard({ source, onRan }: { source: SyncSourceDetail; onRan: (result: 
             <Button size="sm" loading={run.isPending && run.variables?.request.simulate === false} onClick={() => go(false)}>
               Run sync
             </Button>
-            <span className="text-[12px] text-ink-muted">{table.rows.length.toLocaleString()} rows</span>
+            <span className="text-[12px] text-ink-muted">{table.rows.length.toLocaleString(intlLocale())} rows</span>
           </div>
         ) : null}
         <Problem error={read.error ?? run.error} />

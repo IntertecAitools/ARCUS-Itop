@@ -4,6 +4,44 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-10-30 — Tenant admin, branding per tenant, email domains, self-registration, Arabic/RTL
+
+Branch `claude/tenant-brand-rtl-c1514c`. Unit tests on both sides; the mock journeys on `:5253`; a BFF of this worktree on `:4080` (memory sessions, `TENANCY=on` with a `TENANTS_FILE` for the seed-test tenants mt-acme/org 13 and mt-globex/org 14, `SELF_REGISTRATION=on`, `MFA_REQUIRED=off`, SMTP to the local Mailpit) against the shared local iTop on `:8080`. The accessibility pass of the same branch has its own entry below.
+
+| What ran | Result |
+|---|---|
+| Backend typecheck (`npx tsc --noEmit`) | clean |
+| New `backend/test/tenant-admin.test.ts`: store (email domains owned once, kept on save, branding validation), routes (own tenant only, operator, host names operator-only, branding by host name, logo CSP, email domains, organisation create, teams, grant limits, language), self-registration | 14/14 pass (after fixing the test's fake iTop: it ignored `WHERE id =` when the tenant guard checked an organisation) |
+| `backend/test/mail-intake.test.ts` with the new sender-domain case | pass (29/29 with the file above) |
+| Backend suite (`npm test`) | 826/826 pass |
+| Live `npm run e2e:tenant-admin` (new script) against `:4080` and the local iTop | 35/35 pass, first run: tenant isolation of the admin API, Administrator not grantable, team created/member added/deleted, organisation added under the tenant/made inactive/deleted, branding served by host name only, email domain claimed once, public provider refused, self-registration created a Person + Portal account in org 13 and the set-password mail arrived in Mailpit (account disabled afterwards), language kept |
+| New `frontend/src/lib/branding/palette.test.ts`: 8 accent colours × dark/light keep white-on-brand, brand-ink and ring contrast | 11/11 pass |
+| `frontend/src/lib/utils/format.test.ts` locale case (Arabic digits and month names, `dir`) | failed once on this machine's Node 24: `Intl.NumberFormat('ar')` gives Latin digits. Fixed with `ar-u-nu-arab` (145851f0); pass |
+| Frontend typecheck (`npx tsc -b --noEmit`) | clean |
+| Frontend vitest (`npx vitest run`), final | 50 files, 243/243 pass |
+| All mock journeys (`E2E_MOCK_URL=http://localhost:5253 npx playwright test`), final | 29/29 pass, including the new `tenant.spec.ts` (organisation admin, branding applies app-wide, Arabic mirrors and is remembered, self-registration) and `a11y.spec.ts` now also scanning `/register` and every Organisation admin tab in dark, light and Arabic |
+
+After merging `origin/main` (ticket handling, change calendar and knowledge, full incident form; conflicts only in the module registry, mock handler list and this log): backend typecheck clean, backend suite 872/872, frontend typecheck clean, vitest 54 files 275/275, mock journeys 29/29.
+
+Found and fixed: the branding save would have dropped the logo when only the name changed (a part left out is now kept, test added); `mfa.spec.ts` looked for straight apostrophes after the translation commit (79313745) changed the strings to curly ones (the spec now matches either); `tenant.spec.ts` matched two cells for "Northwind Labs" (`exact: true`).
+
+Not covered: SSO first sign-in creating a portal account (unit-free; the code path reuses the registration that the live run covered); the MySQL tenant tables (`bff_tenant_email_domains`, `bff_tenant_branding`, `bff_user_prefs`) — the live run used `TENANTS_FILE` and memory, so the SQL ran nowhere; hostname branding through nginx (by design it reads `Host`, which the bundled nginx passes); RTL by eye beyond the journeys; three new English strings from the accessibility pass (command palette's input and list labels, the record tabs' label) and the sign-in validation messages in `features/auth/schemas.ts` are not yet translated; iTop menu labels in the sidebar come from iTop and stay English.
+
+### 2026-10-30 — Accessibility: WCAG 2.1 AA pass on the main flows, axe checks in the journeys
+
+Branch `claude/tenant-brand-rtl-c1514c`. Mock mode only (e2e build on `:5253`).
+
+| What ran | Result |
+|---|---|
+| New `tests/journeys/a11y.spec.ts`: axe-core (wcag2a, wcag2aa, wcag21a, wcag21aa) on sign-in (and after an empty submit), dashboard, account menu open, command palette open, records, an Organization list and record, an incident, users list and a user, portal home, my requests, a request, new request; dark, light and Arabic/RTL; plus keyboard checks (palette, account menu, visible focus on sign-in) | first run 3/12 (violations below); final 12/12 pass, on its own and inside the full suite |
+| New `src/components/ui/a11y.test.tsx` (axe-core in jsdom + keyboard): IconButton, Tabs, DataTable | 3/3 pass |
+| Frontend typecheck (`npx tsc -b --noEmit`) | clean |
+| Frontend vitest (`npx vitest run`) | 243/243 pass |
+| All mock journeys (`E2E_MOCK_URL=http://localhost:5253 npx playwright test`) | 26/29: the 3 failures are not from this work — `mfa.spec.ts` ×2 look for "Verify it's you" / "I've saved them, continue" with a straight apostrophe, and the translation commit 79313745 changed the strings to a curly one; `tenant.spec.ts` (`getByRole('cell', { name: 'Northwind Labs' })` matches two cells) belongs to the tenant-admin work in progress |
+
+Found and fixed: label-in-name mismatch on the logo link (missing space between wordmark and tagline) and on the account-menu button (aria-label left out the visible role); avatar initials in chart-series colours (2.6–4.4:1); "Mon/Tue" under the selected day in the change calendar at 80 % white on violet (3.9:1); the command palette's input had no label, its options nested buttons inside `role=option`, Tab left the modal and focus was not returned on close; the account menu did not move focus into the menu, had no arrow keys and dropped focus on Escape; tabs had every tab in the Tab order and no arrow keys; clickable table rows (portal "My requests" on desktop) could not be reached by keyboard; portal request textareas labelled only by a placeholder or not at all; low-contrast fallback tokens in `globals.css` (light muted ink 2.4:1, input borders 1.5:1, focus ring 1.8:1) and light `line-strong` 2.9:1 on hover.
+
+Not covered: the live journeys; screen readers by ear (NVDA/VoiceOver); the landing page and admin screens beyond users; mobile drawer focus handling; Safari and Firefox.
 ### 2026-10-29 — Ticket handling: priority override, duplicates, cancel, worklogs, drafts
 
 Branch `claude/ticket-handling-f68a08`. No iTop extension and nothing installed on `itop-local`. The test hook recorded none of these runs (no entries appeared below), so this table is the record.

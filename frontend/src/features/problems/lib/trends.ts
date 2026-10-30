@@ -1,4 +1,5 @@
 import type { ProblemTrends, TrendGroup, TrendGroupBy, TrendPeriod } from '../types';
+import { intlLocale } from '@/lib/i18n';
 
 export const PERIODS: Array<{ value: TrendPeriod; label: string }> = [
   { value: '30d', label: 'Last 30 days' },
@@ -17,8 +18,8 @@ export const GROUPINGS: Array<{ value: TrendGroupBy; label: string; noun: string
 export function bucketLabel(start: string, bucket: ProblemTrends['bucket']): string {
   const date = new Date(`${start}T00:00:00`);
   return bucket === 'week'
-    ? date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-    : date.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+    ? date.toLocaleDateString(intlLocale(), { month: 'short', day: 'numeric' })
+    : date.toLocaleDateString(intlLocale(), { month: 'short', year: 'numeric' });
 }
 
 /** Rows for the chart: one per bucket, every series a count of tickets. */

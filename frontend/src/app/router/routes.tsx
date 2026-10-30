@@ -1,7 +1,7 @@
 import { createElement } from 'react';
 import { createBrowserRouter, type RouteObject } from 'react-router-dom';
 import { AgentLayout } from '@/app/layouts/AgentLayout';
-import { ForgotPasswordPage, LoginPage, RequireAuth, ResetPasswordPage } from '@/features/auth';
+import { ForgotPasswordPage, LoginPage, RegisterPage, RequireAuth, ResetPasswordPage } from '@/features/auth';
 import { LandingPage } from '@/features/landing';
 import { PortalApprovalPage, PortalApprovalsPage } from '@/features/approvals';
 import {
@@ -43,6 +43,7 @@ export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
   // Password reset by email: also reachable without a session.
   { path: '/forgot-password', element: <ForgotPasswordPage /> },
+  { path: '/register', element: <RegisterPage /> },
   { path: '/reset-password', element: <ResetPasswordPage /> },
   // The self-service portal, for end users (staff may open it too).
   {

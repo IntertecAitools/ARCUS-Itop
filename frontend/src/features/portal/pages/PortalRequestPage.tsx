@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Button, Card, CardBody, CardHeader, Skeleton } from '@/components/ui';
@@ -14,10 +15,10 @@ import { TargetDate } from '../components/TargetDate';
 const TEXTAREA = publicControl;
 
 const SATISFACTION = [
-  { value: '1', label: 'Very satisfied' },
-  { value: '2', label: 'Fairly satisfied' },
-  { value: '3', label: 'Rather dissatisfied' },
-  { value: '4', label: 'Very dissatisfied' },
+  { value: '1', label: 'portal.request.verySatisfied' },
+  { value: '2', label: 'portal.request.fairlySatisfied' },
+  { value: '3', label: 'portal.request.ratherDissatisfied' },
+  { value: '4', label: 'portal.request.veryDissatisfied' },
 ];
 
 /** iTop stores Text and case logs as HTML; show them as text, never as markup. */
@@ -40,6 +41,7 @@ function plain(html: string) {
 
 /** One of the user's requests: what is happening, the conversation, files, and close/reopen. */
 export function PortalRequestPage() {
+  const { t } = useTranslation();
   const { id = '' } = useParams();
   const { data: ticket, isLoading, isError, error } = useMyRequest(id);
   const { comment, close, reopen, cancel } = useRequestActions(id);
@@ -56,7 +58,7 @@ export function PortalRequestPage() {
   if (isError || !ticket) {
     return (
       <div role="alert" className="rounded-card border border-critical/30 bg-critical-soft px-4 py-3 text-[13px] text-critical-ink">
-        {error instanceof Error ? error.message : 'This request could not be found.'}
+        {error instanceof Error ? error.message : t('portal.request.notFound')}
       </div>
     );
   }
@@ -67,12 +69,12 @@ export function PortalRequestPage() {
     <>
       <Link to="/portal/requests" className="mb-8 inline-flex items-center gap-1.5 text-[14px] text-ink-secondary hover:text-ink">
         <ArrowLeft className="size-4 rtl:-scale-x-100" aria-hidden />
-        My requests
+        {t('portal.nav.requests')}
       </Link>
       <div className="mb-10 flex flex-wrap items-end justify-between gap-x-8 gap-y-5">
         <div className="min-w-0">
           <Eyebrow className="normal-case tracking-normal">
-            {ticket.ref} · {ticket.kind === 'incident' ? 'Incident' : 'Request'} · raised {formatDate(ticket.createdAt)}
+            {ticket.ref} · {ticket.kind === 'incident' ? t('portal.request.incident') : t('portal.request.request')} · {t('portal.request.raised', { date: formatDate(ticket.createdAt) })}
           </Eyebrow>
           <h1 className="display mt-4 max-w-4xl text-[32px] break-words sm:text-[44px]">{ticket.title}</h1>
         </div>
@@ -80,12 +82,12 @@ export function PortalRequestPage() {
           <StatusPill status={ticket.status} />
           {ticket.actions.includes('close') ? (
             <Button size="sm" onClick={() => setClosing((c) => !c)}>
-              Confirm and close
+              {t('portal.request.confirmClose')}
             </Button>
           ) : null}
           {ticket.actions.includes('reopen') ? (
             <Button size="sm" variant="secondary" onClick={() => setReopening((r) => !r)}>
-              Reopen
+              {t('portal.request.reopen')}
             </Button>
           ) : null}
           {ticket.actions.includes('cancel') ? (
@@ -110,20 +112,20 @@ export function PortalRequestPage() {
 
       {closing ? (
         <Card className="mb-4">
-          <CardHeader title="Is the problem solved?" subtitle="Closing confirms the resolution. Tell us how it went." />
+          <CardHeader title={t('portal.request.closeTitle')} subtitle={t('portal.request.closeLead')} />
           <CardBody className="space-y-3">
-            <div className="flex flex-wrap gap-4 text-[13px] text-ink">
+            <div role="radiogroup" aria-label={t('portal.request.closeLead')} className="flex flex-wrap gap-4 text-[13px] text-ink">
               {SATISFACTION.map((s) => (
                 <label key={s.value} className="flex items-center gap-2">
                   <input type="radio" name="satisfaction" checked={satisfaction === s.value} onChange={() => setSatisfaction(s.value)} />
-                  {s.label}
+                  {t(s.label)}
                 </label>
               ))}
             </div>
-            <textarea rows={3} className={TEXTAREA} placeholder="Anything to add? (optional)" value={closeComment} onChange={(e) => setCloseComment(e.target.value)} />
+            <textarea rows={3} className={TEXTAREA} aria-label={t('portal.request.anythingToAdd')} placeholder={t('portal.request.anythingToAdd')} value={closeComment} onChange={(e) => setCloseComment(e.target.value)} />
             <div className="flex justify-end gap-2">
               <Button variant="ghost" size="sm" onClick={() => setClosing(false)}>
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button
                 size="sm"
@@ -135,7 +137,7 @@ export function PortalRequestPage() {
                   )
                 }
               >
-                Close request
+                {t('portal.request.closeRequest')}
               </Button>
             </div>
           </CardBody>
@@ -173,12 +175,12 @@ export function PortalRequestPage() {
 
       {reopening ? (
         <Card className="mb-4">
-          <CardHeader title="Reopen this request" subtitle="Say what is still wrong; the support team is notified." />
+          <CardHeader title={t('portal.request.reopenTitle')} subtitle={t('portal.request.reopenLead')} />
           <CardBody className="space-y-3">
-            <textarea rows={3} className={TEXTAREA} value={reason} onChange={(e) => setReason(e.target.value)} />
+            <textarea rows={3} className={TEXTAREA} aria-label={t('portal.request.reopenTitle')} required value={reason} onChange={(e) => setReason(e.target.value)} />
             <div className="flex justify-end gap-2">
               <Button variant="ghost" size="sm" onClick={() => setReopening(false)}>
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button
                 size="sm"
@@ -186,7 +188,7 @@ export function PortalRequestPage() {
                 loading={reopen.isPending}
                 onClick={() => reopen.mutate(reason.trim(), { onSuccess: () => { setReopening(false); setReason(''); } })}
               >
-                Reopen
+                {t('portal.request.reopen')}
               </Button>
             </div>
           </CardBody>
@@ -196,12 +198,12 @@ export function PortalRequestPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <Card>
-            <CardHeader title="Description" />
+            <CardHeader title={t('portal.request.description')} />
             <CardBody>
               <p className="text-[15px] leading-7 whitespace-pre-wrap text-ink">{plain(ticket.description) || '—'}</p>
               {ticket.solution ? (
                 <div className="mt-5 rounded-card border border-good/40 bg-good-soft px-4 py-3">
-                  <p className="text-[12px] font-medium text-good-ink">Solution</p>
+                  <p className="text-[12px] font-medium text-good-ink">{t('portal.request.solution')}</p>
                   <p className="mt-1 text-[13px] whitespace-pre-wrap text-ink">{plain(ticket.solution)}</p>
                 </div>
               ) : null}
@@ -209,29 +211,29 @@ export function PortalRequestPage() {
           </Card>
 
           <Card>
-            <CardHeader title="Conversation" />
+            <CardHeader title={t('portal.request.conversation')} />
             <CardBody className="space-y-4">
               {!ticket.closed ? (
                 <div>
-                  <textarea rows={3} className={TEXTAREA} placeholder="Write a message to the support team…" value={message} onChange={(e) => setMessage(e.target.value)} />
+                  <textarea rows={3} className={TEXTAREA} aria-label={t('portal.request.messagePlaceholder')} placeholder={t('portal.request.messagePlaceholder')} value={message} onChange={(e) => setMessage(e.target.value)} />
                   {comment.isError ? (
                     <p role="alert" className="mt-1 text-[12px] text-critical-ink">{(comment.error as Error).message}</p>
                   ) : null}
                   <div className="mt-2 flex justify-end">
                     <Button size="sm" disabled={!message.trim()} loading={comment.isPending} onClick={() => comment.mutate(message.trim(), { onSuccess: () => setMessage('') })}>
-                      Send
+                      {t('portal.request.send')}
                     </Button>
                   </div>
                 </div>
               ) : null}
               {ticket.log.length === 0 ? (
-                <p className="text-[13px] text-ink-muted">No messages yet.</p>
+                <p className="text-[13px] text-ink-muted">{t('portal.request.noMessages')}</p>
               ) : (
                 <ol className="space-y-3">
                   {ticket.log.map((entry, i) => (
                     <li key={i} className="border-s-2 border-line-strong ps-4">
                       <p className="text-[12px] text-ink-muted">
-                        {entry.author || 'Support'} · {formatDate(entry.date)}
+                        {entry.author || t('portal.request.support')} · {formatDate(entry.date)}
                       </p>
                       <p className="mt-1 text-[15px] leading-7 whitespace-pre-wrap text-ink">{plain(entry.message)}</p>
                     </li>
@@ -251,17 +253,17 @@ export function PortalRequestPage() {
 
         <div className="space-y-6">
         <Card className="h-fit">
-          <CardHeader title="Details" />
+          <CardHeader title={t('portal.request.details')} />
           <CardBody>
             <dl className="space-y-4 text-[14px]">
               {[
-                ['Service', ticket.subcategory ? `${ticket.service} › ${ticket.subcategory}` : ticket.service],
-                ['Handled by', [ticket.agent, ticket.team].filter(Boolean).join(' · ')],
-                ['Raised for', ticket.caller],
-                ['Expected by', ticket.targetDate ? formatDate(ticket.targetDate) : ''],
-                ['Last update', formatDate(ticket.updatedAt)],
-                ['Resolved', ticket.resolvedAt ? formatDate(ticket.resolvedAt) : ''],
-                ['Closed', ticket.closedAt ? formatDate(ticket.closedAt) : ''],
+                [t('portal.request.service'), ticket.subcategory ? `${ticket.service} › ${ticket.subcategory}` : ticket.service],
+                [t('portal.request.handledBy'), [ticket.agent, ticket.team].filter(Boolean).join(' · ')],
+                [t('portal.request.raisedFor'), ticket.caller],
+                [t('portal.request.expectedBy'), ticket.targetDate ? formatDate(ticket.targetDate) : ''],
+                [t('portal.request.lastUpdate'), formatDate(ticket.updatedAt)],
+                [t('portal.request.resolved'), ticket.resolvedAt ? formatDate(ticket.resolvedAt) : ''],
+                [t('portal.request.closed'), ticket.closedAt ? formatDate(ticket.closedAt) : ''],
               ].map(([label, value]) => (
                 <div key={label}>
                   <dt className="text-[12px] text-ink-muted">{label}</dt>

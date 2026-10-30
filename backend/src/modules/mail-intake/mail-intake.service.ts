@@ -42,6 +42,8 @@ export class MailIntakeService {
   private timer?: NodeJS.Timeout;
   /** Addresses whose mail is never a ticket: the mailbox and our own sender. */
   private readonly ownAddresses: Set<string>;
+  /** The organisation an unknown sender's email domain belongs to (a tenant's claimed domain). */
+  private orgOfDomain: (email: string) => Promise<string | undefined> = async () => undefined;
 
   constructor(
     private readonly config: MailIntakeConfig,
@@ -56,6 +58,11 @@ export class MailIntakeService {
     // MAIL_FROM may be "Label <address>".
     const sender = ownSender ? (/<([^>]+)>/.exec(ownSender)?.[1] ?? ownSender) : undefined;
     this.ownAddresses = new Set([config.address, ...(sender ? [sender] : [])].map((a) => a.trim().toLowerCase()));
+  }
+
+  /** With tenancy on: a sender no contact matches lands in their domain's organisation. */
+  useSenderDomains(lookup: (email: string) => Promise<string | undefined>): void {
+    this.orgOfDomain = lookup;
   }
 
   status(): IntakeStatus {
@@ -165,7 +172,10 @@ export class MailIntakeService {
       if (!person && this.config.unknownSenders === "ignore") return skip("no contact has this address");
 
       const organizationId =
-        person?.orgId ?? this.config.orgId ?? (await this.defaultOrganization.resolve());
+        person?.orgId ??
+        (await this.orgOfDomain(mail.from.address)) ??
+        this.config.orgId ??
+        (await this.defaultOrganization.resolve());
       const notes: string[] = [];
       if (closedRef) notes.push(`Follows up on ${closedRef}, which is closed.`);
       if (!person) notes.push(`From ${mail.from.name ? `${mail.from.name} ` : ""}<${mail.from.address}>: no contact has this address.`);

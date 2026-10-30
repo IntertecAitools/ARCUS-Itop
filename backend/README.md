@@ -328,6 +328,78 @@ limited to those organisations; iTop itself knows nothing of tenants.
   iTop, and `npm run e2e:tenancy` proves neither can reach the other's
   records through the BFF.
 
+### A customer's own administration
+
+`/api/admin/tenants/*` (administrators; `platform/tenancy/tenant-admin.service.ts`),
+the **Organisation admin** screen. A customer's administrator (an
+administrator bound to a tenant) manages only their own tenant: another id
+is a 404. The platform operator (unscoped) manages any, and is the only one
+who changes a tenant's host names.
+
+| Endpoint | What |
+| --- | --- |
+| `GET /api/admin/tenants` | `{ operator, tenants }`: their own, or all for the operator |
+| `GET /api/admin/tenants/:t` | name, host names, email domains, branding, organisations |
+| `GET/POST /api/admin/tenants/:t/orgs`, `PATCH …/orgs/:id` | organisations; a new one (parent: one of theirs) joins the tenant at once. This is the one place a customer can add an `Organization`: created past the guard after the checks here |
+| `GET/POST /api/admin/tenants/:t/teams`, `PATCH …/teams/:id` | teams of their organisations; `memberIds` replaces the members (people of the tenant only) |
+| `GET /api/admin/tenants/:t/people?q=` | the member picker |
+| `PUT /api/admin/tenants/:t/branding` | `{ productName, accentColor, logo }`; a part left out is kept, `""` clears it |
+| `PUT /api/admin/tenants/:t/email-domains` | `{ emailDomains: [{ domain, orgId }] }` |
+| `PUT /api/admin/tenants/:t/hostnames` | operator only |
+
+- **Accounts** stay `/api/admin/users`, already held to the tenant. A
+  customer's administrator cannot give or take away **Administrator**
+  (`OPERATOR_PROFILES` in `users.service.ts`; `GET /api/admin/profiles` marks
+  each profile `grantable`), and cannot change another administrator's
+  account (a password reset there would be a takeover).
+- New organisations are not added to existing accounts' allowed
+  organisations; save an account in Users to widen it.
+
+### Branding and email domains
+
+Kept with the tenant: tables `bff_tenant_branding` (product name, accent
+colour, logo as a data URL) and `bff_tenant_email_domains` (domain → tenant,
+organisation), or in `TENANTS_FILE` (`"emailDomains"`, `"branding"`; changes
+made in the app are then in memory only until the file is edited).
+
+- `GET /api/branding` (public) answers the branding of the tenant the request
+  is for: its host name, else the signed-in user's. Null on the platform's
+  own address. The app reads it at load, before sign-in.
+- `GET /api/branding/logo/:tenant` serves the logo with
+  `Content-Security-Policy: default-src 'none'; sandbox` and `nosniff`, so an
+  SVG cannot run script even opened directly. PNG, JPEG, WebP or SVG, 200 KB.
+- An email domain belongs to one tenant and points at one of its
+  organisations; public mail providers (gmail.com, outlook.com, …) are
+  refused. Domains are not verified by DNS: the platform operator should
+  check a customer owns a domain they add.
+- **Email to ticket**: a sender no contact matches lands in their domain's
+  organisation, before `MAIL_INTAKE_ORG_ID` and the default organisation.
+
+### Self-registration
+
+`SELF_REGISTRATION=on` (with tenancy and the password-reset email settings).
+
+- `POST /api/auth/register { firstName, lastName, email }` (public, 5 per
+  address per 15 minutes) answers 202 at once. An address at a claimed domain
+  gets a Person in the domain's organisation and a **Portal user** UserLocal
+  (login = the address) with a random password nobody is told, then the
+  password-reset mail: the link is the only way in, so it proves the address.
+  An address that already has an account just gets the link; nothing says
+  which happened. On a tenant's host name, only that tenant's domains.
+- **Single sign-on**: an IdP-verified address with no account, at a claimed
+  domain, gets the same portal account and signs in at once (staff accounts
+  are never created this way).
+- `GET /api/auth/options` says `selfRegistration`, so sign-in offers
+  "Create an account".
+
+### Interface language
+
+`PUT /api/auth/language { language: "en" | "ar" }` keeps the signed-in user's
+choice in `bff_user_prefs` (memory without a database); `GET /api/auth/me`
+returns it as `user.language`, and the app applies it at sign-in on any
+device. iTop's User `language` is set too when iTop has the language (English
+→ `EN US`); iTop ships no Arabic dictionary, so Arabic lives only here.
+
 ## Notifications
 
 Email rules ("when a User Request enters Resolved, email the caller") are

@@ -1,11 +1,12 @@
 import { useSearchParams } from 'react-router-dom';
 import type { DateRange } from '../types';
 
+/** `label` is a translation key. */
 const RANGES: Array<{ value: DateRange; label: string }> = [
-  { value: '24h', label: 'Last 24 hours' },
-  { value: '7d', label: 'Last 7 days' },
-  { value: '30d', label: 'Last 30 days' },
-  { value: '90d', label: 'Last 90 days' },
+  { value: '24h', label: 'dashboard.ranges.24h' },
+  { value: '7d', label: 'dashboard.ranges.7d' },
+  { value: '30d', label: 'dashboard.ranges.30d' },
+  { value: '90d', label: 'dashboard.ranges.90d' },
 ];
 
 const isRange = (value: string | null): value is DateRange =>

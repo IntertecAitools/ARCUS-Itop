@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Card, CardBody, CardHeader } from '@/components/ui';
 import { DataTable } from '@/components/data-display';
 import { isModuleRegistered } from '@/config/modules';
@@ -14,12 +15,13 @@ export function RecentIncidentsCard({
   data?: DashboardTicket[];
   isLoading: boolean;
 }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
-  const columns = useMemo(() => ticketColumns(), []);
+  const columns = useMemo(() => ticketColumns(t), [t]);
 
   return (
     <Card className="h-full">
-      <CardHeader title="Recent Incidents" action={<ViewAllLink to="/incidents" />} />
+      <CardHeader title={t('dashboard.recent.title')} action={<ViewAllLink to="/incidents" />} />
       <CardBody className="px-2 pb-2">
         <DataTable
           data={data ?? []}
@@ -31,8 +33,8 @@ export function RecentIncidentsCard({
               ? (ticket) => navigate(`/incidents/${ticket.id}`)
               : undefined
           }
-          emptyTitle="No incidents in this window"
-          emptyDescription="Nothing has been raised in the selected period."
+          emptyTitle={t('dashboard.recent.emptyTitle')}
+          emptyDescription={t('dashboard.recent.emptyLead')}
         />
       </CardBody>
     </Card>

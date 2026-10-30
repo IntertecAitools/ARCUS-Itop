@@ -192,7 +192,7 @@ function HolidaysCard({ data }: { data: BusinessHours }) {
         ) : (
           <table className="w-full text-[13px]" aria-label="Holidays">
             <thead>
-              <tr className="text-left text-[12px] text-ink-muted">
+              <tr className="text-start text-[12px] text-ink-muted">
                 <th className="pb-2 font-medium">Date</th>
                 <th className="pb-2 font-medium">Holiday</th>
                 <th className="pb-2 font-medium">Calendar</th>
@@ -205,7 +205,7 @@ function HolidaysCard({ data }: { data: BusinessHours }) {
                   <td className="py-1.5 tabular-nums">{longDate(`${h.date}T12:00:00`)}</td>
                   <td className="py-1.5 text-ink">{h.name}</td>
                   <td className="py-1.5 text-ink-secondary">{h.calendarName || '–'}</td>
-                  <td className="py-1.5 text-right">
+                  <td className="py-1.5 text-end">
                     <Button
                       variant="ghost"
                       size="sm"
@@ -293,7 +293,7 @@ function AssignmentsCard({ data }: { data: BusinessHours }) {
           <div className="overflow-x-auto">
             <table className="w-full text-[13px]" aria-label="Contract services">
               <thead>
-                <tr className="text-left text-[12px] text-ink-muted">
+                <tr className="text-start text-[12px] text-ink-muted">
                   <th className="pb-2 font-medium">Customer</th>
                   <th className="pb-2 font-medium">Contract</th>
                   <th className="pb-2 font-medium">Service</th>
