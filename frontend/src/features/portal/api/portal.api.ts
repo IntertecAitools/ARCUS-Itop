@@ -52,6 +52,11 @@ export function useRequestActions(id: string) {
         apiClient.post<PortalTicketDetail>(`${base}/requests/${id}/reopen`, { message }),
       onSuccess,
     }),
+    cancel: useMutation({
+      mutationFn: (reason: string) =>
+        apiClient.post<PortalTicketDetail>(`${base}/requests/${id}/cancel`, { reason }),
+      onSuccess,
+    }),
   };
 }
 
@@ -84,6 +89,13 @@ export function useFaq(id: string) {
     queryKey: ['portal', 'faq', id],
     queryFn: () => apiClient.get<Faq>(`${base}/faqs/${id}`),
     enabled: Boolean(id),
+  });
+}
+
+/** "Was this helpful?" on an article. */
+export function useRateFaq(id: string) {
+  return useMutation({
+    mutationFn: (input: { helpful: boolean; comment: string }) => apiClient.post(`${base}/faqs/${id}/feedback`, input),
   });
 }
 

@@ -45,11 +45,11 @@ export function KnowledgeArticlesCard({
             );
             const rowClass = 'flex items-center gap-2.5 rounded-control px-2 py-2';
 
-            // Clickable only once the knowledge module is built.
+            // Clickable only once the knowledge module is built. The card lists FAQs.
             return articlesLinkable ? (
               <Link
                 key={article.id}
-                to={`/knowledge/${article.id}`}
+                to={`/knowledge/faq/${article.id}`}
                 className={cn(rowClass, 'transition-colors hover:bg-surface-hover')}
               >
                 {row}

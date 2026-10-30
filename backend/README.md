@@ -1175,6 +1175,54 @@ in MFA and keeps logins, passwords and TOTP secrets in `backend/e2e.local.json`
 (git-ignored) under `"changes"`. The changes it raises are deleted at the
 end; the plan rules are put back as they were.
 
+## Change calendar, risk and reviews; knowledge workflow
+
+None of this needed an iTop extension. What iTop has no field for is kept in
+the BFF's own database, table `bff_documents` (tenant, kind, key, JSON body;
+`shared/doc-store.ts`, created on first use; memory with `SESSION_STORE=memory`).
+
+**Change calendar** — `GET /api/changes/calendar?from&to[&teamId&ciId&serviceId&orgId]`
+(at most 100 days). Changes whose planned start/end overlap the window, with
+their CIs (`lnkFunctionalCIToTicket`) and the services those CIs support
+(`lnkFunctionalCIToService`). Two changes **clash** when they overlap in time
+and share a CI or a service (rejected / not-approved ones never clash; a change
+with no end counts as one hour). Clashes are found before filtering. **Blackout
+windows** are set under `/api/admin/change-blackouts` and flagged on every
+change inside one. Screens: Change calendar (month / week / day), Change
+blackouts (admin).
+
+**Risk questionnaire** — weighted questions per change type, answers scored
+0–10; the change's score is the weighted share of the maximum (0–100) and the
+thresholds make it low / medium / high. `GET|PUT /api/changes/:id/risk`,
+model under `/api/admin/change-risk`. Enforced at Plan / Implement through the
+changes guard (`ChangesService.addGateCheck`): a **high-risk routine change**
+is refused (`risk_needs_cab`: raise it as a normal change, which goes to the
+CAB); with "required before plan" set for a type, Plan is refused until it is
+answered (`risk_missing`). Shown on the change's CAB & plans tab.
+
+**Post-implementation review** — `GET|PUT /api/changes/:id/pir` once the change
+is implemented, monitored or closed: outcome, what went well / badly (required
+unless successful), incidents caused (by ref or id, read as the caller),
+follow-up actions. `GET /api/changes/pir-due`: implemented or monitored
+changes, and those closed in the last 90 days, without a review.
+
+**Knowledge articles** — FAQs and known errors get a workflow:
+draft → in review → published → retired (`/api/knowledge/articles`,
+`…/:kind/:id`, `…/:kind/:id/actions`). Any FAQ or known error created through
+the BFF starts as its author's draft (a create listener); ones the workflow
+never saw count as published. Reviewers are holders of the profiles set under
+`/api/admin/knowledge-settings` (default Document author) and administrators;
+nobody but an administrator approves their own submission; sending back needs a
+comment. Approving or "mark reviewed" sets the next review date (default 180
+days); past it, the article is "review due". **Only published FAQs reach the
+portal** (`PortalService.useFaqVisibility`). "Was this helpful?" —
+`POST /api/portal/faqs/:id/feedback` and `POST /api/knowledge/articles/:kind/:id/feedback`,
+one vote per person (a new one replaces it), published articles only; the
+article page lists every vote and comment for the author.
+
+Live check: `npm run e2e:change-knowledge` (BFF on :4090 by default; reuses the
+`e2e:changes` accounts and makes a portal user once).
+
 ## Team dispatch and assignment rules
 
 A ticket can go to a team before anyone in it is chosen; anyone in the team
@@ -1255,6 +1303,81 @@ re-dispatch, Assign from Dispatched, and the team emails. Its accounts
 `e2e.dispatch.{admin,desk,a1,a2,b1}`, the "E2E dispatch org" and teams A / B
 are made on the first run and kept (`"dispatch"` in `backend/e2e.local.json`);
 its tickets are deleted and the rules put back at the end.
+
+## Ticket handling: priority override, duplicates, cancel, worklogs, drafts
+
+Five things staff (and, for cancel and drafts, requesters) do to incidents
+and user requests (`modules/ticket-handling/`). No iTop extension: each maps
+onto iTop's own datamodel, and what iTop has nowhere to keep is in the BFF
+database. In the frontend: a **Handling** card on `/incidents/:id` and on a
+request's record screen (override, mark as duplicate, log time, cancel, and
+what was done), **possible duplicates** and **Save draft** on the new
+incident, new request and portal request forms, **Cancel request** in the
+portal, **My drafts** (`/drafts`) and **Time logged** (`/time-logged`).
+
+| | |
+| --- | --- |
+| `GET /api/ticket-handling/:class/:id` | `class` = `Incident` \| `UserRequest`. `{ priority, override?, duplicateOf?, duplicates, cancelled?, can, worklog }` |
+| `PUT /api/ticket-handling/:class/:id/priority` | `{ priority, reason }`: override (open tickets; reason required) |
+| `GET /api/ticket-handling/:class/:id/duplicates/suggestions` | likely originals of an existing ticket |
+| `POST /api/ticket-handling/duplicates/suggest` | `{ class, title, orgId?, callerId?, serviceId?, ciIds? }`: likely duplicates of a ticket being written |
+| `POST /api/ticket-handling/:class/:id/duplicate` | `{ originalClass, originalId, note? }` |
+| `POST /api/ticket-handling/:class/:id/cancel` | `{ reason }` (staff) |
+| `POST /api/portal/requests/:id/cancel` | `{ reason }` (the requester; offered as `cancel` in the ticket's `actions`) |
+| `GET` / `POST /api/ticket-handling/:class/:id/worklogs` | entries with totals per agent; `{ minutes, note, workDate? }` |
+| `DELETE /api/ticket-handling/worklogs/:entryId` | the author's own entry, or any for an administrator |
+| `GET /api/ticket-handling/worklogs/report?from&to&userId` | totals per agent and per ticket (default: the last 30 days), limited to the organisations the account and tenant may see |
+| `GET` / `POST /api/me/drafts`, `GET` / `PUT` / `DELETE /api/me/drafts/:id` | the signed-in user's drafts: `{ kind, title?, data }`, `kind` = `incident` \| `user-request` (staff) or `portal-request` (end users) |
+
+**Priority override.** iTop computes `priority` from impact × urgency in
+`ComputeValues` on *every* write (both ticket classes), so a priority written
+directly is silently put back. The override therefore changes urgency (and
+impact only where the matrix row lacks that priority: impact 1 has no P3,
+impact 3 no P1) to the closest pair that gives it, and checks iTop computed
+it. The ticket then really has that priority in iTop: TTO/TTR, queues, lists
+and reports follow it. The reason (with what was changed) is written to the
+private log; who, why, and the impact/urgency before are kept in
+`bff_priority_overrides` and shown on the ticket. If someone later reassesses
+impact or urgency, the override shows as no longer in force.
+
+**Duplicates.** Linked through iTop's parent fields: `parent_incident_id`
+(incident → incident, request → incident) and `parent_request_id`
+(request → request). iTop has no request parent on an incident, so an
+incident cannot be marked a duplicate of a request. The duplicate is resolved
+with `ev_autoresolve` (iTop's own "resolved from a parent ticket" transition,
+which every open state has, Dispatched included; `ev_resolve` exists only once
+assigned), resolution code `other`, and a solution `Duplicate of <ref>: note`;
+the original gets a private-log line. Marking needs the `ev_resolve` grant
+(Support Agent, not Service Desk Agent). A ticket that is itself a duplicate
+cannot be the original. Suggestions: open tickets (same organisation) with
+the same caller, a shared CI, the same service, or a similar title (shared
+meaningful words), scored and the top five shown; for an incident only
+incidents, since only those can be its original.
+
+**Cancel.** iTop has no cancelled state or "cancelled" resolution code, so a
+cancelled ticket is resolved (`ev_autoresolve`, from any open state) with
+resolution code `other` and the solution `Cancelled by <name>: <reason>`,
+then closed (`ev_close`); the reason is also in the private log. Staff need
+the `ev_resolve` and `ev_close` grants. A requester cancels from the portal
+an open ticket in their portal scope that they may close (the Portal user's
+`ev_close` grant); like every portal write it then runs as the service
+account, naming them ("… (requester)").
+
+**Worklogs** are in the BFF database (`bff_worklogs`), not iTop:
+`Ticket.time_spent` is one duration iTop sets itself on resolve, and a
+`WorkOrder` (the only per-ticket child with dates and an agent) is a task that
+requires a team and would need invented start and end times for every entry.
+An entry is minutes (1 to 24 h), a note, the day (not in the future, at most
+a year back) and the agent; reading a ticket's entries first reads the ticket
+as the caller, so iTop's own rights and the tenant decide who sees them.
+
+**Drafts** (`bff_drafts`): the form's values as JSON (64 KB at most, 50 per
+user), per user and tenant, never visible to anyone else. iTop has no draft
+ticket: creating one starts its SLA and notifies. The draft id is in the
+form's address (`?draft=…`); submitting the form deletes the draft.
+
+The three tables are created on first use in the session database; with
+`SESSION_STORE=memory` they are in memory and lost on restart.
 
 ## SLA dashboard
 
@@ -1824,6 +1947,7 @@ finding out via a 404.
 | `npm run e2e:rca` | live root-cause evidence: impact chain, changes in and out of the look-back, ranking, rights (BFF on :4090, MFA on; accounts in `backend/e2e.local.json` under `"rca"`, see "Problems"). Creates and deletes its own records |
 | `npm run e2e:sla` | live SLA dashboard: within / at risk / breached from real stopwatches, breakdowns, drill-down (BFF on :4040, MFA on; account in `backend/e2e.local.json` under `"sla"`, see "SLA dashboard"). Creates and deletes its own records; takes about two minutes |
 | `npm run e2e:business-hours` | live business hours: coverage windows, holidays and contract services, and iTop's deadlines in working time (BFF on :4040; checks the 409s only on an iTop without Combodo's business-hours modules; see "Business hours") |
+| `npm run e2e:ticket-handling` | live priority override, duplicates (suggested, marked from Dispatched), cancel (staff and portal), worklogs and drafts (BFF on :4070, MFA on; reuses `e2e:dispatch`'s accounts and makes a portal account the first time, both in `backend/e2e.local.json`). Removes its own tickets, entries and drafts |
 | `npm run e2e:requests` | live request forms + target date check (BFF on :4040 with `MFA_REQUIRED=off`, or `E2E_STAFF_TOTP_SECRET`; `E2E_STAFF_PASSWORD`) |
 
 ## Known limitations

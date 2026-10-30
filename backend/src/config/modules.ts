@@ -8,10 +8,12 @@ import { registerDataImportRoutes } from "../modules/data-import/index.js";
 import { registerDirectoryRoutes } from "../modules/directory/index.js";
 import { registerDispatchRoutes } from "../modules/dispatch/index.js";
 import { registerIncidentRoutes } from "../modules/incidents/index.js";
+import { registerKnowledgeRoutes } from "../modules/knowledge/index.js";
 import { registerMailIntakeRoutes } from "../modules/mail-intake/index.js";
 import { registerProblemRoutes } from "../modules/problems/index.js";
 import { registerRequestFormRoutes } from "../modules/request-forms/index.js";
 import { registerSlaRoutes } from "../modules/sla/index.js";
+import { registerTicketHandlingRoutes } from "../modules/ticket-handling/index.js";
 
 /**
  * ════════════════════════════════════════════════════════════════════════════
@@ -68,7 +70,7 @@ export const modules: BackendModule[] = [
   {
     id: "changes",
     basePath: "/api/changes",
-    description: "Plans each change type needs before Plan / Implement, CAB decisions, changes awaiting the CAB (rules under /api/admin/change-rules).",
+    description: "Plans each change type needs before Plan / Implement, CAB decisions, changes awaiting the CAB, the change calendar with clashes and blackout windows, the risk questionnaire, post-implementation reviews (rules under /api/admin/change-rules, change-risk, change-blackouts).",
     register: registerChangeRoutes,
   },
   {
@@ -102,6 +104,12 @@ export const modules: BackendModule[] = [
     register: registerIncidentRoutes,
   },
   {
+    id: "knowledge",
+    basePath: "/api/knowledge",
+    description: "Knowledge articles (FAQs, known errors): draft, review, publish, retire; review-due dates; readers' helpfulness votes (reviewers under /api/admin/knowledge-settings).",
+    register: registerKnowledgeRoutes,
+  },
+  {
     id: "mail-intake",
     basePath: "/api/admin/mail-intake",
     description: "Email to ticket: the support mailbox becomes incidents, replies land on theirs.",
@@ -124,6 +132,12 @@ export const modules: BackendModule[] = [
     basePath: "/api/sla",
     description: "Open incidents and requests by SLA state: within target, at risk, breached.",
     register: registerSlaRoutes,
+  },
+  {
+    id: "ticket-handling",
+    basePath: "/api/ticket-handling",
+    description: "Priority override with a reason, duplicates (suggested, linked, resolved), cancel, and worklogs on incidents and requests; each user's drafts of the new-ticket forms (/api/me/drafts).",
+    register: registerTicketHandlingRoutes,
   },
 ];
 

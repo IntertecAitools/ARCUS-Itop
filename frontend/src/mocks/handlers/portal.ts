@@ -75,7 +75,7 @@ const seededDetail = (t: PortalTicket): PortalTicketDetail => ({
   satisfaction: '',
   userComment: '',
   log: [{ date: t.updatedAt, author: 'Sam Agent', message: 'We are looking into it.' }],
-  actions: t.status === 'resolved' ? ['close', 'reopen'] : [],
+  actions: t.status === 'resolved' ? ['close', 'reopen'] : t.closed ? [] : ['cancel'],
 });
 
 /**
@@ -135,7 +135,7 @@ export const portalHandlers = [
       satisfaction: '',
       userComment: '',
       log: [],
-      actions: [],
+      actions: ['cancel'],
     };
     tickets = [created, ...tickets];
     save();
@@ -152,6 +152,27 @@ export const portalHandlers = [
   http.post(url('/portal/requests/:id/close'), ({ params }) => {
     const ticket = tickets.find((t) => t.id === Number(params.id));
     return ticket ? HttpResponse.json(ticket) : notFound();
+  }),
+  // Cancel: resolved with the reason, then closed, as the BFF does.
+  http.post(url('/portal/requests/:id/cancel'), async ({ params, request }) => {
+    const ticket = tickets.find((t) => t.id === Number(params.id));
+    if (!ticket) return notFound();
+    const { reason } = (await request.json()) as { reason: string };
+    if (!reason?.trim() || reason.trim().length < 3) {
+      return HttpResponse.json({ error: { code: 'bad_request', message: 'Say why the ticket is cancelled.' } }, { status: 400 });
+    }
+    const now = new Date().toISOString();
+    Object.assign(ticket, {
+      status: 'closed',
+      closed: true,
+      solution: `Cancelled by ${currentMockUser().name} (requester): ${reason.trim()}`,
+      resolvedAt: now,
+      closedAt: now,
+      updatedAt: now,
+      actions: [],
+    });
+    save();
+    return HttpResponse.json(ticket);
   }),
   http.post(url('/portal/requests/:id/reopen'), ({ params }) => {
     const ticket = tickets.find((t) => t.id === Number(params.id));
@@ -178,6 +199,10 @@ export const portalHandlers = [
       category: 'Network',
     }),
   ),
+  http.post(url('/portal/faqs/:id/feedback'), async ({ request }) => {
+    const body = (await request.json()) as { helpful: boolean };
+    return HttpResponse.json({ yes: body.helpful ? 1 : 0, no: body.helpful ? 0 : 1, score: body.helpful ? 100 : 0 });
+  }),
   http.get(url('/portal/profile'), () =>
     HttpResponse.json({
       firstName: 'Mock',

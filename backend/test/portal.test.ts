@@ -115,11 +115,15 @@ describe("PortalService scope", () => {
 });
 
 describe("PortalService actions", () => {
-  it("offers close and reopen only where iTop's lifecycle allows", async () => {
+  it("offers close and reopen only where iTop's lifecycle allows, and cancel while the ticket is open", async () => {
     const resolved = new FakeItopClient().on("core/get", ticket("resolved"));
     assert.deepEqual((await service(resolved).getTicket(jane, 5)).actions, ["close", "reopen"]);
     const assigned = new FakeItopClient().on("core/get", ticket("assigned"));
-    assert.deepEqual((await service(assigned).getTicket(jane, 5)).actions, []);
+    assert.deepEqual((await service(assigned).getTicket(jane, 5)).actions, ["cancel"]);
+    const dispatched = new FakeItopClient().on("core/get", ticket("dispatched"));
+    assert.deepEqual((await service(dispatched).getTicket(jane, 5)).actions, ["cancel"]);
+    const closed = new FakeItopClient().on("core/get", ticket("closed"));
+    assert.deepEqual((await service(closed).getTicket(jane, 5)).actions, []);
   });
 
   it("offers only what the user's own profiles grant", async () => {

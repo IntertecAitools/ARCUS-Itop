@@ -10,9 +10,12 @@ const DEDICATED: Record<string, string> = {
   Incident: '/incidents',
 };
 
-/** The dedicated screen for one record (`id`) or its create form (`'new'`), if any. */
+/**
+ * The dedicated screen for one existing record, if any. Never for `'new'`:
+ * creating stays on the generic form, which has every field iTop offers.
+ */
 export function dedicatedRecordPath(className: string, id: string): string | null {
   const base = DEDICATED[className];
-  if (!base || !id || !isModuleRegistered(base)) return null;
+  if (!base || !id || id === 'new' || !isModuleRegistered(base)) return null;
   return `${base}/${encodeURIComponent(id)}`;
 }

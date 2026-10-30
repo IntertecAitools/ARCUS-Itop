@@ -31,7 +31,9 @@
     "e2e:rights": "node --import tsx scripts/e2e-lifecycle-rights.mjs",
     "e2e:rca": "node --import tsx scripts/e2e-rca.mjs",
     "e2e:dispatch": "node --import tsx scripts/e2e-dispatch.mjs",
-    "e2e:data-import": "node --import tsx scripts/e2e-data-import.mjs"
+    "e2e:data-import": "node --import tsx scripts/e2e-data-import.mjs",
+    "e2e:ticket-handling": "node --import tsx scripts/e2e-ticket-handling.mjs",
+    "e2e:change-knowledge": "node --import tsx scripts/e2e-change-knowledge.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.3.0",

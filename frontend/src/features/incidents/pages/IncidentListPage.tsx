@@ -171,7 +171,7 @@ export function IncidentListPage() {
             : 'Unplanned interruptions to a service.'
         }
         actions={
-          <Link to="/incidents/new" className={buttonClasses({ size: 'sm' })}>
+          <Link to="/records/Incident/new" className={buttonClasses({ size: 'sm' })}>
             <Plus className="me-1.5 size-4" />
             New incident
           </Link>
@@ -206,7 +206,7 @@ export function IncidentListPage() {
             }
             action={
               activeCount === 0 ? (
-                <Link to="/incidents/new" className={buttonClasses({ size: 'sm' })}>
+                <Link to="/records/Incident/new" className={buttonClasses({ size: 'sm' })}>
                   Raise the first one
                 </Link>
               ) : undefined

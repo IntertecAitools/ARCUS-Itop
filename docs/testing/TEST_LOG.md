@@ -40,6 +40,66 @@ Branch `claude/tenant-brand-rtl-c1514c`. Mock mode only (e2e build on `:5253`).
 Found and fixed: label-in-name mismatch on the logo link (missing space between wordmark and tagline) and on the account-menu button (aria-label left out the visible role); avatar initials in chart-series colours (2.6–4.4:1); "Mon/Tue" under the selected day in the change calendar at 80 % white on violet (3.9:1); the command palette's input had no label, its options nested buttons inside `role=option`, Tab left the modal and focus was not returned on close; the account menu did not move focus into the menu, had no arrow keys and dropped focus on Escape; tabs had every tab in the Tab order and no arrow keys; clickable table rows (portal "My requests" on desktop) could not be reached by keyboard; portal request textareas labelled only by a placeholder or not at all; low-contrast fallback tokens in `globals.css` (light muted ink 2.4:1, input borders 1.5:1, focus ring 1.8:1) and light `line-strong` 2.9:1 on hover.
 
 Not covered: the live journeys; screen readers by ear (NVDA/VoiceOver); the landing page and admin screens beyond users; mobile drawer focus handling; Safari and Firefox.
+### 2026-10-29 — Ticket handling: priority override, duplicates, cancel, worklogs, drafts
+
+Branch `claude/ticket-handling-f68a08`. No iTop extension and nothing installed on `itop-local`. The test hook recorded none of these runs (no entries appeared below), so this table is the record.
+
+| What ran | Result |
+|---|---|
+| Backend typecheck (`npm run typecheck`) | clean |
+| Backend unit tests (`npm test`, incl. new `test/ticket-handling.test.ts`, 20 tests) | 815/816 on the first run; 816/816 after updating `test/portal.test.ts` (an open ticket now offers `cancel` to its requester) |
+| Live `npm run e2e:ticket-handling` (BFF :4070, MFA on, local iTop :8080 with arcus-ticket-dispatch) | first run 43/46 (two script mistakes, see below); then 46/46 |
+| Frontend typecheck (`tsc -p tsconfig.app.json`) | clean |
+| Frontend vitest, new `features/ticket-handling/TicketHandling.test.tsx` | 10/10 |
+| Frontend vitest, whole suite | 233/235: `config/modules.test.ts` needed the two new nav items (fixed); `ProblemAnalysisPanel` timed out at 21 s under the full-suite load and passes when run alone (17/17 for both files after the fix) |
+| Frontend `npm run build` | builds (the usual chunk-size warning) |
+
+Probes against the live iTop before building (scratch script, tickets deleted):
+- A `priority` written with `core/update` is put back: iTop recomputes it from impact × urgency in `ComputeValues` on every write. Hence the override changes urgency (impact only where needed).
+- `ev_autoresolve` resolves from `new` (and every open state, Dispatched included) with no service set, and `ev_close` follows. Duplicate and cancel use it.
+
+Bugs found and fixed:
+- e2e script: read the incident screen's `urgency` (a label) instead of iTop's value, and the generic stimulus answer's shape (`fields`, not `object.fields`), so two "is Dispatched" checks failed although the tickets were dispatched. Fixed in the script (commit `d981c6fb`).
+
+Test data: the e2e deletes its tickets, worklog entries and drafts at the end. It reuses `e2e:dispatch`'s accounts and made one portal account, `e2e.handling.portal` (person 59, org "E2E dispatch org"), kept for the next run; its password is in this worktree's git-ignored `backend/e2e.local.json`.
+
+Not covered: the screens were tested with vitest on mock data, not clicked through in a browser (the browser pane did not render the dev server in time on this machine). The override's impact change (when the matrix row has no such priority) is unit-tested, not live. The time report's organisation filter under `TENANCY=on` is unit-tested only.
+
+Merging main afterwards (PR #41 moved incident creation back to the full record form, `/records/Incident/new`): incident drafts and duplicate suggestions moved to that form, next to the request ones, and the short `/incidents/new` form was left as main has it. After the merge: backend typecheck clean, `npm test` 857/857; frontend typecheck clean, vitest on config, ticket-handling, portal, incidents, records and lib 107/107 (18 files).
+
+### 2026-10-29 — New incident uses the full form again
+
+Reported: after the redesign, creating an incident showed far fewer fields than before. Cause: not the redesign. PR #34 also redirected `/records/Incident/new` (iTop's "New incident" menu, the full schema form) to `/incidents/new`, the short incident form (subject, description, source, urgency, impact, priority, date, service, category, team, agent). Organisation, caller, contacts, CIs and parent links were gone.
+
+| What ran | Result |
+|---|---|
+| Frontend typecheck | clean |
+| vitest `src/features/records` + `src/features/incidents` (incl. updated `dedicated.test.ts`) | 13 files, 69/69 pass |
+| Live, BFF :4000 + local iTop, as `e2e.rights.desk`: `GET /api/meta/classes/Incident` | 200; the full form's schema offers org (required), caller, contacts, functional CIs, parent incident/problem/change/request and the rest |
+
+Fix (branch `claude/restore-full-incident-form`): `/records/Incident/new` is no longer redirected, and the incidents list's "New incident" buttons open it. Viewing an incident still redirects to `/incidents/<id>`, so a saved incident opens on its own screen.
+
+Not covered: the form was not clicked through in the browser (the browser pane stopped responding); checked through the schema API and tests instead.
+
+### 2026-10-29 — Change calendar, risk questionnaire, PIR; knowledge article workflow and feedback
+
+Branch `claude/change-knowledge-a7889d`. The record-test-run hook logged none of these runs below, so this table is the record. No iTop extension: the new data (risk answers, reviews, blackout windows, article state, votes) lives in the BFF's own MySQL (`bff_documents`).
+
+| What ran | Result |
+|---|---|
+| Backend typecheck | clean |
+| Backend unit tests (`npm test`, incl. new `test/change-extras.test.ts` 17 and `test/knowledge.test.ts` 8) | 821/821 pass |
+| Frontend typecheck (`npm run typecheck`) | clean |
+| Frontend vitest, whole suite (incl. new `changes/lib/calendar.test.ts`, `changes/pages/ChangeExtras.test.tsx`, `knowledge-base/pages/KnowledgePages.test.tsx`) | 51 files, 247/247 pass after updating `config/modules.test.ts` for the new nav items (3 failures before) |
+| Live `npm run e2e:change-knowledge` (BFF :4090, MFA on, local iTop :8080 with arcus-change-cab; accounts `e2e.chg.*` + new portal user `e2e.kb.reader`) | 61/61 pass, first run |
+| After merging main (#37 auto-RCA, #38 UI redesign): backend typecheck + `npm test`; frontend typecheck + vitest | clean, 837/837; clean, 51 files 250/250 |
+| Leftovers check after the run (iTop REST: Change / FAQ / Incident titled `e2e-chg-kb…`) | 0 / 0 / 0; 6 `bff_documents` rows removed by the script |
+
+Kept for the next run (like the other e2e scripts): portal user `e2e.kb.reader`, FAQ category "E2E knowledge", CI "E2E change calendar app" (ids in `backend/e2e.local.json`, git-ignored).
+
+Bugs found and fixed: none in the live run. During the build the PIR form was changed to name incidents by ref (I-000123) as well as id, so staff do not need iTop ids.
+
+Not covered: the screens were checked by vitest against MSW mocks and the API by the live e2e, not clicked through in a browser against the live BFF. Service clashes (CIs linked to the same service) are unit-tested only; the live run clashes on a shared CI. Tenancy (TENANCY=on) keys every row by tenant but was not run live. Editing a published article's text does not send it back to review.
 
 ### 2026-10-29 — UI redesign: near-black and violet look, new landing page, sign-in, staff app and portal restyle
 
