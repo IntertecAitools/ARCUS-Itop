@@ -346,7 +346,7 @@ function rcaService(options: { model?: RcaModel; disabledTenants?: string[] } = 
   } as unknown as ObjectsService;
   const config = {
     lookbackHours: 72,
-    ai: { apiKey: "test-key", model: "claude-opus-5-5", effort: "high" as const, privateLogs: false, disabledTenants: options.disabledTenants ?? [] },
+    ai: { provider: "anthropic" as const, apiKey: "test-key", region: "", model: "claude-opus-5-5", effort: "high" as const, privateLogs: false, disabledTenants: options.disabledTenants ?? [] },
   };
   return new RcaService(evidenceService, objects, config, options.model);
 }
@@ -416,9 +416,12 @@ describe("AnthropicRcaModel", () => {
     return { client, calls };
   }
 
+  const claudeApi = { serverFallbacks: true, credentialHint: "ANTHROPIC_API_KEY" };
+  const bedrock = { serverFallbacks: false, credentialHint: "AWS_BEARER_TOKEN_BEDROCK" };
+
   it("asks for structured JSON with adaptive thinking and server-side fallbacks", async () => {
     const { client, calls } = fakeClient({ stop_reason: "end_turn", content: [{ type: "text", text: "{}" } as Anthropic.Beta.BetaTextBlock] });
-    const model = new AnthropicRcaModel("k", "claude-opus-5-5", "high", client);
+    const model = new AnthropicRcaModel(client, "claude-opus-5-5", "high", claudeApi);
     const answer = await model.complete({ system: "s", user: "u", schema: { type: "object" } });
     assert.equal(answer.text, "{}");
     assert.deepEqual(answer.usage, { inputTokens: 5, outputTokens: 7 });
@@ -429,10 +432,22 @@ describe("AnthropicRcaModel", () => {
     assert.deepEqual(params["output_config"], { effort: "high", format: { type: "json_schema", schema: { type: "object" } } });
   });
 
+  it("on Bedrock sends the same request without server-side fallbacks", async () => {
+    const { client, calls } = fakeClient({ stop_reason: "end_turn", content: [{ type: "text", text: "{}" } as Anthropic.Beta.BetaTextBlock] });
+    const model = new AnthropicRcaModel(client, "anthropic.claude-sonnet-5", "high", bedrock);
+    await model.complete({ system: "s", user: "u", schema: { type: "object" } });
+    const params = calls[0] as Record<string, unknown>;
+    assert.equal(params["model"], "anthropic.claude-sonnet-5");
+    assert.equal("fallbacks" in params, false);
+    assert.equal("betas" in params, false);
+    assert.deepEqual(params["thinking"], { type: "adaptive" });
+    assert.deepEqual(params["output_config"], { effort: "high", format: { type: "json_schema", schema: { type: "object" } } });
+  });
+
   it("reports a refusal and a cut-off answer instead of returning them", async () => {
-    const refused = new AnthropicRcaModel("k", "m", "high", fakeClient({ stop_reason: "refusal", content: [] }).client);
+    const refused = new AnthropicRcaModel(fakeClient({ stop_reason: "refusal", content: [] }).client, "m", "high", bedrock);
     await assert.rejects(refused.complete({ system: "", user: "", schema: {} }), /declined/);
-    const cut = new AnthropicRcaModel("k", "m", "high", fakeClient({ stop_reason: "max_tokens", content: [] }).client);
+    const cut = new AnthropicRcaModel(fakeClient({ stop_reason: "max_tokens", content: [] }).client, "m", "high", claudeApi);
     await assert.rejects(cut.complete({ system: "", user: "", schema: {} }), /cut off/);
   });
 });

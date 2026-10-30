@@ -4,6 +4,23 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-10-30 — RCA "Draft with AI" on Amazon Bedrock
+
+The user runs Claude Sonnet 5 on Amazon Bedrock with a Bedrock API key. The AI draft could only use the Claude API (`ANTHROPIC_API_KEY`).
+
+| What ran | Result |
+|---|---|
+| Backend typecheck | clean |
+| `node --test test/rca-config.test.ts test/rca.test.ts` (new provider tests) | 22/22 |
+| Backend unit tests, whole suite | 878/878 |
+
+What changed (branch `claude/rca-bedrock`):
+- `RCA_AI_PROVIDER=bedrock` uses `AnthropicBedrockMantle` from `@anthropic-ai/bedrock-sdk` 1.1.0 (same `@anthropic-ai/sdk` copy, so the typed error handling is unchanged).
+- Credentials are resolved by the Bedrock SDK: `AWS_BEARER_TOKEN_BEDROCK`, or AWS keys, profile or role. The region comes from `AWS_REGION`, the model from `BEDROCK_MODEL_ID` (e.g. `anthropic.claude-sonnet-5`).
+- The request is the same structured-JSON, adaptive-thinking, effort call, without the server-side fallback, which Bedrock does not offer. A decline is reported on screen.
+
+Not covered: no live call to Bedrock; the user's token isn't in this checkout. Check after adding it: Problems → a problem → Root cause analysis → "Draft with AI".
+
 ### 2026-10-30 — Approval extension installed on the shared local iTop (:8080)
 
 Branch `claude/approvals-main-itop-812ad2`. This worktree's BFF on `:4050` (`MFA_REQUIRED=off`, in-memory sessions) against `itop-local` (`:8080`, `itop_prod`), Mailpit `:8025`. Maintenance window 05:23:51–05:31:51 UTC (10:53–11:01 IST). The hook did not record the e2e run below, so this table is its record.

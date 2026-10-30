@@ -7,7 +7,7 @@ export { registerProblemRoutes } from "./problems.routes.js";
 export { ProblemsService } from "./problems.service.js";
 export { RcaService } from "./rca.service.js";
 export { RcaEvidenceService } from "./rca-evidence.js";
-export { AnthropicRcaModel, type RcaModel } from "./rca-ai.js";
+export { AnthropicRcaModel, anthropicRcaModel, bedrockRcaModel, type RcaModel } from "./rca-ai.js";
 export type {
   AnalysisSaveInput,
   CandidateCause,

@@ -6,7 +6,8 @@ import { DashboardService } from "./modules/dashboard/index.js";
 import { DirectoryService } from "./modules/directory/index.js";
 import { IncidentsService, TicketExtras } from "./modules/incidents/index.js";
 import {
-  AnthropicRcaModel,
+  anthropicRcaModel,
+  bedrockRcaModel,
   ProblemsService,
   RcaEvidenceService,
   RcaService,
@@ -320,7 +321,11 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
   const rcaConfig = config.rca ?? { lookbackHours: 72 };
   const rcaModel =
     options.rcaModel ??
-    (rcaConfig.ai ? new AnthropicRcaModel(rcaConfig.ai.apiKey, rcaConfig.ai.model, rcaConfig.ai.effort) : undefined);
+    (rcaConfig.ai
+      ? rcaConfig.ai.provider === "bedrock"
+        ? bedrockRcaModel(rcaConfig.ai.region, rcaConfig.ai.model, rcaConfig.ai.effort)
+        : anthropicRcaModel(rcaConfig.ai.apiKey, rcaConfig.ai.model, rcaConfig.ai.effort)
+      : undefined);
   // The evidence asks the service whether to offer the AI button; the service needs the evidence.
   let rca: RcaService | undefined;
   const rcaEvidence = new RcaEvidenceService(objects, relations, client, schema, config.itop.timezone, () =>
