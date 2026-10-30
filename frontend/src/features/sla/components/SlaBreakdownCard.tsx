@@ -39,11 +39,11 @@ export function SlaBreakdownCard({ title, noun, groups, isLoading, onPick, selec
         ) : (
           <table className="w-full text-[13px]" aria-label={title}>
             <thead>
-              <tr className="text-left text-[12px] text-ink-muted">
+              <tr className="text-start text-[12px] text-ink-muted">
                 <th className="pb-2 font-medium">{noun}</th>
                 <th className="pb-2 font-medium" aria-label="Share by state" />
                 {STATES.map((s) => (
-                  <th key={s.value} className="w-14 pb-2 text-right font-medium" title={s.label}>
+                  <th key={s.value} className="w-14 pb-2 text-end font-medium" title={s.label}>
                     {s.label === 'Within target' ? 'Within' : s.label}
                   </th>
                 ))}
@@ -55,17 +55,17 @@ export function SlaBreakdownCard({ title, noun, groups, isLoading, onPick, selec
                   key={g.key || 'none'}
                   className={cn('border-t border-line', selected === g.key && 'bg-brand-soft/40')}
                 >
-                  <td className="max-w-[160px] py-1.5 pr-2">
+                  <td className="max-w-[160px] py-1.5 pe-2">
                     <button
                       type="button"
-                      className="block w-full truncate text-left text-ink hover:underline"
+                      className="block w-full truncate text-start text-ink hover:underline"
                       onClick={() => onPick(g.key)}
                       title={`${g.label}: ${g.total} open`}
                     >
                       {g.label}
                     </button>
                   </td>
-                  <td className="w-[30%] py-1.5 pr-3">
+                  <td className="w-[30%] py-1.5 pe-3">
                     <div className="flex h-2 overflow-hidden rounded-full bg-surface-sunken" aria-hidden>
                       {STATES.map((s) => (
                         <span key={s.value} className={BAR[s.value]} style={{ width: `${share(g[s.count], g.total)}%` }} />
@@ -75,7 +75,7 @@ export function SlaBreakdownCard({ title, noun, groups, isLoading, onPick, selec
                   {STATES.map((s) => {
                     const n = g[s.count];
                     return (
-                      <td key={s.value} className="py-1.5 text-right tabular-nums">
+                      <td key={s.value} className="py-1.5 text-end tabular-nums">
                         {n ? (
                           <button
                             type="button"

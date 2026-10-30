@@ -1,22 +1,24 @@
 import { useEffect, useRef, useState } from 'react';
 import { ChevronDown, CircleHelp, KeyRound, LogOut, Menu, Moon, Search, Sun } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { Avatar, IconButton } from '@/components/ui';
 import { useUiStore } from '@/stores/ui.store';
 import { useSessionStore } from '@/stores/session.store';
-import { ChangePasswordDialog, useSignOut } from '@/features/auth';
+import { ChangePasswordDialog, LanguagePicker, useSignOut } from '@/features/auth';
 import { NotificationBell } from '@/features/inbox';
 import { isModuleRegistered } from '@/config/modules';
 
 function ThemeToggle() {
+  const { t } = useTranslation();
   const theme = useUiStore((s) => s.theme);
   const setTheme = useUiStore((s) => s.setTheme);
   const isDark = theme === 'dark';
 
   return (
     <IconButton
-      label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+      label={isDark ? t('shell.switchToLight') : t('shell.switchToDark')}
       icon={isDark ? <Sun className="size-[18px]" /> : <Moon className="size-[18px]" />}
       onClick={() => setTheme(isDark ? 'light' : 'dark')}
     />
@@ -24,6 +26,7 @@ function ThemeToggle() {
 }
 
 function UserMenu() {
+  const { t } = useTranslation();
   const user = useSessionStore((s) => s.user);
   const clearSession = useSessionStore((s) => s.clear);
   const [open, setOpen] = useState(false);
@@ -65,6 +68,7 @@ function UserMenu() {
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="menu"
         aria-expanded={open}
+        aria-label={t('shell.accountMenu', { name: user.name })}
         className="flex items-center gap-2.5 rounded-control py-1 pe-2 ps-1 transition-colors hover:bg-surface-hover"
       >
         <Avatar name={user.name} src={user.avatarUrl} size="md" />
@@ -96,7 +100,7 @@ function UserMenu() {
             className="flex w-full items-center gap-2.5 px-3 py-2 text-[13px] text-ink-secondary transition-colors hover:bg-surface-hover"
           >
             <KeyRound className="size-4" aria-hidden />
-            Change password
+            {t('shell.changePassword')}
           </button>
           <button
             role="menuitem"
@@ -104,8 +108,8 @@ function UserMenu() {
             disabled={signOut.isPending}
             className="flex w-full items-center gap-2.5 px-3 py-2 text-[13px] text-critical-ink transition-colors hover:bg-surface-hover"
           >
-            <LogOut className="size-4" aria-hidden />
-            Sign out
+            <LogOut className="size-4 rtl:-scale-x-100" aria-hidden />
+            {t('shell.signOut')}
           </button>
         </div>
       ) : null}
@@ -115,6 +119,7 @@ function UserMenu() {
 }
 
 export function Topbar() {
+  const { t } = useTranslation();
   const collapsed = useUiStore((s) => s.sidebarCollapsed);
   const setCommandPaletteOpen = useUiStore((s) => s.setCommandPaletteOpen);
   const mobileNavOpen = useUiStore((s) => s.mobileNavOpen);
@@ -147,7 +152,7 @@ export function Topbar() {
         onClick={() => setMobileNavOpen(!mobileNavOpen)}
         aria-expanded={mobileNavOpen}
         aria-controls="app-sidebar"
-        aria-label="Open menu"
+        aria-label={t('shell.openMenu')}
         className="inline-flex size-9 shrink-0 items-center justify-center rounded-control text-ink hover:bg-surface-hover lg:hidden"
       >
         <Menu className="size-5" aria-hidden />
@@ -164,7 +169,7 @@ export function Topbar() {
       >
         <Search className="size-4 shrink-0 text-ink-muted" aria-hidden />
         <span className="flex-1 truncate text-sm text-ink-muted">
-          Search incidents, requests, assets, knowledge articles…
+          {t('shell.searchPlaceholder')}
         </span>
         <kbd className="hidden shrink-0 rounded-md border border-line bg-surface px-1.5 py-0.5 text-[11px] font-medium text-ink-muted sm:block">
           Ctrl K
@@ -172,6 +177,7 @@ export function Topbar() {
       </button>
 
       <div className="ms-auto flex items-center gap-1">
+        <LanguagePicker className="max-sm:hidden" />
         <ThemeToggle />
         {/* Incidents have their own screens; everything else opens as a record. */}
         <NotificationBell
@@ -179,7 +185,7 @@ export function Topbar() {
             r.type === 'Incident' && isModuleRegistered('/incidents') ? `/incidents/${r.id}` : `/records/${r.type}/${r.id}`
           }
         />
-        <IconButton label="Help and documentation" icon={<CircleHelp className="size-[18px]" />} className="max-sm:hidden" />
+        <IconButton label={t('shell.help')} icon={<CircleHelp className="size-[18px]" />} className="max-sm:hidden" />
         <div className="mx-1 h-6 w-px bg-line max-sm:hidden" aria-hidden />
         <UserMenu />
       </div>

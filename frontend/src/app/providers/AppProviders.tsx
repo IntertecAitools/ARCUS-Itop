@@ -2,10 +2,18 @@ import { useState, type ReactNode } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { createQueryClient } from '@/lib/query/queryClient';
 import { ThemeProvider } from './ThemeProvider';
+import { BrandingProvider } from '@/features/branding';
+import { useAccountLanguage } from '@/features/auth';
+
+/** The signed-in user's saved language, applied on any device they sign in from. */
+function AccountLanguage() {
+  useAccountLanguage();
+  return null;
+}
 
 /**
  * Every cross-cutting provider, in one place and in a deliberate order.
- * Add new ones here (i18n, auth, toasts) rather than wrapping <App/> again.
+ * Add new ones here (auth, toasts) rather than wrapping <App/> again.
  */
 export function AppProviders({ children }: { children: ReactNode }) {
   // One client per mount — created in state so StrictMode's double-invoke and
@@ -14,7 +22,12 @@ export function AppProviders({ children }: { children: ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>{children}</ThemeProvider>
+      <ThemeProvider>
+        <BrandingProvider>
+          <AccountLanguage />
+          {children}
+        </BrandingProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

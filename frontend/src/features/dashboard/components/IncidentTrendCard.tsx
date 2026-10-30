@@ -4,6 +4,7 @@ import { ChartLegend, TrendChart } from '@/components/data-display';
 import { EmptyState } from '@/components/feedback';
 import { seriesPalette } from '@/theme';
 import type { TrendPoint } from '../types';
+import { intlLocale } from '@/lib/i18n';
 
 const SERIES = [
   { key: 'created', label: 'Created', filled: true },
@@ -37,7 +38,7 @@ export function IncidentTrendCard({
   // The API sends ISO days; the axis is where they become human-readable.
   const points = data?.map((point) => ({
     ...point,
-    date: new Date(`${point.date}T00:00:00`).toLocaleDateString(undefined, {
+    date: new Date(`${point.date}T00:00:00`).toLocaleDateString(intlLocale(), {
       month: 'short',
       day: 'numeric',
     }),

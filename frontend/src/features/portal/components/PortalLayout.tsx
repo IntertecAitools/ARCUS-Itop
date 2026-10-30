@@ -4,9 +4,9 @@ import { LogOut, Menu, X } from 'lucide-react';
 import { Logo } from '@/components/layout';
 import { PublicTheme, PublicThemeToggle, SkipLink } from '@/components/public';
 import { cn } from '@/lib/utils';
-import { env } from '@/config/env';
+import { useProductName } from '@/features/branding';
 import { useSessionStore } from '@/stores/session.store';
-import { useSignOut } from '@/features/auth';
+import { LanguagePicker, useSignOut } from '@/features/auth';
 import { NotificationBell } from '@/features/inbox';
 import { usePendingApprovalCount } from '@/features/approvals';
 
@@ -72,21 +72,23 @@ export function PortalLayout() {
       </NavLink>
     ));
 
+  const productName = useProductName().full;
   return (
     <PublicTheme className="flex flex-col">
       <SkipLink />
       <header className="sticky top-0 z-30 border-b border-line bg-canvas/75 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-6xl items-center gap-6 px-5 sm:px-8">
-          <Link to="/portal" className="flex items-center gap-3" aria-label={`${env.appName} ${env.platformName}`}>
+          <Link to="/portal" className="flex items-center gap-3" aria-label={`${productName}`}>
             <Logo collapsed />
             <span className="hidden text-[15px] font-medium tracking-tight whitespace-nowrap text-ink sm:inline">
-              {env.appName} {env.platformName}
+              {productName}
             </span>
           </Link>
           <nav aria-label="Portal" className="hidden flex-1 gap-6 lg:flex">
             {links('bar')}
           </nav>
           <div className="ms-auto flex items-center gap-1 text-[13px] lg:ms-0">
+            <LanguagePicker className="max-sm:hidden" />
             <PublicThemeToggle />
             {/* End users only reach their own requests here. */}
             <NotificationBell
@@ -100,7 +102,7 @@ export function PortalLayout() {
               onClick={doSignOut}
               className="ms-2 hidden items-center gap-1.5 rounded-control px-2 py-1.5 whitespace-nowrap text-ink-secondary hover:bg-surface-hover hover:text-ink sm:inline-flex"
             >
-              <LogOut className="size-4" aria-hidden />
+              <LogOut className="size-4 rtl:-scale-x-100" aria-hidden />
               Sign out
             </button>
             <button
@@ -120,6 +122,7 @@ export function PortalLayout() {
             <nav aria-label="Portal" className="space-y-1">
               {links('menu')}
             </nav>
+            <LanguagePicker className="mt-3 sm:hidden" />
             <div className="mt-4 flex items-center justify-between border-t border-line pt-4 text-[13px] sm:hidden">
               <span className="text-ink-secondary">{user?.name}</span>
               <button
@@ -128,7 +131,7 @@ export function PortalLayout() {
                 onClick={doSignOut}
                 className="inline-flex items-center gap-1.5 px-2 py-1.5 text-ink hover:bg-surface-hover"
               >
-                <LogOut className="size-4" aria-hidden />
+                <LogOut className="size-4 rtl:-scale-x-100" aria-hidden />
                 Sign out
               </button>
             </div>
@@ -141,7 +144,7 @@ export function PortalLayout() {
       <footer className="border-t border-line">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-5 py-6 text-[13px] text-ink-muted sm:px-8">
           <span>
-            {env.appName} {env.platformName}
+            {productName}
           </span>
           <span>Signed in as {user?.name}</span>
         </div>

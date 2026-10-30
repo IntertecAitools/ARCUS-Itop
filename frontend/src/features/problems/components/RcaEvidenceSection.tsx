@@ -5,6 +5,7 @@ import { Badge, Card, CardBody, CardHeader, Select, Skeleton, type BadgeTone } f
 import { isModuleRegistered } from '@/config/modules';
 import { useRcaEvidence } from '../api/useProblems';
 import type { CandidateCause, RcaEvidence, RecordRef } from '../types';
+import { intlLocale } from '@/lib/i18n';
 
 /** Where a record opens: incidents in their own screen, the rest in the record screen. */
 export function recordHref(ref: Pick<RecordRef, 'class' | 'id'>) {
@@ -40,7 +41,7 @@ const LOOKBACKS = [
   { value: '336', label: 'Changes in the last 14 days' },
 ];
 
-const when = (iso: string) => (iso ? new Date(iso).toLocaleString() : '—');
+const when = (iso: string) => (iso ? new Date(iso).toLocaleString(intlLocale()) : '—');
 
 function Candidate({ candidate }: { candidate: CandidateCause }) {
   return (

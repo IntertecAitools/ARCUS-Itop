@@ -16,6 +16,8 @@ export interface SessionUser {
   isAdmin: boolean;
   contactId: number;
   orgId: number;
+  /** The interface language the user chose; null until they choose one. */
+  language?: 'en' | 'ar' | null;
 }
 
 /** Where a sign-in waiting for its second factor is. */
@@ -31,6 +33,8 @@ export interface AuthOptions {
   sso: { label: string } | null;
   /** Who may use a password: everyone, end users (staff use SSO), or break-glass accounts only. */
   passwordSignIn: 'all' | 'portal' | 'break-glass';
+  /** End users at a claimed email domain may create their own account. */
+  selfRegistration?: boolean;
 }
 
 /** A new authenticator to set up: the key, and the otpauth:// link a QR code carries. */

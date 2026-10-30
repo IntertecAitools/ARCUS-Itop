@@ -31,6 +31,8 @@ export interface Profile {
   id: number;
   name: string;
   description: string;
+  /** Whether the signed-in administrator may give or take away this profile. */
+  grantable?: boolean;
 }
 
 export interface CreateUserInput {

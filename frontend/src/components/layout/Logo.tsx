@@ -1,6 +1,6 @@
 import { useId } from 'react';
 import { cn } from '@/lib/utils';
-import { env } from '@/config/env';
+import { useProductName } from '@/features/branding';
 
 /**
  * The Intertec mark: a ring opened by a needle rising to a red dot.
@@ -37,31 +37,35 @@ export function LogoMark({ className }: { className?: string }) {
 }
 
 /**
- * Brand lockup: the Intertec wordmark over the platform it runs on.
+ * Brand lockup: the Intertec wordmark over the platform it runs on, or a
+ * tenant's own logo and product name (features/branding) on their site.
  *
- * The product name comes from `VITE_APP_NAME`, so a re-brand is an env var
- * plus the brand tokens — never a component edit.
+ * The default name comes from `VITE_APP_NAME`; a tenant's from its branding.
+ * Never a component edit for a re-brand.
  */
 export function Logo({ collapsed = false, className }: { collapsed?: boolean; className?: string }) {
+  const name = useProductName();
   return (
     <div className={cn('flex items-center gap-2.5', className)}>
-      <LogoMark className="h-10 w-[34px] shrink-0" />
+      {name.logo ? (
+        <img src={name.logo} alt="" className="h-10 w-10 shrink-0 object-contain" />
+      ) : (
+        <LogoMark className="h-10 w-[34px] shrink-0" />
+      )}
 
       {!collapsed ? (
-        <span className="min-w-0 leading-none">
-          <span className="block truncate text-[17px] font-semibold tracking-tight text-ink">
-            {env.appName}
-          </span>
+        <span className="min-w-0 leading-none" aria-hidden>
+          <span className="block truncate text-[17px] font-semibold tracking-tight text-ink">{name.wordmark}</span>
           {/* Product tagline under the wordmark. */}
-          <span className="mt-0.5 block text-[10px] font-medium tracking-[0.14em] text-ink-muted uppercase">
-            {env.platformName}
-          </span>
+          {name.tagline ? (
+            <span className="mt-0.5 block text-[10px] font-medium tracking-[0.14em] text-ink-muted uppercase">
+              {name.tagline}
+            </span>
+          ) : null}
         </span>
       ) : null}
 
-      <span className="sr-only">
-        {env.appName} {env.platformName}
-      </span>
+      <span className="sr-only">{name.full}</span>
     </div>
   );
 }
