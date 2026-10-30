@@ -45,8 +45,9 @@ test('branding: product name and colour apply to the whole app at once', { tag: 
 
   await expect(page).toHaveTitle('Northwind Desk');
   // The violet tokens now follow the brand colour, darkened so white text on it stays readable.
-  const brand = await page.evaluate(() =>
-    getComputedStyle(document.querySelector('[data-public-theme]')!).getPropertyValue('--arcus-brand').trim(),
+  // A string: the journeys compile without the DOM library.
+  const brand = await page.evaluate<string>(
+    "getComputedStyle(document.querySelector('[data-public-theme]')).getPropertyValue('--arcus-brand').trim()",
   );
   expect(brand).not.toBe('#6d4aff');
   expect(brand).toMatch(/^#[0-9a-f]{6}$/);

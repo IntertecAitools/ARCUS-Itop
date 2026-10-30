@@ -58,7 +58,7 @@ export function currentLanguage(): Language {
 
 /** BCP 47 tag for Intl: Arabic keeps Arabic-Indic digits, as Arabic readers expect. */
 export function intlLocale(language: Language = currentLanguage()): string {
-  return language === 'ar' ? 'ar' : 'en-GB';
+  return language === 'ar' ? 'ar-u-nu-arab' : 'en-GB';
 }
 
 export function dateLocale(language: Language = currentLanguage()): Locale {
