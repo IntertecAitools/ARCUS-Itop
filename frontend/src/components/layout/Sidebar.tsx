@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ChevronLeft, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSessionStore } from '@/stores/session.store';
@@ -25,11 +26,14 @@ function NavItem({
   count?: number;
 }) {
   const Icon = module.icon;
+  const { t } = useTranslation();
+  const label = t(`nav.${module.id}`, { defaultValue: module.label });
 
   return (
     <NavLink
       to={`/${module.path}`}
-      title={collapsed ? module.label : undefined}
+      title={collapsed ? label : undefined}
+      aria-label={collapsed ? label : undefined}
       className={({ isActive }) =>
         cn(
           'group relative flex items-center gap-3 rounded-control py-2 text-[13.5px] font-medium',
@@ -52,7 +56,7 @@ function NavItem({
             )}
           />
           <Icon className="size-[18px] shrink-0" aria-hidden />
-          {!collapsed ? <span className="flex-1 truncate">{module.label}</span> : null}
+          {!collapsed ? <span className="flex-1 truncate">{label}</span> : null}
           {count ? (
             <span
               className={cn(
@@ -86,6 +90,7 @@ function useIsWide() {
 }
 
 export function Sidebar({ counts = {} }: SidebarProps) {
+  const { t } = useTranslation();
   const isAdmin = useSessionStore((s) => s.user?.isAdmin ?? false);
   const wide = useIsWide();
   const collapsed = useUiStore((s) => s.sidebarCollapsed) && wide;
@@ -115,7 +120,7 @@ export function Sidebar({ counts = {} }: SidebarProps) {
           <button
             type="button"
             onClick={() => setMobileNavOpen(false)}
-            aria-label="Close menu"
+            aria-label={t('shell.closeMenu')}
             className="inline-flex size-9 items-center justify-center rounded-control text-ink-secondary hover:bg-surface-hover hover:text-ink"
           >
             <X className="size-5" aria-hidden />
@@ -127,14 +132,14 @@ export function Sidebar({ counts = {} }: SidebarProps) {
           <aside> it names a `complementary` region and leaves the navigation
           landmark itself unnamed. */}
       <nav
-        aria-label="Main navigation"
+        aria-label={t('shell.mainNavigation')}
         className="flex-1 overflow-x-hidden overflow-y-auto px-2.5 py-3"
       >
         {/* Only groups that actually contain a built module are rendered —
             otherwise an empty group still draws its separator rule. */}
         {/* Scoped so "which modules have we built" stays answerable now that
             iTop's whole tree is rendered below it. */}
-        <div aria-label="Built modules" role="group">
+        <div aria-label={t('shell.builtModules')} role="group">
           {navGroups
             .map((group) => ({ group, items: modulesInGroup(group, isAdmin) }))
             .filter(({ items }) => items.length > 0)
@@ -175,8 +180,9 @@ export function Sidebar({ counts = {} }: SidebarProps) {
             className={cn('size-[18px] shrink-0 transition-transform duration-200 rtl:-scale-x-100', collapsed && 'rotate-180')}
             aria-hidden
           />
-          {!collapsed ? <span>Collapse</span> : null}
-          <span className="sr-only">{collapsed ? 'Expand sidebar' : 'Collapse sidebar'}</span>
+          {/* The visible word is hidden from screen readers: the sr-only text is the name. */}
+          {!collapsed ? <span aria-hidden>{t('shell.collapseSidebar').split(' ')[0]}</span> : null}
+          <span className="sr-only">{collapsed ? t('shell.expandSidebar') : t('shell.collapseSidebar')}</span>
         </button>
       </div>
     </aside>

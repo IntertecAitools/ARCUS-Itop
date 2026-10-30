@@ -1,14 +1,15 @@
 import { Clock, FileText, ShieldCheck, TriangleAlert } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { KpiCard, type KpiTone } from '@/components/data-display';
 import { SkeletonCard } from '@/components/ui';
 import { percent } from '@/lib/utils';
 import type { KpiKey, KpiSummary } from '../types';
 
 const RANGE_LABEL: Record<string, string> = {
-  '24h': 'vs yesterday',
-  '7d': 'vs last week',
-  '30d': 'vs last month',
-  '90d': 'vs last quarter',
+  '24h': 'dashboard.compared.24h',
+  '7d': 'dashboard.compared.7d',
+  '30d': 'dashboard.compared.30d',
+  '90d': 'dashboard.compared.90d',
 };
 
 interface KpiRowProps {
@@ -18,7 +19,8 @@ interface KpiRowProps {
 }
 
 export function KpiRow({ kpis, range, isLoading }: KpiRowProps) {
-  const comparedTo = RANGE_LABEL[range] ?? 'vs previous period';
+  const { t } = useTranslation();
+  const comparedTo = t(RANGE_LABEL[range] ?? 'dashboard.compared.other');
 
   if (isLoading || !kpis) {
     return (
@@ -38,28 +40,28 @@ export function KpiRow({ kpis, range, isLoading }: KpiRowProps) {
     deltaKey: KpiKey;
   }> = [
     {
-      label: 'Total Incidents',
+      label: t('dashboard.kpi.totalIncidents'),
       value: String(kpis.totalIncidents),
       icon: <FileText className="size-5" />,
       tone: 'brand',
       deltaKey: 'totalIncidents',
     },
     {
-      label: 'Open Incidents',
+      label: t('dashboard.kpi.openIncidents'),
       value: String(kpis.openIncidents),
       icon: <TriangleAlert className="size-5" />,
       tone: 'critical',
       deltaKey: 'openIncidents',
     },
     {
-      label: 'SLA Breached',
+      label: t('dashboard.kpi.slaBreached'),
       value: String(kpis.slaBreached),
       icon: <Clock className="size-5" />,
       tone: 'warning',
       deltaKey: 'slaBreached',
     },
     {
-      label: 'SLA Compliance',
+      label: t('dashboard.kpi.slaCompliance'),
       // An em dash, not 0% — nothing under SLA is "no measurement", not "failed".
       value: kpis.slaCompliance === null ? '—' : percent(kpis.slaCompliance),
       icon: <ShieldCheck className="size-5" />,
@@ -78,7 +80,7 @@ export function KpiRow({ kpis, range, isLoading }: KpiRowProps) {
 
         return (
           <KpiCard
-            key={tile.label}
+            key={tile.deltaKey}
             label={tile.label}
             value={tile.value}
             icon={tile.icon}

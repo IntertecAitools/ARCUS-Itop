@@ -43,3 +43,10 @@ export const confirmMfaEnrolment = (code: string) =>
  * browser to the identity provider and back.
  */
 export const ssoStartUrl = (next: string) => `${env.bffUrl}/auth/sso/start?returnTo=${encodeURIComponent(next)}`;
+
+/** Self-registration by email domain. Answers the same whether or not the address had an account. */
+export const register = (input: { firstName: string; lastName: string; email: string }) =>
+  apiClient.post<{ ok: true; message: string }>('/auth/register', input);
+
+/** The signed-in user's interface language, kept by the BFF. */
+export const saveLanguage = (language: 'en' | 'ar') => apiClient.put<{ language: string }>('/auth/language', { language });

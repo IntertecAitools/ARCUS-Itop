@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ChartPie } from 'lucide-react';
 import { Card, CardBody, CardHeader, Skeleton } from '@/components/ui';
 import { ChartLegend, DonutChart } from '@/components/data-display';
@@ -23,11 +24,12 @@ export function CategoryBreakdownCard({
   total?: number;
   isLoading: boolean;
 }) {
+  const { t } = useTranslation();
   const [active, setActive] = useState<string | null>(null);
 
   return (
     <Card className="h-full">
-      <CardHeader title="Incidents by Category" action={<ViewAllLink to="/incidents" />} />
+      <CardHeader title={t('dashboard.category.title')} action={<ViewAllLink to="/incidents" />} />
       <CardBody>
         {isLoading || !data ? (
           <Skeleton className="h-[180px] w-full" />
@@ -35,15 +37,15 @@ export function CategoryBreakdownCard({
           <EmptyState
             className="h-[180px] py-0"
             icon={<ChartPie className="size-5" />}
-            title="No incidents yet"
-            description="The category split appears once incidents are logged."
+            title={t('dashboard.category.emptyTitle')}
+            description={t('dashboard.category.emptyLead')}
           />
         ) : (
           <div className="flex items-center gap-4">
             <DonutChart
               data={data}
               centerValue={String(total ?? data.reduce((sum, d) => sum + d.value, 0))}
-              centerLabel="Total"
+              centerLabel={t('dashboard.category.total')}
               size={152}
               activeKey={active}
               onActiveChange={setActive}

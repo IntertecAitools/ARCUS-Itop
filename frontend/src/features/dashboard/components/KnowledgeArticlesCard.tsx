@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { BookOpen, FileText } from 'lucide-react';
 import { Card, CardBody, CardHeader, Skeleton } from '@/components/ui';
 import { EmptyState } from '@/components/feedback';
@@ -14,19 +15,20 @@ export function KnowledgeArticlesCard({
   data?: KnowledgeArticle[];
   isLoading: boolean;
 }) {
+  const { t } = useTranslation();
   const articlesLinkable = isModuleRegistered('/knowledge');
 
   return (
     <Card className="h-full">
-      <CardHeader title="Knowledge Articles" action={<ViewAllLink to="/knowledge" />} />
+      <CardHeader title={t('dashboard.knowledge.title')} action={<ViewAllLink to="/knowledge" />} />
       <CardBody className="space-y-1">
         {isLoading || !data ? (
           Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-9 w-full" />)
         ) : data.length === 0 ? (
           <EmptyState
             icon={<BookOpen className="size-5" />}
-            title="No articles yet"
-            description="Published knowledge articles show up here."
+            title={t('dashboard.knowledge.emptyTitle')}
+            description={t('dashboard.knowledge.emptyLead')}
           />
         ) : (
           data.map((article) => {
@@ -37,17 +39,17 @@ export function KnowledgeArticlesCard({
                   {article.title}
                 </span>
                 <span className="shrink-0 text-[12px] text-ink-muted tabular-nums">
-                  {compactNumber(article.views)} views
+                  {t('dashboard.knowledge.views', { views: compactNumber(article.views) })}
                 </span>
               </>
             );
             const rowClass = 'flex items-center gap-2.5 rounded-control px-2 py-2';
 
-            // Clickable only once the knowledge module is built.
+            // Clickable only once the knowledge module is built. The card lists FAQs.
             return articlesLinkable ? (
               <Link
                 key={article.id}
-                to={`/knowledge/${article.id}`}
+                to={`/knowledge/faq/${article.id}`}
                 className={cn(rowClass, 'transition-colors hover:bg-surface-hover')}
               >
                 {row}

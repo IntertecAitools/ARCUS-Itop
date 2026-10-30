@@ -10,6 +10,7 @@ import { DomainsPanel } from '../components/DomainsPanel';
 import { parseRunParam } from '../lib/editing';
 import { describeRule, formatPercent, plural, STATUS_LABEL, STATUS_TONE } from '../lib/runs';
 import type { AuditCategory, AuditRule, CategoryRun, RuleResult } from '../types';
+import { intlLocale } from '@/lib/i18n';
 
 const targetKey = (t: RunTarget) => `${t.kind}:${t.id}`;
 
@@ -164,7 +165,7 @@ function CategoryCard({ category, run, isRunning, onRun }: CategoryCardProps) {
 
   const subtitle = run
     ? run.summary
-      ? `${plural(run.summary.failing, 'record')} of ${run.total.toLocaleString()} fail at least one rule · ${formatPercent(run.summary.percentOk)} OK · run ${friendlyDateTime(run.ranAt)}`
+      ? `${plural(run.summary.failing, 'record')} of ${run.total.toLocaleString(intlLocale())} fail at least one rule · ${formatPercent(run.summary.percentOk)} OK · run ${friendlyDateTime(run.ranAt)}`
       : `${plural(run.total, 'record')} checked · run ${friendlyDateTime(run.ranAt)}`
     : `Checks ${category.recordTypeLabel || 'records'} · ${plural(category.rules.length, 'rule')} · not run yet`;
 
@@ -275,7 +276,7 @@ function RuleRows({ rule, recordTypeLabel, result, open, onToggle, running, onRu
               onClick={onToggle}
             >
               {open ? <ChevronDown className="size-3.5" aria-hidden /> : <ChevronRight className="size-3.5 rtl:-scale-x-100" aria-hidden />}
-              {result.failing.toLocaleString()}
+              {result.failing.toLocaleString(intlLocale())}
             </button>
           ) : (
             '0'
@@ -323,7 +324,7 @@ function RuleRows({ rule, recordTypeLabel, result, open, onToggle, running, onRu
             </ul>
             {result.truncated ? (
               <p className="text-[12px] text-ink-muted">
-                Showing the first {plural(result.records.length, 'record')} of {result.failing.toLocaleString()}.
+                Showing the first {plural(result.records.length, 'record')} of {result.failing.toLocaleString(intlLocale())}.
               </p>
             ) : null}
           </td>

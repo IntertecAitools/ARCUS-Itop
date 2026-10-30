@@ -126,6 +126,12 @@ export interface Config {
   defaultOrgId?: string;
   /** Several customers on one platform (platform/tenancy). Off when absent. */
   tenancy?: TenancyConfig;
+  /**
+   * SELF_REGISTRATION=on: end users at an email domain a tenant claims can
+   * create their own portal account (proved by the mailed link), and an
+   * unknown single sign-on address at such a domain gets one.
+   */
+  selfRegistration?: boolean;
   /** Email-to-ticket from a support mailbox (modules/mail-intake). Off when absent. */
   mailIntake?: MailIntakeConfig;
   /** Root-cause help on problems (modules/problems). Defaults apply when absent. */
@@ -619,6 +625,7 @@ export function loadConfig(envFile = resolve(PACKAGE_ROOT, ".env")): Config {
     ...(notificationSender() ? { notificationSender: notificationSender()! } : {}),
     ...(optional("ITOP_DEFAULT_ORG_ID", "") ? { defaultOrgId: optional("ITOP_DEFAULT_ORG_ID", "") } : {}),
     tenancy: tenancyConfig(sessionStore),
+    selfRegistration: optional("SELF_REGISTRATION", "off").toLowerCase() === "on",
     ...(mailIntakeConfig() ? { mailIntake: mailIntakeConfig()! } : {}),
     rca: rcaConfig(),
     auth: {

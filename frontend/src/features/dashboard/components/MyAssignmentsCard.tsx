@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Card, CardBody, CardHeader, Tabs } from '@/components/ui';
 import { DataTable } from '@/components/data-display';
 import { isModuleRegistered } from '@/config/modules';
@@ -23,7 +24,7 @@ const TABS: Array<{
 }> = [
   {
     id: 'incidents',
-    label: 'Incidents',
+    label: 'dashboard.assignments.incidents',
     viewAll: isModuleRegistered('/incidents')
       ? // Open work only, like the card: resolved and closed are not a queue.
         '/incidents?assignee=me&status=new,open,pending'
@@ -33,13 +34,13 @@ const TABS: Array<{
   },
   {
     id: 'requests',
-    label: 'Requests',
+    label: 'dashboard.assignments.requests',
     viewAll: '/records/UserRequest?view=UserRequest:MyRequests',
     detail: (id) => `/records/UserRequest/${id}`,
   },
   {
     id: 'problems',
-    label: 'Problems',
+    label: 'dashboard.assignments.problems',
     viewAll: '/records/Problem?view=Problem:MyProblems',
     detail: (id) => `/records/Problem/${id}`,
   },
@@ -53,23 +54,24 @@ export function MyAssignmentsCard({
   data?: MyAssignments;
   isLoading: boolean;
 }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [tab, setTab] = useState<TabId>('incidents');
 
   // No assignee column — every row here is already assigned to the viewer.
-  const columns = useMemo(() => ticketColumns({ withAssignee: false, withCreated: false }), []);
-  const changeCols = useMemo(() => changeColumns(), []);
+  const columns = useMemo(() => ticketColumns(t, { withAssignee: false, withCreated: false }), [t]);
+  const changeCols = useMemo(() => changeColumns(t), [t]);
 
   const active = TABS.find((t) => t.id === tab) ?? TABS[0];
   const queue = data?.[tab];
   const shown = queue?.items.length ?? 0;
   const hidden = queue ? queue.total - shown : 0;
-  const empty = { emptyTitle: 'Nothing assigned to you', emptyDescription: "You're all caught up in this queue." };
+  const empty = { emptyTitle: t('dashboard.assignments.emptyTitle'), emptyDescription: t('dashboard.assignments.emptyLead') };
 
   return (
     <Card className="h-full">
       <CardHeader
-        title="My Assignments"
+        title={t('dashboard.assignments.title')}
         action={<ViewAllLink to={tab === 'changes' ? '/records/Change?view=MyChanges' : active.viewAll} />}
       />
       <CardBody className="px-2 pb-2">
@@ -78,9 +80,9 @@ export function MyAssignmentsCard({
           value={tab}
           onChange={(id) => setTab(id as TabId)}
           items={[
-            ...TABS.map((t) => ({ id: t.id, label: t.label, count: data?.[t.id].total })),
+            ...TABS.map((tab_) => ({ id: tab_.id, label: t(tab_.label), count: data?.[tab_.id].total })),
             // Older BFFs send no changes queue: no count rather than a crash.
-            { id: 'changes', label: 'Changes', count: data?.changes?.total },
+            { id: 'changes', label: t('dashboard.assignments.changes'), count: data?.changes?.total },
           ]}
         />
         {tab === 'changes' ? (
@@ -104,7 +106,7 @@ export function MyAssignmentsCard({
         )}
         {hidden > 0 ? (
           <p className="px-3 pt-2 text-[12px] text-ink-muted">
-            Showing {shown} of {queue?.total}. Use View all for the rest.
+            {t('dashboard.assignments.showing', { shown, total: queue?.total })}
           </p>
         ) : null}
       </CardBody>

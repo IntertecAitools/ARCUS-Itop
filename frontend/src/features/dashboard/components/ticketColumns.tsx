@@ -1,3 +1,4 @@
+import type { TFunction } from 'i18next';
 import { Link } from 'react-router-dom';
 import { MoreVertical } from 'lucide-react';
 import { Avatar, IconButton } from '@/components/ui';
@@ -12,16 +13,16 @@ import type { DashboardTicket } from '../types';
  * `withAssignee` is a parameter rather than two near-identical lists, so the ID
  * link, the badges and the timestamp format can never drift between the cards.
  */
-export function ticketColumns({
-  withAssignee = true,
-  withCreated = true,
-}: { withAssignee?: boolean; withCreated?: boolean } = {}): Column<DashboardTicket>[] {
+export function ticketColumns(
+  t: TFunction,
+  { withAssignee = true, withCreated = true }: { withAssignee?: boolean; withCreated?: boolean } = {},
+): Column<DashboardTicket>[] {
   const ticketsLinkable = isModuleRegistered('/incidents');
 
   const columns: Column<DashboardTicket>[] = [
     {
       accessorKey: 'ref',
-      header: 'ID',
+      header: t('dashboard.columns.id'),
       size: 76,
       // Only a link once the incidents module exists; until then the reference
       // is still worth showing, just not clickable.
@@ -40,7 +41,7 @@ export function ticketColumns({
     },
     {
       accessorKey: 'summary',
-      header: 'Summary',
+      header: t('dashboard.columns.summary'),
       cell: ({ row }) => (
         <span className="block truncate text-ink" title={row.original.summary}>
           {row.original.summary}
@@ -49,13 +50,13 @@ export function ticketColumns({
     },
     {
       accessorKey: 'priority',
-      header: 'Priority',
+      header: t('dashboard.columns.priority'),
       size: 92,
       cell: ({ row }) => <PriorityBadge priority={row.original.priority} size="sm" />,
     },
     {
       accessorKey: 'status',
-      header: 'Status',
+      header: t('dashboard.columns.status'),
       size: 104,
       enableSorting: false,
       // On hold: the next-action date under the pill, red once it has passed.
@@ -71,12 +72,12 @@ export function ticketColumns({
   if (withAssignee) {
     columns.push({
       accessorKey: 'assignee',
-      header: 'Assignee',
+      header: t('dashboard.columns.assignee'),
       size: 108,
       enableSorting: false,
       cell: ({ row }) => {
         const assignee = row.original.assignee;
-        if (!assignee) return <span className="text-ink-muted">Unassigned</span>;
+        if (!assignee) return <span className="text-ink-muted">{t('dashboard.columns.unassigned')}</span>;
         return (
           <span className="flex items-center gap-2">
             <Avatar name={assignee.name} size="xs" />
@@ -90,7 +91,7 @@ export function ticketColumns({
   if (withCreated) {
     columns.push({
       accessorKey: 'createdAt',
-      header: 'Created',
+      header: t('dashboard.columns.created'),
       size: 100,
       cell: ({ row }) => (
         <span className="whitespace-nowrap text-ink-muted">
@@ -108,7 +109,7 @@ export function ticketColumns({
     cell: ({ row }) => (
       <IconButton
         size="sm"
-        label={`Actions for ${row.original.ref}`}
+        label={t('dashboard.columns.actionsFor', { ref: row.original.ref })}
         icon={<MoreVertical className="size-4" />}
         onClick={(e) => e.stopPropagation()}
       />

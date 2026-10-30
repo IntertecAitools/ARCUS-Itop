@@ -31,12 +31,12 @@
   /* --- Ink --------------------------------------------------------------- */
   --arcus-ink: #0f172a; /* headings, primary text */
   --arcus-ink-secondary: #475569; /* body copy */
-  --arcus-ink-muted: #94a3b8; /* labels, axis ticks, meta */
+  --arcus-ink-muted: #5b6b80; /* labels, axis ticks, meta — ≥ 4.5:1 on every light surface (was #94a3b8, 2.4:1) */
   --arcus-ink-inverse: #ffffff;
 
   /* --- Lines ------------------------------------------------------------- */
   --arcus-line: #e5eaf2; /* card borders, dividers */
-  --arcus-line-strong: #cbd5e1; /* input borders */
+  --arcus-line-strong: #7c8aa0; /* input borders — ≥ 3:1 on every light surface (was #cbd5e1, 1.5:1) */
   --arcus-grid: #eef2f7; /* chart gridlines (hairline) */
 
   /* --- Brand ------------------------------------------------------------- */
@@ -46,7 +46,7 @@
   --arcus-brand-soft: #eff6ff; /* tinted background for active nav / chips */
   --arcus-brand-soft-hover: #dbeafe;
   --arcus-brand-ink: #1d4ed8; /* brand-coloured text on a soft background */
-  --arcus-ring: #93c5fd; /* focus ring */
+  --arcus-ring: #2563eb; /* focus ring — 5.2:1 on white (was #93c5fd, 1.8:1) */
   --arcus-on-brand: #ffffff; /* text on a filled brand surface (primary button) */
   --arcus-scrim: rgb(15 23 42 / 0.25); /* behind a modal dialog */
   --arcus-on-critical: #ffffff; /* text on a filled critical surface (danger button, count badge) */
@@ -123,7 +123,7 @@
   --arcus-ink-inverse: #0b1220;
 
   --arcus-line: #1f2a3d;
-  --arcus-line-strong: #2c3a52;
+  --arcus-line-strong: #66789a; /* ≥ 3:1 on every dark surface (was #2c3a52, 1.6:1) */
   --arcus-grid: #1a2334;
 
   --arcus-brand: #3b82f6;

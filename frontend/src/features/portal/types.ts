@@ -1,7 +1,8 @@
 // portal: feature types. Mirror backend/src/platform/portal/portal.service.ts.
 import type { TicketPriority, TicketStatus } from '@/types/ticket';
 
-export type PortalAction = 'close' | 'reopen';
+/** `cancel`: withdraw a request still open, with a reason (it ends Closed). */
+export type PortalAction = 'close' | 'reopen' | 'cancel';
 
 export interface PortalTicket {
   id: number;

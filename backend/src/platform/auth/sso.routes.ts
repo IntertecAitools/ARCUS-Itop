@@ -57,7 +57,16 @@ export function registerSsoRoutes(app: FastifyInstance, services: Services, flow
     try {
       const { identity, returnTo } = await sso.finish(rawQuery, readCookie(request, STATE_COOKIE));
       email = identity.email;
-      const caller = await auth.signInWithSso(identity);
+      let caller;
+      try {
+        caller = await auth.signInWithSso(identity);
+      } catch (error) {
+        // No account yet, but the address is at a domain a customer claimed:
+        // an end-user account in that domain's organisation, then sign in.
+        if (!(error instanceof AppError) || !error.message.startsWith("No helpdesk account")) throw error;
+        if (!(await services.registration.provision(identity.email))) throw error;
+        caller = await auth.signInWithSso(identity);
+      }
       // SSO_MFA=idp: staff must have given the IdP a second factor (its `amr`).
       if (sso.config.mfa === "idp" && caller.kind === "staff" && !identity.mfa) {
         throw new AppError("forbidden", "Your sign-in did not use multi-factor authentication. Sign in again with it.");

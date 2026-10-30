@@ -40,6 +40,7 @@ import { seriesPalette } from '@/theme/charts';
 import { cn } from '@/lib/utils';
 import { useDashletData, type DashletData, type PublicDashlet } from '../api/useDashboard';
 import { formatGroupKey, pluralLabel, splitClassName } from '../lib/labels';
+import { intlLocale } from '@/lib/i18n';
 
 /**
  * One dashboard panel, rendered by kind from the data the BFF computes.
@@ -178,7 +179,7 @@ export function KpiTile({
             zero ? 'text-ink-muted' : 'text-ink',
           )}
         >
-          {count === null ? '…' : count.toLocaleString()}
+          {count === null ? '…' : count.toLocaleString(intlLocale())}
         </span>
         <span className={cn('mt-1.5 line-clamp-2 block text-[13px] leading-5', zero ? 'text-ink-muted' : 'text-ink-secondary')}>
           {label}
@@ -256,7 +257,7 @@ function DataBody({ dashlet, data }: { dashlet: PublicDashlet; data: DashletData
         title={dashlet.title}
         footer={
           data.total > data.items.length ? (
-            <ViewAll className={data.class} label={`${data.total.toLocaleString()} ${inSentence(pluralOf(data))}`} />
+            <ViewAll className={data.class} label={`${data.total.toLocaleString(intlLocale())} ${inSentence(pluralOf(data))}`} />
           ) : null
         }
       >
@@ -296,7 +297,7 @@ function DataBody({ dashlet, data }: { dashlet: PublicDashlet; data: DashletData
   const counted = groups.reduce((sum, g) => sum + g.count, 0);
   const partial = data.truncated ? (
     <p className="mt-3 text-[12px] text-ink-muted">
-      Grouped from the first {counted.toLocaleString()} of {data.total.toLocaleString()} records.
+      Grouped from the first {counted.toLocaleString(intlLocale())} of {data.total.toLocaleString(intlLocale())} records.
     </p>
   ) : null;
   const empty = groups.length === 0 || counted === 0;
@@ -343,7 +344,7 @@ function DataBody({ dashlet, data }: { dashlet: PublicDashlet; data: DashletData
                     aria-hidden
                   />
                   <span className="min-w-0 flex-1 truncate text-ink-secondary">{g.label}</span>
-                  <span className="font-medium text-ink tabular-nums">{g.count.toLocaleString()}</span>
+                  <span className="font-medium text-ink tabular-nums">{g.count.toLocaleString(intlLocale())}</span>
                 </li>
               ))}
             </ul>
@@ -400,7 +401,7 @@ function DataBody({ dashlet, data }: { dashlet: PublicDashlet; data: DashletData
             <li key={g.key}>
               <div className="flex items-baseline justify-between gap-4 text-[14px]">
                 <span className="min-w-0 truncate text-ink-secondary">{g.label}</span>
-                <span className="font-medium text-ink tabular-nums">{g.count.toLocaleString()}</span>
+                <span className="font-medium text-ink tabular-nums">{g.count.toLocaleString(intlLocale())}</span>
               </div>
               <div className="mt-1.5 h-1 bg-surface-sunken" aria-hidden>
                 <div className="h-full bg-ink/70" style={{ width: `${(g.count / max) * 100}%` }} />

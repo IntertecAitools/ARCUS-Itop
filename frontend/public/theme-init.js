@@ -9,3 +9,12 @@ try {
     document.documentElement.dataset.theme = 'light';
   }
 } catch (e) {}
+// The language (and so the reading direction) too, so an Arabic page never
+// flashes left-to-right. lib/i18n sets the same on load.
+try {
+  var l = localStorage.getItem('arcus.lang');
+  if (l === 'ar') {
+    document.documentElement.lang = 'ar';
+    document.documentElement.dir = 'rtl';
+  }
+} catch (e) {}

@@ -75,7 +75,7 @@ export function IncidentCaseLog({ id, entries }: { id: string; entries: CaseLogE
               onClick={submit}
               disabled={!message.trim()}
               loading={addEntry.isPending}
-              leadingIcon={<Send className="size-4" />}
+              leadingIcon={<Send className="size-4 rtl:-scale-x-100" />}
             >
               Post update
             </Button>

@@ -58,7 +58,7 @@ function StateTile({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        'flex items-start gap-3 rounded-card border bg-surface p-4 text-left shadow-card transition-shadow hover:shadow-raised',
+        'flex items-start gap-3 rounded-card border bg-surface p-4 text-start shadow-card transition-shadow hover:shadow-raised',
         active ? 'border-brand' : 'border-line',
       )}
     >

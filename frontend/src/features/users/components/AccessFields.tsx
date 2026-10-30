@@ -25,6 +25,10 @@ export function ProfilePicker({ value, onChange }: { value: number[]; onChange: 
               type="checkbox"
               className="mt-0.5"
               checked={value.includes(profile.id)}
+              // A customer's administrator cannot give or take away Administrator:
+              // the platform operator does (the BFF refuses it too).
+              disabled={profile.grantable === false}
+              aria-describedby={profile.grantable === false ? `profile-${profile.id}-locked` : undefined}
               onChange={() =>
                 onChange(value.includes(profile.id) ? value.filter((id) => id !== profile.id) : [...value, profile.id])
               }
@@ -32,6 +36,11 @@ export function ProfilePicker({ value, onChange }: { value: number[]; onChange: 
             <span>
               <span className="font-medium">{profile.name}</span>
               {profile.description ? <span className="block text-[12px] text-ink-muted">{profile.description}</span> : null}
+              {profile.grantable === false ? (
+                <span id={`profile-${profile.id}-locked`} className="block text-[12px] text-ink-muted">
+                  Granted by the platform operator only.
+                </span>
+              ) : null}
             </span>
           </label>
         ))}

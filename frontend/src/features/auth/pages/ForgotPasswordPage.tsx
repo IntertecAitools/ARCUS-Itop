@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Button, Input } from '@/components/ui';
 import { AuthCard, AuthNotice } from '../components/AuthCard';
 import { useRequestPasswordReset } from '../hooks/usePasswordReset';
@@ -9,6 +10,7 @@ import { useRequestPasswordReset } from '../hooks/usePasswordReset';
  * account exists, so this page cannot be used to find out who has one.
  */
 export function ForgotPasswordPage() {
+  const { t } = useTranslation();
   const request = useRequestPasswordReset();
   const [identifier, setIdentifier] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
@@ -16,7 +18,7 @@ export function ForgotPasswordPage() {
   const submit = (e: FormEvent) => {
     e.preventDefault();
     if (!identifier.trim()) {
-      setFormError('Enter your login or email address.');
+      setFormError(t('auth.forgot.required'));
       return;
     }
     setFormError(null);
@@ -27,8 +29,8 @@ export function ForgotPasswordPage() {
 
   return (
     <AuthCard
-      label="Forgot password"
-      intro="Enter your login or email address and we'll email you a link to choose a new password."
+      label={t('auth.forgot.title')}
+      intro={t('auth.forgot.intro')}
       error={error}
       onSubmit={submit}
     >
@@ -37,7 +39,7 @@ export function ForgotPasswordPage() {
       ) : (
         <>
           <label htmlFor="identifier" className="mb-1.5 block text-[13px] font-medium text-ink">
-            Login or email
+            {t('auth.login')}
           </label>
           <Input
             id="identifier"
@@ -48,14 +50,14 @@ export function ForgotPasswordPage() {
             onChange={(e) => setIdentifier(e.target.value)}
           />
           <Button type="submit" className="mt-8 h-12 w-full text-[14px]" loading={request.isPending}>
-            Send reset link
+            {t('auth.forgot.submit')}
           </Button>
         </>
       )}
 
       <p className="mt-6 text-[14px]">
         <Link to="/login" className="text-ink-secondary underline underline-offset-4 hover:text-ink">
-          Back to sign in
+          {t('auth.forgot.back')}
         </Link>
       </p>
     </AuthCard>

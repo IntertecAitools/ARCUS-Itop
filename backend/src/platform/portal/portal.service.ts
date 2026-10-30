@@ -13,14 +13,18 @@ import {
   type TicketStatus,
 } from "../../shared/ticket-mapping.js";
 import { itopFieldsToIso } from "../../shared/itop-time.js";
-import { allowedStimuli } from "../../shared/stimulus-rights.js";
+import { allowedStimuli, mayApplyStimulus } from "../../shared/stimulus-rights.js";
 
 /** iTop's profile that widens an end user's view to their organisation. */
 export const POWER_USER_PROFILE = "Portal power user";
 
 /** The lifecycle actions iTop's portal offers end users (itop-tickets portal forms). */
 const PORTAL_ACTIONS: Record<string, PortalAction> = { ev_close: "close", ev_reopen: "reopen" };
-export type PortalAction = "close" | "reopen";
+/** `cancel` is ours: withdraw an open ticket (resolved and closed with the reason, by TicketHandlingService). */
+export type PortalAction = "close" | "reopen" | "cancel";
+
+/** States in which a requester may still withdraw a ticket. */
+const DONE_STATES = ["resolved", "closed", "rejected"];
 
 /** The ticket classes an end user deals with, as iTop's portal scope names them. */
 const TICKET_CLASSES = ["UserRequest", "Incident"] as const;
@@ -96,6 +100,14 @@ export class PortalService {
     private readonly schema: CmdbSchema,
     private readonly objects: ObjectsService,
   ) {}
+
+  /** Which FAQs end users may read; all of them until the knowledge workflow says otherwise. */
+  private visibleFaqs: (ids: number[]) => Promise<Set<number>> = async (ids) => new Set(ids);
+
+  /** The knowledge module's rule: only published articles reach the portal. */
+  useFaqVisibility(filter: (ids: number[]) => Promise<Set<number>>): void {
+    this.visibleFaqs = filter;
+  }
 
   /** The scope condition for this user's tickets. */
   private scope(caller: Caller): string {
@@ -200,7 +212,13 @@ export class PortalService {
       satisfaction: str(f["user_satisfaction"]),
       userComment: str(f["user_comment"]),
       log: toCaseLog(f["public_log"]),
-      actions: offered.flatMap((s) => (PORTAL_ACTIONS[s] ? [PORTAL_ACTIONS[s]!] : [])),
+      actions: [
+        ...offered.flatMap((s) => (PORTAL_ACTIONS[s] ? [PORTAL_ACTIONS[s]!] : [])),
+        // Withdrawing ends in a close, so it needs the close grant.
+        ...(!DONE_STATES.includes(str(f["status"])) && mayApplyStimulus(this.schema.lineage(row.class), "ev_close", caller)
+          ? (["cancel"] as const)
+          : []),
+      ],
     };
   }
 
@@ -381,8 +399,11 @@ export class PortalService {
       { class: "FAQ", key: `SELECT FAQ${where}`, output_fields: "id,title,summary,category_name", limit: 200 },
       { asService: true },
     );
+    const rows = normalizeObjects(result.objects);
+    const visible = await this.visibleFaqs(rows.map((r) => r.id));
     return {
-      items: normalizeObjects(result.objects)
+      items: rows
+        .filter((r) => visible.has(r.id))
         .map((r) => ({ id: r.id, title: str(r.fields["title"]), summary: str(r.fields["summary"]), category: str(r.fields["category_name"]) }))
         .sort((a, b) => a.category.localeCompare(b.category) || a.title.localeCompare(b.title)),
     };
@@ -395,7 +416,7 @@ export class PortalService {
       { asService: true },
     );
     const r = normalizeObjects(result.objects)[0];
-    if (!r) throw notFound(`FAQ ${id} was not found.`);
+    if (!r || !(await this.visibleFaqs([r.id])).has(r.id)) throw notFound(`FAQ ${id} was not found.`);
     return {
       id: r.id,
       title: str(r.fields["title"]),

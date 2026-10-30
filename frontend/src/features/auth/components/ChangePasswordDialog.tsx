@@ -1,11 +1,13 @@
 import { useState, type FormEvent } from 'react';
 import { X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button, Input } from '@/components/ui';
 import { useChangePassword } from '../hooks/useSession';
 import { changePasswordSchema } from '../schemas';
 
 /** Changes the signed-in user's own password (local accounts). */
 export function ChangePasswordDialog({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation();
   const change = useChangePassword();
   const [values, setValues] = useState({ current: '', next: '', confirm: '' });
   const [formError, setFormError] = useState<string | null>(null);
@@ -14,7 +16,7 @@ export function ChangePasswordDialog({ onClose }: { onClose: () => void }) {
     e.preventDefault();
     const parsed = changePasswordSchema.safeParse(values);
     if (!parsed.success) {
-      setFormError(parsed.error.issues[0]?.message ?? 'Check the form.');
+      setFormError(parsed.error.issues[0]?.message ?? t('auth.checkForm'));
       return;
     }
     setFormError(null);
@@ -45,20 +47,20 @@ export function ChangePasswordDialog({ onClose }: { onClose: () => void }) {
       <form
         role="dialog"
         aria-modal="true"
-        aria-label="Change password"
+        aria-label={t('auth.changePassword.title')}
         onClick={(e) => e.stopPropagation()}
         onSubmit={submit}
         className="w-full max-w-sm rounded-panel border border-line bg-surface-raised shadow-overlay"
       >
         <div className="flex items-center justify-between border-b border-line px-5 py-3.5">
-          <h2 className="text-[15px] font-semibold text-ink">Change password</h2>
-          <button type="button" onClick={onClose} aria-label="Close" className="rounded-control p-1 text-ink-muted hover:bg-surface-hover">
+          <h2 className="text-[15px] font-semibold text-ink">{t('auth.changePassword.title')}</h2>
+          <button type="button" onClick={onClose} aria-label={t('common.close')} className="rounded-control p-1 text-ink-muted hover:bg-surface-hover">
             <X className="size-4" />
           </button>
         </div>
         <div className="space-y-4 px-5 py-4">
           {change.isSuccess ? (
-            <p role="status" className="text-[13px] text-good-ink">Your password has been changed.</p>
+            <p role="status" className="text-[13px] text-good-ink">{t('auth.changePassword.changed')}</p>
           ) : (
             <>
               {error ? (
@@ -66,19 +68,19 @@ export function ChangePasswordDialog({ onClose }: { onClose: () => void }) {
                   {error}
                 </div>
               ) : null}
-              {field('current', 'Current password', 'current-password')}
-              {field('next', 'New password', 'new-password')}
-              {field('confirm', 'Repeat new password', 'new-password')}
+              {field('current', t('auth.changePassword.current'), 'current-password')}
+              {field('next', t('auth.changePassword.next'), 'new-password')}
+              {field('confirm', t('auth.changePassword.repeat'), 'new-password')}
             </>
           )}
         </div>
         <div className="flex justify-end gap-2 border-t border-line px-5 py-3">
           <Button type="button" variant="secondary" size="sm" onClick={onClose}>
-            {change.isSuccess ? 'Close' : 'Cancel'}
+            {change.isSuccess ? t('common.close') : t('common.cancel')}
           </Button>
           {change.isSuccess ? null : (
             <Button type="submit" size="sm" loading={change.isPending}>
-              Change password
+              {t('auth.changePassword.title')}
             </Button>
           )}
         </div>

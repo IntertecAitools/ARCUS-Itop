@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button, Input } from '@/components/ui';
 import { ssoStartUrl } from '../api/auth.api';
@@ -23,6 +24,7 @@ export function safeNext(next: string | null) {
  * code (the pending step comes from /auth/me) or an error (`?sso_error=`).
  */
 export function LoginPage() {
+  const { t } = useTranslation();
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
   const { data: user } = useSession();
@@ -59,7 +61,7 @@ export function LoginPage() {
     e.preventDefault();
     const parsed = signInSchema.safeParse({ login, password });
     if (!parsed.success) {
-      setFormError(parsed.error.issues[0]?.message ?? 'Check the form.');
+      setFormError(parsed.error.issues[0]?.message ?? t('auth.checkForm'));
       return;
     }
     setFormError(null);
@@ -80,8 +82,8 @@ export function LoginPage() {
 
   return (
     <AuthCard
-      label="Sign in"
-      intro={sso ? 'Sign in with your work account.' : 'Sign in with your account.'}
+      label={t('auth.signIn')}
+      intro={sso ? t('auth.introSso') : t('auth.intro')}
       error={error}
       onSubmit={submit}
     >
@@ -100,11 +102,11 @@ export function LoginPage() {
                 onClick={() => setShowPassword(true)}
                 className="text-ink-secondary underline underline-offset-4 hover:text-ink"
               >
-                {options?.passwordSignIn === 'break-glass' ? 'Emergency sign-in' : 'Sign in with a password'}
+                {options?.passwordSignIn === 'break-glass' ? t('auth.emergencySignIn') : t('auth.passwordSignIn')}
               </button>
             </p>
           ) : (
-            <p className="my-6 text-center text-[13px] text-ink-muted">or with a password</p>
+            <p className="my-6 text-center text-[13px] text-ink-muted">{t('auth.orWithPassword')}</p>
           )}
         </>
       ) : null}
@@ -112,7 +114,7 @@ export function LoginPage() {
       {passwordFolded ? null : (
         <>
           <label htmlFor="login" className="mb-1.5 block text-[13px] font-medium text-ink">
-            Login
+            {t('auth.loginField')}
           </label>
           <Input
             id="login"
@@ -124,7 +126,7 @@ export function LoginPage() {
           />
 
           <label htmlFor="password" className="mt-5 mb-1.5 block text-[13px] font-medium text-ink">
-            Password
+            {t('auth.password')}
           </label>
           <Input
             id="password"
@@ -141,7 +143,7 @@ export function LoginPage() {
             className="mt-8 h-12 w-full text-[14px]"
             loading={signIn.isPending}
           >
-            Sign in
+            {t('auth.signIn')}
           </Button>
         </>
       )}
@@ -150,7 +152,16 @@ export function LoginPage() {
       {options?.passwordReset && !passwordFolded ? (
         <p className="mt-6 text-[14px]">
           <Link to="/forgot-password" className="text-ink-secondary underline underline-offset-4 hover:text-ink">
-            Forgot password?
+            {t('auth.forgotPassword')}
+          </Link>
+        </p>
+      ) : null}
+
+      {/* Offered only when the organisation lets people create their own account. */}
+      {options?.selfRegistration ? (
+        <p className="mt-3 text-[14px]">
+          <Link to="/register" className="text-ink-secondary underline underline-offset-4 hover:text-ink">
+            {t('auth.createAccount')}
           </Link>
         </p>
       ) : null}

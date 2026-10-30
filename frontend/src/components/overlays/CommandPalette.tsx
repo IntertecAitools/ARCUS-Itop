@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CornerDownLeft, List, Plus, Search, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -44,6 +44,10 @@ export function CommandPalette() {
 
   const [query, setQuery] = useState('');
   const [highlighted, setHighlighted] = useState(0);
+  const listId = useId();
+  const optionId = (i: number) => `${listId}-option-${i}`;
+  // Where focus was when the palette opened, to put it back on close.
+  const returnFocusRef = useRef<HTMLElement | null>(null);
 
   const items = useMemo<PaletteItem[]>(() => {
     const built: PaletteItem[] = navigableModules(isAdmin).map((m) => ({
@@ -81,13 +85,25 @@ export function CommandPalette() {
   }, [items, query]);
 
   useEffect(() => {
-    if (open) {
-      setQuery('');
-      setHighlighted(0);
-      // Focus after paint, otherwise the dialog isn't in the DOM yet.
-      requestAnimationFrame(() => inputRef.current?.focus());
-    }
+    if (!open) return;
+    returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setQuery('');
+    setHighlighted(0);
+    // Focus after paint, otherwise the dialog isn't in the DOM yet.
+    requestAnimationFrame(() => inputRef.current?.focus());
+    return () => {
+      // Closed (or unmounted): back to the control that opened it, if it is
+      // still on the page. A navigation replaces the page, so nothing to do.
+      const back = returnFocusRef.current;
+      if (back?.isConnected) back.focus();
+    };
   }, [open]);
+
+  // Keep the active option in view as the arrow keys move it.
+  useEffect(() => {
+    if (!open) return;
+    document.getElementById(optionId(highlighted))?.scrollIntoView({ block: 'nearest' });
+  }, [highlighted, open]);
 
   useEffect(() => setHighlighted(0), [query]);
 
@@ -99,7 +115,16 @@ export function CommandPalette() {
   };
 
   const onKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') return setOpen(false);
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      return setOpen(false);
+    }
+    // Modal: the input is the only stop, so Tab stays inside the dialog.
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      inputRef.current?.focus();
+      return;
+    }
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       setHighlighted((i) => (i + 1) % Math.max(results.length, 1));
@@ -129,8 +154,16 @@ export function CommandPalette() {
       >
         <div className="flex items-center gap-3 border-b border-line px-4">
           <Search className="size-4 shrink-0 text-ink-muted" aria-hidden />
+          {/* A combobox: focus stays in the field while the arrow keys move
+              the active option, which aria-activedescendant announces. */}
           <input
             ref={inputRef}
+            role="combobox"
+            aria-label="Search and navigate"
+            aria-expanded={results.length > 0}
+            aria-controls={listId}
+            aria-autocomplete="list"
+            aria-activedescendant={results[highlighted] ? optionId(highlighted) : undefined}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Jump to a module, or search tickets…"
@@ -141,26 +174,30 @@ export function CommandPalette() {
           </kbd>
         </div>
 
-        <ul className="max-h-80 overflow-y-auto p-2" role="listbox">
-          {results.length === 0 ? (
-            <li className="px-3 py-8 text-center text-[13px] text-ink-muted">
-              No module matches “{query}”.
-            </li>
-          ) : (
-            results.map((m, i) => {
+        {results.length === 0 ? (
+          <p role="status" className="px-3 py-10 text-center text-[13px] text-ink-muted">
+            No module matches “{query}”.
+          </p>
+        ) : (
+          <ul id={listId} className="max-h-80 overflow-y-auto p-2" role="listbox" aria-label="Results">
+            {results.map((m, i) => {
               const Icon = m.icon;
               const active = i === highlighted;
               return (
-                <li key={m.key} role="option" aria-selected={active}>
-                  <button
-                    type="button"
-                    onMouseEnter={() => setHighlighted(i)}
-                    onClick={() => go(m.path)}
-                    className={cn(
-                      'flex w-full items-center gap-3 rounded-control px-3 py-2.5 text-start transition-colors',
-                      active ? 'bg-brand-soft' : 'hover:bg-surface-hover',
-                    )}
-                  >
+                // Options are not focusable themselves (the input keeps focus),
+                // and hold no nested button: an option is the interactive part.
+                <li
+                  key={m.key}
+                  id={optionId(i)}
+                  role="option"
+                  aria-selected={active}
+                  onMouseEnter={() => setHighlighted(i)}
+                  onClick={() => go(m.path)}
+                  className={cn(
+                    'flex w-full cursor-pointer items-center gap-3 rounded-control px-3 py-2.5 text-start transition-colors',
+                    active ? 'bg-brand-soft' : 'hover:bg-surface-hover',
+                  )}
+                >
                     <Icon
                       className={cn('size-4 shrink-0', active ? 'text-brand' : 'text-ink-muted')}
                       aria-hidden
@@ -176,12 +213,11 @@ export function CommandPalette() {
                     {active ? (
                       <CornerDownLeft className="size-3.5 shrink-0 text-brand" aria-hidden />
                     ) : null}
-                  </button>
                 </li>
               );
-            })
-          )}
-        </ul>
+            })}
+          </ul>
+        )}
       </div>
     </div>
   );

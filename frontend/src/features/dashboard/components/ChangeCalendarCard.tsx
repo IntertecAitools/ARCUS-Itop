@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { addDays, format, isSameDay, startOfWeek } from 'date-fns';
+import { addDays, format as formatDate, isSameDay, startOfWeek } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card, CardBody, CardHeader, IconButton, Skeleton } from '@/components/ui';
 import { EmptyState } from '@/components/feedback';
 import { cn } from '@/lib/utils';
+import { dateLocale } from '@/lib/i18n';
 import { status } from '@/theme';
 import type { ChangeEvent } from '../types';
 import { ViewAllLink } from './ViewAllLink';
@@ -16,10 +18,13 @@ const riskColor: Record<ChangeEvent['risk'], string> = {
 };
 
 const riskLabel: Record<ChangeEvent['risk'], string> = {
-  low: 'Low risk',
-  medium: 'Medium risk',
-  high: 'High risk',
+  low: 'dashboard.calendar.riskLow',
+  medium: 'dashboard.calendar.riskMedium',
+  high: 'dashboard.calendar.riskHigh',
 };
+
+/** Month and day names in the interface language. */
+const format = (date: Date, pattern: string) => formatDate(date, pattern, { locale: dateLocale() });
 
 export function ChangeCalendarCard({
   data,
@@ -28,6 +33,7 @@ export function ChangeCalendarCard({
   data?: ChangeEvent[];
   isLoading: boolean;
 }) {
+  const { t } = useTranslation();
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 0 }));
   const [selected, setSelected] = useState(() => new Date());
 
@@ -36,19 +42,19 @@ export function ChangeCalendarCard({
 
   return (
     <Card className="h-full">
-      <CardHeader title="Change Calendar" action={<ViewAllLink to="/changes" />} />
+      <CardHeader title={t('dashboard.calendar.title')} action={<ViewAllLink to="/changes" />} />
       <CardBody>
         <div className="mb-3 flex items-center justify-between">
           <IconButton
             size="sm"
-            label="Previous week"
+            label={t('dashboard.calendar.previousWeek')}
             icon={<ChevronLeft className="size-4 rtl:-scale-x-100" />}
             onClick={() => setWeekStart((d) => addDays(d, -7))}
           />
           <p className="text-[13px] font-medium text-ink">{format(weekStart, 'MMMM yyyy')}</p>
           <IconButton
             size="sm"
-            label="Next week"
+            label={t('dashboard.calendar.nextWeek')}
             icon={<ChevronRight className="size-4 rtl:-scale-x-100" />}
             onClick={() => setWeekStart((d) => addDays(d, 7))}
           />
@@ -77,15 +83,16 @@ export function ChangeCalendarCard({
                 <span
                   className={cn(
                     'text-[11px] leading-4',
-                    isSelected ? 'text-on-brand/80' : 'text-ink-muted',
+                    isSelected ? 'text-on-brand' : 'text-ink-muted',
                   )}
                 >
                   {format(day, 'EEE')}
                 </span>
                 {hasEvents && !isSelected ? (
                   <span
+                    role="img"
                     className="absolute bottom-1 size-1 rounded-full bg-brand"
-                    aria-label="has scheduled changes"
+                    aria-label={t('dashboard.calendar.hasChanges')}
                   />
                 ) : null}
               </button>
@@ -99,8 +106,8 @@ export function ChangeCalendarCard({
           ) : dayEvents.length === 0 ? (
             <EmptyState
               className="py-8"
-              title="No changes scheduled"
-              description={`Nothing is planned for ${format(selected, 'EEEE, dd MMM')}.`}
+              title={t('dashboard.calendar.emptyTitle')}
+              description={t('dashboard.calendar.emptyLead', { date: format(selected, 'EEEE, dd MMM') })}
             />
           ) : (
             dayEvents.map((event) => (
@@ -110,7 +117,7 @@ export function ChangeCalendarCard({
                   style={{ background: riskColor[event.risk] }}
                   aria-hidden
                 />
-                <span className="sr-only">{riskLabel[event.risk]}.</span>
+                <span className="sr-only">{t(riskLabel[event.risk])}.</span>
                 <span className="shrink-0 font-medium text-brand-ink">{event.ref}</span>
                 <span className="min-w-0 flex-1 truncate text-ink-secondary">{event.title}</span>
                 <span className="shrink-0 text-ink-muted tabular-nums">

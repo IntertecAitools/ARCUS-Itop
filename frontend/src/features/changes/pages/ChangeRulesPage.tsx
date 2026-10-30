@@ -66,7 +66,7 @@ export function ChangeRulesPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-[13px]">
                   <thead>
-                    <tr className="border-b border-line text-left text-ink-muted">
+                    <tr className="border-b border-line text-start text-ink-muted">
                       <th className="py-2 pe-4 font-medium">Change type</th>
                       {PLAN_KINDS.map((k) => (
                         <th key={k} className="py-2 pe-4 font-medium">
@@ -78,7 +78,7 @@ export function ChangeRulesPage() {
                   <tbody>
                     {CHANGE_TYPES.map((type) => (
                       <tr key={type} className="border-b border-line last:border-0">
-                        <th scope="row" className="py-2 pe-4 text-left font-medium text-ink">
+                        <th scope="row" className="py-2 pe-4 text-start font-medium text-ink">
                           {TYPE_LABEL[type]}
                         </th>
                         {PLAN_KINDS.map((kind) => (

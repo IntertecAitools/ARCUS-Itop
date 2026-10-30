@@ -25,14 +25,16 @@ test('My Assignments → open an incident → resolve it', { tag: '@mock' }, asy
 
   const row = page.getByRole('row').filter({ hasText: 'VPN connection unavailable' });
   await row.getByRole('link', { name: 'I-001042' }).click();
-  await expect(page).toHaveURL(/\/incidents\/1042$/);
+  // Incidents open on the full record screen, every field iTop offers.
+  await expect(page).toHaveURL(/\/records\/Incident\/1042$/);
   await expect(page.getByRole('heading', { name: 'VPN connection unavailable', level: 1 })).toBeVisible();
 
   await page.getByRole('button', { name: 'Resolve' }).click();
-  const confirm = page.getByRole('button', { name: /Confirm resolve/i });
-  // A resolution is required before the action can be sent.
+  const dialog = page.getByRole('dialog');
+  const confirm = dialog.getByRole('button', { name: 'Resolve' });
+  // iTop's lifecycle asks for a solution before the action can be sent.
   await expect(confirm).toBeDisabled();
-  await page.getByLabel('Resolution', { exact: true }).fill('Restarted the VPN gateway.');
+  await dialog.getByLabel('Solution', { exact: true }).fill('Restarted the VPN gateway.');
   await confirm.click();
 
   // Resolved: the next actions are close and reopen, and that survives a reload.

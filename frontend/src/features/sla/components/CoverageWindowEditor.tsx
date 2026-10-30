@@ -59,7 +59,7 @@ export function CoverageWindowEditor({ window, saving, error, onSave, onCancel }
             const rows = intervals.map((i, index) => ({ i, index })).filter((r) => r.i.weekday === day);
             return (
               <tr key={day} className="border-t border-line align-top">
-                <th scope="row" className="w-28 py-2 pr-3 text-left font-medium text-ink">
+                <th scope="row" className="w-28 py-2 pe-3 text-start font-medium text-ink">
                   {DAY_LABEL[day]}
                 </th>
                 <td className="py-2">
@@ -107,7 +107,7 @@ export function CoverageWindowEditor({ window, saving, error, onSave, onCancel }
                     ))}
                   </div>
                 </td>
-                <td className="w-24 py-2 text-right">
+                <td className="w-24 py-2 text-end">
                   <Button
                     type="button"
                     variant="ghost"

@@ -1,12 +1,13 @@
 import { AlarmClock, PauseCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { PendingInfo } from '@/types/ticket';
+import { intlLocale } from '@/lib/i18n';
 
 /** `2026-10-30` as "30 Oct 2026", without a time zone shifting the day. */
 export function dayLabel(day: string) {
   const [y, m, d] = day.split('-').map(Number);
   if (!y || !m || !d) return day;
-  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString(undefined, {
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString(intlLocale(), {
     day: 'numeric',
     month: 'short',
     year: 'numeric',

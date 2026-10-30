@@ -23,6 +23,117 @@ No bugs found. Left on the main iTop by the e2e: accounts `e2e.requester`, `e2e.
 
 Not covered: `itop-local-cron` was not running and was not started here (a one-off `cron.php` with the BFF service account was refused, "Access wrong credentials"), so approval timeouts and reminders on :8080 depend on that container; the bell step passed anyway. The approval screens were not clicked through in a browser; reminders and substitutes, as before.
 
+### 2026-10-30 — Tenant admin, branding per tenant, email domains, self-registration, Arabic/RTL
+
+Branch `claude/tenant-brand-rtl-c1514c`. Unit tests on both sides; the mock journeys on `:5253`; a BFF of this worktree on `:4080` (memory sessions, `TENANCY=on` with a `TENANTS_FILE` for the seed-test tenants mt-acme/org 13 and mt-globex/org 14, `SELF_REGISTRATION=on`, `MFA_REQUIRED=off`, SMTP to the local Mailpit) against the shared local iTop on `:8080`. The accessibility pass of the same branch has its own entry below.
+
+| What ran | Result |
+|---|---|
+| Backend typecheck (`npx tsc --noEmit`) | clean |
+| New `backend/test/tenant-admin.test.ts`: store (email domains owned once, kept on save, branding validation), routes (own tenant only, operator, host names operator-only, branding by host name, logo CSP, email domains, organisation create, teams, grant limits, language), self-registration | 14/14 pass (after fixing the test's fake iTop: it ignored `WHERE id =` when the tenant guard checked an organisation) |
+| `backend/test/mail-intake.test.ts` with the new sender-domain case | pass (29/29 with the file above) |
+| Backend suite (`npm test`) | 826/826 pass |
+| Live `npm run e2e:tenant-admin` (new script) against `:4080` and the local iTop | 35/35 pass, first run: tenant isolation of the admin API, Administrator not grantable, team created/member added/deleted, organisation added under the tenant/made inactive/deleted, branding served by host name only, email domain claimed once, public provider refused, self-registration created a Person + Portal account in org 13 and the set-password mail arrived in Mailpit (account disabled afterwards), language kept |
+| New `frontend/src/lib/branding/palette.test.ts`: 8 accent colours × dark/light keep white-on-brand, brand-ink and ring contrast | 11/11 pass |
+| `frontend/src/lib/utils/format.test.ts` locale case (Arabic digits and month names, `dir`) | failed once on this machine's Node 24: `Intl.NumberFormat('ar')` gives Latin digits. Fixed with `ar-u-nu-arab` (145851f0); pass |
+| Frontend typecheck (`npx tsc -b --noEmit`) | clean |
+| Frontend vitest (`npx vitest run`), final | 50 files, 243/243 pass |
+| All mock journeys (`E2E_MOCK_URL=http://localhost:5253 npx playwright test`), final | 29/29 pass, including the new `tenant.spec.ts` (organisation admin, branding applies app-wide, Arabic mirrors and is remembered, self-registration) and `a11y.spec.ts` now also scanning `/register` and every Organisation admin tab in dark, light and Arabic |
+
+After merging `origin/main` (ticket handling, change calendar and knowledge, full incident form; conflicts only in the module registry, mock handler list and this log): backend typecheck clean, backend suite 872/872, frontend typecheck clean, vitest 54 files 275/275, mock journeys 29/29.
+
+Found and fixed: the branding save would have dropped the logo when only the name changed (a part left out is now kept, test added); `mfa.spec.ts` looked for straight apostrophes after the translation commit (79313745) changed the strings to curly ones (the spec now matches either); `tenant.spec.ts` matched two cells for "Northwind Labs" (`exact: true`).
+
+Not covered: SSO first sign-in creating a portal account (unit-free; the code path reuses the registration that the live run covered); the MySQL tenant tables (`bff_tenant_email_domains`, `bff_tenant_branding`, `bff_user_prefs`) — the live run used `TENANTS_FILE` and memory, so the SQL ran nowhere; hostname branding through nginx (by design it reads `Host`, which the bundled nginx passes); RTL by eye beyond the journeys; three new English strings from the accessibility pass (command palette's input and list labels, the record tabs' label) and the sign-in validation messages in `features/auth/schemas.ts` are not yet translated; iTop menu labels in the sidebar come from iTop and stay English.
+
+### 2026-10-30 — Accessibility: WCAG 2.1 AA pass on the main flows, axe checks in the journeys
+
+Branch `claude/tenant-brand-rtl-c1514c`. Mock mode only (e2e build on `:5253`).
+
+| What ran | Result |
+|---|---|
+| New `tests/journeys/a11y.spec.ts`: axe-core (wcag2a, wcag2aa, wcag21a, wcag21aa) on sign-in (and after an empty submit), dashboard, account menu open, command palette open, records, an Organization list and record, an incident, users list and a user, portal home, my requests, a request, new request; dark, light and Arabic/RTL; plus keyboard checks (palette, account menu, visible focus on sign-in) | first run 3/12 (violations below); final 12/12 pass, on its own and inside the full suite |
+| New `src/components/ui/a11y.test.tsx` (axe-core in jsdom + keyboard): IconButton, Tabs, DataTable | 3/3 pass |
+| Frontend typecheck (`npx tsc -b --noEmit`) | clean |
+| Frontend vitest (`npx vitest run`) | 243/243 pass |
+| All mock journeys (`E2E_MOCK_URL=http://localhost:5253 npx playwright test`) | 26/29: the 3 failures are not from this work — `mfa.spec.ts` ×2 look for "Verify it's you" / "I've saved them, continue" with a straight apostrophe, and the translation commit 79313745 changed the strings to a curly one; `tenant.spec.ts` (`getByRole('cell', { name: 'Northwind Labs' })` matches two cells) belongs to the tenant-admin work in progress |
+
+Found and fixed: label-in-name mismatch on the logo link (missing space between wordmark and tagline) and on the account-menu button (aria-label left out the visible role); avatar initials in chart-series colours (2.6–4.4:1); "Mon/Tue" under the selected day in the change calendar at 80 % white on violet (3.9:1); the command palette's input had no label, its options nested buttons inside `role=option`, Tab left the modal and focus was not returned on close; the account menu did not move focus into the menu, had no arrow keys and dropped focus on Escape; tabs had every tab in the Tab order and no arrow keys; clickable table rows (portal "My requests" on desktop) could not be reached by keyboard; portal request textareas labelled only by a placeholder or not at all; low-contrast fallback tokens in `globals.css` (light muted ink 2.4:1, input borders 1.5:1, focus ring 1.8:1) and light `line-strong` 2.9:1 on hover.
+
+Not covered: the live journeys; screen readers by ear (NVDA/VoiceOver); the landing page and admin screens beyond users; mobile drawer focus handling; Safari and Firefox.
+### 2026-10-29 — Ticket handling: priority override, duplicates, cancel, worklogs, drafts
+
+Branch `claude/ticket-handling-f68a08`. No iTop extension and nothing installed on `itop-local`. The test hook recorded none of these runs (no entries appeared below), so this table is the record.
+
+| What ran | Result |
+|---|---|
+| Backend typecheck (`npm run typecheck`) | clean |
+| Backend unit tests (`npm test`, incl. new `test/ticket-handling.test.ts`, 20 tests) | 815/816 on the first run; 816/816 after updating `test/portal.test.ts` (an open ticket now offers `cancel` to its requester) |
+| Live `npm run e2e:ticket-handling` (BFF :4070, MFA on, local iTop :8080 with arcus-ticket-dispatch) | first run 43/46 (two script mistakes, see below); then 46/46 |
+| Frontend typecheck (`tsc -p tsconfig.app.json`) | clean |
+| Frontend vitest, new `features/ticket-handling/TicketHandling.test.tsx` | 10/10 |
+| Frontend vitest, whole suite | 233/235: `config/modules.test.ts` needed the two new nav items (fixed); `ProblemAnalysisPanel` timed out at 21 s under the full-suite load and passes when run alone (17/17 for both files after the fix) |
+| Frontend `npm run build` | builds (the usual chunk-size warning) |
+
+Probes against the live iTop before building (scratch script, tickets deleted):
+- A `priority` written with `core/update` is put back: iTop recomputes it from impact × urgency in `ComputeValues` on every write. Hence the override changes urgency (impact only where needed).
+- `ev_autoresolve` resolves from `new` (and every open state, Dispatched included) with no service set, and `ev_close` follows. Duplicate and cancel use it.
+
+Bugs found and fixed:
+- e2e script: read the incident screen's `urgency` (a label) instead of iTop's value, and the generic stimulus answer's shape (`fields`, not `object.fields`), so two "is Dispatched" checks failed although the tickets were dispatched. Fixed in the script (commit `d981c6fb`).
+
+Test data: the e2e deletes its tickets, worklog entries and drafts at the end. It reuses `e2e:dispatch`'s accounts and made one portal account, `e2e.handling.portal` (person 59, org "E2E dispatch org"), kept for the next run; its password is in this worktree's git-ignored `backend/e2e.local.json`.
+
+Not covered: the screens were tested with vitest on mock data, not clicked through in a browser (the browser pane did not render the dev server in time on this machine). The override's impact change (when the matrix row has no such priority) is unit-tested, not live. The time report's organisation filter under `TENANCY=on` is unit-tested only.
+
+Merging main afterwards (PR #41 moved incident creation back to the full record form, `/records/Incident/new`): incident drafts and duplicate suggestions moved to that form, next to the request ones, and the short `/incidents/new` form was left as main has it. After the merge: backend typecheck clean, `npm test` 857/857; frontend typecheck clean, vitest on config, ticket-handling, portal, incidents, records and lib 107/107 (18 files).
+
+### 2026-10-29 — Incidents open and are created on the full record screen again
+
+Reported: after the redesign, creating and opening an incident showed far fewer fields than before. Cause: not the redesign. The redesign (PR #38) changed 20 frontend files (landing, sign-in, layout shell, two portal files) and no data screen; its portal deletions were restyled, not dropped. The cause was PR #34, which redirected `/records/Incident/new` and `/records/Incident/<id>` (the full, schema-driven screens) to the shorter dedicated incident form and page. They had no organisation/caller on create, and no CIs, contacts, work orders, parent incident, attachments, history or editing on view. Only Incident had such a redirect, so no other class was affected.
+
+| What ran | Result |
+|---|---|
+| `git diff` of PR #38 over `frontend/src` | 20 files; no data screen changed |
+| Frontend typecheck | clean |
+| vitest, whole frontend (incl. new `IncidentRecordRedirect.test.tsx`) | 51 files, 248/248 pass |
+| Live, BFF :4000 + local iTop, as `e2e.rights.desk`: `GET /api/meta/classes/Incident` | 200; org (required), caller, contacts, CIs, parent links and the rest |
+| Live, browser: `/incidents/9` | lands on `/records/Incident/9`; all fields, Edit/Delete, tabs Details, Major incident, Attachments, CIs, Contacts, Child incidents, Child requests, Work orders, Public/Private log, History; Major incident tab shows "Linked incidents" and "Declare major" |
+
+Fix (branch `claude/restore-full-incident-form`):
+- No redirect from `/records/Incident/...` (the `dedicated.ts` helper removed).
+- `/incidents/<id>` now redirects to `/records/Incident/<id>`, so links from the dashboard, search and the incidents list open the full screen.
+- The major-incident panel is a "Major incident" tab there.
+- The incidents list's "New incident" buttons open the full form.
+- On hold with a reason and next-action date was already on the full screen (PR #31).
+- PR #41 was merged before this part was pushed, so it went in again as branch `claude/incident-full-page`. That branch also shows PR #39's ticket-handling panel (priority override, duplicate, cancel, worklogs) on incidents on the full screen; before, only requests had it there. Re-run there: typecheck clean; vitest records + incidents + ticket-handling + config 16 files, 95/95.
+- CI's mock browser journey "My Assignments → open an incident → resolve it" then failed: it expected `/incidents/1042` and the dedicated page's resolve dialog, and the mock API had no Incident on the generic record screen.
+  - The mock now serves Incident there from the same store as the incident endpoints (`incidentRecord`), with iTop's lifecycle (Resolve asks for a solution) and `POST /objects/Incident/:id/stimulus`.
+  - The journey now expects `/records/Incident/1042` and resolves through the lifecycle dialog.
+  - Locally: `playwright test tests/journeys/staff.spec.ts` 2/2; every `@mock` journey 9/9.
+
+Not covered: the new incident form was checked through the schema API, not filled in in the browser.
+
+### 2026-10-29 — Change calendar, risk questionnaire, PIR; knowledge article workflow and feedback
+
+Branch `claude/change-knowledge-a7889d`. The record-test-run hook logged none of these runs below, so this table is the record. No iTop extension: the new data (risk answers, reviews, blackout windows, article state, votes) lives in the BFF's own MySQL (`bff_documents`).
+
+| What ran | Result |
+|---|---|
+| Backend typecheck | clean |
+| Backend unit tests (`npm test`, incl. new `test/change-extras.test.ts` 17 and `test/knowledge.test.ts` 8) | 821/821 pass |
+| Frontend typecheck (`npm run typecheck`) | clean |
+| Frontend vitest, whole suite (incl. new `changes/lib/calendar.test.ts`, `changes/pages/ChangeExtras.test.tsx`, `knowledge-base/pages/KnowledgePages.test.tsx`) | 51 files, 247/247 pass after updating `config/modules.test.ts` for the new nav items (3 failures before) |
+| Live `npm run e2e:change-knowledge` (BFF :4090, MFA on, local iTop :8080 with arcus-change-cab; accounts `e2e.chg.*` + new portal user `e2e.kb.reader`) | 61/61 pass, first run |
+| After merging main (#37 auto-RCA, #38 UI redesign): backend typecheck + `npm test`; frontend typecheck + vitest | clean, 837/837; clean, 51 files 250/250 |
+| Leftovers check after the run (iTop REST: Change / FAQ / Incident titled `e2e-chg-kb…`) | 0 / 0 / 0; 6 `bff_documents` rows removed by the script |
+
+Kept for the next run (like the other e2e scripts): portal user `e2e.kb.reader`, FAQ category "E2E knowledge", CI "E2E change calendar app" (ids in `backend/e2e.local.json`, git-ignored).
+
+Bugs found and fixed: none in the live run. During the build the PIR form was changed to name incidents by ref (I-000123) as well as id, so staff do not need iTop ids.
+
+Not covered: the screens were checked by vitest against MSW mocks and the API by the live e2e, not clicked through in a browser against the live BFF. Service clashes (CIs linked to the same service) are unit-tested only; the live run clashes on a shared CI. Tenancy (TENANCY=on) keys every row by tenant but was not run live. Editing a published article's text does not send it back to review.
+
 ### 2026-10-29 — UI redesign: near-black and violet look, new landing page, sign-in, staff app and portal restyle
 
 Branch `claude/ui-redesign-f7d932`. Mock mode only (Vite on `:5253`, the e2e build on `:5254`); no BFF or iTop needed, since the change is styling and layout only.

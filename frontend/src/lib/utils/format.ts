@@ -1,15 +1,23 @@
-import { format, formatDistanceToNowStrict, isToday, isYesterday } from 'date-fns';
+import { format as formatDate, formatDistanceToNowStrict, isToday, isYesterday } from 'date-fns';
+import { dateLocale, i18n, intlLocale } from '@/lib/i18n';
+
+/**
+ * Every date and number here follows the interface language (lib/i18n):
+ * Arabic month names and digits in Arabic, English otherwise. Patterns stay
+ * the same, so a layout does not shift between languages.
+ */
+const format = (date: Date, pattern: string) => formatDate(date, pattern, { locale: dateLocale() });
 
 /** Compact counts for KPI tiles: 1_240 → "1.2K". */
 export function compactNumber(value: number) {
-  return new Intl.NumberFormat(undefined, {
+  return new Intl.NumberFormat(intlLocale(), {
     notation: 'compact',
     maximumFractionDigits: 1,
   }).format(value);
 }
 
 export function percent(value: number, fractionDigits = 0) {
-  return new Intl.NumberFormat(undefined, {
+  return new Intl.NumberFormat(intlLocale(), {
     style: 'percent',
     minimumFractionDigits: fractionDigits,
     maximumFractionDigits: fractionDigits,
@@ -28,13 +36,13 @@ export function longDate(value: string | Date) {
 /** "Today 10:42" / "Yesterday 09:15" / "03 Oct 16:21" */
 export function friendlyDateTime(value: string | Date) {
   const date = new Date(value);
-  if (isToday(date)) return `Today ${format(date, 'HH:mm')}`;
-  if (isYesterday(date)) return `Yesterday ${format(date, 'HH:mm')}`;
+  if (isToday(date)) return i18n.t('common.today', { time: format(date, 'HH:mm') });
+  if (isYesterday(date)) return i18n.t('common.yesterday', { time: format(date, 'HH:mm') });
   return shortDateTime(date);
 }
 
 export function relativeTime(value: string | Date) {
-  return formatDistanceToNowStrict(new Date(value), { addSuffix: true });
+  return formatDistanceToNowStrict(new Date(value), { addSuffix: true, locale: dateLocale() });
 }
 
 /**
@@ -55,7 +63,8 @@ export function dateTimeText(value: string) {
 
 /** An instant as an <input type="datetime-local"> value, in the viewer's zone. */
 export function toDateTimeInput(value: string) {
-  return isInstant(value) ? format(new Date(value), "yyyy-MM-dd'T'HH:mm") : value;
+  // A machine value for the input, never localised.
+  return isInstant(value) ? formatDate(new Date(value), "yyyy-MM-dd'T'HH:mm") : value;
 }
 
 /** A datetime-local input's value (the viewer's wall clock) as an exact instant; "" stays "". */
@@ -78,7 +87,12 @@ export function initials(name: string) {
 /** Pick the greeting for the dashboard hero line. */
 export function greeting(date = new Date()) {
   const hour = date.getHours();
-  if (hour < 12) return 'Good morning';
-  if (hour < 18) return 'Good afternoon';
-  return 'Good evening';
+  if (hour < 12) return i18n.t('common.goodMorning');
+  if (hour < 18) return i18n.t('common.goodAfternoon');
+  return i18n.t('common.goodEvening');
+}
+
+/** A whole number in the interface language: "1,240" or "١٬٢٤٠". */
+export function numberText(value: number) {
+  return new Intl.NumberFormat(intlLocale()).format(value);
 }

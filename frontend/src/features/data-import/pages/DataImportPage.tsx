@@ -22,6 +22,7 @@ import {
 } from '../api/useDataImport';
 import { ACTION_LABEL, defaultKeys, fileToBase64, LOOKUPS, OUTCOME_LABEL, TONE } from '../lib/wizard';
 import type { ImportPlan, ImportReport, ImportRequest, PlannedAction, UploadedTable } from '../types';
+import { intlLocale } from '@/lib/i18n';
 
 const message = (error: unknown) => (error instanceof Error ? error.message : 'That did not work.');
 
@@ -164,7 +165,7 @@ export function DataImportPage() {
           {table ? (
             <p className="text-[13px] text-ink-secondary">
               {table.fileName}
-              {table.sheet ? ` · sheet “${table.sheet}”` : ''} · {table.rows.length.toLocaleString()} rows ·{' '}
+              {table.sheet ? ` · sheet “${table.sheet}”` : ''} · {table.rows.length.toLocaleString(intlLocale())} rows ·{' '}
               {table.headings.length} columns
             </p>
           ) : null}
@@ -298,7 +299,7 @@ function ReportCard({ report }: { report: ImportReport }) {
     <Card className="mb-4">
       <CardHeader
         title="Import finished"
-        subtitle={`${report.fileName || 'File'} · ${new Date(report.finishedAt).toLocaleString()}`}
+        subtitle={`${report.fileName || 'File'} · ${new Date(report.finishedAt).toLocaleString(intlLocale())}`}
         action={<DownloadButton id={report.id} />}
       />
       <CardBody>
@@ -385,7 +386,7 @@ function RowTable({ className, rows }: { className: string; rows: ShownRow[] }) 
       </table>
       {rows.length > SHOWN ? (
         <p className="mt-2 text-[12px] text-ink-muted">
-          Showing {SHOWN} of {rows.length.toLocaleString()} rows.
+          Showing {SHOWN} of {rows.length.toLocaleString(intlLocale())} rows.
         </p>
       ) : null}
     </div>
@@ -430,7 +431,7 @@ function RecentImports() {
                   {r.className} · {r.fileName || 'file'}
                 </p>
                 <p className="text-ink-muted">
-                  {new Date(r.finishedAt).toLocaleString()} by {r.by || 'unknown'} · {r.summary.created} created ·{' '}
+                  {new Date(r.finishedAt).toLocaleString(intlLocale())} by {r.by || 'unknown'} · {r.summary.created} created ·{' '}
                   {r.summary.updated} updated · {r.summary.unchanged} unchanged · {r.summary.error} failed
                 </p>
               </div>

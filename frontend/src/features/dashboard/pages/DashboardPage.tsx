@@ -1,4 +1,5 @@
 import { CalendarDays } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/layout';
 import { Select } from '@/components/ui';
 import { greeting, longDate } from '@/lib/utils';
@@ -31,6 +32,7 @@ import {
  * then the work you personally have to do, then the things you might want.
  */
 export function DashboardPage() {
+  const { t } = useTranslation();
   const user = useSessionStore((s) => s.user);
   const { range, setRange, options } = useDateRange();
   const { data, isLoading, isError, error } = useDashboardOverview(range);
@@ -38,9 +40,13 @@ export function DashboardPage() {
   return (
     <>
       <PageHeader
-        breadcrumbs={[{ label: 'Home', to: '/' }, { label: 'Dashboard' }]}
-        title={`${greeting()}, ${user?.name ?? 'there'}`}
-        description="Here's an overview of your IT operations."
+        breadcrumbs={[{ label: t('dashboard.home'), to: '/' }, { label: t('nav.dashboard') }]}
+        title={
+          user?.name
+            ? t('dashboard.title', { greeting: greeting(), name: user.name })
+            : t('dashboard.titleNoName', { greeting: greeting() })
+        }
+        description={t('dashboard.description')}
         actions={
           <>
             {/* The date control sits in ONE row above the cards — never repeated
@@ -50,11 +56,11 @@ export function DashboardPage() {
               {longDate(new Date())}
             </span>
             <Select
-              aria-label="Date range"
+              aria-label={t('dashboard.dateRange')}
               className="w-40"
               value={range}
               onChange={(e) => setRange(e.target.value as DateRange)}
-              options={options.map((o) => ({ value: o.value, label: o.label }))}
+              options={options.map((o) => ({ value: o.value, label: t(o.label) }))}
             />
           </>
         }
@@ -65,7 +71,7 @@ export function DashboardPage() {
           role="alert"
           className="mb-6 rounded-card border border-critical/30 bg-critical-soft px-4 py-3 text-[13px] text-critical-ink"
         >
-          Couldn’t load the dashboard. {error instanceof Error ? error.message : ''}
+          {t('dashboard.loadError')} {error instanceof Error ? error.message : ''}
         </div>
       ) : null}
 

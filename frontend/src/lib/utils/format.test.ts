@@ -34,3 +34,20 @@ describe('date-time formatting', () => {
     expect(toDateTimeInput('')).toBe('');
   });
 });
+
+describe('locale-aware formatting', () => {
+  it('follows the interface language for dates and numbers', async () => {
+    const { changeLanguage } = await import('@/lib/i18n');
+    const { compactNumber, longDate, numberText } = await import('./format');
+    await changeLanguage('en');
+    expect(numberText(1240)).toBe('1,240');
+    expect(longDate('2026-10-20T12:00:00Z')).toMatch(/Oct 2026/);
+    await changeLanguage('ar');
+    expect(numberText(1240)).toBe('١٬٢٤٠');
+    expect(longDate('2026-10-20T12:00:00Z')).toMatch(/أكتوبر/);
+    expect(compactNumber(1240)).not.toBe('1.2K');
+    expect(document.documentElement.dir).toBe('rtl');
+    await changeLanguage('en');
+    expect(document.documentElement.dir).toBe('ltr');
+  });
+});

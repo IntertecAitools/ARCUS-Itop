@@ -1,5 +1,6 @@
 import type { BadgeTone } from '@/components/ui';
 import type { AuditRule, AuditRuns, AuditStatus, CategoryResult } from '../types';
+import { intlLocale } from '@/lib/i18n';
 
 /**
  * Folds a run into what the screen already knows. A whole-category run
@@ -52,5 +53,5 @@ export function formatPercent(value: number): string {
 }
 
 export function plural(n: number, word: string): string {
-  return `${n.toLocaleString()} ${word}${n === 1 ? '' : 's'}`;
+  return `${n.toLocaleString(intlLocale())} ${word}${n === 1 ? '' : 's'}`;
 }
