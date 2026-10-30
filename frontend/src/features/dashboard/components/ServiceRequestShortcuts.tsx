@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Boxes, Laptop, Mail, Settings, UserRound } from 'lucide-react';
 import { buttonClasses, Card, CardBody, CardHeader, Skeleton } from '@/components/ui';
 import { EmptyState } from '@/components/feedback';
@@ -24,11 +25,12 @@ export function ServiceRequestShortcuts({
   data?: CatalogShortcut[];
   isLoading: boolean;
 }) {
+  const { t } = useTranslation();
   const catalogReady = isModuleRegistered('/service-catalog');
 
   return (
     <Card className="h-full">
-      <CardHeader title="Service Requests" action={<ViewAllLink to="/service-catalog" />} />
+      <CardHeader title={t('dashboard.shortcuts.title')} action={<ViewAllLink to="/service-catalog" />} />
       <CardBody>
         {isLoading || !data ? (
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -39,8 +41,8 @@ export function ServiceRequestShortcuts({
         ) : data.length === 0 ? (
           <EmptyState
             icon={<Boxes className="size-5" />}
-            title="No catalogue items"
-            description="Publish services in the catalogue to offer them here."
+            title={t('dashboard.shortcuts.emptyTitle')}
+            description={t('dashboard.shortcuts.emptyLead')}
           />
         ) : (
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -72,7 +74,7 @@ export function ServiceRequestShortcuts({
                         className: 'mt-auto px-2 text-[12px] whitespace-nowrap',
                       })}
                     >
-                      Create
+                      {t('dashboard.shortcuts.create')}
                     </Link>
                   ) : null}
                 </div>

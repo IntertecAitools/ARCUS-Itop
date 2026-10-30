@@ -1,4 +1,5 @@
 import { ShieldCheck } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardBody, CardHeader, Skeleton } from '@/components/ui';
 import { ChartLegend, DonutChart } from '@/components/data-display';
 import { EmptyState } from '@/components/feedback';
@@ -21,19 +22,20 @@ export function SlaPerformanceCard({
   data?: SlaBreakdown;
   isLoading: boolean;
 }) {
+  const { t } = useTranslation();
   const slices = data
     ? [
-        { key: 'on_time', label: 'On Time', value: data.onTime, color: status.good },
-        { key: 'at_risk', label: 'At Risk', value: data.atRisk, color: status.warning },
-        { key: 'breached', label: 'Breached', value: data.breached, color: status.critical },
+        { key: 'on_time', label: t('dashboard.sla.onTime'), value: data.onTime, color: status.good },
+        { key: 'at_risk', label: t('dashboard.sla.atRisk'), value: data.atRisk, color: status.warning },
+        { key: 'breached', label: t('dashboard.sla.breached'), value: data.breached, color: status.critical },
       ]
     : [];
 
   return (
     <Card className="h-full">
       <CardHeader
-        title="SLA Performance"
-        action={<ViewAllLink to="/sla" label="View details" />}
+        title={t('dashboard.sla.title')}
+        action={<ViewAllLink to="/sla" label={t('dashboard.viewDetails')} />}
       />
       <CardBody>
         {isLoading || !data ? (
@@ -43,15 +45,15 @@ export function SlaPerformanceCard({
           <EmptyState
             className="h-[180px] py-0"
             icon={<ShieldCheck className="size-5" />}
-            title="Nothing under SLA yet"
-            description="Compliance appears once tickets are covered by a service level."
+            title={t('dashboard.sla.emptyTitle')}
+            description={t('dashboard.sla.emptyLead')}
           />
         ) : (
           <div className="flex flex-col items-center gap-4">
             <DonutChart
               data={slices}
               centerValue={data.compliance === null ? '—' : percent(data.compliance)}
-              centerLabel="On Track"
+              centerLabel={t('dashboard.sla.onTrack')}
               size={150}
             />
             <div className="w-full">

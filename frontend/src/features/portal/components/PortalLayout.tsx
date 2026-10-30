@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { LogOut, Menu, X } from 'lucide-react';
 import { Logo } from '@/components/layout';
@@ -11,12 +12,12 @@ import { NotificationBell } from '@/features/inbox';
 import { usePendingApprovalCount } from '@/features/approvals';
 
 const LINKS = [
-  { to: '/portal', label: 'Home', end: true },
-  { to: '/portal/requests', label: 'My requests', end: false },
-  { to: '/portal/new', label: 'New request', end: false },
-  { to: '/portal/help', label: 'Knowledge base', end: false },
-  { to: '/portal/approvals', label: 'Approvals', end: false },
-  { to: '/portal/profile', label: 'My profile', end: false },
+  { to: '/portal', label: 'portal.nav.home', end: true },
+  { to: '/portal/requests', label: 'portal.nav.requests', end: false },
+  { to: '/portal/new', label: 'portal.nav.new', end: false },
+  { to: '/portal/help', label: 'portal.nav.help', end: false },
+  { to: '/portal/approvals', label: 'portal.nav.approvals', end: false },
+  { to: '/portal/profile', label: 'portal.nav.profile', end: false },
 ];
 
 /**
@@ -26,6 +27,7 @@ const LINKS = [
  * agent screens.
  */
 export function PortalLayout() {
+  const { t } = useTranslation();
   const user = useSessionStore((s) => s.user);
   const clear = useSessionStore((s) => s.clear);
   const signOut = useSignOut();
@@ -62,10 +64,10 @@ export function PortalLayout() {
           )
         }
       >
-        {link.label}
+        {t(link.label)}
         {link.to === '/portal/approvals' && pendingApprovals > 0 ? (
           <span className="ms-1.5 rounded-pill bg-warning-soft px-1.5 py-px text-[11px] font-semibold text-warning-ink tabular-nums">
-            <span className="sr-only">, waiting: </span>
+            <span className="sr-only">{t('portal.nav.waiting')}</span>
             {pendingApprovals}
           </span>
         ) : null}
@@ -84,7 +86,7 @@ export function PortalLayout() {
               {productName}
             </span>
           </Link>
-          <nav aria-label="Portal" className="hidden flex-1 gap-6 lg:flex">
+          <nav aria-label={t('portal.nav.label')} className="hidden flex-1 gap-6 lg:flex">
             {links('bar')}
           </nav>
           <div className="ms-auto flex items-center gap-1 text-[13px] lg:ms-0">
@@ -103,14 +105,14 @@ export function PortalLayout() {
               className="ms-2 hidden items-center gap-1.5 rounded-control px-2 py-1.5 whitespace-nowrap text-ink-secondary hover:bg-surface-hover hover:text-ink sm:inline-flex"
             >
               <LogOut className="size-4 rtl:-scale-x-100" aria-hidden />
-              Sign out
+              {t('shell.signOut')}
             </button>
             <button
               type="button"
               className="ms-1 inline-flex size-9 items-center justify-center rounded-control text-ink lg:hidden"
               aria-expanded={menuOpen}
               aria-controls="portal-menu"
-              aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+              aria-label={menuOpen ? t('shell.closeMenu') : t('shell.openMenu')}
               onClick={() => setMenuOpen((o) => !o)}
             >
               {menuOpen ? <X className="size-5" aria-hidden /> : <Menu className="size-5" aria-hidden />}
@@ -119,7 +121,7 @@ export function PortalLayout() {
         </div>
         {menuOpen ? (
           <div id="portal-menu" className="border-t border-line px-5 py-4 lg:hidden">
-            <nav aria-label="Portal" className="space-y-1">
+            <nav aria-label={t('portal.nav.label')} className="space-y-1">
               {links('menu')}
             </nav>
             <LanguagePicker className="mt-3 sm:hidden" />
@@ -132,7 +134,7 @@ export function PortalLayout() {
                 className="inline-flex items-center gap-1.5 px-2 py-1.5 text-ink hover:bg-surface-hover"
               >
                 <LogOut className="size-4 rtl:-scale-x-100" aria-hidden />
-                Sign out
+                {t('shell.signOut')}
               </button>
             </div>
           </div>
@@ -146,7 +148,7 @@ export function PortalLayout() {
           <span>
             {productName}
           </span>
-          <span>Signed in as {user?.name}</span>
+          <span>{t('portal.signedInAs', { name: user?.name ?? '' })}</span>
         </div>
       </footer>
     </PublicTheme>

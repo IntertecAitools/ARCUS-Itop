@@ -1,3 +1,4 @@
+import type { TFunction } from 'i18next';
 import { Badge, type BadgeTone } from '@/components/ui';
 import type { Column } from '@/components/data-display';
 import { shortDateTime } from '@/lib/utils';
@@ -20,17 +21,17 @@ const TONE: Record<string, BadgeTone> = {
 };
 
 /** Columns for the My Assignments "Changes" tab. */
-export function changeColumns(): Column<DashboardChange>[] {
+export function changeColumns(t: TFunction): Column<DashboardChange>[] {
   return [
     {
       accessorKey: 'ref',
-      header: 'ID',
+      header: t('dashboard.columns.id'),
       size: 76,
       cell: ({ row }) => <span className="font-medium whitespace-nowrap text-ink">{row.original.ref}</span>,
     },
     {
       accessorKey: 'title',
-      header: 'Summary',
+      header: t('dashboard.columns.summary'),
       cell: ({ row }) => (
         <span className="block truncate text-ink" title={row.original.title}>
           {row.original.title}
@@ -39,7 +40,7 @@ export function changeColumns(): Column<DashboardChange>[] {
     },
     {
       accessorKey: 'statusLabel',
-      header: 'Status',
+      header: t('dashboard.columns.status'),
       size: 150,
       enableSorting: false,
       cell: ({ row }) => (
@@ -50,13 +51,13 @@ export function changeColumns(): Column<DashboardChange>[] {
     },
     {
       accessorKey: 'startDate',
-      header: 'Planned start',
+      header: t('dashboard.columns.plannedStart'),
       size: 120,
       cell: ({ row }) =>
         row.original.startDate ? (
           <span className="whitespace-nowrap text-ink-muted">{shortDateTime(row.original.startDate)}</span>
         ) : (
-          <span className="text-ink-muted">Not planned</span>
+          <span className="text-ink-muted">{t('dashboard.columns.notPlanned')}</span>
         ),
     },
   ];

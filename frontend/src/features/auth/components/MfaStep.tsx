@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import QRCode from 'qrcode';
+import { useTranslation } from 'react-i18next';
 import { Button, Input } from '@/components/ui';
 import { ApiError } from '@/lib/api-client';
 import { useConfirmMfaEnrolment, useMfaEnrolment, useVerifyMfa } from '../hooks/useSession';
@@ -47,16 +48,18 @@ function CodeInput({ value, onChange, id }: { value: string; onChange: (v: strin
 }
 
 function RestartLink({ onRestart }: { onRestart: () => void }) {
+  const { t } = useTranslation();
   return (
     <p className="mt-6 text-[14px]">
       <button type="button" onClick={onRestart} className="text-ink-secondary underline underline-offset-4 hover:text-ink">
-        Start again
+        {t('auth.mfa.startAgain')}
       </button>
     </p>
   );
 }
 
 function Verify({ onDone, onRestart }: { onDone: () => void; onRestart: () => void }) {
+  const { t } = useTranslation();
   const verify = useVerifyMfa();
   const [useRecovery, setUseRecovery] = useState(false);
   const [code, setCode] = useState('');
@@ -65,8 +68,8 @@ function Verify({ onDone, onRestart }: { onDone: () => void; onRestart: () => vo
   const submit = (e: FormEvent) => {
     e.preventDefault();
     const value = code.trim();
-    if (!useRecovery && !CODE.test(value)) return setFormError('Enter the 6-digit code from your authenticator app.');
-    if (useRecovery && value.length < 10) return setFormError('Enter one of your recovery codes, e.g. abcde-fghij.');
+    if (!useRecovery && !CODE.test(value)) return setFormError(t('auth.mfa.enterCode'));
+    if (useRecovery && value.length < 10) return setFormError(t('auth.mfa.enterRecovery'));
     setFormError(null);
     verify.mutate(useRecovery ? { recoveryCode: value } : { code: value }, {
       onSuccess: onDone,
@@ -78,17 +81,13 @@ function Verify({ onDone, onRestart }: { onDone: () => void; onRestart: () => vo
 
   return (
     <AuthCard
-      label="Verify it's you"
-      intro={
-        useRecovery
-          ? 'Enter one of the recovery codes you saved when you set up your authenticator. Each works once.'
-          : 'Enter the 6-digit code your authenticator app shows for this account.'
-      }
+      label={t('auth.mfa.verifyTitle')}
+      intro={useRecovery ? t('auth.mfa.recoveryIntro') : t('auth.mfa.verifyIntro')}
       error={error}
       onSubmit={submit}
     >
       <label htmlFor="mfa-code" className="mb-1.5 block text-[13px] font-medium text-ink">
-        {useRecovery ? 'Recovery code' : 'Code'}
+        {useRecovery ? t('auth.mfa.recoveryCode') : t('auth.mfa.code')}
       </label>
       {useRecovery ? (
         <Input id="mfa-code" autoFocus autoComplete="off" className="h-11 font-mono" value={code} onChange={(e) => setCode(e.target.value)} />
@@ -98,11 +97,11 @@ function Verify({ onDone, onRestart }: { onDone: () => void; onRestart: () => vo
 
       {endsSignIn(verify.error) ? (
         <Button type="button" className="mt-8 h-12 w-full text-[14px]" onClick={onRestart}>
-          Sign in again
+          {t('auth.mfa.signInAgain')}
         </Button>
       ) : (
         <Button type="submit" className="mt-8 h-12 w-full text-[14px]" loading={verify.isPending}>
-          Verify
+          {t('auth.mfa.verify')}
         </Button>
       )}
 
@@ -116,7 +115,7 @@ function Verify({ onDone, onRestart }: { onDone: () => void; onRestart: () => vo
           }}
           className="text-ink-secondary underline underline-offset-4 hover:text-ink"
         >
-          {useRecovery ? 'Use my authenticator app' : 'Lost your phone? Use a recovery code'}
+          {useRecovery ? t('auth.mfa.useApp') : t('auth.mfa.useRecovery')}
         </button>
       </p>
       <RestartLink onRestart={onRestart} />
@@ -125,6 +124,7 @@ function Verify({ onDone, onRestart }: { onDone: () => void; onRestart: () => vo
 }
 
 function Enrol({ onDone, onRestart }: { onDone: () => void; onRestart: () => void }) {
+  const { t } = useTranslation();
   const enrolment = useMfaEnrolment(true);
   const confirm = useConfirmMfaEnrolment();
   const [code, setCode] = useState('');
@@ -147,15 +147,15 @@ function Enrol({ onDone, onRestart }: { onDone: () => void; onRestart: () => voi
   if (codes) {
     return (
       <AuthCard
-        label="Save your recovery codes"
-        intro="If you lose your phone, each of these signs you in once instead of a code. Keep them somewhere safe: they are not shown again."
+        label={t('auth.mfa.saveTitle')}
+        intro={t('auth.mfa.saveIntro')}
         onSubmit={(e) => {
           e.preventDefault();
           confirm.finish();
           onDone();
         }}
       >
-        <ul className="grid grid-cols-2 gap-2 rounded-card border border-line bg-surface-sunken p-4 font-mono text-[14px]" aria-label="Recovery codes">
+        <ul className="grid grid-cols-2 gap-2 rounded-card border border-line bg-surface-sunken p-4 font-mono text-[14px]" aria-label={t('auth.mfa.codesLabel')}>
           {codes.map((c) => (
             <li key={c}>{c}</li>
           ))}
@@ -166,10 +166,10 @@ function Enrol({ onDone, onRestart }: { onDone: () => void; onRestart: () => voi
           className="mt-4 h-10 w-full text-[14px]"
           onClick={() => void navigator.clipboard?.writeText(codes.join('\n')).then(() => setCopied(true))}
         >
-          {copied ? 'Copied' : 'Copy the codes'}
+          {copied ? t('auth.mfa.copied') : t('auth.mfa.copy')}
         </Button>
         <Button type="submit" className="mt-6 h-12 w-full text-[14px]">
-          I've saved them, continue
+          {t('auth.mfa.savedContinue')}
         </Button>
       </AuthCard>
     );
@@ -177,7 +177,7 @@ function Enrol({ onDone, onRestart }: { onDone: () => void; onRestart: () => voi
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    if (!CODE.test(code)) return setFormError('Enter the 6-digit code your authenticator app shows.');
+    if (!CODE.test(code)) return setFormError(t('auth.mfa.enrolEnterCode'));
     setFormError(null);
     confirm.mutate(code, { onError: () => setCode('') });
   };
@@ -187,35 +187,35 @@ function Enrol({ onDone, onRestart }: { onDone: () => void; onRestart: () => voi
 
   return (
     <AuthCard
-      label="Set up your authenticator"
-      intro="Your account needs a second step at sign-in. Scan this with an authenticator app (Microsoft Authenticator, Google Authenticator, 1Password...), then enter the code it shows."
+      label={t('auth.mfa.enrolTitle')}
+      intro={t('auth.mfa.enrolIntro')}
       error={error}
       onSubmit={submit}
     >
       {enrolment.data ? (
         <div className="mb-6 flex flex-col items-center gap-3">
           {qr ? (
-            <img src={qr} alt="QR code for your authenticator app" width={192} height={192} className="rounded-card bg-white p-2" />
+            <img src={qr} alt={t('auth.mfa.qrAlt')} width={192} height={192} className="rounded-card bg-white p-2" />
           ) : null}
           <p className="text-center text-[13px] text-ink-secondary">
-            Can't scan it? Enter this key in the app, for {enrolment.data.account}:
+            {t('auth.mfa.cantScan', { account: enrolment.data.account })}
             <span className="mt-1 block font-mono text-[14px] text-ink select-all">{grouped(enrolment.data.secret)}</span>
           </p>
         </div>
       ) : null}
 
       <label htmlFor="mfa-code" className="mb-1.5 block text-[13px] font-medium text-ink">
-        Code from the app
+        {t('auth.mfa.codeFromApp')}
       </label>
       <CodeInput id="mfa-code" value={code} onChange={setCode} />
 
       {endsSignIn(confirm.error) || (enrolment.error instanceof ApiError && enrolment.error.status === 401) ? (
         <Button type="button" className="mt-8 h-12 w-full text-[14px]" onClick={onRestart}>
-          Sign in again
+          {t('auth.mfa.signInAgain')}
         </Button>
       ) : (
         <Button type="submit" className="mt-8 h-12 w-full text-[14px]" loading={confirm.isPending} disabled={!enrolment.data}>
-          Confirm
+          {t('auth.mfa.confirm')}
         </Button>
       )}
       <RestartLink onRestart={onRestart} />

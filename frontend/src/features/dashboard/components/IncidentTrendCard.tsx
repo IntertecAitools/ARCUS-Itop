@@ -1,4 +1,5 @@
 import { LineChart } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardBody, CardHeader, Skeleton } from '@/components/ui';
 import { ChartLegend, TrendChart } from '@/components/data-display';
 import { EmptyState } from '@/components/feedback';
@@ -7,8 +8,8 @@ import type { TrendPoint } from '../types';
 import { intlLocale } from '@/lib/i18n';
 
 const SERIES = [
-  { key: 'created', label: 'Created', filled: true },
-  { key: 'resolved', label: 'Resolved' },
+  { key: 'created', label: 'dashboard.trend.created', filled: true },
+  { key: 'resolved', label: 'dashboard.trend.resolved' },
 ];
 
 /**
@@ -25,7 +26,9 @@ export function IncidentTrendCard({
   data?: TrendPoint[];
   isLoading: boolean;
 }) {
-  const legendItems = SERIES.map((s, i) => ({
+  const { t } = useTranslation();
+  const series = SERIES.map((s) => ({ ...s, label: t(s.label) }));
+  const legendItems = series.map((s, i) => ({
     key: s.key,
     label: s.label,
     color: seriesPalette[i],
@@ -47,7 +50,7 @@ export function IncidentTrendCard({
   return (
     <Card className="h-full">
       <CardHeader
-        title="Incident Trend"
+        title={t('dashboard.trend.title')}
         // No series on screen means nothing for a legend to identify.
         action={hasData ? <ChartLegend items={legendItems} /> : undefined}
       />
@@ -55,13 +58,13 @@ export function IncidentTrendCard({
         {isLoading || !data ? (
           <Skeleton className="h-[232px] w-full" />
         ) : hasData && points ? (
-          <TrendChart data={points} xKey="date" series={SERIES} />
+          <TrendChart data={points} xKey="date" series={series} />
         ) : (
           <EmptyState
             className="h-[232px] py-0"
             icon={<LineChart className="size-5" />}
-            title="No activity in this period"
-            description="Once incidents are created and resolved, the trend appears here."
+            title={t('dashboard.trend.emptyTitle')}
+            description={t('dashboard.trend.emptyLead')}
           />
         )}
       </CardBody>

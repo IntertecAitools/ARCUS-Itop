@@ -1,5 +1,6 @@
 import type { FormEvent, ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft } from 'lucide-react';
 import { Logo } from '@/components/layout';
 import { Chip, PublicTheme, PublicThemeToggle } from '@/components/public';
@@ -23,6 +24,7 @@ export function AuthCard({
   onSubmit?: (e: FormEvent) => void;
   children: ReactNode;
 }) {
+  const { t } = useTranslation();
   const productName = useProductName().full;
   return (
     <PublicTheme className="relative grid overflow-hidden lg:grid-cols-[1.05fr_1fr]">
@@ -32,14 +34,14 @@ export function AuthCard({
         <div className="relative flex h-full flex-col p-12">
           <Chip className="self-start">{productName}</Chip>
           <div className="reveal is-in my-auto max-w-md pb-16">
-            <p className="display text-[44px] text-ink">Help is one request away.</p>
+            <p className="display text-[44px] text-ink">{t('auth.card.headline')}</p>
             <p className="mt-4 text-[16px] leading-7 text-ink-secondary">
-              Raise it, follow it and get it fixed, with every update in one place.
+              {t('auth.card.lead')}
             </p>
             <div className="float mt-10 grid grid-cols-2 gap-3">
               {[
-                ['98%', 'Responded to on time'],
-                ['2.4h', 'Typical time to fix'],
+                [t('auth.card.stat1Value'), t('auth.card.stat1Label')],
+                [t('auth.card.stat2Value'), t('auth.card.stat2Label')],
               ].map(([v, l]) => (
                 <div key={l} className="glass rounded-2xl border border-line bg-surface/80 p-4 backdrop-blur">
                   <p className="text-[24px] font-semibold tracking-tight text-ink">{v}</p>
@@ -58,7 +60,7 @@ export function AuthCard({
           className="pointer-events-none absolute inset-x-0 -top-40 h-80 bg-[radial-gradient(50%_50%_at_50%_50%,rgb(var(--arcus-violet)/0.35),transparent)] lg:hidden"
         />
         <div className="relative flex items-center justify-between">
-          <Link to="/" aria-label={`${productName}, home`}>
+          <Link to="/" aria-label={t('auth.card.home', { name: productName })}>
             <Logo />
           </Link>
           <div className="flex items-center gap-1">
@@ -95,7 +97,7 @@ export function AuthCard({
 
         <Link to="/" className="relative inline-flex items-center gap-1.5 self-start text-[13px] text-ink-secondary hover:text-ink">
           <ArrowLeft className="size-4 rtl:-scale-x-100" aria-hidden />
-          Back to the home page
+          {t('auth.card.backHome')}
         </Link>
       </div>
     </PublicTheme>
