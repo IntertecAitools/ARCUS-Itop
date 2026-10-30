@@ -1,6 +1,7 @@
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
 import {
   BellRing,
+  Building2,
   CalendarCheck2,
   CalendarClock,
   ClipboardCheck,
@@ -334,6 +335,16 @@ export const modules: ModuleDefinition[] = [
         component: lazy(() => import('@/features/users').then((m) => ({ default: m.UserEditorPage }))),
       },
     ],
+  },
+  {
+    id: 'tenant-admin',
+    label: 'Organisation admin',
+    path: 'organisation',
+    icon: Building2,
+    group: 'administration',
+    description: 'Your organisations, teams, branding and email domains.',
+    adminOnly: true,
+    component: lazy(() => import('@/features/tenant-admin').then((m) => ({ default: m.TenantAdminPage }))),
   },
   {
     id: 'notifications',

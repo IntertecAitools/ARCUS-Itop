@@ -166,6 +166,10 @@ describe("tenant administration (routes)", async () => {
     assert.equal(res.statusCode, 200);
     assert.match(res.json().branding.logoUrl, /^\/branding\/logo\/acme\?v=[0-9a-f]{10}$/);
 
+    // A part left out is kept: a name change does not drop the logo.
+    const renamed = await send("PUT", "/api/admin/tenants/acme/branding", ann, { productName: "Acme Desk" });
+    assert.ok(renamed.json().branding.logoUrl);
+
     const pub = await send("GET", "/api/branding", undefined, undefined, "acme.test");
     assert.equal(pub.statusCode, 200);
     assert.equal(pub.json().branding.productName, "Acme Desk");

@@ -114,7 +114,13 @@ export class TenantAdminService {
     const { tenant } = await this.target(id);
     let branding: TenantBranding;
     try {
-      branding = validateBranding(input);
+      // A part left out stays as it is; an empty string clears it.
+      const before = tenant.branding ?? {};
+      branding = validateBranding({
+        productName: input.productName ?? before.productName,
+        accentColor: input.accentColor ?? before.accentColor,
+        logo: input.logo ?? before.logo,
+      } as TenantBranding);
     } catch (error) {
       throw badRequest((error as Error).message);
     }

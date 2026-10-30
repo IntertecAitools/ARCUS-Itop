@@ -107,7 +107,7 @@ export const authHandlers = [
   }),
   // Password reset: on in mock mode so its screens can be worked on. No
   // single sign-on: its round trip needs a real identity provider.
-  http.get(url('/auth/options'), () => HttpResponse.json({ passwordReset: true, sso: null, passwordSignIn: 'all' })),
+  http.get(url('/auth/options'), () => HttpResponse.json({ passwordReset: true, sso: null, passwordSignIn: 'all', selfRegistration: true })),
   http.post(url('/auth/forgot-password'), () =>
     HttpResponse.json(
       {
