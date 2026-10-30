@@ -100,6 +100,9 @@ for (const look of LOOKS) {
       // The same form after a failed submit: the errors must be announced too.
       await page.locator('form button[type="submit"]').click();
       problems.push(...(await scan(page, 'login, empty submit')));
+      await page.goto('/register');
+      await expect(page.locator('form')).toBeVisible();
+      problems.push(...(await scan(page, 'register')));
       expect(problems).toEqual([]);
     });
 
@@ -150,6 +153,15 @@ for (const look of LOOKS) {
       await openFirst(page, /^\/users\/[^/]+$/);
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
       problems.push(...(await scan(page, 'a user')));
+
+      // Organisation admin: every tab, the branding preview included.
+      await page.goto('/organisation');
+      await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+      for (const tab of ['orgs', 'teams', 'users', 'branding', 'domains']) {
+        await page.getByRole('tab').nth(['orgs', 'teams', 'users', 'branding', 'domains'].indexOf(tab)).click();
+        await expect(page.getByRole('tabpanel')).toBeVisible();
+        problems.push(...(await scan(page, `organisation admin: ${tab}`)));
+      }
 
       expect(problems).toEqual([]);
     });

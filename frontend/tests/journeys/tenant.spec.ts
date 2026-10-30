@@ -15,7 +15,7 @@ test('organisation admin: organisations, team members and email domains', { tag:
   await page.getByLabel('Name', { exact: true }).fill('Northwind Labs');
   await page.getByLabel('Parent organisation').selectOption({ label: 'Northwind HQ' });
   await page.getByRole('button', { name: 'Add', exact: true }).click();
-  await expect(page.getByRole('cell', { name: 'Northwind Labs' })).toBeVisible();
+  await expect(page.getByRole('cell', { name: 'Northwind Labs', exact: true })).toBeVisible();
 
   // A team member, found by name.
   await page.getByRole('tab', { name: 'Teams' }).click();

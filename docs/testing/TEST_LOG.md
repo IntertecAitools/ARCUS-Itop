@@ -4,6 +4,27 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-10-30 — Tenant admin, branding per tenant, email domains, self-registration, Arabic/RTL
+
+Branch `claude/tenant-brand-rtl-c1514c`. Unit tests on both sides; the mock journeys on `:5253`; a BFF of this worktree on `:4080` (memory sessions, `TENANCY=on` with a `TENANTS_FILE` for the seed-test tenants mt-acme/org 13 and mt-globex/org 14, `SELF_REGISTRATION=on`, `MFA_REQUIRED=off`, SMTP to the local Mailpit) against the shared local iTop on `:8080`. The accessibility pass of the same branch has its own entry below.
+
+| What ran | Result |
+|---|---|
+| Backend typecheck (`npx tsc --noEmit`) | clean |
+| New `backend/test/tenant-admin.test.ts`: store (email domains owned once, kept on save, branding validation), routes (own tenant only, operator, host names operator-only, branding by host name, logo CSP, email domains, organisation create, teams, grant limits, language), self-registration | 14/14 pass (after fixing the test's fake iTop: it ignored `WHERE id =` when the tenant guard checked an organisation) |
+| `backend/test/mail-intake.test.ts` with the new sender-domain case | pass (29/29 with the file above) |
+| Backend suite (`npm test`) | 826/826 pass |
+| Live `npm run e2e:tenant-admin` (new script) against `:4080` and the local iTop | 35/35 pass, first run: tenant isolation of the admin API, Administrator not grantable, team created/member added/deleted, organisation added under the tenant/made inactive/deleted, branding served by host name only, email domain claimed once, public provider refused, self-registration created a Person + Portal account in org 13 and the set-password mail arrived in Mailpit (account disabled afterwards), language kept |
+| New `frontend/src/lib/branding/palette.test.ts`: 8 accent colours × dark/light keep white-on-brand, brand-ink and ring contrast | 11/11 pass |
+| `frontend/src/lib/utils/format.test.ts` locale case (Arabic digits and month names, `dir`) | failed once on this machine's Node 24: `Intl.NumberFormat('ar')` gives Latin digits. Fixed with `ar-u-nu-arab` (145851f0); pass |
+| Frontend typecheck (`npx tsc -b --noEmit`) | clean |
+| Frontend vitest (`npx vitest run`), final | 50 files, 243/243 pass |
+| All mock journeys (`E2E_MOCK_URL=http://localhost:5253 npx playwright test`), final | 29/29 pass, including the new `tenant.spec.ts` (organisation admin, branding applies app-wide, Arabic mirrors and is remembered, self-registration) and `a11y.spec.ts` now also scanning `/register` and every Organisation admin tab in dark, light and Arabic |
+
+Found and fixed: the branding save would have dropped the logo when only the name changed (a part left out is now kept, test added); `mfa.spec.ts` looked for straight apostrophes after the translation commit (79313745) changed the strings to curly ones (the spec now matches either); `tenant.spec.ts` matched two cells for "Northwind Labs" (`exact: true`).
+
+Not covered: SSO first sign-in creating a portal account (unit-free; the code path reuses the registration that the live run covered); the MySQL tenant tables (`bff_tenant_email_domains`, `bff_tenant_branding`, `bff_user_prefs`) — the live run used `TENANTS_FILE` and memory, so the SQL ran nowhere; hostname branding through nginx (by design it reads `Host`, which the bundled nginx passes); RTL by eye beyond the journeys; three new English strings from the accessibility pass (command palette's input and list labels, the record tabs' label) and the sign-in validation messages in `features/auth/schemas.ts` are not yet translated; iTop menu labels in the sidebar come from iTop and stay English.
+
 ### 2026-10-30 — Accessibility: WCAG 2.1 AA pass on the main flows, axe checks in the journeys
 
 Branch `claude/tenant-brand-rtl-c1514c`. Mock mode only (e2e build on `:5253`).
