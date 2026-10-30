@@ -69,6 +69,10 @@ import { DefaultOrganization } from "./shared/default-organization.js";
 import { CurrentContact } from "./shared/current-contact.js";
 import { TenantScopedClient } from "./platform/tenancy/scoped-client.js";
 import { TenantResolver } from "./platform/tenancy/resolve.js";
+import { TenantAdminService } from "./platform/tenancy/tenant-admin.service.js";
+import { tenantOfEmail } from "./platform/tenancy/tenant.store.js";
+import { RegistrationService } from "./platform/portal/registration.service.js";
+import { MemoryPreferencesStore, MySqlPreferencesStore, type PreferencesStore } from "./platform/auth/preferences.store.js";
 import { MemoryTenantStore, MySqlTenantStore, type TenantStore } from "./platform/tenancy/tenant.store.js";
 import { MemoryMfaStore, MySqlMfaStore, type MfaStore } from "./platform/auth/mfa.store.js";
 import { MfaService } from "./platform/auth/mfa.service.js";
@@ -136,6 +140,12 @@ export interface Services {
   currentContact: CurrentContact;
   tenancy: TenantResolver;
   tenantStore: TenantStore;
+  /** A customer's own administration: organisations, teams, branding, email domains. */
+  tenantAdmin: TenantAdminService;
+  /** Joining by email domain (SELF_REGISTRATION=on). */
+  registration: RegistrationService;
+  /** Per-account settings iTop cannot keep: the interface language. */
+  preferences: PreferencesStore;
 }
 
 export interface BuildServicesOptions {
@@ -150,6 +160,8 @@ export interface BuildServicesOptions {
   signInAudit?: SignInAudit;
   /** Tenants for tests; otherwise from TENANTS_FILE or the BFF database. */
   tenants?: TenantStore;
+  /** Preferences for tests; otherwise in the BFF database, or memory. */
+  preferences?: PreferencesStore;
   /** Request forms for tests; otherwise in the BFF database, or memory. */
   requestForms?: RequestFormStore;
   /** Change plan rules for tests; otherwise in the BFF database, or memory. */
@@ -303,6 +315,13 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
         options.logger,
       )
     : undefined;
+  // An email from an unknown sender lands in the organisation its domain belongs to.
+  mailIntake?.useSenderDomains(async (email) => {
+    if (!tenancy.enabled) return undefined;
+    const hit = tenantOfEmail(email, await tenantStore.list());
+    return hit ? String(hit.orgId) : undefined;
+  });
+  const passwordReset = new PasswordResetService(client, auth, resetTokens, sessions, mailer, reset);
 
   return {
     config,
@@ -322,7 +341,7 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     mfa: new MfaService(mfaStore, policy),
     ...(policy.sso ? { sso: new SsoService(policy.sso, new Sealer(config.auth.secret, "sso-state")) } : {}),
     signInAudit,
-    passwordReset: new PasswordResetService(client, auth, resetTokens, sessions, mailer, reset),
+    passwordReset,
     notifications: new NotificationsService(
       client,
       schema,
@@ -361,6 +380,10 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     directory: new DirectoryService(objects),
     tenancy,
     tenantStore,
+    tenantAdmin: new TenantAdminService(client, tenantStore, tenancy),
+    registration: new RegistrationService(client, tenancy, passwordReset, config.selfRegistration === true),
+    preferences:
+      options.preferences ?? (stores?.pool ? new MySqlPreferencesStore(stores.pool) : new MemoryPreferencesStore()),
   };
 }
 

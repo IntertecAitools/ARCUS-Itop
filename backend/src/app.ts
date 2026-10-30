@@ -17,6 +17,7 @@ import { registerHistoryRoutes } from "./platform/history/history.routes.js";
 import { registerTransferRoutes } from "./platform/transfer/transfer.routes.js";
 import { registerAuth } from "./platform/auth/auth.routes.js";
 import { registerUserAdminRoutes } from "./platform/admin/users.routes.js";
+import { registerTenantRoutes } from "./platform/tenancy/tenant.routes.js";
 import { registerNotificationRoutes } from "./platform/admin/notifications.routes.js";
 import { registerAuditRoutes } from "./platform/admin/audit.routes.js";
 import { registerQueryRoutes } from "./platform/queries/queries.routes.js";
@@ -102,6 +103,7 @@ export function buildApp(config: Config, options: BuildServicesOptions = {}): Bu
   registerHistoryRoutes(app, services);
   registerTransferRoutes(app, services);
   registerUserAdminRoutes(app, services);
+  registerTenantRoutes(app, services);
   registerNotificationRoutes(app, services);
   registerAuditRoutes(app, services);
   registerQueryRoutes(app, services);

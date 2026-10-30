@@ -7,6 +7,7 @@ import type { Resolution } from "../tenancy/resolve.js";
 import { parse } from "../../core/validate.js";
 import type { Services } from "../../services.js";
 import { publicUser } from "./auth.service.js";
+import { ITOP_LANGUAGE, LANGUAGES } from "./preferences.store.js";
 import { registerMfaRoutes } from "./mfa.routes.js";
 import { SESSION_COOKIE, SignInFlow, sessionCookie } from "./sign-in.flow.js";
 import { registerSsoRoutes } from "./sso.routes.js";
@@ -27,6 +28,9 @@ const PUBLIC_PATHS = new Set([
   "/api/auth/sso/callback",
   "/api/auth/mfa/verify",
   "/api/auth/mfa/enrol",
+  "/api/auth/register",
+  "/api/branding",
+  "/api/branding/logo/:tenant",
 ]);
 
 /**
@@ -66,7 +70,7 @@ export function readCookie(request: FastifyRequest, name: string): string | unde
  * origin outside CORS_ORIGINS.
  */
 export function registerAuth(app: FastifyInstance, services: Services): void {
-  const { sessions, auth, config, passwordReset, signInAudit, tenancy } = services;
+  const { sessions, auth, config, passwordReset, signInAudit, tenancy, registration, preferences } = services;
   const flow = new SignInFlow(services);
 
   app.addHook("onRequest", (request: FastifyRequest, _reply, done) => {
@@ -207,7 +211,33 @@ export function registerAuth(app: FastifyInstance, services: Services): void {
     passwordReset: passwordReset.enabled,
     sso: services.sso ? { label: services.sso.config.label } : null,
     passwordSignIn: config.auth.signIn?.passwordSignIn ?? "all",
+    selfRegistration: registration.enabled,
   }));
+
+  /**
+   * Self-registration by email domain. Answers 202 whether or not the
+   * address already had an account; the mail carries the only way in.
+   */
+  app.post("/api/auth/register", async (request, reply) => {
+    const body = parse(
+      z.object({
+        firstName: z.string().max(100).default(""),
+        lastName: z.string().max(100),
+        email: z.string().max(255),
+      }),
+      request.body,
+      "request body",
+    );
+    const work = await registration.register(body, request.ip);
+    setImmediate(() => {
+      work().catch((error: unknown) => request.log.error({ err: error }, "Self-registration failed after answering"));
+    });
+    reply.code(202);
+    return {
+      ok: true,
+      message: "Check your email: we've sent a link to set your password. It works once and expires soon.",
+    };
+  });
 
   /**
    * Sends a reset link to the account behind a login or email address. The
@@ -263,7 +293,30 @@ export function registerAuth(app: FastifyInstance, services: Services): void {
       const pending = pendingSignIn(request)?.caller.signIn?.pending;
       throw new AppError("unauthorized", "Not signed in.", pending ? { details: { mfa: { step: pending.step } } } : {});
     }
-    return { user: publicUser(caller) };
+    return { user: { ...publicUser(caller), language: (await preferences.language(caller.userId)) ?? null } };
+  });
+
+  /**
+   * The signed-in user's interface language. Kept by the BFF (iTop has no
+   * Arabic dictionary), and mirrored to iTop's User language where iTop has
+   * the language, so iTop's own mails follow it too.
+   */
+  app.put("/api/auth/language", async (request) => {
+    const caller = currentCaller();
+    if (!caller) throw new AppError("unauthorized", "Sign in to continue.");
+    const { language } = parse(z.object({ language: z.enum(LANGUAGES) }), request.body, "request body");
+    await preferences.setLanguage(caller.userId, language);
+    const itop = ITOP_LANGUAGE[language];
+    if (itop) {
+      await services.client
+        .call(
+          "core/update",
+          { class: "User", key: caller.userId, fields: { language: itop }, output_fields: "id", comment: "Language chosen in the app" },
+          { asService: true },
+        )
+        .catch((error: unknown) => request.log.warn({ err: error }, "Could not mirror the language to iTop"));
+    }
+    return { language };
   });
 
   app.post("/api/auth/password", async (request) => {
