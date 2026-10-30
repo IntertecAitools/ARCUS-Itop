@@ -343,11 +343,19 @@ export interface RcaConfig {
   /** How far before the first incident a change still counts as a suspect. */
   lookbackHours: number;
   /**
-   * "Draft with AI": present only with ANTHROPIC_API_KEY set and RCA_AI not
-   * off. The key stays in the BFF; the browser never sees it.
+   * "Draft with AI": present only with credentials for the chosen provider
+   * and RCA_AI not off. Credentials stay in the BFF; the browser never sees them.
+   * - provider "anthropic" (default): ANTHROPIC_API_KEY.
+   * - provider "bedrock": AWS_REGION, plus AWS_BEARER_TOKEN_BEDROCK (a Bedrock
+   *   API key) or AWS credentials (AWS_ACCESS_KEY_ID / AWS_PROFILE), read by
+   *   the Bedrock SDK itself.
    */
   ai?: {
+    provider: "anthropic" | "bedrock";
+    /** The Anthropic API key; empty on Bedrock. */
     apiKey: string;
+    /** Bedrock's AWS region; empty on the Claude API. */
+    region: string;
     model: string;
     effort: (typeof RCA_AI_EFFORTS)[number];
     /** Send incidents' private logs too (RCA_AI_PRIVATE_LOGS=on). Public logs only by default. */
@@ -357,12 +365,26 @@ export interface RcaConfig {
   };
 }
 
-function rcaConfig(): RcaConfig {
+export function rcaConfig(): RcaConfig {
   const lookbackHours = integer("RCA_LOOKBACK_HOURS", 72, 1, 24 * 30);
   const mode = optional("RCA_AI", "on").toLowerCase();
   if (mode !== "on" && mode !== "off") throw new Error(`RCA_AI must be "on" or "off", not "${mode}".`);
-  const apiKey = optional("ANTHROPIC_API_KEY", "");
-  if (mode === "off" || !apiKey) return { lookbackHours };
+  const provider = optional("RCA_AI_PROVIDER", "anthropic").toLowerCase();
+  if (provider !== "anthropic" && provider !== "bedrock") {
+    throw new Error(`RCA_AI_PROVIDER must be "anthropic" or "bedrock", not "${provider}".`);
+  }
+  const apiKey = provider === "anthropic" ? optional("ANTHROPIC_API_KEY", "") : "";
+  const region = provider === "bedrock" ? optional("AWS_REGION", optional("AWS_DEFAULT_REGION", "")) : "";
+  const bedrockCredentials =
+    optional("AWS_BEARER_TOKEN_BEDROCK", "") !== "" ||
+    optional("AWS_ACCESS_KEY_ID", "") !== "" ||
+    optional("AWS_PROFILE", "") !== "";
+  if (mode === "off") return { lookbackHours };
+  if (provider === "anthropic" && !apiKey) return { lookbackHours };
+  if (provider === "bedrock") {
+    if (!bedrockCredentials) return { lookbackHours };
+    if (!region) throw new Error("RCA_AI_PROVIDER=bedrock needs AWS_REGION (e.g. us-east-1).");
+  }
   const effort = optional("RCA_AI_EFFORT", "high").toLowerCase();
   if (!(RCA_AI_EFFORTS as readonly string[]).includes(effort)) {
     throw new Error(`RCA_AI_EFFORT must be one of ${RCA_AI_EFFORTS.join(", ")}, not "${effort}".`);
@@ -374,8 +396,14 @@ function rcaConfig(): RcaConfig {
   return {
     lookbackHours,
     ai: {
+      provider,
       apiKey,
-      model: optional("RCA_AI_MODEL", "claude-opus-5-5"),
+      region,
+      // On Bedrock, model ids carry an "anthropic." prefix (e.g. anthropic.claude-sonnet-5).
+      model:
+        provider === "bedrock"
+          ? optional("BEDROCK_MODEL_ID", optional("RCA_AI_MODEL", "anthropic.claude-opus-5-5"))
+          : optional("RCA_AI_MODEL", "claude-opus-5-5"),
       effort: effort as (typeof RCA_AI_EFFORTS)[number],
       privateLogs: privateLogs === "on",
       disabledTenants: optional("RCA_AI_DISABLED_TENANTS", "")
