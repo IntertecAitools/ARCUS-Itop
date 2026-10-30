@@ -4,6 +4,25 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-10-30 — Approval extension installed on the shared local iTop (:8080)
+
+Branch `claude/approvals-main-itop-812ad2`. This worktree's BFF on `:4050` (`MFA_REQUIRED=off`, in-memory sessions) against `itop-local` (`:8080`, `itop_prod`), Mailpit `:8025`. Maintenance window 05:23:51–05:31:51 UTC (10:53–11:01 IST). The hook did not record the e2e run below, so this table is its record.
+
+| What ran | Result |
+|---|---|
+| State before: `data/.maintenance` / `.readonly`, config permissions, installed modules (`priv_module_install`) | clean, config read-only; 52 modules, the same as `itop-ticket-dispatch-upgrade.xml` |
+| Backup: `mysqldump` (inside the container) → `itop-backups\itop_prod-before-approvals-20261030-1044.sql.gz`, plus `conf/production` tarball | complete dump, 239 tables |
+| Unattended upgrade, pass 1 (without `combodo-approval-extended`), then `docker/itop-approvals-main-upgrade.xml` twice, `--use_itop_config` | all three exit 0 ("installed!") |
+| After: modules | 55: the 52 before plus `approval-base` 3.4.0, `combodo-approval-extended` 1.5.4, `itop-approval-portal` 1.0.12; `ticket_incident.dispatch_date` still there; tables `approval_rule`, `approval_scheme` created |
+| After: iTop `UI.php` | 200, no maintenance; `config-itop.php` read-only again, `php -l` clean |
+| BFF `/api/nav/counts`, `/api/me/approvals/count`, `/api/me/approvals?state=pending` (admin) | 200, 200, 200 (`pendingApprovals: 0`); was 502 "class 'ApprovalScheme' is not valid" |
+| `npm run approvals:setup` against :8080 | trigger #17, approver email #30, bell #31, requester rules #32 / #34 |
+| `E2E_BFF_URL=http://127.0.0.1:4050/api node scripts/e2e-approvals.mjs` | 10/10 pass (R-000214 rejected at level 2, R-000215 approved at both levels) |
+
+No bugs found. Left on the main iTop by the e2e: accounts `e2e.requester`, `e2e.approver`, `e2e.manager` (random passwords), approval rule #1, a CoverageWindow, subcategory "E2E needs approval" (#17, under "Email 509555", which now needs approval) and requests R-000214/215.
+
+Not covered: `itop-local-cron` was not running and was not started here (a one-off `cron.php` with the BFF service account was refused, "Access wrong credentials"), so approval timeouts and reminders on :8080 depend on that container; the bell step passed anyway. The approval screens were not clicked through in a browser; reminders and substitutes, as before.
+
 ### 2026-10-30 — Tenant admin, branding per tenant, email domains, self-registration, Arabic/RTL
 
 Branch `claude/tenant-brand-rtl-c1514c`. Unit tests on both sides; the mock journeys on `:5253`; a BFF of this worktree on `:4080` (memory sessions, `TENANCY=on` with a `TENANTS_FILE` for the seed-test tenants mt-acme/org 13 and mt-globex/org 14, `SELF_REGISTRATION=on`, `MFA_REQUIRED=off`, SMTP to the local Mailpit) against the shared local iTop on `:8080`. The accessibility pass of the same branch has its own entry below.

@@ -591,10 +591,21 @@ them up in iTop, idempotently; run it once per iTop and again after changing
 
 ### Installing the approval extension on an iTop
 
-Done on the test iTop of `docker/docker-compose.approvals-test.yml` (port
-8093, database `itop_approvals`, a copy of `itop_prod`); the same steps apply
-to the main or production iTop. **Back up iTop's database and its `conf/`
-first**: the setup changes the schema.
+Done first on the test iTop of `docker/docker-compose.approvals-test.yml`
+(port 8093, database `itop_approvals`, a copy of `itop_prod`), then on the
+shared local iTop (below); the same steps apply to production. **Back up
+iTop's database and its `conf/` first**: the setup changes the schema.
+
+**Which upgrade file.** `docker/itop-approvals-upgrade.xml` is the test
+iTop's list, which has no arcus modules: on any other iTop it would
+uninstall them. For the main or production iTop use
+`docker/itop-approvals-main-upgrade.xml`: the full module set that must be
+kept (iTop's standard modules; `arcus-problem-rca`, `arcus-incident-extras`,
+`arcus-change-cab`, `arcus-ticket-dispatch`; `combodo-sla-computation`,
+`combodo-coverage-windows-computation`) plus `approval-base`,
+`combodo-approval-extended`, `itop-approval-portal`. `combodo-sla-computation`
+is shared by the approvals and the business hours, so it is already there.
+Any later upgrade must keep all of them.
 
 1. Get the four modules at those tags from GitHub
    (`https://github.com/Combodo/<module>/archive/refs/tags/<tag>.tar.gz`) or
@@ -621,7 +632,10 @@ first**: the setup changes the schema.
 
    A failed pass leaves iTop in maintenance: delete `data/.maintenance` and
    `data/.readonly` before the next one. Check: `core/get ApprovalRule`
-   answers (no "table doesn't exist").
+   answers (no "table doesn't exist"). Adding `--use_itop_config` makes the
+   setup take the database settings from iTop's own `config-itop.php`, so the
+   XML needs no password. Afterwards make the config read-only again
+   (`chmod a-w`) and `apache2ctl graceful` is enough instead of a restart.
 4. Make sure iTop's cron runs (timeouts, reminders, the bell).
 5. `npm run approvals:setup` against that iTop.
 6. In iTop's data (until the platform has a screen for it; REST as an
@@ -631,7 +645,20 @@ first**: the setup changes the schema.
    shows the fields.
 7. `node scripts/e2e-approvals.mjs` checks it end to end (see the script's
    header; it creates `e2e.*` accounts and an "E2E needs approval"
-   subcategory, so run it on a test iTop).
+   subcategory, so run it on a test iTop). Its BFF needs `MFA_REQUIRED=off`
+   (it signs in fresh staff accounts with a password only); point it there
+   with `E2E_BFF_URL`.
+
+**Installed on the shared local iTop** (`:8080`, `itop-local`, `itop_prod`)
+on 2026-10-30, maintenance 05:23–05:32 UTC: dump to
+`C:\Users\Venkatesh.V\itop-backups\itop_prod-before-approvals-20261030-1044.sql.gz`
+(and `conf/production` beside it), the three modules copied from the test
+iTop's `extensions/` (same tags), pass 1 then the full
+`itop-approvals-main-upgrade.xml` twice, all three clean, with
+`--use_itop_config`. Every module installed before is still installed. Until
+then `/api/nav/counts` answered 502 on that iTop ("class 'ApprovalScheme' is
+not valid"); it now carries `pendingApprovals`. `npm run approvals:setup` was
+run against it, so the notifications exist there too.
 
 Not covered yet: a platform screen to manage approval rules; reminders and
 substitutes were not exercised (no timeouts in the test rule); approvals on
