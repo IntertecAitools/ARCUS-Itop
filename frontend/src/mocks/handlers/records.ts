@@ -2,6 +2,7 @@ import { http, HttpResponse } from 'msw';
 import { env } from '@/config/env';
 import type { Criterion, RecordDto } from '@/features/records/types';
 import { classInfos, classList, navigation, records } from '../fixtures/records';
+import { applyIncidentStimulus, incidentRecord } from './incidents';
 
 const url = (path: string) => `${env.bffUrl}${path}`;
 
@@ -89,8 +90,22 @@ export const recordHandlers = [
     });
   }),
   http.get(url('/objects/:className/:id'), ({ params }) => {
-    const record = (records[String(params.className)] ?? []).find((r) => r.id === Number(params.id));
+    const record =
+      params.className === 'Incident'
+        ? incidentRecord(params.id)
+        : (records[String(params.className)] ?? []).find((r) => r.id === Number(params.id));
     return record ? HttpResponse.json(record) : notFound(`${String(params.className)} ${String(params.id)} was not found.`);
+  }),
+  http.post(url('/objects/:className/:id/stimulus'), async ({ params, request }) => {
+    if (params.className !== 'Incident') return notFound(`No lifecycle mocked for ${String(params.className)}.`);
+    const body = (await request.json()) as { stimulus: string; fields?: Record<string, unknown> };
+    const object = applyIncidentStimulus(params.id, body.stimulus, body.fields ?? {});
+    return object
+      ? HttpResponse.json({ object })
+      : HttpResponse.json(
+          { error: { code: 'bad_request', message: `"${body.stimulus}" is not available on Incident ${String(params.id)}.` } },
+          { status: 400 },
+        );
   }),
   http.get(url('/objects/:className/:id/history'), () =>
     HttpResponse.json({ items: [], total: 0, truncated: false }),

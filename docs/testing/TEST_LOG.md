@@ -50,6 +50,10 @@ Fix (branch `claude/restore-full-incident-form`):
 - The incidents list's "New incident" buttons open the full form.
 - On hold with a reason and next-action date was already on the full screen (PR #31).
 - PR #41 was merged before this part was pushed, so it went in again as branch `claude/incident-full-page`. That branch also shows PR #39's ticket-handling panel (priority override, duplicate, cancel, worklogs) on incidents on the full screen; before, only requests had it there. Re-run there: typecheck clean; vitest records + incidents + ticket-handling + config 16 files, 95/95.
+- CI's mock browser journey "My Assignments → open an incident → resolve it" then failed: it expected `/incidents/1042` and the dedicated page's resolve dialog, and the mock API had no Incident on the generic record screen.
+  - The mock now serves Incident there from the same store as the incident endpoints (`incidentRecord`), with iTop's lifecycle (Resolve asks for a solution) and `POST /objects/Incident/:id/stimulus`.
+  - The journey now expects `/records/Incident/1042` and resolves through the lifecycle dialog.
+  - Locally: `playwright test tests/journeys/staff.spec.ts` 2/2; every `@mock` journey 9/9.
 
 Not covered: the new incident form was checked through the schema API, not filled in in the browser.
 

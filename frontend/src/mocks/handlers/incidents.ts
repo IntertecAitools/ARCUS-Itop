@@ -1,6 +1,7 @@
 import { http, HttpResponse } from 'msw';
 import { env } from '@/config/env';
 import type { IncidentDetail, TransitionAction } from '@/features/incidents';
+import type { RecordDto } from '@/features/records/types';
 import { mockFlag } from '../storage';
 
 const url = (path: string) => `${env.bffUrl}${path}`;
@@ -168,6 +169,67 @@ export function openMajorIncidents() {
 }
 
 const find = (id: unknown) => store.find((i) => i.id === String(id));
+
+/** The app's incident status as iTop's lifecycle state, for the generic record screen. */
+const ITOP_STATE: Record<string, string> = {
+  new: 'new',
+  dispatched: 'dispatched',
+  open: 'assigned',
+  in_progress: 'assigned',
+  pending: 'pending',
+  resolved: 'resolved',
+  closed: 'closed',
+};
+
+/** iTop's stimulus for each app action, so both screens share one lifecycle. */
+const ACTION_OF_STIMULUS: Record<string, TransitionAction> = {
+  ev_assign: 'assign',
+  ev_dispatch: 'dispatch',
+  ev_reassign: 'reassign',
+  ev_pending: 'hold',
+  ev_resolve: 'resolve',
+  ev_close: 'close',
+  ev_reopen: 'reopen',
+};
+
+/**
+ * One mock incident as the generic record screen reads it
+ * (`/objects/Incident/:id`): the same store as the incident endpoints, so a
+ * change made on either screen shows on the other.
+ */
+export function incidentRecord(id: unknown): RecordDto | undefined {
+  const incident = find(id);
+  if (!incident) return undefined;
+  return {
+    class: 'Incident',
+    id: Number(incident.id),
+    label: incident.summary,
+    fields: {
+      id: incident.id,
+      friendlyname: incident.ref,
+      ref: incident.ref,
+      title: incident.summary,
+      description: incident.description,
+      status: ITOP_STATE[incident.status] ?? incident.status,
+      priority: incident.priority,
+      agent_id: incident.assignee?.id ?? '0',
+      agent_id_friendlyname: incident.assignee?.name ?? '',
+      solution: incident.resolution ?? '',
+    },
+  };
+}
+
+/** Applies an iTop stimulus to a mock incident, as `POST /objects/Incident/:id/stimulus` does. */
+export function applyIncidentStimulus(id: unknown, stimulus: string, fields: Record<string, unknown>) {
+  const incident = find(id);
+  const action = ACTION_OF_STIMULUS[stimulus];
+  if (!incident || !action || !incident.availableActions.includes(action)) return undefined;
+  incident.status = RESULT_STATUS[action];
+  incident.availableActions = ACTIONS_BY_STATUS[incident.status] ?? [];
+  if (typeof fields.solution === 'string' && fields.solution) incident.resolution = fields.solution;
+  persist();
+  return incidentRecord(id);
+}
 
 const notFound = (id: unknown) =>
   HttpResponse.json(

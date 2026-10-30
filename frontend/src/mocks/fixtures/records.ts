@@ -99,9 +99,69 @@ export const userRequestInfo: ClassInfo = {
   },
 };
 
+/**
+ * Incident, enough for the generic record screen incidents open on: a few
+ * fields and iTop's lifecycle (Resolve asks for a solution). The records
+ * themselves come from the incidents mock, so both screens share one store.
+ */
+export const incidentInfo: ClassInfo = {
+  name: 'Incident',
+  isCi: false,
+  abstract: false,
+  parent: 'Ticket',
+  inherits: ['cmdbAbstractObject', 'Ticket'],
+  lifecycle: {
+    attribute: 'status',
+    states: {
+      new: ['ev_assign'],
+      assigned: ['ev_pending', 'ev_resolve', 'ev_reassign'],
+      pending: ['ev_assign'],
+      resolved: ['ev_close', 'ev_reopen'],
+      closed: [],
+    },
+    stimuli: ['ev_assign', 'ev_reassign', 'ev_pending', 'ev_resolve', 'ev_close', 'ev_reopen'],
+    userActions: ['ev_assign', 'ev_reassign', 'ev_pending', 'ev_resolve', 'ev_close', 'ev_reopen'],
+    transitions: {
+      new: { ev_assign: 'assigned' },
+      assigned: { ev_pending: 'pending', ev_resolve: 'resolved', ev_reassign: 'assigned' },
+      pending: { ev_assign: 'assigned' },
+      resolved: { ev_close: 'closed', ev_reopen: 'assigned' },
+    },
+    flags: { resolved: { solution: ['mandatory', 'must_prompt'] } },
+  },
+  presentation: {
+    columns: [{ id: 'col:0', fieldsets: [{ id: 'fieldset:baseinfo', label: 'General information', fields: ['ref', 'title', 'status', 'priority', 'agent_id', 'description', 'solution'] }] }],
+    list: ['title', 'status', 'priority', 'agent_id'],
+    related: [],
+  },
+  labels: {
+    class: 'Incident',
+    fields: { agent_id: 'Agent', description: 'Description', priority: 'Priority', ref: 'Ref', solution: 'Solution', status: 'Status', title: 'Title' },
+    values: {
+      status: { new: 'New', assigned: 'Assigned', pending: 'Pending', resolved: 'Resolved', closed: 'Closed' },
+    },
+    stimuli: { ev_assign: 'Assign', ev_reassign: 'Reassign', ev_pending: 'Pending', ev_resolve: 'Resolve', ev_close: 'Close', ev_reopen: 'Reopen' },
+  },
+  writable: ['description', 'priority', 'solution', 'status', 'title'],
+  readonly: ['ref', 'agent_id'],
+  related: [],
+  pickers: [],
+  searchable: ['ref', 'title'],
+  fields: {
+    agent_id: { type: 'ExternalKey', ui: 'picker', owner: 'Ticket', required: false, hasDefault: false, target: 'Person' },
+    description: { type: 'Text', ui: 'scalar', owner: 'Ticket', required: true, hasDefault: false },
+    priority: { type: 'Enum', ui: 'scalar', owner: 'Incident', required: true, hasDefault: true },
+    ref: { type: 'String', ui: 'scalar', owner: 'Ticket', required: false, hasDefault: false },
+    solution: { type: 'Text', ui: 'scalar', owner: 'Incident', required: false, hasDefault: false },
+    status: { type: 'Enum', ui: 'scalar', owner: 'Incident', required: true, hasDefault: true, values: ['new', 'assigned', 'pending', 'resolved', 'closed'] },
+    title: { type: 'String', ui: 'scalar', owner: 'Ticket', required: true, hasDefault: false },
+  },
+};
+
 export const classInfos: Record<string, ClassInfo> = {
   Organization: organizationInfo,
   UserRequest: userRequestInfo,
+  Incident: incidentInfo,
 };
 
 const organization = (id: number, name: string, code: string, status: string, parent?: { id: number; name: string }): RecordDto => ({
