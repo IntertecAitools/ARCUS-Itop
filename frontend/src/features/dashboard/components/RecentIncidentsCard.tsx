@@ -33,6 +33,8 @@ export function RecentIncidentsCard({
               ? (ticket) => navigate(`/incidents/${ticket.id}`)
               : undefined
           }
+          // The latest few only; "View all" leads to the paged queue.
+          pagination={false}
           emptyTitle={t('dashboard.recent.emptyTitle')}
           emptyDescription={t('dashboard.recent.emptyLead')}
         />

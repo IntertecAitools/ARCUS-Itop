@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, Database, Plus, Search, SlidersHorizontal, Upload } from 'lucide-react';
 import { PageHeader } from '@/components/layout';
 import { Button, buttonClasses, Card, Input, Skeleton } from '@/components/ui';
-import { DataTable, type Column } from '@/components/data-display';
+import { DataTable, parsePageSize, type Column } from '@/components/data-display';
 import { EmptyState } from '@/components/feedback';
 import { useNavigation } from '@/features/navigation';
 import { useBulk, useClassInfo, useExport, useRecords } from '../api/useRecords';
@@ -24,6 +24,7 @@ export function RecordListPage() {
   const [params, setParams] = useSearchParams();
 
   const page = Math.max(1, Number(params.get('page')) || 1);
+  const limit = parsePageSize(params.get('limit'));
   const q = params.get('q') ?? '';
   // A navigation view id. The filter it stands for lives in the BFF; all this
   // screen knows is that the list is narrowed and what the menu calls it.
@@ -76,7 +77,7 @@ export function RecordListPage() {
       : undefined;
   const { data, isLoading, isError: listError } = useRecords(
     className,
-    { page, q: q || undefined, view, ...(criteria.length ? { criteria } : {}) },
+    { page, limit, q: q || undefined, view, ...(criteria.length ? { criteria } : {}) },
     fields,
   );
 
@@ -423,40 +424,20 @@ export function RecordListPage() {
             description={q ? 'Try a shorter term.' : 'Records you create appear here.'}
           />
         ) : (
-          <>
-            <DataTable
-              data={data?.items ?? []}
-              columns={tableColumns}
-              isLoading={isLoading}
-              loadingRows={8}
-              onRowClick={(record) => navigate(`/records/${className}/${record.id}`)}
-            />
-            {data && data.pages > 1 ? (
-              <div className="flex items-center justify-between gap-4 border-t border-line px-4 py-3">
-                <p className="text-[13px] text-ink-muted tabular-nums">
-                  Page {data.page} of {data.pages} · {data.total} total
-                </p>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    disabled={page <= 1}
-                    onClick={() => update({ page: String(page - 1) })}
-                    className={buttonClasses({ variant: 'secondary', size: 'sm' })}
-                  >
-                    Previous
-                  </button>
-                  <button
-                    type="button"
-                    disabled={page >= data.pages}
-                    onClick={() => update({ page: String(page + 1) })}
-                    className={buttonClasses({ variant: 'secondary', size: 'sm' })}
-                  >
-                    Next
-                  </button>
-                </div>
-              </div>
-            ) : null}
-          </>
+          <DataTable
+            data={data?.items ?? []}
+            columns={tableColumns}
+            isLoading={isLoading}
+            loadingRows={8}
+            onRowClick={(record) => navigate(`/records/${className}/${record.id}`)}
+            pagination={{
+              page,
+              pageSize: limit,
+              total: data?.total ?? 0,
+              onPageChange: (next) => update({ page: next > 1 ? String(next) : undefined }),
+              onPageSizeChange: (size) => update({ limit: String(size) }),
+            }}
+          />
         )}
       </Card>
     </>

@@ -4,6 +4,7 @@ import { ArrowLeft, Download } from 'lucide-react';
 
 import { PageHeader } from '@/components/layout';
 import { Button, buttonClasses, Card, CardBody, CardHeader, Skeleton } from '@/components/ui';
+import { Pagination, usePagedRows } from '@/components/data-display';
 import { cn } from '@/lib/utils';
 import { useClassInfo, useImport } from '../api/useRecords';
 import { CONTROL } from '../components/FieldControls';
@@ -317,44 +318,46 @@ export function MappingCard({
         }
       />
       <CardBody>
-        <table className="w-full text-start text-[13px]">
-          <thead className="text-[12px] text-ink-muted">
-            <tr>
-              <th className="py-1 pe-3 font-medium">Column in file</th>
-              <th className="py-1 pe-3 font-medium">Field</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-line">
-            {headings.map((heading, index) => {
-              const target = mapping[index] ?? null;
-              // A heading such as `org_id->code` is valid but not in the list.
-              const extra = target !== null && !targets.some((t) => t.value === target);
-              return (
-                <tr key={index}>
-                  <td className="py-1.5 pe-3 font-mono text-[12px] text-ink">
-                    {heading || <span className="text-ink-muted italic">(no heading)</span>}
-                  </td>
-                  <td className="py-1.5 pe-3">
-                    <select
-                      aria-label={`Field for column ${heading || index + 1}`}
-                      className={cn(CONTROL, 'max-w-sm py-1.5', target === null && 'text-ink-muted')}
-                      value={target ?? SKIP}
-                      onChange={(e) => onChange(index, e.target.value === SKIP ? null : e.target.value)}
-                    >
-                      <option value={SKIP}>— Skip this column —</option>
-                      {extra ? <option value={target}>{target}</option> : null}
-                      {targets.map((t) => (
-                        <option key={t.value} value={t.value}>
-                          {t.label}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <div className="ui-table-frame overflow-x-auto">
+          <table className="ui-table">
+            <thead>
+              <tr>
+                <th>Column in file</th>
+                <th>Field</th>
+              </tr>
+            </thead>
+            <tbody>
+              {headings.map((heading, index) => {
+                const target = mapping[index] ?? null;
+                // A heading such as `org_id->code` is valid but not in the list.
+                const extra = target !== null && !targets.some((t) => t.value === target);
+                return (
+                  <tr key={index}>
+                    <td className="font-mono text-[12px] text-ink">
+                      {heading || <span className="text-ink-muted italic">(no heading)</span>}
+                    </td>
+                    <td className="py-2">
+                      <select
+                        aria-label={`Field for column ${heading || index + 1}`}
+                        className={cn(CONTROL, 'max-w-sm py-1.5', target === null && 'text-ink-muted')}
+                        value={target ?? SKIP}
+                        onChange={(e) => onChange(index, e.target.value === SKIP ? null : e.target.value)}
+                      >
+                        <option value={SKIP}>— Skip this column —</option>
+                        {extra ? <option value={target}>{target}</option> : null}
+                        {targets.map((t) => (
+                          <option key={t.value} value={t.value}>
+                            {t.label}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </CardBody>
     </Card>
   );
@@ -370,6 +373,7 @@ const KIND_STYLE:Record<ImportReport['rows'][number]['kind'], string> = {
 
 function ImportReportView({ className, report }: { className: string; report: ImportReport }) {
   const { summary } = report;
+  const { pageRows, pagination } = usePagedRows(report.rows);
   return (
     <Card>
       <CardHeader
@@ -390,43 +394,44 @@ function ImportReportView({ className, report }: { className: string; report: Im
             ))}
           </ul>
         ) : null}
-        <div className="overflow-x-auto">
-          <table className="w-full text-start text-[13px]">
-            <thead className="text-[12px] text-ink-muted">
-              <tr>
-                <th className="py-1 pe-3 font-medium">Line</th>
-                <th className="py-1 pe-3 font-medium">Status</th>
-                <th className="py-1 pe-3 font-medium">Record</th>
-                {report.columns.map((c) => (
-                  <th key={c} className="py-1 pe-3 font-medium">
-                    {c}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-line">
-              {report.rows.map((row) => (
-                <tr key={row.line}>
-                  <td className="py-1 pe-3 tabular-nums">{row.line}</td>
-                  <td className={cn('py-1 pe-3', KIND_STYLE[row.kind])}>{row.status}</td>
-                  <td className="py-1 pe-3">
-                    {/^\d+$/.test(row.id) ? (
-                      <Link to={`/records/${row.class || className}/${row.id}`} className="text-brand-ink hover:underline">
-                        #{row.id}
-                      </Link>
-                    ) : (
-                      '—'
-                    )}
-                  </td>
-                  {row.cells.map((cell, i) => (
-                    <td key={i} className="py-1 pe-3 text-ink-secondary">
-                      {cell}
-                    </td>
+        <div className="ui-table-frame">
+          <div className="overflow-x-auto">
+            <table className="ui-table">
+              <thead>
+                <tr>
+                  <th>Line</th>
+                  <th>Status</th>
+                  <th>Record</th>
+                  {report.columns.map((c) => (
+                    <th key={c}>{c}</th>
                   ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {pageRows.map((row) => (
+                  <tr key={row.line}>
+                    <td className="tabular-nums">{row.line}</td>
+                    <td className={KIND_STYLE[row.kind]}>{row.status}</td>
+                    <td>
+                      {/^\d+$/.test(row.id) ? (
+                        <Link to={`/records/${row.class || className}/${row.id}`} className="text-brand-ink hover:underline">
+                          #{row.id}
+                        </Link>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
+                    {row.cells.map((cell, i) => (
+                      <td key={i} className="text-ink-secondary">
+                        {cell}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <Pagination {...pagination} />
         </div>
       </CardBody>
     </Card>

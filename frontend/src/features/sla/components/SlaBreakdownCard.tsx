@@ -1,4 +1,5 @@
 import { Card, CardBody, CardHeader, Skeleton } from '@/components/ui';
+import { Pagination, usePagedRows } from '@/components/data-display';
 import { cn } from '@/lib/utils';
 import { share, STATES } from '../lib/sla';
 import type { SlaGroup, SlaState } from '../types';
@@ -28,6 +29,7 @@ interface SlaBreakdownCardProps {
  * in that state.
  */
 export function SlaBreakdownCard({ title, noun, groups, isLoading, onPick, selected }: SlaBreakdownCardProps) {
+  const { pageRows, pagination } = usePagedRows(groups ?? [], { pageSize: 10 });
   return (
     <Card>
       <CardHeader title={title} />
@@ -37,64 +39,66 @@ export function SlaBreakdownCard({ title, noun, groups, isLoading, onPick, selec
         ) : groups.length === 0 ? (
           <p className="py-6 text-center text-[13px] text-ink-muted">No open tickets.</p>
         ) : (
-          <table className="w-full text-[13px]" aria-label={title}>
-            <thead>
-              <tr className="text-start text-[12px] text-ink-muted">
-                <th className="pb-2 font-medium">{noun}</th>
-                <th className="pb-2 font-medium" aria-label="Share by state" />
-                {STATES.map((s) => (
-                  <th key={s.value} className="w-14 pb-2 text-end font-medium" title={s.label}>
-                    {s.label === 'Within target' ? 'Within' : s.label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {groups.map((g) => (
-                <tr
-                  key={g.key || 'none'}
-                  className={cn('border-t border-line', selected === g.key && 'bg-brand-soft/40')}
-                >
-                  <td className="max-w-[160px] py-1.5 pe-2">
-                    <button
-                      type="button"
-                      className="block w-full truncate text-start text-ink hover:underline"
-                      onClick={() => onPick(g.key)}
-                      title={`${g.label}: ${g.total} open`}
-                    >
-                      {g.label}
-                    </button>
-                  </td>
-                  <td className="w-[30%] py-1.5 pe-3">
-                    <div className="flex h-2 overflow-hidden rounded-full bg-surface-sunken" aria-hidden>
-                      {STATES.map((s) => (
-                        <span key={s.value} className={BAR[s.value]} style={{ width: `${share(g[s.count], g.total)}%` }} />
-                      ))}
-                    </div>
-                  </td>
-                  {STATES.map((s) => {
-                    const n = g[s.count];
-                    return (
-                      <td key={s.value} className="py-1.5 text-end tabular-nums">
-                        {n ? (
-                          <button
-                            type="button"
-                            className="text-brand-ink hover:underline"
-                            onClick={() => onPick(g.key, s.value)}
-                            aria-label={`${g.label}: ${n} ${s.label.toLowerCase()}`}
-                          >
-                            {n}
-                          </button>
-                        ) : (
-                          <span className="text-ink-muted">0</span>
-                        )}
+          <div className="ui-table-frame">
+            <div className="overflow-x-auto">
+              <table className="ui-table" aria-label={title}>
+                <thead>
+                  <tr>
+                    <th>{noun}</th>
+                    <th aria-label="Share by state" />
+                    {STATES.map((s) => (
+                      <th key={s.value} className="w-20 text-end" title={s.label}>
+                        {s.label === 'Within target' ? 'Within' : s.label}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {pageRows.map((g) => (
+                    <tr key={g.key || 'none'} className={cn(selected === g.key && 'bg-brand-soft/40')}>
+                      <td className="max-w-[160px]">
+                        <button
+                          type="button"
+                          className="block w-full truncate text-start text-ink hover:underline"
+                          onClick={() => onPick(g.key)}
+                          title={`${g.label}: ${g.total} open`}
+                        >
+                          {g.label}
+                        </button>
                       </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                      <td className="w-[30%]">
+                        <div className="flex h-2 overflow-hidden rounded-full bg-surface-sunken" aria-hidden>
+                          {STATES.map((s) => (
+                            <span key={s.value} className={BAR[s.value]} style={{ width: `${share(g[s.count], g.total)}%` }} />
+                          ))}
+                        </div>
+                      </td>
+                      {STATES.map((s) => {
+                        const n = g[s.count];
+                        return (
+                          <td key={s.value} className="text-end tabular-nums">
+                            {n ? (
+                              <button
+                                type="button"
+                                className="text-brand-ink hover:underline"
+                                onClick={() => onPick(g.key, s.value)}
+                                aria-label={`${g.label}: ${n} ${s.label.toLowerCase()}`}
+                              >
+                                {n}
+                              </button>
+                            ) : (
+                              <span className="text-ink-muted">0</span>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <Pagination {...pagination} />
+          </div>
         )}
       </CardBody>
     </Card>

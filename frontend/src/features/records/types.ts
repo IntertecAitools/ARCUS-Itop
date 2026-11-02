@@ -151,6 +151,8 @@ export interface RecordList {
 
 export interface RecordFilters {
   page: number;
+  /** Rows per page; 25 when left out. */
+  limit?: number;
   q?: string;
   sort?: string;
   order?: 'asc' | 'desc';

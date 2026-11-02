@@ -84,6 +84,7 @@ export function ApprovalListPage() {
           columns={columns(state)}
           isLoading={isLoading}
           loadingRows={4}
+          resetPageKey={state}
           emptyTitle={state === 'pending' ? 'Nothing waits for your approval' : 'You have not decided any approvals lately'}
           emptyDescription={
             state === 'pending' ? 'When a request needs your approval, it appears here and you are emailed.' : 'The last 90 days are shown.'

@@ -34,7 +34,7 @@ export function listRecords(className: string, filters: RecordFilters, fields?: 
   return apiClient.get<RecordList>(`/objects/${className}`, {
     query: {
       page: filters.page,
-      limit: PAGE_SIZE,
+      limit: filters.limit ?? PAGE_SIZE,
       q: filters.q,
       sort: filters.sort,
       order: filters.order,

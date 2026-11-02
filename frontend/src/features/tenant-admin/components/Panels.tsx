@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Plus, Trash2, UserPlus, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button, buttonClasses, Card, Input, Select } from '@/components/ui';
+import { Pagination, usePagedRows } from '@/components/data-display';
 import { env } from '@/config/env';
 import { logoSrc } from '@/features/branding';
 import { brandTokens, parseHex } from '@/lib/branding/palette';
@@ -70,6 +71,7 @@ export function OrgsPanel({ tenant }: { tenant: TenantDetail }) {
   const [code, setCode] = useState('');
   const [parentId, setParentId] = useState('');
   const id = useId();
+  const { pageRows, pagination } = usePagedRows(orgs ?? []);
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -113,41 +115,46 @@ export function OrgsPanel({ tenant }: { tenant: TenantDetail }) {
         <ErrorNote error={error ?? update.error} />
         {orgs && orgs.length === 0 ? <p className="p-5 text-[13px] text-ink-muted">{t('tenantAdmin.orgs.empty')}</p> : null}
         {orgs && orgs.length > 0 ? (
-          <table className="w-full text-[13px]">
-            <caption className="sr-only">{t('tenantAdmin.tabs.orgs')}</caption>
-            <thead className="bg-surface-sunken text-start text-ink-secondary">
-              <tr>
-                <th scope="col" className="px-4 py-2.5 text-start font-medium">{t('common.name')}</th>
-                <th scope="col" className="px-4 py-2.5 text-start font-medium">{t('common.code')}</th>
-                <th scope="col" className="px-4 py-2.5 text-start font-medium">{t('tenantAdmin.orgs.parent')}</th>
-                <th scope="col" className="px-4 py-2.5 text-start font-medium">{t('common.status')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {orgs.map((o) => (
-                <tr key={o.id} className="border-t border-line">
-                  <td className="px-4 py-2.5 font-medium text-ink">{o.name}</td>
-                  <td className="px-4 py-2.5 text-ink-secondary">{o.code || '—'}</td>
-                  <td className="px-4 py-2.5 text-ink-secondary">{o.parentName || '—'}</td>
-                  <td className="px-4 py-2.5">
-                    <label className="sr-only" htmlFor={`${id}-status-${o.id}`}>
-                      {t('common.status')}: {o.name}
-                    </label>
-                    <select
-                      id={`${id}-status-${o.id}`}
-                      value={o.status}
-                      disabled={update.isPending}
-                      onChange={(e) => update.mutate({ orgId: o.id, status: e.target.value as 'active' | 'inactive' })}
-                      className="rounded-control border border-line-strong bg-surface px-2 py-1 text-ink"
-                    >
-                      <option value="active">{t('common.active')}</option>
-                      <option value="inactive">{t('common.inactive')}</option>
-                    </select>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <>
+            <div className="overflow-x-auto">
+              <table className="ui-table">
+                <caption className="sr-only">{t('tenantAdmin.tabs.orgs')}</caption>
+                <thead>
+                  <tr>
+                    <th scope="col" className="ps-5">{t('common.name')}</th>
+                    <th scope="col">{t('common.code')}</th>
+                    <th scope="col">{t('tenantAdmin.orgs.parent')}</th>
+                    <th scope="col" className="pe-5">{t('common.status')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pageRows.map((o) => (
+                    <tr key={o.id}>
+                      <td className="ps-5 font-medium text-ink">{o.name}</td>
+                      <td className="text-ink-secondary">{o.code || '—'}</td>
+                      <td className="text-ink-secondary">{o.parentName || '—'}</td>
+                      <td className="pe-5">
+                        <label className="sr-only" htmlFor={`${id}-status-${o.id}`}>
+                          {t('common.status')}: {o.name}
+                        </label>
+                        <select
+                          id={`${id}-status-${o.id}`}
+                          value={o.status}
+                          disabled={update.isPending}
+                          onChange={(e) => update.mutate({ orgId: o.id, status: e.target.value as 'active' | 'inactive' })}
+                          className="rounded-control border border-line-strong bg-surface px-2 py-1 text-ink"
+                        >
+                          <option value="active">{t('common.active')}</option>
+                          <option value="inactive">{t('common.inactive')}</option>
+                        </select>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <Pagination {...pagination} />
+          </>
         ) : null}
       </Card>
     </div>
@@ -240,6 +247,8 @@ export function TeamsPanel({ tenant }: { tenant: TenantDetail }) {
   const [email, setEmail] = useState('');
   const [orgId, setOrgId] = useState(String(tenant.orgs[0]?.id ?? ''));
   const id = useId();
+  // Each team is a card with its members: ten to a page keeps the page short.
+  const { pageRows, pagination } = usePagedRows(teams ?? [], { pageSize: 10 });
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -279,7 +288,8 @@ export function TeamsPanel({ tenant }: { tenant: TenantDetail }) {
       {isLoading ? <p className="text-[13px] text-ink-muted">{t('common.loading')}</p> : null}
       <ErrorNote error={error} />
       {teams && teams.length === 0 ? <p className="text-[13px] text-ink-muted">{t('tenantAdmin.teams.empty')}</p> : null}
-      {teams?.map((team) => <TeamCard key={team.id} tenantId={tenant.id} team={team} />)}
+      {pageRows.map((team) => <TeamCard key={team.id} tenantId={tenant.id} team={team} />)}
+      <Pagination {...pagination} className="border-t-0 px-0" />
     </div>
   );
 }

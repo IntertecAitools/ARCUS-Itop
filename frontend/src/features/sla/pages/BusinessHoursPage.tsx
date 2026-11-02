@@ -3,6 +3,7 @@ import { CalendarOff, Clock, Pencil, Plus, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/layout';
 import { Badge, Button, Card, CardBody, CardHeader, Input, Select, Skeleton } from '@/components/ui';
 import { EmptyState } from '@/components/feedback';
+import { Pagination, usePagedRows } from '@/components/data-display';
 import { longDate } from '@/lib/utils';
 import {
   useAssignWindow,
@@ -136,6 +137,7 @@ function HolidaysCard({ data }: { data: BusinessHours }) {
   const today = new Date().toISOString().slice(0, 10);
   const upcoming = data.holidays.filter((h) => h.date >= today);
   const past = data.holidays.length - upcoming.length;
+  const holidays = usePagedRows(upcoming, { pageSize: 10 });
 
   return (
     <Card className="mb-4">
@@ -190,35 +192,40 @@ function HolidaysCard({ data }: { data: BusinessHours }) {
             description="Add public holidays and closures so they don’t count against SLAs."
           />
         ) : (
-          <table className="w-full text-[13px]" aria-label="Holidays">
-            <thead>
-              <tr className="text-start text-[12px] text-ink-muted">
-                <th className="pb-2 font-medium">Date</th>
-                <th className="pb-2 font-medium">Holiday</th>
-                <th className="pb-2 font-medium">Calendar</th>
-                <th className="pb-2" />
-              </tr>
-            </thead>
-            <tbody>
-              {upcoming.map((h) => (
-                <tr key={h.id} className="border-t border-line">
-                  <td className="py-1.5 tabular-nums">{longDate(`${h.date}T12:00:00`)}</td>
-                  <td className="py-1.5 text-ink">{h.name}</td>
-                  <td className="py-1.5 text-ink-secondary">{h.calendarName || '–'}</td>
-                  <td className="py-1.5 text-end">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      aria-label={`Delete ${h.name} (${h.date})`}
-                      onClick={() => deleteHoliday.mutate(h.id)}
-                    >
-                      <Trash2 className="size-4" aria-hidden />
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="ui-table-frame">
+            <div className="overflow-x-auto">
+              <table className="ui-table" aria-label="Holidays">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Holiday</th>
+                    <th>Calendar</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {holidays.pageRows.map((h) => (
+                    <tr key={h.id}>
+                      <td className="tabular-nums">{longDate(`${h.date}T12:00:00`)}</td>
+                      <td className="text-ink">{h.name}</td>
+                      <td className="text-ink-secondary">{h.calendarName || '–'}</td>
+                      <td className="py-2 text-end">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          aria-label={`Delete ${h.name} (${h.date})`}
+                          onClick={() => deleteHoliday.mutate(h.id)}
+                        >
+                          <Trash2 className="size-4" aria-hidden />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <Pagination {...holidays.pagination} />
+          </div>
         )}
         {past ? <p className="mt-2 text-[12px] text-ink-muted">{past} past holiday{past === 1 ? '' : 's'} not shown.</p> : null}
 
@@ -273,6 +280,7 @@ function HolidaysCard({ data }: { data: BusinessHours }) {
 
 function AssignmentsCard({ data }: { data: BusinessHours }) {
   const assign = useAssignWindow();
+  const { pageRows, pagination } = usePagedRows(data.assignments);
   const options = [
     { value: '', label: 'Around the clock (24x7)' },
     ...data.coverageWindows.map((w) => ({ value: w.id, label: w.name })),
@@ -290,38 +298,41 @@ function AssignmentsCard({ data }: { data: BusinessHours }) {
             No services on customer contracts yet. Add them on a customer contract’s record.
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-[13px]" aria-label="Contract services">
-              <thead>
-                <tr className="text-start text-[12px] text-ink-muted">
-                  <th className="pb-2 font-medium">Customer</th>
-                  <th className="pb-2 font-medium">Contract</th>
-                  <th className="pb-2 font-medium">Service</th>
-                  <th className="pb-2 font-medium">SLA</th>
-                  <th className="pb-2 font-medium">Coverage window</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.assignments.map((a) => (
-                  <tr key={a.id} className="border-t border-line">
-                    <td className="py-1.5 text-ink">{a.customerName || '–'}</td>
-                    <td className="py-1.5">{a.contractName}</td>
-                    <td className="py-1.5">{a.serviceName}</td>
-                    <td className="py-1.5 text-ink-secondary">{a.slaName || 'None'}</td>
-                    <td className="py-1.5">
-                      <Select
-                        aria-label={`Coverage window for ${a.contractName}: ${a.serviceName}`}
-                        className="w-60"
-                        value={a.coverageWindowId}
-                        disabled={assign.isPending}
-                        onChange={(e) => assign.mutate({ id: a.id, input: { coverageWindowId: e.target.value } })}
-                        options={options}
-                      />
-                    </td>
+          <div className="ui-table-frame">
+            <div className="overflow-x-auto">
+              <table className="ui-table" aria-label="Contract services">
+                <thead>
+                  <tr>
+                    <th>Customer</th>
+                    <th>Contract</th>
+                    <th>Service</th>
+                    <th>SLA</th>
+                    <th>Coverage window</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {pageRows.map((a) => (
+                    <tr key={a.id}>
+                      <td className="text-ink">{a.customerName || '–'}</td>
+                      <td>{a.contractName}</td>
+                      <td>{a.serviceName}</td>
+                      <td className="text-ink-secondary">{a.slaName || 'None'}</td>
+                      <td className="py-2">
+                        <Select
+                          aria-label={`Coverage window for ${a.contractName}: ${a.serviceName}`}
+                          className="w-60"
+                          value={a.coverageWindowId}
+                          disabled={assign.isPending}
+                          onChange={(e) => assign.mutate({ id: a.id, input: { coverageWindowId: e.target.value } })}
+                          options={options}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <Pagination {...pagination} />
           </div>
         )}
         <Problem error={assign.error} />

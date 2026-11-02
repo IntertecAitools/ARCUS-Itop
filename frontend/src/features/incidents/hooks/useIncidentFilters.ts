@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { parsePageSize } from '@/components/data-display';
 import { TICKET_PRIORITIES, TICKET_STATUSES } from '@/types/ticket';
 import type { TicketPriority, TicketStatus } from '@/types/ticket';
 import type { IncidentFilters, IncidentSort } from '../types';
@@ -32,6 +33,7 @@ export function useIncidentFilters() {
 
     return {
       page: Number.isInteger(page) && page > 0 ? page : 1,
+      limit: parsePageSize(params.get('limit')),
       q: params.get('q')?.trim() || undefined,
       status: readList<TicketStatus>(params.get('status'), TICKET_STATUSES),
       priority: readList<TicketPriority>(params.get('priority'), TICKET_PRIORITIES),

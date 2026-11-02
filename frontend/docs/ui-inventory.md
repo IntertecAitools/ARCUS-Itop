@@ -150,7 +150,7 @@ Totals: 10 iTop groups, 58 entries, plus the Dashboard item. 17 iTop menu nodes 
 | 3 | Error alert | Feedback | "Couldn't load incidents. …" |
 | 4 | **IncidentFilterBar** | Form controls | **Search** Input (Search icon, ✕ clear button, debounced 350 ms, "Search by reference or summary…") · **Status** Select (All statuses / New / Open / In Progress / Pending / Resolved / Closed) · **Priority** Select (All priorities / Critical / High / Medium / Low) · **Assignee** Select (Anyone / Unassigned) · **"Clear N filters"** ghost Button. All filters live in the URL |
 | 5 | **DataTable** inside a Card | Data display (table) | Columns: **ID** (link, e.g. INC-1042) · **Summary** · **Priority** (PriorityBadge) · **Operational Status** (text) · **Status** (StatusPill) · **Caller** · **Organisation** · **Assignee** (Avatar + name / "Unassigned") · **Created** (short date-time) · **⋮** row-actions IconButton. Sortable headers; clicking a row opens the detail page; 8 skeleton rows while loading |
-| 6 | **IncidentPagination** | Navigation | "1–20 of 134" · **Previous** / **Next** secondary Buttons · "page / pages" |
+| 6 | **Pagination** (shared, in the DataTable) | Navigation | "Showing 1–25 of 134" · rows-per-page Select (10 / 25 / 50 / 100) · first / previous / next / last IconButtons · "Page 1 of 6". Page and size live in the URL (`page`, `limit`) |
 | 7 | EmptyState | Feedback | "No incidents yet" + "Raise the first one" button, or "No incidents match these filters" |
 
 ### A8.2 Incident detail page — `/incidents/:id` (IncidentDetailPage)
@@ -305,7 +305,7 @@ A Card with a Compass icon, "Page not found", an explanation line and a **Go to 
 | Sidebar, ItopNavigation, Topbar, PageHeader, Breadcrumbs, Logo | layout | Layout / Navigation | see A2–A6 |
 | CommandPalette | overlays | Overlay | see A5 |
 
-Feature-local components: `FormField` (Field, Select, SectionLabel, CONTROL) and `IncidentActions`, `IncidentCaseLog`, `IncidentEditDialog`, `IncidentFilterBar`, `IncidentPagination` in incidents; `FieldControls` (FieldValue, FieldInput), `RecordForm`, `RelatedTab` in records; `Dashlet` in itop-dashboards; `AttachmentsPanel` in attachments; nine dashboard cards plus `ViewAllLink` and `ticketColumns` in dashboard.
+Feature-local components: `FormField` (Field, Select, SectionLabel, CONTROL) and `IncidentActions`, `IncidentCaseLog`, `IncidentEditDialog`, `IncidentFilterBar` in incidents; `FieldControls` (FieldValue, FieldInput), `RecordForm`, `RelatedTab` in records; `Dashlet` in itop-dashboards; `AttachmentsPanel` in attachments; nine dashboard cards plus `ViewAllLink` and `ticketColumns` in dashboard.
 
 **Scaffolded but empty feature folders** (no pages yet): auth, changes, cmdb, contacts, knowledge-base, notifications, problems, reports, search, service-catalog, settings, sla, tickets, user-requests.
 

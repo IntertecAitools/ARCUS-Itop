@@ -234,6 +234,7 @@ export function ProblemTrendsPage() {
             columns={cols}
             isLoading={isLoading || (isFetching && !data)}
             density="compact"
+            resetPageKey={filter}
             emptyTitle={filter === 'all' ? 'Nothing in this period' : 'No recurring groups'}
             emptyDescription={
               filter === 'all' ? undefined : 'Nothing has come back often enough in this period to stand out.'

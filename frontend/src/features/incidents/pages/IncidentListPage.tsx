@@ -5,6 +5,7 @@ import { PageHeader } from '@/components/layout';
 import { Avatar, Badge, buttonClasses, Card, IconButton } from '@/components/ui';
 import {
   DataTable,
+  DEFAULT_PAGE_SIZE,
   PendingNote,
   PriorityBadge,
   StatusPill,
@@ -15,7 +16,6 @@ import { shortDateTime } from '@/lib/utils';
 import { useIncidents } from '../api/useIncidents';
 import { useIncidentFilters } from '../hooks/useIncidentFilters';
 import { IncidentFilterBar } from '../components/IncidentFilterBar';
-import { IncidentPagination } from '../components/IncidentPagination';
 import type { Incident } from '../types';
 
 /**
@@ -213,24 +213,20 @@ export function IncidentListPage() {
             }
           />
         ) : (
-          <>
-            <DataTable
-              data={data?.items ?? []}
-              columns={columns}
-              isLoading={isLoading}
-              loadingRows={8}
-              onRowClick={(incident) => navigate(`/incidents/${incident.id}`)}
-            />
-            {data ? (
-              <IncidentPagination
-                page={data.page}
-                pages={data.pages}
-                total={data.total}
-                limit={data.limit}
-                onPage={(page) => update({ page })}
-              />
-            ) : null}
-          </>
+          <DataTable
+            data={data?.items ?? []}
+            columns={columns}
+            isLoading={isLoading}
+            loadingRows={8}
+            onRowClick={(incident) => navigate(`/incidents/${incident.id}`)}
+            pagination={{
+              page: filters.page,
+              pageSize: filters.limit ?? DEFAULT_PAGE_SIZE,
+              total: data?.total ?? 0,
+              onPageChange: (page) => update({ page }),
+              onPageSizeChange: (limit) => update({ limit }),
+            }}
+          />
         )}
       </Card>
     </>

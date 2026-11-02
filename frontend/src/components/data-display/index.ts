@@ -3,6 +3,8 @@ export * from './DataTable';
 export * from './DonutChart';
 export * from './KpiCard';
 export * from './OperationalStatusPill';
+export * from './Pagination';
+export * from './usePagedRows';
 export * from './PriorityBadge';
 export * from './Sparkline';
 export * from './StatusPill';

@@ -33,6 +33,16 @@ export const ar: Messages = {
     goodAfternoon: 'مساء الخير',
     goodEvening: 'مساء الخير',
   },
+  pagination: {
+    label: 'التنقل بين الصفحات',
+    showing: 'عرض {{first}}–{{last}} من {{total}}',
+    rowsPerPage: 'صفوف لكل صفحة',
+    pageOf: 'الصفحة {{page}} من {{pages}}',
+    first: 'الصفحة الأولى',
+    previous: 'الصفحة السابقة',
+    next: 'الصفحة التالية',
+    last: 'الصفحة الأخيرة',
+  },
   shell: {
     skipToContent: 'انتقل إلى المحتوى',
     openMenu: 'فتح القائمة',
@@ -292,9 +302,6 @@ export const ar: Messages = {
       noOpen: 'لا توجد طلبات مفتوحة',
       noClosed: 'لا توجد طلبات مغلقة',
       emptyOpen: 'قدّم طلبًا وسيظهر هنا.',
-      page: 'الصفحة {{page}} من {{pages}}',
-      previous: 'السابق',
-      next: 'التالي',
     },
   },
   dashboard: {

@@ -12,11 +12,11 @@ import type {
 /** The self-service API: the BFF scopes every call to the signed-in end user. */
 const base = '/portal';
 
-export function useMyRequests(state: 'open' | 'closed', page: number, q: string) {
+export function useMyRequests(state: 'open' | 'closed', page: number, q: string, limit = 25) {
   return useQuery({
-    queryKey: ['portal', 'requests', state, page, q],
+    queryKey: ['portal', 'requests', state, page, limit, q],
     queryFn: () =>
-      apiClient.get<PortalTicketList>(`${base}/requests`, { query: { state, page, q: q || undefined } }),
+      apiClient.get<PortalTicketList>(`${base}/requests`, { query: { state, page, limit, q: q || undefined } }),
     placeholderData: (previous) => previous,
   });
 }

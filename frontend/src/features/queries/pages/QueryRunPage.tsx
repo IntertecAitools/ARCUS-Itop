@@ -3,6 +3,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Pencil } from 'lucide-react';
 import { PageHeader } from '@/components/layout';
 import { buttonClasses, Card, Skeleton } from '@/components/ui';
+import { DEFAULT_PAGE_SIZE, parsePageSize } from '@/components/data-display';
 import { ExportMenu, useClassInfo } from '@/features/records';
 import { useExportQuery, useQueryResults, useSavedQuery } from '../api/queries.api';
 import { ResultsTable } from '../components/ResultsTable';
@@ -13,12 +14,20 @@ export function QueryRunPage() {
   const { id = '' } = useParams();
   const [params, setParams] = useSearchParams();
   const page = Math.max(1, Number(params.get('page')) || 1);
+  const limit = parsePageSize(params.get('limit'));
+  // Page and size both live in the URL, so a page of results can be shared.
+  const go = (next: number, size = limit) => {
+    const search: Record<string, string> = {};
+    if (next > 1) search.page = String(next);
+    if (size !== DEFAULT_PAGE_SIZE) search.limit = String(size);
+    setParams(search, { replace: true });
+  };
 
   const { data: query, isLoading: queryLoading, isError, error } = useSavedQuery(id);
   const { data: info } = useClassInfo(query?.recordType ?? '');
   const columns = useMemo(() => (info && query ? resultColumns(query.columns, info) : []), [info, query]);
   const fields = info && columns.length ? resultFields(info, columns) : undefined;
-  const results = useQueryResults(query?.runnable ? query.id : undefined, page, fields);
+  const results = useQueryResults(query?.runnable ? query.id : undefined, page, fields, limit);
   const exporter = useExportQuery({ id: query?.id ?? 0, name: query?.name ?? '' });
 
   if (queryLoading) return <Skeleton className="h-96 w-full" />;
@@ -85,7 +94,9 @@ export function QueryRunPage() {
               result={results.data}
               isLoading={results.isLoading || !fields}
               page={page}
-              onPage={(next) => setParams(next > 1 ? { page: String(next) } : {}, { replace: true })}
+              pageSize={limit}
+              onPage={(next) => go(next)}
+              onPageSize={(size) => go(1, size)}
             />
           ) : (
             <Skeleton className="m-4 h-64" />

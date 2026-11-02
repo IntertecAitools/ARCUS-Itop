@@ -63,13 +63,13 @@ export function ChangeRulesPage() {
                 save.mutate(draft);
               }}
             >
-              <div className="overflow-x-auto">
-                <table className="w-full text-[13px]">
+              <div className="ui-table-frame overflow-x-auto">
+                <table className="ui-table">
                   <thead>
-                    <tr className="border-b border-line text-start text-ink-muted">
-                      <th className="py-2 pe-4 font-medium">Change type</th>
+                    <tr>
+                      <th>Change type</th>
                       {PLAN_KINDS.map((k) => (
-                        <th key={k} className="py-2 pe-4 font-medium">
+                        <th key={k}>
                           {PLAN_LABEL[k]}
                         </th>
                       ))}
@@ -77,12 +77,12 @@ export function ChangeRulesPage() {
                   </thead>
                   <tbody>
                     {CHANGE_TYPES.map((type) => (
-                      <tr key={type} className="border-b border-line last:border-0">
-                        <th scope="row" className="py-2 pe-4 text-start font-medium text-ink">
+                      <tr key={type}>
+                        <th scope="row" className="font-medium text-ink">
                           {TYPE_LABEL[type]}
                         </th>
                         {PLAN_KINDS.map((kind) => (
-                          <td key={kind} className="py-2 pe-4">
+                          <td key={kind} className="py-2">
                             <Select
                               aria-label={`${TYPE_LABEL[type]}: ${PLAN_LABEL[kind]}`}
                               className="w-52"

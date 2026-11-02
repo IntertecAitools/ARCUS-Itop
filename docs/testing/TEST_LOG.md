@@ -4,6 +4,22 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-11-02 — Table padding and one shared pager for every list
+
+Branch `claude/tables-padding-pagination-0cc957`. Shared `Pagination` (10/25/50/100, "Showing X–Y of Z", first/prev/next/last), `DataTable` cells `px-4 py-3` with a sunken header and built-in paging, `.ui-table` for hand-written tables, `usePagedRows` for client paging.
+
+| What ran | Result |
+|---|---|
+| `npm run typecheck` | ✅ after one fix (`MajorIncidentPanel` builds `IncidentFilters` without `limit`; made it optional) |
+| `npm test` (whole suite) | 281/282; `ProblemAnalysisPanel` "saves the analysis…" timed out at 20 s under load, as logged before. Passes alone on this branch (12 s) and on `main` |
+| New `Pagination.test.tsx` + `a11y.test.tsx` | ✅ 12/12 |
+| `npm run e2e` (mock, port 5694) | First try: Playwright's 360 s web-server timeout hit during the build. Pre-built `dist-e2e`, served it, reran: 26/29; the 3 failures were a11y timeouts. Rerun of `a11y.spec.ts`: 10/12, again timeouts only, on different tests (the 3 earlier ones passed). Rerun of the sign-in checks: 4/4. No axe violation in any run |
+| Browser, mock dev server (Playwright script) | Before/after screenshots at 1440 px and 390 px of incidents, records, knowledge, notifications, audit, business hours, portal requests; portal paged to 10 rows, page 2 of 5 |
+
+Bugs found: none in the product. The portal mock ignored `page`/`limit` (always one page); it now pages like the BFF.
+
+Not covered: the live stack (`npm run e2e:live`); the users list in mock mode (no mock for `/admin/users`); RTL screenshots of the pager.
+
 ### 2026-11-02 — Resolved tickets close by themselves (auto-close), with a reminder first
 
 Branch `claude/auto-close-resolved-3b62f3`. New BFF module `modules/auto-close`, admin page **Auto-close** (`/auto-close`).

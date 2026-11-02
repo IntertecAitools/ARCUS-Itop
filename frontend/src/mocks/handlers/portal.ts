@@ -95,9 +95,20 @@ const PRIORITY: Record<string, PortalTicket['priority']> = { '1': 'critical', '2
 
 export const portalHandlers = [
   http.get(url('/portal/requests'), ({ request }) => {
-    const closed = new URL(request.url).searchParams.get('state') === 'closed';
-    const items = tickets.filter((t) => t.closed === closed).map(summary);
-    return HttpResponse.json({ items, total: items.length, page: 1, pages: 1 });
+    const search = new URL(request.url).searchParams;
+    const closed = search.get('state') === 'closed';
+    const page = Number(search.get('page')) || 1;
+    const limit = Number(search.get('limit')) || 20;
+    const q = search.get('q')?.toLowerCase();
+    const all = tickets
+      .filter((t) => t.closed === closed && (!q || `${t.ref} ${t.title}`.toLowerCase().includes(q)))
+      .map(summary);
+    return HttpResponse.json({
+      items: all.slice((page - 1) * limit, page * limit),
+      total: all.length,
+      page,
+      pages: Math.max(1, Math.ceil(all.length / limit)),
+    });
   }),
   http.get(url('/portal/requests/:id'), ({ params }) => {
     const ticket = tickets.find((t) => t.id === Number(params.id));
