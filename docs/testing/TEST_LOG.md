@@ -19,7 +19,10 @@ What changed (branch `claude/rca-bedrock`):
 - Credentials are resolved by the Bedrock SDK: `AWS_BEARER_TOKEN_BEDROCK`, or AWS keys, profile or role. The region comes from `AWS_REGION`, the model from `BEDROCK_MODEL_ID` (e.g. `anthropic.claude-sonnet-5`).
 - The request is the same structured-JSON, adaptive-thinking, effort call, without the server-side fallback, which Bedrock does not offer. A decline is reported on screen.
 
-Not covered: no live call to Bedrock; the user's token isn't in this checkout. Check after adding it: Problems → a problem → Root cause analysis → "Draft with AI".
+Live, 2026-11-02, against the user's Bedrock (us-east-1, `anthropic.claude-sonnet-5`, Bedrock API key in git-ignored `backend/.env`), as `e2e.rights.problem`:
+- `POST /api/problems/11/rca-draft` returned 200 in 21 s.
+- The answer was a valid draft (root cause, empty workaround, next steps, confidence `low` with a note, citations P-000011 and I-000009, model `claude-sonnet-5`, no redactions needed). P-000011 is a seeded test record, so "not enough evidence" was the right answer.
+- First try was a 401 "Invalid bearer token": the `.env` line read `AWS_BEARER_TOKEN_BEDROCK=AWS_BEARER_TOKEN_BEDROCK=<token>`. Fixing the line fixed it. The screen showed the generic upstream error and the BFF log named the variable to check.
 
 ### 2026-10-30 — Approval extension installed on the shared local iTop (:8080)
 
