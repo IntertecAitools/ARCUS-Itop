@@ -134,6 +134,11 @@ export interface Config {
   selfRegistration?: boolean;
   /** Email-to-ticket from a support mailbox (modules/mail-intake). Off when absent. */
   mailIntake?: MailIntakeConfig;
+  /**
+   * How often resolved tickets are checked for closing by themselves
+   * (modules/auto-close), from AUTO_CLOSE_CHECK_MINUTES. 0 or absent: never.
+   */
+  autoCloseIntervalMs?: number;
   /** Root-cause help on problems (modules/problems). Defaults apply when absent. */
   rca?: RcaConfig;
   auth: {
@@ -655,6 +660,7 @@ export function loadConfig(envFile = resolve(PACKAGE_ROOT, ".env")): Config {
     tenancy: tenancyConfig(sessionStore),
     selfRegistration: optional("SELF_REGISTRATION", "off").toLowerCase() === "on",
     ...(mailIntakeConfig() ? { mailIntake: mailIntakeConfig()! } : {}),
+    autoCloseIntervalMs: integer("AUTO_CLOSE_CHECK_MINUTES", 60, 0, 1_440) * 60_000,
     rca: rcaConfig(),
     auth: {
       required: optional("AUTH_REQUIRED", "true").toLowerCase() !== "false",

@@ -1,4 +1,5 @@
 import { approvalHandlers } from './approvals';
+import { autoCloseHandlers } from './auto-close';
 import { authHandlers } from './auth';
 import { changeHandlers } from './changes';
 import { dashboardHandlers } from './dashboard';
@@ -18,4 +19,4 @@ import { businessHoursHandlers, slaHandlers } from './sla';
 import { tenantAdminHandlers } from './tenant-admin';
 
 /** Every mock handler in the app. Append a module's handlers as it lands. */
-export const handlers = [...approvalHandlers, ...authHandlers, ...changeHandlers, ...dashboardHandlers, ...dataImportHandlers, ...dispatchHandlers, ...inboxHandlers, ...incidentHandlers, ...knowledgeHandlers, ...mailIntakeHandlers, ...notificationHandlers, ...portalHandlers, ...problemHandlers, ...recordHandlers, ...requestFormHandlers, ...slaHandlers, ...businessHoursHandlers, ...ticketHandlingHandlers, ...tenantAdminHandlers];
+export const handlers = [...approvalHandlers, ...authHandlers, ...autoCloseHandlers, ...changeHandlers, ...dashboardHandlers, ...dataImportHandlers, ...dispatchHandlers, ...inboxHandlers, ...incidentHandlers, ...knowledgeHandlers, ...mailIntakeHandlers, ...notificationHandlers, ...portalHandlers, ...problemHandlers, ...recordHandlers, ...requestFormHandlers, ...slaHandlers, ...businessHoursHandlers, ...ticketHandlingHandlers, ...tenantAdminHandlers];

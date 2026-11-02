@@ -70,6 +70,7 @@ export const en = {
     'data-import': 'Data import',
     'business-hours': 'Business hours',
     'assignment-rules': 'Assignment rules',
+    'auto-close': 'Auto-close',
     'change-rules': 'Change plan rules',
     audit: 'Audit',
     groups: {

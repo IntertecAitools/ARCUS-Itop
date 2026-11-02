@@ -476,8 +476,7 @@ Without a shared iTop, run one from this repository's own `iTop/` copy:
    `URP_UserProfile` linking `admin` to that profile) does.
 4. `cp .env.example .env`, set `ITOP_USER`/`ITOP_PASSWORD` to that account,
    `npm run dev`, then `npm run smoke` and `npm run api:check`.
-5. iTop's background jobs (`cron.php`: TTO/TTR escalations, auto-close,
-   queued email, the bell's newsroom) run in `itop-local-cron`, started by
+5. iTop's background jobs (`cron.php`: TTO/TTR escalations, queued email, the bell's newsroom) run in `itop-local-cron`, started by
    the same compose file as the account in `backend/.env`
    (`ITOP_USER`/`ITOP_PASSWORD`, an Administrator). Without it no SLA
    threshold ever fires. Start it alone with
@@ -1339,6 +1338,54 @@ re-dispatch, Assign from Dispatched, and the team emails. Its accounts
 are made on the first run and kept (`"dispatch"` in `backend/e2e.local.json`);
 its tickets are deleted and the rules put back at the end.
 
+## Closing resolved tickets automatically
+
+A resolved request or incident closes by itself when the customer neither
+confirms nor reopens it in time (`modules/auto-close/`). iTop declares an
+internal `ev_autoclose` stimulus on both classes but gives it no transition
+and never applies it, and `cron.php` has no such job, so without this a
+resolved ticket stayed Resolved forever.
+
+| | |
+| --- | --- |
+| `GET` / `PUT /api/admin/auto-close` | `{ enabled, days, requests, incidents, remind, remindDaysBefore }`, plus `mailConfigured`, `checkEveryMinutes`, `updatedAt`, `updatedBy` and `lastRun` (this tenant's last check since the server started) on read. 400 unless `1 ≤ days ≤ 365` and, with `remind`, `remindDaysBefore < days` |
+| `POST /api/admin/auto-close/run` | One check now, for the caller's tenant: `{ startedAt, finishedAt, outcomes: [{ class, id, ref, action: closed \| reminded \| failed, reason? }], truncated, error? }` |
+
+**Defaults** (until an administrator saves, on the **Auto-close** page):
+on, 7 calendar days, requests and incidents, a reminder 2 days before. They
+live in `DEFAULT_AUTO_CLOSE` (`auto-close.service.ts`). Stored per tenant
+("" without tenancy) in the BFF database (`bff_documents`, kind
+`auto-close`), or in memory with `SESSION_STORE=memory`.
+
+**The check.** The BFF runs it at start and then every
+`AUTO_CLOSE_CHECK_MINUTES` (default 60; 0 = never, "Run now" still works),
+outside any request, as the service account: per active tenant with its
+settings, then once ("" settings) for organisations no tenant owns. It reads
+`status = 'resolved' AND resolution_date < now − days` (iTop's clock), up to
+500 per class per check, and applies `ev_close` with a public-log note
+"Closed automatically after N days with no reply from the customer." It uses
+`ev_autoclose` instead if the iTop lifecycle has a resolved → closed
+transition for it (an extension could add one). A ticket that changed in the
+meantime (the customer reopened or closed it) fails alone and is reported;
+the others still close.
+
+**The customer stays in charge until then.** Confirm (`ev_close`) and reopen
+(`ev_reopen`) in the portal work as before. Reopening leaves Resolved;
+resolving again sets a new `resolution_date`, so the count starts over.
+Closed has no transitions: it is final. A comment alone does not stop the
+count.
+
+**The reminder.** With `remind` on and a mail server configured, the caller
+(their Person's email) gets one email `remindDaysBefore` days before the
+ticket closes, subject `[ref] Resolved: title` (a reply lands on the ticket
+through email to ticket), with the closing day and a link to
+`APP_BASE_URL/portal/requests/:id`. It is sent once per resolution (kept in
+`bff_documents`, kind `auto-close-reminded`); a caller without an address is
+reported once. A ticket already past its delay when the feature is turned on
+closes without a reminder.
+
+Run one BFF: two would both check, and a reminder could go twice.
+
 ## Ticket handling: priority override, duplicates, cancel, worklogs, drafts
 
 Five things staff (and, for cancel and drafts, requesters) do to incidents
@@ -1982,6 +2029,7 @@ finding out via a 404.
 | `npm run e2e:rca` | live root-cause evidence: impact chain, changes in and out of the look-back, ranking, rights (BFF on :4090, MFA on; accounts in `backend/e2e.local.json` under `"rca"`, see "Problems"). Creates and deletes its own records |
 | `npm run e2e:sla` | live SLA dashboard: within / at risk / breached from real stopwatches, breakdowns, drill-down (BFF on :4040, MFA on; account in `backend/e2e.local.json` under `"sla"`, see "SLA dashboard"). Creates and deletes its own records; takes about two minutes |
 | `npm run e2e:business-hours` | live business hours: coverage windows, holidays and contract services, and iTop's deadlines in working time (BFF on :4040; checks the 409s only on an iTop without Combodo's business-hours modules; see "Business hours") |
+| `npm run e2e:auto-close` | live auto-close: reminder (Mailpit), closing with the log note, confirm-first left alone, closed is final. Talks to iTop directly (no BFF) with the job's clock moved on, in an organisation of its own ("E2E auto-close"). Deletes its own tickets |
 | `npm run e2e:ticket-handling` | live priority override, duplicates (suggested, marked from Dispatched), cancel (staff and portal), worklogs and drafts (BFF on :4070, MFA on; reuses `e2e:dispatch`'s accounts and makes a portal account the first time, both in `backend/e2e.local.json`). Removes its own tickets, entries and drafts |
 | `npm run e2e:requests` | live request forms + target date check (BFF on :4040 with `MFA_REQUIRED=off`, or `E2E_STAFF_TOTP_SECRET`; `E2E_STAFF_PASSWORD`) |
 
