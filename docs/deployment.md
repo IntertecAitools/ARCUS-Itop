@@ -109,7 +109,16 @@ docker compose -f docker/docker-compose.prod.yml --env-file docker/prod.env rest
    database `ITOP_DB_NAME`, the administrator `ITOP_ADMIN_USER`,
    `ITOP_APP_ROOT_URL`, and the same 46 modules as the local install: CMDB,
    ITIL user requests and incidents, service management, changes, problems,
-   known errors, FAQ, the portal base. No sample data.
+   known errors, FAQ, the portal base. No sample data. **Plus the platform's
+   iTop extensions**, baked into the image from `itop-extensions/`:
+   `arcus-incident-extras` (pending reason, next-action date, major
+   incidents), `arcus-problem-rca` (root cause fields), `arcus-change-cab`
+   (CAB decisions, plan rules), `arcus-ticket-dispatch` (dispatch to a team),
+   Combodo's business hours (`combodo-sla-computation`,
+   `combodo-coverage-windows-computation`) and Combodo's approvals
+   (`approval-base`, `combodo-approval-extended`, `itop-approval-portal`).
+   The install runs in three passes, because iTop 3.4 can't install the
+   approval modules in one; this is why it takes a few minutes longer.
 2. Runs `docker/itop-prod/configure.php`, which sets in iTop's
    `config-itop.php` the `timezone` (`ITOP_TIMEZONE`), the SMTP settings
    (`ITOP_SMTP_*`, `email_transport = SMTP`), the sender
@@ -127,6 +136,21 @@ half-written), and pauses again whenever `itop-setup` runs.
 `itop-setup` is safe to run again: on an installed iTop it only re-applies
 step 2, so after changing the time zone, mail settings or `ITOP_PASSWORD`,
 run it again and restart `itop itop-cron bff`.
+
+### Operator commands in the BFF container
+
+Two one-off commands ship with the BFF image (`backend/src/cli/`), run with
+the same settings as the BFF:
+
+```bash
+# Approval notifications (approver email, bell entry, approved/rejected mails).
+# Once per iTop, and again after changing APP_BASE_URL or the sender.
+docker compose -f docker/docker-compose.prod.yml --env-file docker/prod.env exec bff node dist/cli/approvals-setup.js
+
+# Tenants (TENANCY=on): list, add or change a customer, enable / disable.
+docker compose -f docker/docker-compose.prod.yml --env-file docker/prod.env exec bff node dist/cli/tenants.js list
+docker compose -f docker/docker-compose.prod.yml --env-file docker/prod.env exec bff node dist/cli/tenants.js set acme --name "Acme" --domain acme.servicedesk.example.com --org 12 --org 13
+```
 
 Check:
 
@@ -383,9 +407,14 @@ Sessions live in MySQL, so a restart signs nobody out (unless
 `SESSION_SECRET` changed). A new frontend is picked up on the next page load
 because `index.html` is never cached.
 
-When the update changes `iTop/` (a new iTop version, modules added) the
-compiled data model in the `itop-env` volume is out of date. Take a backup,
-then upgrade iTop's install:
+When the update changes `iTop/` or `itop-extensions/` (a new iTop version,
+an extension changed or added) the compiled data model in the `itop-env`
+volume is out of date. Take a backup, then upgrade iTop's install. The
+upgrade uses the same module list as the install
+(`docker/itop-prod/install.xml.tpl`), so it keeps every extension: **an
+upgrade that leaves an installed module out of that list uninstalls it**, so
+a new extension is added to the list, and none is ever removed from it
+without a migration plan.
 
 ```bash
 docker compose -f docker/docker-compose.prod.yml --env-file docker/prod.env exec -u www-data itop itop-setup --upgrade

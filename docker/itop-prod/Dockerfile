@@ -59,6 +59,10 @@ RUN a2enconf itop && a2disconf other-vhosts-access-log
 # to are www-data's. They are volumes, so an empty volume starts with this
 # ownership.
 COPY --chown=root:root iTop/ /var/www/html/
+# The platform's iTop extensions (incident extras, problem RCA, change CAB,
+# team dispatch, Combodo's business hours and approvals). install.xml.tpl
+# lists their modules, so itop-setup installs them and upgrades keep them.
+COPY --chown=root:root itop-extensions/ /var/www/html/extensions/
 # The base image leaves /var/www/html world-writable and www-data's.
 # env-production-build is the setup's scratch copy of the compiled data model
 # (emptied once copied into env-production), so it needs no volume.

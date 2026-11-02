@@ -4,6 +4,25 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-11-02 — Production image ships every iTop extension
+
+Throwaway production stack (`docker-compose.prod.yml`, project `arcus-exttest`, random secrets), built from branch `claude/prod-extensions`.
+
+| What ran | Result |
+|---|---|
+| `docker compose ... up -d --build` | All images built; stack healthy |
+| `itop-setup` (fresh install, 3 passes) | iTop installed; all 9 extension modules present (`priv_module_install`) |
+| `itop-setup --upgrade` | Upgrade done; same 9 modules, same versions afterwards |
+| `node dist/cli/approvals-setup.js` in bff | Trigger and requester rules created |
+| `node dist/cli/tenants.js list` in bff | Runs (prints the TENANCY=on hint, as expected with tenancy off) |
+| `GET /` on the web container | 200 |
+
+Bugs found:
+- A first setup run failed creating the service account: the test password had no upper case or symbol, and iTop rejects that. Not a product bug, but the rule (12+ characters, upper and lower case, digit, symbol) is now written next to `ITOP_PASSWORD` and `ITOP_ADMIN_PASSWORD` in the env examples.
+- The first `up` could not publish the web port because 8098 was taken on this laptop; the retry used 8099.
+
+Not covered: TLS/reverse proxy, mail, a real tenancy run (`TENANCY=on`).
+
 ### 2026-10-30 — RCA "Draft with AI" on Amazon Bedrock
 
 The user runs Claude Sonnet 5 on Amazon Bedrock with a Bedrock API key. The AI draft could only use the Claude API (`ANTHROPIC_API_KEY`).

@@ -6,11 +6,14 @@
 #     exec -u www-data itop itop-setup
 #
 # 1. When iTop has no configuration yet: an unattended install from
-#    install.xml.tpl (the same 46 modules as the local install) into the empty
-#    database ITOP_DB_NAME, with the administrator ITOP_ADMIN_USER.
+#    install.xml.tpl (iTop's 46 standard modules plus the platform's
+#    extensions: arcus-*, business hours, approvals) into the empty database
+#    ITOP_DB_NAME, with the administrator ITOP_ADMIN_USER. Three passes; see
+#    the end of step 1 below.
 #    With --upgrade on an installed iTop: the same response file in upgrade
 #    mode, which recompiles env-production/ and migrates the database. Needed
-#    after a new image brings a changed iTop/ (new iTop version, modules).
+#    after a new image brings a changed iTop/ or itop-extensions/. It keeps
+#    every module in the list, so it never uninstalls an extension.
 # 2. Every time: configure.php applies the time zone, the mail settings and
 #    the accounts the platform needs (the BFF's service account with
 #    Administrator + REST Services User; REST Services User for the
@@ -47,8 +50,21 @@ if [ -n "$MODE" ]; then
     : "${ITOP_ADMIN_PASSWORD:?ITOP_ADMIN_PASSWORD is not set}"
     RESPONSE=$(mktemp /tmp/itop-install.XXXXXX.xml)
     trap 'rm -f "$RESPONSE"' EXIT
+    # One run of the unattended installer. $1 = install | upgrade; $2 =
+    # "first" to leave combodo-approval-extended out (see install.xml.tpl).
+    run_pass() {
+        render "$1" "${2:-}"
+        echo "itop-setup: $1 of iTop${2:+ (first pass)}, database ${ITOP_DB_NAME:-itop} on ${ITOP_DB_HOST:-db} (takes a few minutes)"
+        (cd "$ROOT/setup/unattended-install" && php unattended-install.php --param-file="$RESPONSE")
+        echo
+        if [ ! -f "$CONF" ]; then
+            echo "itop-setup: the $1 did not write $CONF; see $ROOT/log/setup.log" >&2
+            exit 1
+        fi
+    }
     # PHP renders the template so every value is escaped for XML.
     # shellcheck disable=SC2016 # PHP code, not shell
+    render() {
     php -r '
         $v = [
             "MODE"           => $argv[2],
@@ -66,16 +82,22 @@ if [ -n "$MODE" ]; then
         ];
         $s = file_get_contents("/opt/arcus/install.xml.tpl");
         foreach ($v as $k => $x) { $s = str_replace("{{".$k."}}", htmlspecialchars($x, ENT_XML1 | ENT_QUOTES), $s); }
+        if ($argv[4] === "first") { $s = str_replace("<item>combodo-approval-extended</item>", "", $s); }
         file_put_contents($argv[1], $s);
-    ' "$RESPONSE" "$MODE" "$CONF"
-    echo "itop-setup: $MODE of iTop, database ${ITOP_DB_NAME:-itop} on ${ITOP_DB_HOST:-db} (takes a few minutes)"
-    cd "$ROOT/setup/unattended-install"
-    php unattended-install.php --param-file="$RESPONSE"
-    echo
-    if [ ! -f "$CONF" ]; then
-        echo "itop-setup: the install did not write $CONF; see $ROOT/log/setup.log" >&2
-        exit 1
+    ' "$RESPONSE" "$1" "$CONF" "$2"
+    }
+
+    # iTop 3.4 installs Combodo's approvals in three passes: approval-base
+    # first (its installer needs its classes loaded before
+    # combodo-approval-extended's runs), then the whole list twice (the
+    # compiled schema lags one pass). An upgrade runs the whole list twice.
+    if [ "$MODE" = install ]; then
+        run_pass install first
+    else
+        run_pass upgrade
     fi
+    run_pass upgrade
+    run_pass upgrade
 fi
 
 php /opt/arcus/configure.php
