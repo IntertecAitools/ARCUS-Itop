@@ -1,0 +1,690 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<itop_design xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="3.1">
+  <classes>
+    <class id="UserRequest" _created_in="itop-request-mgmt" _delta="must_exist">
+      <fields>
+        <field id="approver_id" xsi:type="AttributeExternalKey" _delta="delete"/>
+        <field id="approver_email" xsi:type="AttributeExternalField" _delta="delete"/>
+      </fields>
+      <lifecycle>
+        <stimuli>
+          <stimulus id="ev_approve" xsi:type="StimulusInternal" _delta="redefine"/>
+          <stimulus id="ev_reject" xsi:type="StimulusInternal" _delta="redefine"/>
+          <stimulus id="ev_wait_for_approval" xsi:type="StimulusInternal" _delta="redefine"/>
+        </stimuli>
+        <states>
+          <state id="new" _delta="must_exist">
+            <flags>
+              <attribute id="approver_id" _delta="delete"/>
+            </flags>
+          </state>
+          <state id="assigned" _delta="must_exist">
+            <flags>
+              <attribute id="approver_id" _delta="delete"/>
+            </flags>
+          </state>
+          <state id="waiting_for_approval" _delta="must_exist">
+            <flags>
+              <attribute id="approver_id" _delta="delete"/>
+            </flags>
+          </state>
+          <state id="approved" _delta="must_exist">
+            <flags>
+              <attribute id="approver_id" _delta="delete"/>
+            </flags>
+          </state>
+        </states>
+      </lifecycle>
+      <event_listeners>
+        <event_listener id="HideTransitionsIfApprovalRule" _delta="define">
+          <event>EVENT_ENUM_TRANSITIONS</event>
+          <rank>10</rank>
+          <callback>HideTransitionsIfApprovalRule</callback>
+        </event_listener>
+      </event_listeners>
+      <methods>
+        <method id="HideTransitionsIfApprovalRule" _delta="define">
+          <comment>/**
+            * If an approval rule could apply to the current object, hide all transitions
+            * As the service and service subcategory are not yet set, we can't determine if the approval rule will really apply
+            * So we hide all transitions if the object is new and in a state where an approval rule could apply
+            */</comment>
+          <static>false</static>
+          <access>public </access>
+          <code><![CDATA[public function HideTransitionsIfApprovalRule(Combodo\iTop\Service\Events\EventData $oEventData)
+	{
+        $sTargetState = MetaModel::GetConfig()->GetModuleSetting('combodo-approval-extended', 'target_state', 'new');
+        if (($this->Get('status') === $sTargetState) && $this->IsNew()) {
+            $oSet = new DBObjectSet(new DBObjectSearch('ApprovalRule'));
+            $iNbRules = $oSet->Count();
+            if ($iNbRules > 0) {
+                IssueLog::Debug("UserRequest::HideTransitionsIfApprovalRule - There are: ".$iNbRules." rules for UserRequest created in state: ".$sTargetState.", so all transitions are hidden", 'combodo-approval-extended');
+                foreach ($oEventData->Get('allowed_stimuli') as $sTransition) {
+                    if ($sTransition === 'ev_wait_for_approval') {
+                        continue;
+                    }
+                    $this->DenyTransition($sTransition);
+                }
+            }
+        }
+	}]]></code>
+        </method>
+      </methods>
+      <presentation>
+        <details>
+          <items>
+            <item id="col:col2">
+              <items>
+                <item id="fieldset:Ticket:contact">
+                  <items>
+                    <item id="approver_id" _delta="delete"/>
+                  </items>
+                  <rank>20</rank>
+                </item>
+              </items>
+            </item>
+          </items>
+        </details>
+      </presentation>
+    </class>
+    <class id="ApprovalRule" _delta="define">
+      <parent>cmdbAbstractObject</parent>
+      <properties>
+        <category>bizmodel,searchable</category>
+        <abstract>false</abstract>
+        <key_type>autoincrement</key_type>
+        <db_table>approval_rule</db_table>
+        <db_key_field>id</db_key_field>
+        <db_final_class_field/>
+        <naming>
+          <format>%1$s</format>
+          <attributes>
+            <attribute id="name"/>
+          </attributes>
+        </naming>
+        <style>
+          <icon>images/rule.png</icon>
+        </style>
+        <reconciliation>
+          <attributes>
+            <attribute id="name"/>
+          </attributes>
+        </reconciliation>
+      </properties>
+      <fields>
+        <field id="name" xsi:type="AttributeString">
+          <sql>name</sql>
+          <default_value/>
+          <is_null_allowed>false</is_null_allowed>
+        </field>
+        <field id="description" xsi:type="AttributeText">
+          <sql>description</sql>
+          <default_value/>
+          <is_null_allowed>true</is_null_allowed>
+        </field>
+        <field id="level1_rule" xsi:type="AttributeOQL">
+          <sql>level1_rule</sql>
+          <default_value/>
+          <is_null_allowed>false</is_null_allowed>
+        </field>
+        <field id="level1_default_approval" xsi:type="AttributeEnum">
+          <values>
+            <value id="yes"><code>yes</code></value>
+            <value id="no"><code>no</code></value>
+          </values>
+          <display_style>radio_horizontal</display_style>
+          <sql>level1_default_approval</sql>
+          <default_value>no</default_value>
+          <is_null_allowed>false</is_null_allowed>
+        </field>
+        <field id="level1_timeout" xsi:type="AttributeInteger">
+          <sql>level1_timeout</sql>
+          <default_value>70</default_value>
+          <is_null_allowed>false</is_null_allowed>
+        </field>
+        <field id="level1_exit_condition" xsi:type="AttributeEnum">
+          <values>
+            <value id="first_reply"><code>first_reply</code></value>
+            <value id="first_reject"><code>first_reject</code></value>
+            <value id="first_approve"><code>first_approve</code></value>
+          </values>
+          <sql>level1_exit_condition</sql>
+          <default_value>first_reply</default_value>
+          <is_null_allowed>false</is_null_allowed>
+        </field>
+        <field id="level1_substitute_query" xsi:type="AttributeOQL">
+          <sql>level1_substitute_query</sql>
+          <default_value/>
+          <is_null_allowed>true</is_null_allowed>
+        </field>
+        <field id="level1_substitute_timeout" xsi:type="AttributePercentage">
+          <sql>level1_substitute_timeout</sql>
+          <default_value/>
+          <is_null_allowed>true</is_null_allowed>
+        </field>
+        <field id="level2_rule" xsi:type="AttributeOQL">
+          <sql>level2_rule</sql>
+          <default_value/>
+          <is_null_allowed>true</is_null_allowed>
+        </field>
+        <field id="level2_default_approval" xsi:type="AttributeEnum">
+          <values>
+            <value id="yes"><code>yes</code></value>
+            <value id="no"><code>no</code></value>
+          </values>
+          <display_style>radio_horizontal</display_style>
+          <sql>level2_default_approval</sql>
+          <default_value>no</default_value>
+          <is_null_allowed>true</is_null_allowed>
+        </field>
+        <field id="level2_timeout" xsi:type="AttributeInteger">
+          <sql>level2_timeout</sql>
+          <default_value>70</default_value>
+          <is_null_allowed>true</is_null_allowed>
+        </field>
+        <field id="level2_exit_condition" xsi:type="AttributeEnum">
+          <values>
+            <value id="first_reply"><code>first_reply</code></value>
+            <value id="first_reject"><code>first_reject</code></value>
+            <value id="first_approve"><code>first_approve</code></value>
+          </values>
+          <sql>level2_exit_condition</sql>
+          <default_value>first_reply</default_value>
+          <is_null_allowed>false</is_null_allowed>
+        </field>
+        <field id="level2_substitute_query" xsi:type="AttributeOQL">
+          <sql>level2_substitute_query</sql>
+          <default_value/>
+          <is_null_allowed>true</is_null_allowed>
+        </field>
+        <field id="level2_substitute_timeout" xsi:type="AttributePercentage">
+          <sql>level2_substitute_timeout</sql>
+          <default_value/>
+          <is_null_allowed>true</is_null_allowed>
+        </field>
+        <field id="servicesubcategory_list" xsi:type="AttributeLinkedSet">
+          <linked_class>ServiceSubcategory</linked_class>
+          <ext_key_to_me>approvalrule_id</ext_key_to_me>
+          <count_min>0</count_min>
+          <count_max>0</count_max>
+          <duplicates/>
+          <edit_mode>add_remove</edit_mode>
+          <tracking_level>none</tracking_level>
+        </field>
+        <field id="coveragewindow_id" xsi:type="AttributeExternalKey">
+          <sql>coveragewindow_id</sql>
+          <target_class>CoverageWindow</target_class>
+          <is_null_allowed>false</is_null_allowed>
+          <on_target_delete>DEL_MANUAL</on_target_delete>
+          <allow_target_creation>false</allow_target_creation>
+        </field>
+        <field id="coveragewindow_name" xsi:type="AttributeExternalField">
+          <extkey_attcode>coveragewindow_id</extkey_attcode>
+          <target_attcode>name</target_attcode>
+          <is_null_allowed>true</is_null_allowed>
+        </field>
+      </fields>
+      <methods/>
+      <presentation>
+        <details>
+          <items>
+            <item id="servicesubcategory_list">
+              <rank>10</rank>
+            </item>
+            <item id="col:col1">
+              <rank>20</rank>
+              <items>
+                <item id="fieldset:ApprovalRule:baseinfo">
+                  <rank>10</rank>
+                 <items>
+		    <item id="name">
+		      <rank>10</rank>
+		    </item>
+		    <item id="description">
+		      <rank>20</rank>
+		    </item>
+		    <item id="coveragewindow_id">
+		      <rank>30</rank>
+		    </item>
+                 </items>
+                </item>
+              </items>
+            </item>
+            <item id="col:col2">
+              <rank>30</rank>
+              <items>
+                <item id="fieldset:ApprovalRule:Level1">
+                  <rank>10</rank>
+                  <items>
+                    <item id="level1_rule">
+                      <rank>10</rank>
+                    </item>
+                    <item id="level1_default_approval">
+                      <rank>20</rank>
+                    </item>
+                    <item id="level1_timeout">
+                      <rank>30</rank>
+                    </item>
+                    <item id="level1_exit_condition">
+                      <rank>40</rank>
+                    </item>
+                    <item id="level1_substitute_query">
+                      <rank>50</rank>
+                    </item>
+                    <item id="level1_substitute_timeout">
+                      <rank>60</rank>
+                    </item>
+                  </items>
+                </item>
+              </items>
+            </item>
+            <item id="col:col3">
+              <rank>30</rank>
+              <items>
+                <item id="fieldset:ApprovalRule:Level2">
+                  <rank>10</rank>
+                  <items>
+                    <item id="level2_rule">
+                      <rank>10</rank>
+                    </item>
+                    <item id="level2_default_approval">
+                      <rank>20</rank>
+                    </item>
+                    <item id="level2_timeout">
+                      <rank>30</rank>
+                    </item>
+                    <item id="level2_exit_condition">
+                      <rank>40</rank>
+                    </item>
+                    <item id="level2_substitute_query">
+                      <rank>50</rank>
+                    </item>
+                    <item id="level2_substitute_timeout">
+                      <rank>60</rank>
+                    </item>
+                  </items>
+                </item>
+              </items>
+            </item>
+          </items>
+        </details>
+        <search>
+          <items>
+            <item id="name">
+              <rank>10</rank>
+            </item>
+            <item id="description">
+              <rank>20</rank>
+            </item>
+	    <item id="coveragewindow_id">
+	      <rank>30</rank>
+	    </item>
+          </items>
+        </search>
+        <list>
+          <items>
+            <item id="description">
+              <rank>10</rank>
+            </item>
+          </items>
+        </list>
+      </presentation>
+    </class>
+    <class id="ServiceSubcategory">
+      <fields>
+        <field id="approvalrule_id" xsi:type="AttributeExternalKey" _delta="define">
+          <sql>approvalrule_id</sql>
+          <target_class>ApprovalRule</target_class>
+          <is_null_allowed>true</is_null_allowed>
+          <on_target_delete>DEL_MANUAL</on_target_delete>
+        </field>
+        <field id="approvalrule_name" xsi:type="AttributeExternalField" _delta="define">
+          <extkey_attcode>approvalrule_id</extkey_attcode>
+          <target_attcode>name</target_attcode>
+          <is_null_allowed>true</is_null_allowed>
+        </field>
+      </fields>
+      <methods/>
+      <presentation>
+        <details>
+          <items>
+            <item id="approvalrule_id" _delta="define">
+              <rank>65</rank>
+            </item>
+          </items>
+        </details>
+      </presentation>
+    </class>
+    <class id="ExtendedApprovalScheme" _delta="define">
+      <parent>ApprovalScheme</parent>
+      <properties>
+        <category></category>
+        <abstract>false</abstract>
+        <key_type>autoincrement</key_type>
+        <db_table>my_approval_scheme</db_table>
+        <db_key_field>id</db_key_field>
+        <db_final_class_field></db_final_class_field>
+        <naming>
+          <format>%1$s %2$s</format>
+          <attributes>
+            <attribute id="obj_class"/>
+            <attribute id="obj_key"/>
+          </attributes>
+        </naming>
+        <display_template></display_template>
+        <icon></icon>
+        <reconciliation>
+          <attributes>
+            <attribute id="label"/>
+          </attributes>
+        </reconciliation>
+      </properties>
+      <fields/>
+      <methods>
+        <method id="GetApprovalScheme">
+          <static>true</static>
+          <access>public</access>
+          <type>Overload-DBObject</type>
+          <code><![CDATA[	public static function GetApprovalScheme($oObject, $sReachingState)
+	{
+		$aExitConditionCodes = array(
+			'first_reply' => ApprovalScheme::EXIT_ON_FIRST_REPLY,
+			'first_reject' => ApprovalScheme::EXIT_ON_FIRST_REJECT,
+			'first_approve' => ApprovalScheme::EXIT_ON_FIRST_APPROVE,
+		);
+		if ((get_class($oObject) != 'UserRequest'))
+		{
+			return null;
+		}
+		$sTargetState = MetaModel::GetConfig()->GetModuleSetting('combodo-approval-extended', 'target_state', 'new');
+		if ($sReachingState != $sTargetState)
+		{
+			return null;
+		}
+		$sOQL = 'SELECT ApprovalRule AS ar JOIN ServiceSubcategory AS sc ON sc.approvalrule_id = ar.id WHERE sc.id = :servicesubcategory';
+		$oApprovalRuleSet = new DBObjectSet(
+			DBObjectSearch::FromOQL($sOQL),
+			array(),
+			array('servicesubcategory' => $oObject->Get('servicesubcategory_id'))
+		);
+		if ($oApprovalRuleSet->count() == 0)
+		{
+			// No approval rule applies to the current object
+			return null;
+		}
+
+		$bReusePreviousAnswers = MetaModel::GetConfig()->GetModuleSetting('combodo-approval-extended', 'reuse_previous_answers', true);
+
+		$oApprovalRule = $oApprovalRuleSet->fetch();
+		$oScheme = new ExtendedApprovalScheme();
+
+    $bStepAdded = false;
+
+    $aStep1Data = static::GetStepDataFromApprovalRule($oApprovalRule, 1);
+    if ($oScheme->AddStepFromQuery(
+			$oObject,
+			$aStep1Data['rule'],
+			$aStep1Data['timeout'],
+			$aStep1Data['default_approval'],
+			$aExitConditionCodes[$aStep1Data['exit_condition']],
+			$bReusePreviousAnswers,
+			$aStep1Data['substitute_query'],
+			$aStep1Data['substitute_timeout']
+		))
+		{
+			$bStepAdded = true;
+		}
+
+    $aStep2Data = static::GetStepDataFromApprovalRule($oApprovalRule, 2);
+		if ($oScheme->AddStepFromQuery(
+			$oObject,
+			$aStep2Data['rule'],
+			$aStep2Data['timeout'],
+			$aStep2Data['default_approval'],
+			$aExitConditionCodes[$aStep2Data['exit_condition']],
+			$bReusePreviousAnswers,
+			$aStep2Data['substitute_query'],
+			$aStep2Data['substitute_timeout']
+		))
+		{
+			$bStepAdded = true;
+		}
+
+		if ($bStepAdded)
+		{
+			$oObject->ApplyStimulus('ev_wait_for_approval');
+			return $oScheme;
+		}
+		else
+		{
+			return null;
+		}
+	}]]></code>
+        </method>
+        <method id="GetStepDataFromApprovalRule">
+          <static>true</static>
+          <access>protected</access>
+          <type>Overload-DBObject</type>
+          <code><![CDATA[
+	/**
+   * @param \ApprovalScheme $oScheme
+   * @param int $iLevel
+   * @return array{rule: string, timeout: int, default_approval: boolean, exit_condition: string, substitute_query: string, substitute_timeout: int}
+   */
+	public static function GetStepDataFromApprovalRule($oApprovalRule, $iLevel)
+	{
+	  return [
+	      'rule' => $oApprovalRule->Get("level{$iLevel}_rule"),
+	      'timeout' => $oApprovalRule->Get("level{$iLevel}_timeout") * 3600,
+	      'default_approval' => ($oApprovalRule->Get("level{$iLevel}_default_approval") == 'yes'),
+	      'exit_condition' => $oApprovalRule->Get("level{$iLevel}_exit_condition"),
+	      'substitute_query' => $oApprovalRule->Get("level{$iLevel}_substitute_query"),
+	      'substitute_timeout' => $oApprovalRule->Get("level{$iLevel}_substitute_timeout"),
+    ];
+	}]]></code>
+        </method>
+        <method id="GetPublicObjectDetails">
+          <static>false</static>
+          <access>public</access>
+          <type>Overload-DBObject</type>
+          <code><![CDATA[	public function GetPublicObjectDetails($sContactClass, $iContactId)
+	{
+		$sBody = Dict::S('Approbation:PublicObjectDetails');
+		return $sBody;
+
+	}]]></code>
+        </method>
+        <method id="GetFormBody">
+          <static>false</static>
+          <access>public</access>
+          <type>Overload-DBObject</type>
+          <code><![CDATA[	public function GetFormBody($sContactClass, $iContactId)
+	{
+		$sBody = Dict::S('Approbation:FormBody');
+		return $sBody;
+
+	}]]></code>
+        </method>
+        <method id="GetTitle">
+          <static>false</static>
+          <access>public</access>
+          <type>Overload-DBObject</type>
+          <code><![CDATA[	public function GetTitle($sContactClass, $iContactId)
+	{
+		$sValue = Dict::S('Approbation:ApprovalRequested');
+		return $sValue;
+	}]]></code>
+        </method>
+        <method id="GetIntroduction">
+          <static>false</static>
+          <access>public</access>
+          <type>Overload-DBObject</type>
+          <code><![CDATA[	public function GetIntroduction($sContactClass, $iContactId)
+	{
+		$sIntroduction = Dict::S('Approbation:Introduction');
+		return $sIntroduction;
+	}]]></code>
+        </method>
+        <method id="DoApprove">
+          <static>false</static>
+          <access>public</access>
+          <type>Overload-DBObject</type>
+          <code><![CDATA[	public function DoApprove(&$oObject)
+	{
+		$oObject->ApplyStimulus('ev_approve');
+	}]]></code>
+        </method>
+        <method id="DoReject">
+          <static>false</static>
+          <access>public</access>
+          <type>Overload-DBObject</type>
+          <code><![CDATA[	public function DoReject(&$oObject)
+	{
+		//$oObject->Set('reject_reason', "The change add been rejected");
+		$oObject->ApplyStimulus('ev_reject');
+	}]]></code>
+        </method>
+        <method id="GetWorkingTimeComputer">
+          <static>false</static>
+          <access>protected</access>
+          <type>Overload-DBObject</type>
+          <code><![CDATA[	protected function GetWorkingTimeComputer()
+	{
+		return 'ApprovalComputeWorkingHours';
+	}]]></code>
+        </method>
+        <method id="IsAllowedToSeeObjectDetails">
+          <static>false</static>
+          <access>public</access>
+          <type>Overload-DBObject</type>
+          <code>	public function IsAllowedToSeeObjectDetails($oApprover, $oObject)
+            {
+            if (is_null(UserRights::GetUserObject()))
+            {
+            // Not logged in
+            return false;
+            }
+            return true;
+            }</code>
+        </method>
+        <method id="IsAllowedToAbort">
+          <comment>/**&#13;
+            * Overridable to implement the abort feature&#13;
+            * @param oUser (implicitely the current user if null)	 &#13;
+            * Return true if the given user is allowed to abort	 &#13;
+            */</comment>
+          <static>false</static>
+          <access>public</access>
+          <type>Overload-DBObject</type>
+          <code><![CDATA[	public function IsAllowedToAbort($oUser = null)
+	{
+		if (is_null($oUser))
+		{
+			$oUser = UserRights::GetUserObject();
+		}
+		if (is_null($oUser))
+		{
+			return false;
+		}
+
+		$sAllowedProfiles = MetaModel::GetConfig()->GetModuleSetting('combodo-approval-extended', 'bypass_profiles', 'Administrator, Service Manager');
+		$aAllowed = array();
+		foreach (explode(',', $sAllowedProfiles) as $sProfileRaw)
+		{
+			$aAllowed[] = trim($sProfileRaw);
+		}
+
+		$oProfileSet = $oUser->Get('profile_list');
+		while ($oProfile = $oProfileSet->Fetch())
+		{
+			$sProfileName = $oProfile->Get('profile');
+			if (in_array($sProfileName, $aAllowed))
+			{
+				return true;
+			}
+		}
+		return false;
+	}]]></code>
+        </method>
+      </methods>
+      <presentation/>
+    </class>
+    <class id="TriggerOnApprovalRequest" _delta="must_exist">
+      <methods>
+        <method id="DoActivate" _delta="define">
+          <static>false</static>
+          <access>public</access>
+          <type>Overload-DBObject</type>
+          <code><![CDATA[
+	/**
+	 * @param array{
+	 *    'this->object()': DBObject,
+	 *    'approval_scheme->object()': DBObject,
+	 *    approval_step: int,
+	 *    'approver->object()': DBObject,
+	 *    approver_type: string,
+	 *    approval_url: string,
+	 *    approval_link: string,
+	 *    message_type: string,
+	 *    on_behalf_of: DBObject,
+   * } $aContextArgs
+	 *
+	 * @throws \ArchivedObjectException
+	 * @throws \CoreException
+	 */
+	public function DoActivate($aContextArgs)
+	{
+	  $sTargetApprovalRequest = $this->Get('target_approval_request');
+	  if ($sTargetApprovalRequest !== 'both') {
+        $bSubstitueTrigger = array_key_exists('on_behalf_of', $aContextArgs)
+            || array_key_exists('on_behalf_of->object()', $aContextArgs); // `->object()` was added in approval-base 3.2.2 (e7805ded)
+        if ((false === $bSubstitueTrigger) && ($sTargetApprovalRequest === 'substitutes')) {
+          return;
+        }
+        if (($bSubstitueTrigger) && ($sTargetApprovalRequest === 'approvers')) {
+          return;
+        }
+	  }
+	  IssueLog::Trace('TriggerOnApprovalRequest DoActivate will fire', 'notifications', [
+	      'target_approval_request' => $sTargetApprovalRequest,
+	      'email dest' => $aContextArgs['approver->object()']->Get('email'),
+      ]);
+
+	  parent::DoActivate($aContextArgs);
+	}]]></code>
+        </method>
+      </methods>
+      <presentation>
+        <details>
+          <items>
+            <item id="target_approval_request" _delta="define">
+              <rank>50</rank>
+            </item>
+          </items>
+        </details>
+      </presentation>
+    </class>
+  </classes>
+  <meta>
+    <classes>
+      <class id="ApprovalComputeWorkingHours" _delta="define">
+        <interfaces>
+          <interface id="iWorkingTimeComputer"/>
+        </interfaces>
+      </class>
+    </classes>
+  </meta>
+  <menus>
+    <menu id="ApprovalRule" xsi:type="OQLMenuNode" _delta="define">
+      <rank>15</rank>
+      <parent>ServiceManagement</parent>
+      <oql>SELECT ApprovalRule</oql>
+      <do_search>1</do_search>
+    </menu>
+      <menu id="Ongoing approval" xsi:type="WebPageMenuNode" _delta="define">
+        <rank>6</rank>
+          <parent>RequestManagement</parent>
+          <url>$pages/exec.php?exec_module=approval-base&amp;exec_page=report.php&amp;class=UserRequest&amp;do_filter_my_approvals=on</url>
+      </menu>
+  </menus>
+</itop_design>

@@ -1,6 +1,7 @@
 # Build context is the repository root; send only what the iTop image needs.
 *
 !iTop/
+!itop-extensions/
 !docker/php.ini
 !docker/itop-prod/
 

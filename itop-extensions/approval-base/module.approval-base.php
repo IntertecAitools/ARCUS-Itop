@@ -1,0 +1,81 @@
+<?php
+
+/**
+ * Copyright (C) 2013-2024 Combodo SAS
+ *
+ * This file is part of iTop.
+ *
+ * iTop is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * iTop is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ */
+
+/** @noinspection PhpUnhandledExceptionInspection */
+SetupWebPage::AddModule(
+	__FILE__, // Path to the current file, all other file names are relative to the directory containing this file
+	'approval-base/3.4.0',
+	[
+		// Identification
+		//
+		'label' => 'Approval prerequisites',
+		'category' => 'feature',
+
+		// Setup
+		//
+		'dependencies' => [
+			'itop-structure/3.1.0 || itop-portal/3.1.0',
+		],
+		'mandatory' => false,
+		'visible' => false,
+		//'installer' => 'MyInstaller',
+
+		// Components
+		//
+		'datamodel' => [
+			// Explicitly load classes from DM
+			'main.approval-base.php',
+			'model.approval-base.php',
+			// Autoloader for module classes
+			'/vendor/autoload.php',
+			// Must be explicitly loaded to register its routes
+			'autoload-for-portal.php',
+		],
+		'webservice' => [
+
+		],
+		'data.struct' => [
+			// add your 'structure' definition XML files here,
+		],
+		'data.sample' => [
+			// add your sample data XML files here,
+		],
+
+		// Documentation
+		//
+		'doc.manual_setup' => '', // hyperlink to manual setup documentation, if any
+		'doc.more_information' => '', // hyperlink to more information, if any
+
+		// Security
+		'delegated_authentication_endpoints' => [
+			'approve.php',
+		],
+
+		// Default settings
+		//
+		'settings' => [
+			'email_sender' => '',
+			'email_reply_to' => '',
+			'comment_attcode' => '',
+			'list_last_first' => false,
+			'enable_reminder' => true,
+		],
+	]
+);

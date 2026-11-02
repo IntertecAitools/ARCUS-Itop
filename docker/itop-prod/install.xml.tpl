@@ -3,7 +3,15 @@
      itop-setup fills the {{...}} values from the container's environment
      (escaped for XML) and runs setup/unattended-install. The modules and
      extensions are the same 46 as the local install (itop-add-incident.xml):
-     CMDB, ITIL requests and incidents, changes, problems, known errors, FAQ. -->
+     CMDB, ITIL requests and incidents, changes, problems, known errors, FAQ;
+     plus the platform's extensions from itop-extensions/ (baked into the
+     image under extensions/): the four arcus-* modules, Combodo's business
+     hours and Combodo's approvals.
+
+     EVERY installed module must stay in this list: an upgrade that leaves an
+     installed module out uninstalls it. itop-setup drops
+     combodo-approval-extended from the first pass of a fresh install only
+     (iTop 3.4 can't install it in the same pass as approval-base). -->
 <installation>
   <mode>{{MODE}}</mode>
   <optional_steps>
@@ -83,6 +91,16 @@
     <item>itop-faq-light</item>
     <item>itop-knownerror-mgmt</item>
     <item>itop-problem-mgmt</item>
+    <!-- The platform's extensions (itop-extensions/). -->
+    <item>arcus-problem-rca</item>
+    <item>arcus-incident-extras</item>
+    <item>arcus-change-cab</item>
+    <item>combodo-sla-computation</item>
+    <item>combodo-coverage-windows-computation</item>
+    <item>arcus-ticket-dispatch</item>
+    <item>approval-base</item>
+    <item>combodo-approval-extended</item>
+    <item>itop-approval-portal</item>
   </selected_modules>
   <selected_extensions type="array">
     <item>itop-config-mgmt-core</item>
