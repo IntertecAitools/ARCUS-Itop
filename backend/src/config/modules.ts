@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 
 import type { Services } from "../services.js";
+import { registerAutoCloseRoutes } from "../modules/auto-close/index.js";
 import { registerBusinessHoursRoutes } from "../modules/business-hours/index.js";
 import { registerChangeRoutes } from "../modules/changes/index.js";
 import { registerDashboardRoutes } from "../modules/dashboard/index.js";
@@ -61,6 +62,12 @@ export interface BackendModule {
 }
 
 export const modules: BackendModule[] = [
+  {
+    id: "auto-close",
+    basePath: "/api/admin/auto-close",
+    description: "Resolved incidents and requests close by themselves after a tenant's delay, with a reminder to the caller first.",
+    register: registerAutoCloseRoutes,
+  },
   {
     id: "business-hours",
     basePath: "/api/admin/business-hours",

@@ -71,6 +71,10 @@ export const queryKeys = {
     settings: () => ['knowledge', 'settings'] as const,
   },
 
+  autoClose: {
+    settings: () => ['auto-close', 'settings'] as const,
+  },
+
   dispatch: {
     all: () => ['dispatch'] as const,
     queue: () => ['dispatch', 'queue'] as const,

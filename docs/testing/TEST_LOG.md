@@ -20,6 +20,42 @@ Bugs found: none in the product. The portal mock ignored `page`/`limit` (always 
 
 Not covered: the live stack (`npm run e2e:live`); the users list in mock mode (no mock for `/admin/users`); RTL screenshots of the pager.
 
+### 2026-11-02 — Resolved tickets close by themselves (auto-close), with a reminder first
+
+Branch `claude/auto-close-resolved-3b62f3`. New BFF module `modules/auto-close`, admin page **Auto-close** (`/auto-close`).
+
+| What ran | Result |
+|---|---|
+| Backend typecheck | clean |
+| `node --test test/auto-close.test.ts` (new) | 16/16 |
+| Backend unit tests, whole suite | 894/894 |
+| Frontend typecheck | clean |
+| `vitest run src/features/auto-close` (new page test) | 3/3 |
+| Frontend unit tests, whole suite | 276/276 |
+| `npm run e2e:auto-close` (new), live against the local iTop on :8080 and Mailpit | 13/13 |
+
+What the live script proved: stock iTop answers `Invalid stimulus` to `ev_autoclose` on a resolved ticket (it has no transition), so the job uses `ev_close`; with the clock moved 6 days on, each caller got one reminder in Mailpit (`[R-…] Resolved: …`, closing day, portal link) and a second check sent nothing; 8 days on, the request and the incident were closed by the service account, with a close date and "Closed automatically after 7 days with no reply from the customer." in the public log; a ticket the customer confirmed first was left alone; `ev_reopen` on a closed ticket is refused. Its tickets were deleted afterwards; the organisation "E2E auto-close" and its caller are kept for the next run.
+
+Bugs found and fixed before the commit:
+- The first version read "due to close" and "due a reminder" in one query, capped at 500: with many tickets in the reminder window, tickets due to close could be left out of every batch. Now two queries.
+- The live script first read the last run outside the test tenant (empty); it now runs as the tenant's "Run now" does.
+
+Not covered: a real `TENANCY=on` run (per-tenant settings and the platform run that skips tenants' organisations are unit-tested only); the background timer itself (the check is called directly; the timer is the same `setInterval` pattern as email to ticket); Microsoft 365 SMTP (Mailpit only). The auto-logging hook did not write entries for this worktree's runs, so this table is the record.
+
+### 2026-11-02 — MFA on the production build
+
+The user reported that MFA works locally but not on their deployment. To check whether the code was at fault, I built a throwaway production stack (`docker-compose.prod.yml`, project `arcus-mfatest`, `COOKIE_SECURE=false`, plain HTTP on localhost) from main and ran the flow through the API as a staff user (`admin`):
+
+| Step | Result |
+|---|---|
+| Password sign-in | 200, `mfa.step = enrol`, 10-minute cookie |
+| `GET /api/auth/mfa/enrol` | 200, secret and otpauth link |
+| `POST /api/auth/mfa/enrol` with a TOTP code | 200, full session |
+| Sign in again after 30 s, `POST /api/auth/mfa/verify` | 200 |
+| `GET /api/auth/me` | 200 |
+
+MFA works on the production image. No bug found in our code. The likely causes are on the deployment side: the site opened over plain HTTP while `COOKIE_SECURE=true` (the browser drops the cookie, so the MFA step answers "sign-in has expired"), a server clock more than about 30 s off, or a changed `SESSION_SECRET`. Not covered: the user's own server (no access); the browser QR screen (the CSP allows `data:` images).
+
 ### 2026-11-02 — Production image ships every iTop extension
 
 Throwaway production stack (`docker-compose.prod.yml`, project `arcus-exttest`, random secrets), built from branch `claude/prod-extensions`.

@@ -79,6 +79,7 @@ export const ar: Messages = {
     'data-import': 'استيراد البيانات',
     'business-hours': 'ساعات العمل',
     'assignment-rules': 'قواعد الإسناد',
+    'auto-close': 'الإغلاق التلقائي',
     'change-rules': 'قواعد خطط التغيير',
     audit: 'التدقيق',
     groups: {

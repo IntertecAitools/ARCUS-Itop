@@ -38,6 +38,8 @@ export interface CallOptions {
 
 export interface Logger {
   debug(obj: unknown, msg?: string): void;
+  /** Optional: pino has it; a plain stand-in may not. */
+  info?(obj: unknown, msg?: string): void;
   warn(obj: unknown, msg?: string): void;
   error(obj: unknown, msg?: string): void;
 }

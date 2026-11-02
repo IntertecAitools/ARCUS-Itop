@@ -14,6 +14,7 @@ import {
   type RcaModel,
 } from "./modules/problems/index.js";
 import { SlaService } from "./modules/sla/index.js";
+import { AutoCloseService } from "./modules/auto-close/index.js";
 import { BusinessHoursService } from "./modules/business-hours/index.js";
 import { createMailSource, type MailSource, MailIntakeService } from "./modules/mail-intake/index.js";
 import {
@@ -84,7 +85,7 @@ import { ApprovalsService } from "./platform/approvals/approvals.service.js";
 import { DefaultOrganization } from "./shared/default-organization.js";
 import { CurrentContact } from "./shared/current-contact.js";
 import { TenantScopedClient } from "./platform/tenancy/scoped-client.js";
-import { TenantResolver } from "./platform/tenancy/resolve.js";
+import { scopeOf, TenantResolver } from "./platform/tenancy/resolve.js";
 import { TenantAdminService } from "./platform/tenancy/tenant-admin.service.js";
 import { tenantOfEmail } from "./platform/tenancy/tenant.store.js";
 import { RegistrationService } from "./platform/portal/registration.service.js";
@@ -154,6 +155,8 @@ export interface Services {
   dispatch: DispatchService;
   /** Present when MAIL_INTAKE_SOURCE is set. */
   mailIntake?: MailIntakeService;
+  /** Resolved tickets that close by themselves, and the reminder before. */
+  autoClose: AutoCloseService;
   requestForms: RequestFormsService;
   /** The admin import wizard (REST, previewed) and its kept reports. */
   dataImport: DataImportService;
@@ -367,6 +370,25 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     const hit = tenantOfEmail(email, await tenantStore.list());
     return hit ? String(hit.orgId) : undefined;
   });
+  // One check per tenant, then one for the organisations no tenant owns.
+  const autoClose = new AutoCloseService(
+    client,
+    schema,
+    documents,
+    async () => {
+      if (!tenancy.enabled) return [{ key: "" }];
+      const tenants = await tenantStore.list();
+      return [
+        ...tenants.filter((t) => t.status === "active").map((t) => ({ key: t.id, tenant: scopeOf(t) })),
+        { key: "", excludeOrgIds: tenants.flatMap((t) => t.orgIds) },
+      ];
+    },
+    config.itop.timezone,
+    config.appBaseUrl ?? "",
+    config.autoCloseIntervalMs ?? 0,
+    mailer,
+    options.logger,
+  );
   const passwordReset = new PasswordResetService(client, auth, resetTokens, sessions, mailer, reset);
 
   return {
@@ -406,6 +428,7 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     currentContact,
     incidents,
     ...(mailIntake ? { mailIntake } : {}),
+    autoClose,
     ticketExtras,
     problems: new ProblemsService(objects, client, config.itop.timezone),
     rca,
