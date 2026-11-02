@@ -13,8 +13,6 @@ import type {
   UpdateIncidentInput,
 } from '../types';
 
-const PAGE_SIZE = 25;
-
 /**
  * Raw BFF calls for this feature. Components use the hooks, never this file.
  *
@@ -25,7 +23,7 @@ export function getIncidents(filters: IncidentFilters) {
   return apiClient.get<IncidentListResult>('/incidents', {
     query: {
       page: filters.page,
-      limit: PAGE_SIZE,
+      limit: filters.limit ?? 25,
       q: filters.q,
       status: filters.status?.join(','),
       priority: filters.priority?.join(','),

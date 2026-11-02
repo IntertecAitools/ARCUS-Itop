@@ -34,6 +34,16 @@ export const en = {
     goodAfternoon: 'Good afternoon',
     goodEvening: 'Good evening',
   },
+  pagination: {
+    label: 'Pagination',
+    showing: 'Showing {{first}}–{{last}} of {{total}}',
+    rowsPerPage: 'Rows per page',
+    pageOf: 'Page {{page}} of {{pages}}',
+    first: 'First page',
+    previous: 'Previous page',
+    next: 'Next page',
+    last: 'Last page',
+  },
   shell: {
     skipToContent: 'Skip to content',
     openMenu: 'Open menu',
@@ -292,9 +302,6 @@ export const en = {
       noOpen: 'No open requests',
       noClosed: 'No closed requests',
       emptyOpen: 'Raise a request and it appears here.',
-      page: 'Page {{page}} of {{pages}}',
-      previous: 'Previous',
-      next: 'Next',
     },
   },
   dashboard: {

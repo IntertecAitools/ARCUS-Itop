@@ -5,6 +5,7 @@ import { ArrowLeft, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/layout';
 import { EmptyState } from '@/components/feedback';
 import { Badge, Button, buttonClasses, Card, CardBody, CardHeader, Input, Select, Skeleton } from '@/components/ui';
+import { Pagination, usePagedRows } from '@/components/data-display';
 import { humaniseAttcode, useClassInfo } from '@/features/records';
 import {
   useDeleteSyncSource,
@@ -62,6 +63,54 @@ function RunBadge({ run }: { run?: SyncLogSummary }) {
   );
 }
 
+/** A source's runs, newest first, a page at a time. */
+function RunsTable({ logs, onOpen }: { logs: SyncLogSummary[]; onOpen: (id: number) => void }) {
+  const { pageRows, pagination } = usePagedRows(logs, { pageSize: 10 });
+  return (
+    <div className="ui-table-frame">
+      <div className="overflow-x-auto">
+        <table className="ui-table">
+          <thead>
+            <tr>
+              <th>Started</th>
+              <th>Status</th>
+              <th>Rows seen</th>
+              <th>Created</th>
+              <th>Updated</th>
+              <th>Deleted / obsoleted</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {pageRows.map((log) => (
+              <tr key={log.id}>
+                <td>{log.startDate}</td>
+                <td>
+                  <RunBadge run={log} />
+                </td>
+                <td className="tabular-nums">
+                  {log.replicasSeen} / {log.replicasTotal}
+                </td>
+                <td className="tabular-nums">{log.created}</td>
+                <td className="tabular-nums">{log.updated}</td>
+                <td className="tabular-nums">
+                  {log.deleted} / {log.obsoleted}
+                </td>
+                <td className="text-end">
+                  <button type="button" className="text-brand-ink hover:underline" onClick={() => onOpen(log.id)}>
+                    Log
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <Pagination {...pagination} />
+    </div>
+  );
+}
+
 /**
  * Recurring feeds, kept as iTop Data Synchro sources: each says which class
  * it fills, how a row finds its record, and what happens to records that
@@ -72,6 +121,7 @@ export function SyncSourcesPage() {
   const [creating, setCreating] = useState(false);
   const navigate = useNavigate();
   const list = sources.data?.sources ?? [];
+  const { pageRows, pagination } = usePagedRows(list);
 
   return (
     <>
@@ -116,7 +166,7 @@ export function SyncSourcesPage() {
             />
           ) : (
             <ul className="divide-y divide-line" aria-label="Sync sources">
-              {list.map((s) => (
+              {pageRows.map((s) => (
                 <li key={s.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
                   <div className="min-w-0">
                     <Link to={`/data-import/sync-sources/${s.id}`} className="font-medium text-brand-ink hover:underline">
@@ -132,6 +182,7 @@ export function SyncSourcesPage() {
               ))}
             </ul>
           )}
+          <Pagination {...pagination} className="px-0" />
           <Problem error={sources.error} />
         </CardBody>
       </Card>
@@ -207,42 +258,7 @@ export function SyncSourcePage() {
           {data.logs.length === 0 ? (
             <p className="text-[13px] text-ink-muted">Not run yet.</p>
           ) : (
-            <table className="w-full text-start text-[13px]">
-              <thead className="text-[12px] text-ink-muted">
-                <tr>
-                  <th className="py-1 pe-3 font-medium">Started</th>
-                  <th className="py-1 pe-3 font-medium">Status</th>
-                  <th className="py-1 pe-3 font-medium">Rows seen</th>
-                  <th className="py-1 pe-3 font-medium">Created</th>
-                  <th className="py-1 pe-3 font-medium">Updated</th>
-                  <th className="py-1 pe-3 font-medium">Deleted / obsoleted</th>
-                  <th className="py-1 pe-3 font-medium" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line">
-                {data.logs.map((log) => (
-                  <tr key={log.id}>
-                    <td className="py-1.5 pe-3">{log.startDate}</td>
-                    <td className="py-1.5 pe-3">
-                      <RunBadge run={log} />
-                    </td>
-                    <td className="py-1.5 pe-3 tabular-nums">
-                      {log.replicasSeen} / {log.replicasTotal}
-                    </td>
-                    <td className="py-1.5 pe-3 tabular-nums">{log.created}</td>
-                    <td className="py-1.5 pe-3 tabular-nums">{log.updated}</td>
-                    <td className="py-1.5 pe-3 tabular-nums">
-                      {log.deleted} / {log.obsoleted}
-                    </td>
-                    <td className="py-1.5 pe-3">
-                      <button type="button" className="text-brand-ink hover:underline" onClick={() => setLogId(log.id)}>
-                        Log
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <RunsTable logs={data.logs} onOpen={setLogId} />
           )}
           {logId ? <LogView sourceId={String(data.id)} logId={logId} /> : null}
         </CardBody>
@@ -424,56 +440,58 @@ function SyncSourceForm({
       {fields.length > 0 ? (
         <fieldset>
           <legend className="mb-2 text-[13px] font-medium text-ink">Columns the feed provides</legend>
-          <table className="w-full text-start text-[13px]">
-            <thead className="text-[12px] text-ink-muted">
-              <tr>
-                <th className="py-1 pe-3 font-medium">Field</th>
-                <th className="py-1 pe-3 font-medium">In the feed</th>
-                <th className="py-1 pe-3 font-medium">Match on</th>
-                <th className="py-1 pe-3 font-medium">Reference given by</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-line">
-              {fields.map((f) => (
-                <tr key={f.code}>
-                  <td className="py-1 pe-3">
-                    {f.label} <span className="font-mono text-[11px] text-ink-muted">{f.code}</span>
-                  </td>
-                  <td className="py-1 pe-3">
-                    <input
-                      type="checkbox"
-                      aria-label={`${f.code} in the feed`}
-                      checked={columns.includes(f.code)}
-                      onChange={() => toggle(columns, setColumns, f.code)}
-                    />
-                  </td>
-                  <td className="py-1 pe-3">
-                    <input
-                      type="checkbox"
-                      aria-label={`Match on ${f.code}`}
-                      disabled={!columns.includes(f.code)}
-                      checked={keys.includes(f.code) && columns.includes(f.code)}
-                      onChange={() => toggle(keys, setKeys, f.code)}
-                    />
-                  </td>
-                  <td className="py-1 pe-3">
-                    {f.target && columns.includes(f.code) ? (
-                      <Select
-                        aria-label={`${f.code} given by`}
-                        className="h-8 w-40"
-                        value={lookups[f.code] ?? defaultLookup(f.target)}
-                        onChange={(e) => setLookups({ ...lookups, [f.code]: e.target.value })}
-                        options={[
-                          { value: defaultLookup(f.target), label: `its ${defaultLookup(f.target)}` },
-                          { value: '', label: 'its id' },
-                        ]}
-                      />
-                    ) : null}
-                  </td>
+          <div className="ui-table-frame overflow-x-auto">
+            <table className="ui-table">
+              <thead>
+                <tr>
+                  <th>Field</th>
+                  <th>In the feed</th>
+                  <th>Match on</th>
+                  <th>Reference given by</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {fields.map((f) => (
+                  <tr key={f.code}>
+                    <td className="py-2">
+                      {f.label} <span className="font-mono text-[11px] text-ink-muted">{f.code}</span>
+                    </td>
+                    <td className="py-2">
+                      <input
+                        type="checkbox"
+                        aria-label={`${f.code} in the feed`}
+                        checked={columns.includes(f.code)}
+                        onChange={() => toggle(columns, setColumns, f.code)}
+                      />
+                    </td>
+                    <td className="py-2">
+                      <input
+                        type="checkbox"
+                        aria-label={`Match on ${f.code}`}
+                        disabled={!columns.includes(f.code)}
+                        checked={keys.includes(f.code) && columns.includes(f.code)}
+                        onChange={() => toggle(keys, setKeys, f.code)}
+                      />
+                    </td>
+                    <td className="py-2">
+                      {f.target && columns.includes(f.code) ? (
+                        <Select
+                          aria-label={`${f.code} given by`}
+                          className="h-8 w-40"
+                          value={lookups[f.code] ?? defaultLookup(f.target)}
+                          onChange={(e) => setLookups({ ...lookups, [f.code]: e.target.value })}
+                          options={[
+                            { value: defaultLookup(f.target), label: `its ${defaultLookup(f.target)}` },
+                            { value: '', label: 'its id' },
+                          ]}
+                        />
+                      ) : null}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </fieldset>
       ) : null}
 
@@ -560,35 +578,37 @@ function RunCard({ source, onRan }: { source: SyncSourceDetail; onRan: (result: 
           }}
         />
         {table ? (
-          <table className="w-full max-w-xl text-start text-[13px]">
-            <thead className="text-[12px] text-ink-muted">
-              <tr>
-                <th className="py-1 pe-3 font-medium">Column in file</th>
-                <th className="py-1 pe-3 font-medium">Source column</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-line">
-              {table.headings.map((heading, index) => (
-                <tr key={index}>
-                  <td className="py-1 pe-3 font-mono text-[12px]">{heading}</td>
-                  <td className="py-1 pe-3">
-                    <Select
-                      aria-label={`Source column for ${heading}`}
-                      className="h-8"
-                      value={columns[index] ?? ''}
-                      onChange={(e) => {
-                        const next = [...columns];
-                        next[index] = e.target.value || null;
-                        setColumns(next);
-                        setResult(null);
-                      }}
-                      options={[{ value: '', label: '— Skip —' }, ...targets.map((t) => ({ value: t, label: t }))]}
-                    />
-                  </td>
+          <div className="ui-table-frame max-w-xl overflow-x-auto">
+            <table className="ui-table">
+              <thead>
+                <tr>
+                  <th>Column in file</th>
+                  <th>Source column</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {table.headings.map((heading, index) => (
+                  <tr key={index}>
+                    <td className="font-mono text-[12px]">{heading}</td>
+                    <td className="py-2">
+                      <Select
+                        aria-label={`Source column for ${heading}`}
+                        className="h-8"
+                        value={columns[index] ?? ''}
+                        onChange={(e) => {
+                          const next = [...columns];
+                          next[index] = e.target.value || null;
+                          setColumns(next);
+                          setResult(null);
+                        }}
+                        options={[{ value: '', label: '— Skip —' }, ...targets.map((t) => ({ value: t, label: t }))]}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : null}
         {table ? (
           <div className="flex flex-wrap items-center gap-2">

@@ -92,6 +92,8 @@ export function MyAssignmentsCard({
             isLoading={isLoading}
             loadingRows={4}
             onRowClick={(change) => navigate(`/records/${change.class}/${change.id}`)}
+            // The card shows the first few; the full queue is a link away.
+            pagination={false}
             {...empty}
           />
         ) : (
@@ -101,6 +103,7 @@ export function MyAssignmentsCard({
             isLoading={isLoading}
             loadingRows={4}
             onRowClick={(ticket) => navigate(active.detail(ticket.id))}
+            pagination={false}
             {...empty}
           />
         )}

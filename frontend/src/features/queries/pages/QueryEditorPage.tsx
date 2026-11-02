@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Play, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/layout';
 import { Button, buttonClasses, Card, CardBody, CardHeader, Input, Select, Skeleton } from '@/components/ui';
+import { DEFAULT_PAGE_SIZE } from '@/components/data-display';
 import { useSession } from '@/features/auth';
 import {
   ConditionRows,
@@ -62,7 +63,8 @@ function QueryEditor({ id, query }: { id: string; query: SavedQuery | undefined 
   const [draft, setDraft] = useState<Draft>(() => draftOf(query, 'UserRequest'));
   const [formError, setFormError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  const set = (patch: Partial<Draft>) => setDraft((d) => ({ ...d, ...patch }));
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const set =(patch: Partial<Draft>) => setDraft((d) => ({ ...d, ...patch }));
 
   // In OQL mode the kind of record is whatever the query selects; it is known once it has run.
   const typeShown = draft.mode === 'oql' ? (run.data?.recordType ?? query?.recordType ?? '') : draft.recordType;
@@ -84,7 +86,7 @@ function QueryEditor({ id, query }: { id: string; query: SavedQuery | undefined 
   const toggleColumn = (code: string) =>
     set({ columns: draft.columns.includes(code) ? draft.columns.filter((c) => c !== code) : [...draft.columns, code] });
 
-  const runNow = (nextPage = 1) => {
+  const runNow = (nextPage = 1, size = pageSize) => {
     const problem = draftProblem(draft, false);
     if (problem) {
       setFormError(problem);
@@ -92,9 +94,11 @@ function QueryEditor({ id, query }: { id: string; query: SavedQuery | undefined 
     }
     setFormError(null);
     setPage(nextPage);
+    setPageSize(size);
     run.mutate({
       query: toInput(draft, classInfo),
       page: nextPage,
+      limit: size,
       // The columns are known once the kind of record is; until then the BFF's defaults.
       ...(classInfo && !asOql ? { fields: resultFields(classInfo, shown) } : {}),
     });
@@ -340,7 +344,9 @@ function QueryEditor({ id, query }: { id: string; query: SavedQuery | undefined 
             result={run.data}
             isLoading={run.isPending}
             page={page}
+            pageSize={pageSize}
             onPage={(next) => runNow(next)}
+            onPageSize={(size) => runNow(1, size)}
           />
         </Card>
       ) : null}

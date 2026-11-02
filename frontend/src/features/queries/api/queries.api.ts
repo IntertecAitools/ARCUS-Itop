@@ -29,11 +29,16 @@ export function useQueryOptions() {
 }
 
 /** A page of a saved query's records, read with the signed-in user's rights. */
-export function useQueryResults(id: number | undefined, page: number, fields: string | undefined) {
+export function useQueryResults(
+  id: number | undefined,
+  page: number,
+  fields: string | undefined,
+  limit: number = RESULTS_PAGE_SIZE,
+) {
   return useQuery({
-    queryKey: [...KEY, 'results', id, page, fields ?? ''],
+    queryKey: [...KEY, 'results', id, page, limit, fields ?? ''],
     queryFn: () =>
-      apiClient.get<QueryResult>(`${base}/${id}/results`, { query: { page, limit: RESULTS_PAGE_SIZE, fields } }),
+      apiClient.get<QueryResult>(`${base}/${id}/results`, { query: { page, limit, fields } }),
     enabled: id !== undefined && fields !== undefined,
     placeholderData: (previous) => previous,
   });
@@ -42,8 +47,8 @@ export function useQueryResults(id: number | undefined, page: number, fields: st
 /** Runs the query being edited, without saving it. */
 export function useRunDraft() {
   return useMutation({
-    mutationFn: ({ query, page, fields }: { query: QueryInput; page: number; fields?: string }) =>
-      apiClient.post<QueryResult>(`${base}/run`, { query, page, limit: RESULTS_PAGE_SIZE, fields }),
+    mutationFn: ({ query, page, limit = RESULTS_PAGE_SIZE, fields }: { query: QueryInput; page: number; limit?: number; fields?: string }) =>
+      apiClient.post<QueryResult>(`${base}/run`, { query, page, limit, fields }),
   });
 }
 

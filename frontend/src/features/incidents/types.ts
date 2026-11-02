@@ -46,6 +46,8 @@ export type IncidentSort = 'ref' | 'title' | 'status' | 'priority' | 'start_date
 
 export interface IncidentFilters {
   page: number;
+  /** Rows per page; 25 when left out. */
+  limit?: number;
   q?: string;
   status?: TicketStatus[];
   priority?: TicketPriority[];

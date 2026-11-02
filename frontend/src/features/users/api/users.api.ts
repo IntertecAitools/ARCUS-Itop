@@ -4,10 +4,10 @@ import type { CreateUserInput, Option, Profile, UpdateUserInput, UserDetail, Use
 
 const base = '/admin/users';
 
-export function useUsers(page: number, q: string) {
+export function useUsers(page: number, q: string, limit = 25) {
   return useQuery({
-    queryKey: ['admin', 'users', page, q],
-    queryFn: () => apiClient.get<UserList>(base, { query: { page, q: q || undefined } }),
+    queryKey: ['admin', 'users', page, limit, q],
+    queryFn: () => apiClient.get<UserList>(base, { query: { page, limit, q: q || undefined } }),
     placeholderData: (previous) => previous,
   });
 }

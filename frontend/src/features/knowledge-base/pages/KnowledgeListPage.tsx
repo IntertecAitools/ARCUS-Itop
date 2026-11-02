@@ -157,6 +157,7 @@ export function KnowledgeListPage() {
             columns={columns}
             isLoading={isLoading}
             density="compact"
+            resetPageKey={params.toString()}
             emptyTitle="No articles here"
             emptyDescription={query.q ? 'Nothing matches that search.' : 'Articles show here once they are written.'}
           />

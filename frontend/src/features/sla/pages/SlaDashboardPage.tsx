@@ -257,6 +257,7 @@ export function SlaDashboardPage() {
                 columns={cols}
                 isLoading={tickets.isLoading}
                 density="compact"
+                resetPageKey={JSON.stringify(query)}
                 emptyTitle="No open tickets here"
                 emptyDescription="Nothing matches this breakdown right now."
               />

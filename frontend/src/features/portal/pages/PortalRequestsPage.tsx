@@ -5,7 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Search } from 'lucide-react';
 import { buttonClasses, Card, Input } from '@/components/ui';
 import { PageIntro } from '@/components/public';
-import { DataTable, StatusPill, type Column } from '@/components/data-display';
+import { DataTable, DEFAULT_PAGE_SIZE, Pagination, StatusPill, type Column } from '@/components/data-display';
 import { cn, dateTimeText } from '@/lib/utils';
 import { useMyRequests } from '../api/portal.api';
 import { TargetDate } from '../components/TargetDate';
@@ -29,8 +29,9 @@ export function PortalRequestsPage() {
   const cols = useMemo(() => columns(t), [t]);
   const [state, setState] = useState<'open' | 'closed'>('open');
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [q, setQ] = useState('');
-  const { data, isLoading, isError, error } = useMyRequests(state, page, q.trim());
+  const { data, isLoading, isError, error } = useMyRequests(state, page, q.trim(), pageSize);
   const navigate = useNavigate();
 
   return (
@@ -122,22 +123,22 @@ export function PortalRequestsPage() {
             emptyTitle={state === 'open' ? t('portal.requests.noOpen') : t('portal.requests.noClosed')}
             emptyDescription={state === 'open' ? t('portal.requests.emptyOpen') : undefined}
             onRowClick={(t) => navigate(`/portal/requests/${t.id}`)}
+            // The pager below serves the phone list too.
+            pagination={false}
           />
         </div>
-        {data && data.pages > 1 ? (
-          <div className="flex items-center justify-between border-line py-3 text-[13px] text-ink-muted sm:border-t sm:px-4">
-            <span>
-              {t('portal.requests.page', { page: data.page, pages: data.pages })}
-            </span>
-            <div className="flex gap-2">
-              <button type="button" disabled={page <= 1} onClick={() => setPage(page - 1)} className={buttonClasses({ variant: 'secondary', size: 'sm' })}>
-                {t('portal.requests.previous')}
-              </button>
-              <button type="button" disabled={page >= data.pages} onClick={() => setPage(page + 1)} className={buttonClasses({ variant: 'secondary', size: 'sm' })}>
-                {t('portal.requests.next')}
-              </button>
-            </div>
-          </div>
+        {data ? (
+          <Pagination
+            page={page}
+            pageSize={pageSize}
+            total={data.total}
+            onPageChange={setPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setPage(1);
+            }}
+            className="max-sm:border-t-0 max-sm:px-0"
+          />
         ) : null}
       </Card>
     </>

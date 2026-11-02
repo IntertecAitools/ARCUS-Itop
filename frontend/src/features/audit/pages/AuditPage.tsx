@@ -214,14 +214,14 @@ function CategoryCard({ category, run, isRunning, onRun }: CategoryCardProps) {
       {category.rules.length === 0 ? (
         <p className="border-t border-line px-5 py-4 text-[13px] text-ink-muted">This category has no rules.</p>
       ) : (
-        <table className="w-full border-t border-line text-[13px]">
+        <table className="ui-table border-t border-line">
           <thead>
-            <tr className="text-start text-[12px] text-ink-muted">
-              <th className="px-5 py-2 font-medium">Rule</th>
-              <th className="w-28 px-3 py-2 text-end font-medium">Failing</th>
-              <th className="w-24 px-3 py-2 text-end font-medium">OK</th>
-              <th className="w-32 px-3 py-2 font-medium">Status</th>
-              <th className="w-32 px-5 py-2" />
+            <tr>
+              <th className="ps-5">Rule</th>
+              <th className="w-28 text-end">Failing</th>
+              <th className="w-24 text-end">OK</th>
+              <th className="w-32">Status</th>
+              <th className="w-32 pe-5" />
             </tr>
           </thead>
           <tbody>
@@ -258,12 +258,12 @@ function RuleRows({ rule, recordTypeLabel, result, open, onToggle, running, onRu
   const canOpen = Boolean(result && !result.error && result.failing > 0);
   return (
     <>
-      <tr className="border-t border-line align-top">
-        <td className="px-5 py-2.5">
+      <tr>
+        <td className="ps-5">
           <div className="font-medium text-ink">{rule.name}</div>
           <div className="text-[12px] text-ink-muted">{rule.description || describeRule(rule, recordTypeLabel)}</div>
         </td>
-        <td className="px-3 py-2.5 text-end tabular-nums">
+        <td className="text-end tabular-nums">
           {!result ? (
             <span className="text-ink-muted">—</span>
           ) : result.error ? (
@@ -282,10 +282,10 @@ function RuleRows({ rule, recordTypeLabel, result, open, onToggle, running, onRu
             '0'
           )}
         </td>
-        <td className="px-3 py-2.5 text-end tabular-nums">
+        <td className="text-end tabular-nums">
           {result && !result.error ? formatPercent(result.percentOk) : <span className="text-ink-muted">—</span>}
         </td>
-        <td className="px-3 py-2.5">
+        <td>
           {result ? (
             result.error ? (
               <span className="text-[12px] text-critical-ink">{result.error}</span>
@@ -296,7 +296,7 @@ function RuleRows({ rule, recordTypeLabel, result, open, onToggle, running, onRu
             )
           ) : null}
         </td>
-        <td className="px-5 py-2 text-end whitespace-nowrap">
+        <td className="pe-5 text-end whitespace-nowrap">
           <Link
             to={`/audit/rules/${rule.id}`}
             className={buttonClasses({ variant: 'ghost', size: 'sm' })}

@@ -4,6 +4,7 @@ import { Download, RefreshCw, Upload } from 'lucide-react';
 
 import { PageHeader } from '@/components/layout';
 import { Badge, Button, buttonClasses, Card, CardBody, CardHeader, Select, Skeleton } from '@/components/ui';
+import { Pagination, usePagedRows } from '@/components/data-display';
 import {
   MappingCard,
   mappedColumns,
@@ -33,9 +34,6 @@ function Problem({ error }: { error: unknown }) {
     </div>
   ) : null;
 }
-
-/** Rows shown at once in a preview or report; the download has them all. */
-const SHOWN = 200;
 
 /**
  * The admin import wizard: pick what to load, upload a CSV or Excel file,
@@ -330,65 +328,66 @@ interface ShownRow {
   errors: string[];
 }
 
+/** A preview or report, a page at a time; the download has every row in one file. */
 function RowTable({ className, rows }: { className: string; rows: ShownRow[] }) {
+  const { pageRows, pagination } = usePagedRows(rows);
   return (
-    <div className="mt-3 overflow-x-auto">
-      <table className="w-full text-start text-[13px]">
-        <thead className="text-[12px] text-ink-muted">
-          <tr>
-            <th className="py-1 pe-3 font-medium">Line</th>
-            <th className="py-1 pe-3 font-medium">Outcome</th>
-            <th className="py-1 pe-3 font-medium">Record</th>
-            <th className="py-1 pe-3 font-medium">Key</th>
-            <th className="py-1 pe-3 font-medium">Changes / errors</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-line">
-          {rows.slice(0, SHOWN).map((row) => (
-            <tr key={row.line} className="align-top">
-              <td className="py-1.5 pe-3 tabular-nums">{row.line}</td>
-              <td className="py-1.5 pe-3">
-                <Badge tone={row.tone} size="sm">
-                  {row.status}
-                </Badge>
-              </td>
-              <td className="py-1.5 pe-3">
-                {row.id ? (
-                  <Link to={`/records/${className}/${row.id}`} className="text-brand-ink hover:underline">
-                    #{row.id}
-                  </Link>
-                ) : (
-                  '—'
-                )}
-              </td>
-              <td className="py-1.5 pe-3 text-ink-secondary">{row.key || '—'}</td>
-              <td className="py-1.5 pe-3">
-                {row.errors.length > 0 ? (
-                  <ul className="text-critical-ink">
-                    {row.errors.map((e, i) => (
-                      <li key={i}>{e}</li>
-                    ))}
-                  </ul>
-                ) : (
-                  <ul className="text-ink-secondary">
-                    {row.changes.map((c) => (
-                      <li key={c.field}>
-                        <span className="font-mono text-[12px]">{c.field}</span>:{' '}
-                        {c.from ? <span className="line-through">{c.from}</span> : null} {c.to}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </td>
+    <div className="ui-table-frame mt-3">
+      <div className="overflow-x-auto">
+        <table className="ui-table">
+          <thead>
+            <tr>
+              <th>Line</th>
+              <th>Outcome</th>
+              <th>Record</th>
+              <th>Key</th>
+              <th>Changes / errors</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-      {rows.length > SHOWN ? (
-        <p className="mt-2 text-[12px] text-ink-muted">
-          Showing {SHOWN} of {rows.length.toLocaleString(intlLocale())} rows.
-        </p>
-      ) : null}
+          </thead>
+          <tbody>
+            {pageRows.map((row) => (
+              // Top-aligned: the last cell can list several changes.
+              <tr key={row.line} className="[&>td]:align-top">
+                <td className="tabular-nums">{row.line}</td>
+                <td>
+                  <Badge tone={row.tone} size="sm">
+                    {row.status}
+                  </Badge>
+                </td>
+                <td>
+                  {row.id ? (
+                    <Link to={`/records/${className}/${row.id}`} className="text-brand-ink hover:underline">
+                      #{row.id}
+                    </Link>
+                  ) : (
+                    '—'
+                  )}
+                </td>
+                <td className="text-ink-secondary">{row.key || '—'}</td>
+                <td>
+                  {row.errors.length > 0 ? (
+                    <ul className="text-critical-ink">
+                      {row.errors.map((e, i) => (
+                        <li key={i}>{e}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <ul className="text-ink-secondary">
+                      {row.changes.map((c) => (
+                        <li key={c.field}>
+                          <span className="font-mono text-[12px]">{c.field}</span>:{' '}
+                          {c.from ? <span className="line-through">{c.from}</span> : null} {c.to}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <Pagination {...pagination} />
     </div>
   );
 }

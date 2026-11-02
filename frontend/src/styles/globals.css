@@ -326,6 +326,50 @@
   }
 }
 
+/* --------------------------------------------------------------------------
+   Components layer
+   ------------------------------------------------------------------------ */
+@layer components {
+  /* A hand-written <table> that should look like DataTable: the same header
+     strip, cell padding and row rules. DataTable itself sets these with
+     utilities; keep the two in step. A utility on a cell (text-end, a width)
+     still wins, since utilities come after this layer. */
+  .ui-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    text-align: start;
+  }
+  .ui-table > thead > tr > th {
+    padding: 0.75rem 1rem;
+    background-color: var(--arcus-surface-sunken);
+    border-bottom: 1px solid var(--arcus-line);
+    color: var(--arcus-ink-muted);
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+  .ui-table > tbody > tr > td,
+  .ui-table > tbody > tr > th {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--arcus-line);
+    vertical-align: middle;
+  }
+  .ui-table > tbody > tr:last-child > td,
+  .ui-table > tbody > tr:last-child > th {
+    border-bottom: 0;
+  }
+
+  /* A table set among other content in a padded card body: framed, so its
+     header strip and pager read as one block. The table scrolls inside. */
+  .ui-table-frame {
+    overflow: hidden;
+    border: 1px solid var(--arcus-line);
+    border-radius: var(--arcus-radius-control);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

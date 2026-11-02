@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Search } from 'lucide-react';
 import { PageHeader } from '@/components/layout';
 import { buttonClasses, Card, Input } from '@/components/ui';
-import { DataTable, type Column } from '@/components/data-display';
+import { DataTable, DEFAULT_PAGE_SIZE, type Column } from '@/components/data-display';
 import { cn } from '@/lib/utils';
 import { useUsers } from '../api/users.api';
 import type { UserSummary } from '../types';
@@ -45,8 +45,9 @@ const columns: Column<UserSummary>[] = [
 /** Everyone who can sign in to the platform: staff and end users alike. */
 export function UserListPage() {
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [q, setQ] = useState('');
-  const { data, isLoading, isError, error } = useUsers(page, q.trim());
+  const { data, isLoading, isError, error } = useUsers(page, q.trim(), pageSize);
   const navigate = useNavigate();
 
   return (
@@ -88,22 +89,17 @@ export function UserListPage() {
           loadingRows={8}
           emptyTitle="No accounts match"
           onRowClick={(user) => navigate(`/users/${user.id}`)}
+          pagination={{
+            page,
+            pageSize,
+            total: data?.total ?? 0,
+            onPageChange: setPage,
+            onPageSizeChange: (size) => {
+              setPageSize(size);
+              setPage(1);
+            },
+          }}
         />
-        {data && data.pages > 1 ? (
-          <div className="flex items-center justify-between gap-4 border-t border-line px-4 py-3 text-[13px] text-ink-muted">
-            <span>
-              Page {data.page} of {data.pages}
-            </span>
-            <div className="flex gap-2">
-              <button type="button" disabled={page <= 1} onClick={() => setPage(page - 1)} className={buttonClasses({ variant: 'secondary', size: 'sm' })}>
-                Previous
-              </button>
-              <button type="button" disabled={page >= data.pages} onClick={() => setPage(page + 1)} className={buttonClasses({ variant: 'secondary', size: 'sm' })}>
-                Next
-              </button>
-            </div>
-          </div>
-        ) : null}
       </Card>
     </>
   );
