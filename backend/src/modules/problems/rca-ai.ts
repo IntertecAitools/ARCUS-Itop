@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import Anthropic from "@anthropic-ai/sdk";
+import { AnthropicBedrockMantle } from "@anthropic-ai/bedrock-sdk";
 
 import { AppError } from "../../core/errors.js";
 import { formatHours } from "./rca-scoring.js";
@@ -316,18 +317,25 @@ export interface RcaModel {
   complete(request: ModelRequest): Promise<ModelAnswer>;
 }
 
-/** The Claude API through the official SDK. */
-export class AnthropicRcaModel implements RcaModel {
-  private readonly client: Anthropic;
+type Effort = "low" | "medium" | "high" | "xhigh" | "max";
 
+/** The one call the drafter makes; both the Claude API and Bedrock clients have it. */
+export interface MessagesClient {
+  beta: { messages: Pick<Anthropic["beta"]["messages"], "create"> };
+}
+
+/**
+ * Claude through the official SDK: the Claude API (`anthropicRcaModel`) or
+ * Amazon Bedrock (`bedrockRcaModel`). Same request on both, except that
+ * Bedrock has no server-side fallback, so a decline there is reported as one.
+ */
+export class AnthropicRcaModel implements RcaModel {
   constructor(
-    apiKey: string,
+    private readonly client: MessagesClient,
     private readonly model: string,
-    private readonly effort: "low" | "medium" | "high" | "xhigh" | "max",
-    client?: Anthropic,
-  ) {
-    this.client = client ?? new Anthropic({ apiKey, timeout: 180_000, maxRetries: 2 });
-  }
+    private readonly effort: Effort,
+    private readonly options: { serverFallbacks: boolean; credentialHint: string },
+  ) {}
 
   async complete(request: ModelRequest): Promise<ModelAnswer> {
     let response: Anthropic.Beta.BetaMessage;
@@ -335,9 +343,11 @@ export class AnthropicRcaModel implements RcaModel {
       response = await this.client.beta.messages.create({
         model: this.model,
         max_tokens: 16_000,
-        // A decline on safety grounds is re-run on a fallback model server-side.
-        betas: ["server-side-fallback-2026-07-01"],
-        fallbacks: "default",
+        // On the Claude API a decline on safety grounds is re-run on a
+        // fallback model server-side; Bedrock does not offer it.
+        ...(this.options.serverFallbacks
+          ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const }
+          : {}),
         thinking: { type: "adaptive" },
         output_config: { effort: this.effort, format: { type: "json_schema", schema: request.schema } },
         system: request.system,
@@ -345,7 +355,7 @@ export class AnthropicRcaModel implements RcaModel {
       });
     } catch (error) {
       if (error instanceof Anthropic.AuthenticationError || error instanceof Anthropic.PermissionDeniedError) {
-        throw new AppError("upstream_error", "The AI service refused the BFF's API key; check ANTHROPIC_API_KEY.", {
+        throw new AppError("upstream_error", `The AI service refused the BFF's credentials; check ${this.options.credentialHint}.`, {
           cause: error,
         });
       }
@@ -377,6 +387,25 @@ export class AnthropicRcaModel implements RcaModel {
       usage: { inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens },
     };
   }
+}
+
+/** The Claude API, with an Anthropic API key. */
+export function anthropicRcaModel(apiKey: string, model: string, effort: Effort): RcaModel {
+  const client = new Anthropic({ apiKey, timeout: 180_000, maxRetries: 2 });
+  return new AnthropicRcaModel(client, model, effort, { serverFallbacks: true, credentialHint: "ANTHROPIC_API_KEY" });
+}
+
+/**
+ * Claude on Amazon Bedrock. Credentials come from the environment the way the
+ * Bedrock SDK resolves them: a Bedrock API key in AWS_BEARER_TOKEN_BEDROCK,
+ * or the usual AWS credentials (keys, profile, instance role).
+ */
+export function bedrockRcaModel(region: string, model: string, effort: Effort): RcaModel {
+  const client = new AnthropicBedrockMantle({ awsRegion: region, timeout: 180_000, maxRetries: 2 });
+  return new AnthropicRcaModel(client as unknown as MessagesClient, model, effort, {
+    serverFallbacks: false,
+    credentialHint: "AWS_BEARER_TOKEN_BEDROCK (or the AWS credentials) and AWS_REGION",
+  });
 }
 
 /* ------------------------------------------------------------------------- *

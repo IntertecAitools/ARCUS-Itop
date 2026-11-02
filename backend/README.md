@@ -864,12 +864,20 @@ and History.
 | Variable | Default | |
 | --- | --- | --- |
 | `RCA_LOOKBACK_HOURS` | `72` | How far before the first incident a change still counts (1–720). The screen can pick 24 h – 14 days per view |
-| `ANTHROPIC_API_KEY` | — | The Claude API key. **Without it the AI button is hidden** and the evidence still works. Keep it in `.env` or the environment, never in a committed file |
-| `RCA_AI` | `on` | `off` turns AI drafting off even with a key |
-| `RCA_AI_MODEL` | `claude-opus-5-5` | The Claude model |
+| `RCA_AI_PROVIDER` | `anthropic` | Where Claude runs: `anthropic` (the Claude API) or `bedrock` (Amazon Bedrock) |
+| `ANTHROPIC_API_KEY` | — | The Claude API key (`anthropic`). **Without credentials for the chosen provider the AI button is hidden** and the evidence still works. Keep keys in `.env` or the environment, never in a committed file |
+| `AWS_REGION` | — | Bedrock's region, e.g. `us-east-1` (`bedrock`; required there) |
+| `AWS_BEARER_TOKEN_BEDROCK` | — | A Bedrock API key (`bedrock`). Instead, the usual AWS credentials work too: `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`, `AWS_PROFILE`, or the server's role |
+| `BEDROCK_MODEL_ID` | `anthropic.claude-opus-5-5` | The model on Bedrock, with Bedrock's `anthropic.` prefix, e.g. `anthropic.claude-sonnet-5` |
+| `RCA_AI` | `on` | `off` turns AI drafting off even with credentials |
+| `RCA_AI_MODEL` | `claude-opus-5-5` | The Claude model on the Claude API |
 | `RCA_AI_EFFORT` | `high` | `low`, `medium`, `high`, `xhigh` or `max`: how hard the model thinks (cost and time grow with it) |
 | `RCA_AI_PRIVATE_LOGS` | `off` | `on` also sends the incidents' and the problem's **private** logs |
 | `RCA_AI_DISABLED_TENANTS` | — | Comma-separated tenant ids (`TENANCY=on`) for which AI drafting is off |
+
+On Bedrock the request is the same (structured JSON, adaptive thinking,
+effort) except that Bedrock has no server-side fallback: if the model declines
+on safety grounds, the screen says so and the analysis is written by hand.
 
 `npm run e2e:rca` checks the evidence live: it builds CIs with an impact
 chain (power source → server → application solution), changes inside and
