@@ -26,6 +26,20 @@ Bugs found and fixed before the commit:
 
 Not covered: a real `TENANCY=on` run (per-tenant settings and the platform run that skips tenants' organisations are unit-tested only); the background timer itself (the check is called directly; the timer is the same `setInterval` pattern as email to ticket); Microsoft 365 SMTP (Mailpit only). The auto-logging hook did not write entries for this worktree's runs, so this table is the record.
 
+### 2026-11-02 — MFA on the production build
+
+The user reported that MFA works locally but not on their deployment. To check whether the code was at fault, I built a throwaway production stack (`docker-compose.prod.yml`, project `arcus-mfatest`, `COOKIE_SECURE=false`, plain HTTP on localhost) from main and ran the flow through the API as a staff user (`admin`):
+
+| Step | Result |
+|---|---|
+| Password sign-in | 200, `mfa.step = enrol`, 10-minute cookie |
+| `GET /api/auth/mfa/enrol` | 200, secret and otpauth link |
+| `POST /api/auth/mfa/enrol` with a TOTP code | 200, full session |
+| Sign in again after 30 s, `POST /api/auth/mfa/verify` | 200 |
+| `GET /api/auth/me` | 200 |
+
+MFA works on the production image. No bug found in our code. The likely causes are on the deployment side: the site opened over plain HTTP while `COOKIE_SECURE=true` (the browser drops the cookie, so the MFA step answers "sign-in has expired"), a server clock more than about 30 s off, or a changed `SESSION_SECRET`. Not covered: the user's own server (no access); the browser QR screen (the CSP allows `data:` images).
+
 ### 2026-11-02 — Production image ships every iTop extension
 
 Throwaway production stack (`docker-compose.prod.yml`, project `arcus-exttest`, random secrets), built from branch `claude/prod-extensions`.
