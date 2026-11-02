@@ -17,7 +17,7 @@ browser ──HTTPS──> TLS proxy ──> web (nginx :80) ──/api/──> 
 | **web** | `frontend/Dockerfile` | The Vite build served by nginx (SPA fallback, `immutable` caching for `/assets/`, `no-cache` for `index.html`). Proxies `/api/` to the BFF, so page and API share one origin and the session cookie stays first-party (`SameSite=Lax`, `HttpOnly`). The only service with a published port. |
 | **bff** | `backend/Dockerfile` | `node dist/index.js` as the unprivileged `node` user, with the compiled CMDB schema baked in at `/app/cmdb-schema/`. Not published; only `web` reaches it. |
 | **itop** | `docker/itop-prod/Dockerfile` | PHP 8.3 + Apache with `iTop/` baked in (no bind mount). Apache answers only `/webservices/rest.php`, `export-v2.php` and `import.php`, the three calls the BFF makes; the console, the portal, `setup/` and `cron.php` over HTTP answer 403. What the installer writes is in volumes: `itop-conf` (`conf/`), `itop-data` (`data/`), `itop-env` (`env-production/`, the compiled data model), `itop-log`. |
-| **itop-cron** | same image | Runs `webservices/cron.php` in a loop (it runs for up to 10 minutes, then restarts): SLA/stopwatch thresholds (TTO/TTR escalations), auto-close, queued email, newsroom (the bell), log rotation. As the service account. |
+| **itop-cron** | same image | Runs `webservices/cron.php` in a loop (it runs for up to 10 minutes, then restarts): SLA/stopwatch thresholds (TTO/TTR escalations), queued email, newsroom (the bell), log rotation. As the service account. |
 | **db** | `mysql:8.4.6` | iTop's database and the BFF's sessions database, each with a user of its own, created on first start by `docker/mysql-init/01-databases.sh`. Optional: see "Using an existing MySQL". |
 | **backup** | `mysql:8.4.6` | Every day at `BACKUP_TIME`: dumps of both databases plus iTop's `conf/`, `data/`, `env-production/`, into `BACKUP_DIR` on the host. |
 
@@ -292,9 +292,13 @@ back afterwards.
 ### Background jobs (itop-cron)
 
 iTop does time-based work only when `cron.php` runs: TTO/TTR thresholds (a
-request still New when its TTO passes moves to "Escalated TTO"), auto-close of
-resolved tickets, sending queued email, the newsroom (the bell), cleaning up
-old data. `itop-cron` runs it continuously as the service account.
+request still New when its TTO passes moves to "Escalated TTO"), sending
+queued email, the newsroom (the bell), cleaning up old data. `itop-cron` runs
+it continuously as the service account.
+
+It does **not** close resolved tickets: iTop declares an `ev_autoclose`
+stimulus but nothing in iTop ever applies it. The **bff** does that (next
+section).
 
 ```bash
 docker compose -f docker/docker-compose.prod.yml --env-file docker/prod.env logs --tail 50 itop-cron
@@ -304,6 +308,27 @@ docker compose -f docker/docker-compose.prod.yml --env-file docker/prod.env exec
 
 The second lists every background task with its last run. Set
 `ITOP_CRON_VERBOSE=1` in `itop.env` for a line per task in the logs.
+
+### Closing resolved tickets (bff)
+
+A resolved request or incident the customer neither confirms nor reopens
+closes by itself: the bff checks every hour (`AUTO_CLOSE_CHECK_MINUTES` in
+`prod.env`, default 60; 0 turns the check off) and closes, as the service
+account, every ticket resolved longer ago than the customer's delay, with the
+log note "Closed automatically after N days with no reply from the customer".
+Two days before, the caller gets a reminder email through the bff's mail
+settings (Microsoft 365 SMTP).
+
+Administrators set it per customer under **Auto-close** in the frontend: on or
+off, the delay (default 7 calendar days), requests and/or incidents (default
+both), and the reminder (default on, 2 days before). **Run now** there checks
+at once and lists what it closed. Each check's totals are in the bff's log:
+
+```bash
+docker compose -f docker/docker-compose.prod.yml --env-file docker/prod.env logs bff | grep auto-close
+```
+
+Run one bff only: two would both check, and a reminder could go twice.
 
 ### Changing iTop's configuration by hand
 

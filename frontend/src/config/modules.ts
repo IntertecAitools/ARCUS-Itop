@@ -2,6 +2,7 @@ import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
 import {
   BellRing,
   Building2,
+  CalendarX2,
   BookOpen,
   FilePen,
   CalendarCheck2,
@@ -490,6 +491,16 @@ export const modules: ModuleDefinition[] = [
     description: 'Which team a new ticket goes to, by service, subcategory, organization and category.',
     adminOnly: true,
     component: lazy(() => import('@/features/dispatch').then((m) => ({ default: m.AssignmentRulesPage }))),
+  },
+  {
+    id: 'auto-close',
+    label: 'Auto-close',
+    path: 'auto-close',
+    icon: CalendarX2,
+    group: 'administration',
+    description: 'When resolved tickets close by themselves, and the reminder the caller gets first.',
+    adminOnly: true,
+    component: lazy(() => import('@/features/auto-close').then((m) => ({ default: m.AutoClosePage }))),
   },
   {
     id: 'change-rules',
