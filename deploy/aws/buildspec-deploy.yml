@@ -1,0 +1,9 @@
+# Pipeline "Deploy" stage (CodeBuild): runs deploy/aws/server/deploy.sh on the
+# production server through SSM Run Command and follows it to the end. The
+# run's output is also in CloudWatch Logs ($DEPLOY_LOG_GROUP).
+version: 0.2
+
+phases:
+  build:
+    commands:
+      - bash deploy/aws/pipeline/run-deploy.sh

@@ -13,6 +13,10 @@
 #   cp docker/itop.env.example docker/itop.env      # iTop, MySQL, backups
 #   docker compose -f docker/docker-compose.prod.yml --env-file docker/prod.env up -d --build
 #
+# Images are built here unless ARCUS_REGISTRY names a registry to pull them
+# from: the AWS pipeline (deploy/aws/) pulls from ECR, with ARCUS_VERSION and
+# ARCUS_ITOP_VERSION the tags it built.
+#
 # `--env-file` feeds the ${...} below; `env_file` hands prod.env to the BFF and
 # itop.env to iTop, MySQL and the backup job. Values that both sides need
 # (the service account, the time zone, the sessions database) are written
@@ -43,7 +47,7 @@ services:
     build:
       context: ..
       dockerfile: backend/Dockerfile
-    image: arcus-bff:${ARCUS_VERSION:-latest}
+    image: ${ARCUS_REGISTRY:-}arcus-bff:${ARCUS_VERSION:-latest}
     restart: unless-stopped
     # Relative to this folder. Set ARCUS_ENV_FILE in the shell to use another.
     env_file: ${ARCUS_ENV_FILE:-prod.env}
@@ -84,7 +88,7 @@ services:
         VITE_APP_NAME: ${VITE_APP_NAME:-Intertec}
         VITE_PLATFORM_NAME: ${VITE_PLATFORM_NAME:-Servicedesk}
         VITE_DEFAULT_LOCALE: ${VITE_DEFAULT_LOCALE:-en}
-    image: arcus-web:${ARCUS_VERSION:-latest}
+    image: ${ARCUS_REGISTRY:-}arcus-web:${ARCUS_VERSION:-latest}
     restart: unless-stopped
     environment:
       BFF_UPSTREAM: http://bff:4000
@@ -113,7 +117,7 @@ services:
     build:
       context: ..
       dockerfile: docker/itop-prod/Dockerfile
-    image: arcus-itop:${ARCUS_VERSION:-latest}
+    image: ${ARCUS_REGISTRY:-}arcus-itop:${ARCUS_ITOP_VERSION:-${ARCUS_VERSION:-latest}}
     restart: unless-stopped
     env_file: ${ITOP_ENV_FILE:-itop.env}
     environment:
@@ -128,7 +132,7 @@ services:
     networks: [itop, egress]
 
   itop-cron:
-    image: arcus-itop:${ARCUS_VERSION:-latest}
+    image: ${ARCUS_REGISTRY:-}arcus-itop:${ARCUS_ITOP_VERSION:-${ARCUS_VERSION:-latest}}
     restart: unless-stopped
     user: www-data
     command: ["itop-cron"]

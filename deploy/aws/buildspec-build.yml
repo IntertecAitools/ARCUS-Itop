@@ -1,0 +1,58 @@
+# Pipeline "Build" stage (CodeBuild): tests, the three images to ECR, and the
+# release bundle the server deploys from. See deploy/aws/README.md.
+#
+# Tags: the app images (bff, web) take the commit (APP_TAG). The iTop image
+# takes a hash of what goes into it (ITOP_TAG): an unchanged iTop is not
+# rebuilt, and the server runs iTop's upgrade only when the tag changes.
+version: 0.2
+
+env:
+  variables:
+    # Docker Hub's official images through AWS's public mirror: no rate limits.
+    LIB: public.ecr.aws/docker/library
+    NODE_IMAGE: public.ecr.aws/docker/library/node:24.14.1-alpine3.23
+    NGINX_IMAGE: public.ecr.aws/docker/library/nginx:1.28.0-alpine
+    PHP_IMAGE: public.ecr.aws/docker/library/php:8.3-apache
+  exported-variables:
+    - APP_TAG
+    - ITOP_TAG
+
+phases:
+  pre_build:
+    commands:
+      - APP_TAG=$(echo "$CODEBUILD_RESOLVED_SOURCE_VERSION" | cut -c1-12)
+      - ITOP_TAG=itop-$(find iTop itop-extensions docker/itop-prod docker/php.ini -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -c1-16)
+      - echo "app $APP_TAG, itop $ITOP_TAG"
+      - aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$ECR_REGISTRY"
+
+  build:
+    commands:
+      # Tests on the same Node as the images.
+      - docker run --rm -v "$PWD":/src -w /src/backend "$NODE_IMAGE" sh -c "npm ci --no-audit --no-fund && npm run typecheck && npm test"
+      - docker run --rm -v "$PWD":/src -w /src/frontend "$NODE_IMAGE" sh -c "npm ci --no-audit --no-fund && npm run typecheck && npm test"
+      - rm -rf backend/node_modules frontend/node_modules
+
+      - docker build -f backend/Dockerfile --build-arg NODE_IMAGE="$NODE_IMAGE" -t "${IMAGE_BASE}arcus-bff:$APP_TAG" .
+      - >-
+        docker build frontend --build-arg NODE_IMAGE="$NODE_IMAGE" --build-arg NGINX_IMAGE="$NGINX_IMAGE"
+        --build-arg VITE_BFF_URL=/api --build-arg VITE_APP_NAME="$VITE_APP_NAME"
+        --build-arg VITE_PLATFORM_NAME="$VITE_PLATFORM_NAME" --build-arg VITE_DEFAULT_LOCALE=en
+        -t "${IMAGE_BASE}arcus-web:$APP_TAG"
+      - docker push "${IMAGE_BASE}arcus-bff:$APP_TAG"
+      - docker push "${IMAGE_BASE}arcus-web:$APP_TAG"
+      - |
+        if aws ecr describe-images --repository-name "$ECR_PREFIX/arcus-itop" --image-ids imageTag="$ITOP_TAG" >/dev/null 2>&1; then
+          echo "iTop image $ITOP_TAG already in ECR: not rebuilt"
+        else
+          docker build -f docker/itop-prod/Dockerfile --build-arg PHP_IMAGE="$PHP_IMAGE" -t "${IMAGE_BASE}arcus-itop:$ITOP_TAG" .
+          docker push "${IMAGE_BASE}arcus-itop:$ITOP_TAG"
+        fi
+
+      # What the server needs besides the images: the compose file, the
+      # scripts it mounts, and the deploy script.
+      - tar -czf bundle.tgz docker/docker-compose.prod.yml docker/backup docker/mysql-init deploy/aws/server
+      - aws s3 cp bundle.tgz "s3://$ARTIFACT_BUCKET/bundles/$APP_TAG.tgz" --only-show-errors
+
+artifacts:
+  files:
+    - bundle.tgz
