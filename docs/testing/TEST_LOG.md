@@ -4,6 +4,33 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-11-03 — First production deploy on AWS (CodePipeline)
+
+The AWS setup from `deploy/aws/` (PR #50): Terraform in account 557690608274, us-east-1, `Intertec-vpc`.
+
+| What ran | Result |
+|---|---|
+| `terraform validate` / `plan` / `apply` | 43 resources, all `arcus-servicedesk-*`; nothing existing changed |
+| `bash -n` and shellcheck on `deploy.sh`, `run-deploy.sh`, `user-data.sh` | Clean (after one quoting fix in `deploy.sh`) |
+| Settings rendering (jq, from Parameter Store) | Spaces and `<>` kept; a value with a quote refused |
+| `docker compose config` with `ARCUS_REGISTRY` | ECR image names resolve |
+| Pipeline run 1: Source, Build (backend and frontend typecheck + tests, 3 images to ECR) | Passed |
+| Pipeline run 1: Approval (by the user), then Deploy | Deploy failed on its first line, before touching the server (below) |
+| The same approved release deployed on the server by hand (the wrapper as fixed) | iTop installed with all extensions, `Asia/Dubai`; all services healthy; `DONE: fda1264f4630 is live` |
+| `https://d8nttgm4vi8r7.cloudfront.net` | 200; `http` redirects to `https`; `/api/auth/me` 401 when signed out; CSP and `X-Frame-Options` present; the server's port 8088 unreachable except from CloudFront |
+
+Bugs found and fixed:
+- The server's first boot failed: Ubuntu's own updates held the apt lock. `user-data.sh` now waits for it (commit ac701e15); the running server was finished by re-running it.
+- The account was at its limits of 5 VPCs and 5 Elastic IPs. The VPC is `Intertec-vpc`; the server has an automatic public address instead of an Elastic IP (after a stop/start, `terraform apply` updates CloudFront).
+- The settings scripts: the AWS CLI v1 on the laptop fetched `http://itop` as a URL, and PowerShell 5 didn't see the existing settings. Both fixed (ac701e15).
+- The SSM wrapper used `pipefail`, but SSM runs commands with `/bin/sh` (dash). It's now POSIX (this PR).
+
+Not covered:
+- A full pipeline run through Deploy with the fixed wrapper (the next merge does it).
+- Signing in on production (the administrator's password stays in Parameter Store for the user).
+- Mail (no mailbox yet), so `approvals-setup` waits for `NOTIFICATION_FROM`.
+- The AI draft (no Bedrock key set yet).
+
 ### 2026-11-02 — Table padding and one shared pager for every list
 
 Branch `claude/tables-padding-pagination-0cc957`. Shared `Pagination` (10/25/50/100, "Showing X–Y of Z", first/prev/next/last), `DataTable` cells `px-4 py-3` with a sunken header and built-in paging, `.ui-table` for hand-written tables, `usePagedRows` for client paging.

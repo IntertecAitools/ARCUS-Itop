@@ -11,12 +11,15 @@ set -euo pipefail
 REGION="${AWS_REGION:-${AWS_DEFAULT_REGION:-us-east-1}}"
 
 # What runs on the server: fetch this release's bundle, run its deploy.sh.
+# SSM runs this with /bin/sh (dash): POSIX only here; deploy.sh is bash.
 read -r -d '' SCRIPT <<EOF || true
-set -euo pipefail
+set -eu
 REL=/opt/arcus/releases/$APP_TAG
 mkdir -p "\$REL"
-aws s3 cp "s3://$ARTIFACT_BUCKET/bundles/$APP_TAG.tgz" - --region $REGION | tar -xz -C "\$REL"
-bash "\$REL/deploy/aws/server/deploy.sh" "$APP_TAG" "$ITOP_TAG" "$IMAGE_BASE" "$PARAM_PATH" "$REGION" "$BACKUP_BUCKET"
+aws s3 cp "s3://$ARTIFACT_BUCKET/bundles/$APP_TAG.tgz" /tmp/arcus-bundle.tgz --region $REGION --only-show-errors
+tar -xzf /tmp/arcus-bundle.tgz -C "\$REL"
+rm -f /tmp/arcus-bundle.tgz
+exec bash "\$REL/deploy/aws/server/deploy.sh" "$APP_TAG" "$ITOP_TAG" "$IMAGE_BASE" "$PARAM_PATH" "$REGION" "$BACKUP_BUCKET"
 EOF
 
 jq -n --arg c "$SCRIPT" '{commands: [$c], executionTimeout: ["5400"]}' > /tmp/ssm-params.json
