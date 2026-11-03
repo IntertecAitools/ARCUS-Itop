@@ -15,6 +15,12 @@ param(
   [string] $Region = 'us-east-1'
 )
 $ErrorActionPreference = 'Stop'
+
+# Values such as http://itop must be stored as text, not fetched: an AWS CLI
+# config just for this script (credentials still come from your usual files).
+$cfg = New-TemporaryFile
+Set-Content $cfg "[default]`nregion = $Region`ncli_follow_urlparam = false"
+$env:AWS_CONFIG_FILE = $cfg.FullName
 $full = "$Path/$File/$Name"
 
 if ($Remove) {

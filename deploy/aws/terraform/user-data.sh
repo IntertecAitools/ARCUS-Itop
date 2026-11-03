@@ -4,15 +4,17 @@
 # itself arrives with the first pipeline deploy (deploy/aws/server/deploy.sh).
 set -euxo pipefail
 export DEBIAN_FRONTEND=noninteractive
+# Ubuntu's own updates may hold the package lock on first boot: wait for it.
+apt() { apt-get -o DPkg::Lock::Timeout=900 "$@"; }
 
-apt-get update
-apt-get install -y ca-certificates curl unzip jq
+apt update
+apt install -y ca-certificates curl unzip jq
 install -m 0755 -d /etc/apt/keyrings
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
 echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu noble stable" \
   > /etc/apt/sources.list.d/docker.list
-apt-get update
-apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+apt update
+apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
 
 mkdir -p /etc/docker
 cat > /etc/docker/daemon.json <<'JSON'

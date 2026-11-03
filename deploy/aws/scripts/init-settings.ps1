@@ -15,6 +15,12 @@ param(
   [string] $Region = 'us-east-1'
 )
 $ErrorActionPreference = 'Stop'
+
+# Values such as http://itop must be stored as text, not fetched: an AWS CLI
+# config just for this script (credentials still come from your usual files).
+$cfg = New-TemporaryFile
+Set-Content $cfg "[default]`nregion = $Region`ncli_follow_urlparam = false"
+$env:AWS_CONFIG_FILE = $cfg.FullName
 $AppUrl = $AppUrl.TrimEnd('/')
 
 # iTop's password rule: 12+ characters with upper, lower, digit and symbol.
@@ -31,8 +37,8 @@ function New-Secret([int] $Length = 32) {
 }
 
 $existing = @{}
-aws ssm get-parameters-by-path --region $Region --path $Path --recursive --query 'Parameters[].Name' --output json |
-  ConvertFrom-Json | ForEach-Object { $existing[$_] = $true }
+$names = aws ssm get-parameters-by-path --region $Region --path $Path --recursive --query 'Parameters[].Name' --output text
+foreach ($n in ("$names" -split '\s+')) { if ($n) { $existing[$n] = $true } }
 
 $created = 0
 function Put([string] $File, [string] $Name, [string] $Value, [switch] $Secret) {
