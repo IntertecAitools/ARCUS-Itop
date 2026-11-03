@@ -151,12 +151,26 @@ function RuleEditor({ id, rule }: { id: string; rule: Rule | undefined }) {
   const { data: options } = useRuleOptions(recordType);
   const typeLabel = options?.recordTypes.find((t) => t.name === recordType)?.label ?? recordType;
 
+  // The events this record type offers: no SLA timers, no SLA event; no
+  // statuses (a plain Ticket), no status events.
+  const availableKinds = EDITABLE.filter((k) => k !== 'sla_threshold' || (options?.slaTimers?.length ?? 0) > 0).filter(
+    (k) => !(k === 'state_entered' || k === 'state_left') || (options?.states?.length ?? 0) > 0,
+  );
+
   // A record type without the chosen status or field resets those choices.
   useEffect(() => {
     if (!options?.states) return;
     if (state && !options.states.some((s) => s.code === state)) setState('');
     setFields((f) => f.filter((code) => options.fields?.some((x) => x.code === code)));
   }, [options, state]);
+
+  // Nor may it keep an event it doesn't offer: the menu would show the first
+  // offered one while the rule still meant the hidden one (and asked for a status).
+  const firstKind = availableKinds[0];
+  const kindOffered = availableKinds.includes(kind);
+  useEffect(() => {
+    if (options && !readOnlyEvent && !kindOffered && firstKind) setKind(firstKind);
+  }, [options, readOnlyEvent, kindOffered, firstKind]);
 
   // The last text box the user was in, so "Insert a field" knows where to put it.
   const lastFocus = useRef<'subject' | 'body'>('body');
@@ -297,9 +311,7 @@ function RuleEditor({ id, rule }: { id: string; rule: Rule | undefined }) {
                   id="event-kind"
                   value={kind}
                   onChange={(e) => setKind(e.target.value as EditableEvent)}
-                  options={EDITABLE.filter((k) => k !== 'sla_threshold' || (options?.slaTimers?.length ?? 0) > 0)
-                    .filter((k) => !(k === 'state_entered' || k === 'state_left') || (options?.states?.length ?? 0) > 0)
-                    .map((k) => ({ value: k, label: EVENT_LABEL[k] }))}
+                  options={availableKinds.map((k) => ({ value: k, label: EVENT_LABEL[k] }))}
                 />
               </div>
             </div>

@@ -4,6 +4,28 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-11-03 — Record pages and lists: names, one Details page, fixes from production use
+
+These are fixes for what the user saw while loading production data:
+
+| Problem on production | Fix |
+|---|---|
+| Lists of Service, Subcategory, Team, Location… (66 classes) showed no name: iTop's `<list>` omits it | Name column added first when the declared list has no naming column |
+| Network Device Type list showed `[object Object]` (Image field) | Image/Blob cells show the file name |
+| Subcategory list showed "Service org = 1" (an ExternalField that is a key) | Bare-id ExternalFields left out of default columns |
+| Contact, Team, Location, SLT, SLA, Organization… (88 classes) had one tab per plain field; Details was nearly empty, and Location's "Owner organization" tab offered "Add an entry" | Only LinkedSets and CaseLogs become tabs; plain fields go back to Details; Dashboard fields kept out |
+| A Person opened as `/records/Contact/5` showed Contact's layout | The page switches to the record's own class |
+| Notification rule "Ticket is created" asked for a status | The event resets to one the record type offers (new screen test) |
+| Users list: long emails ran into Profiles | Email cell truncates, full address on hover; wider column |
+| Import results: `&#039;` cut messages into pieces across columns | Entities decoded before splitting on `;` (new backend test) |
+
+| What ran | Result |
+|---|---|
+| `node --test test/transfer.test.ts` (backend) | 21/21 passed |
+| backend `tsc --noEmit` | Clean |
+| frontend `tsc -b --noEmit` | Clean |
+| New unit tests (`list-cells.test.ts`) and screen test (`NotificationEditorPage.test.tsx`) | Written. The local vitest runs stalled on an overloaded laptop (three runs overlapped), so they were stopped; the CI run of this PR is the frontend test record |
+
 ### 2026-11-03 — Import: separator guessed, wrong one warned
 
 **The problem.** On production, a Service Family CSV (`icon,name`, comma-separated) was imported with another separator selected. Each line was read as one column, matched to Name, and saved as e.g. `laptop,End User Computing`. As a check, the same file simulated against local iTop with a comma separator split correctly (it then refuses `icon`, an image field).

@@ -72,6 +72,14 @@ export function RecordDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const navigate = useNavigate();
 
+  // A record reached through its parent class (a Contact that is a Person, a
+  // CI that is a Server) opens as its own class: that class has the layout,
+  // the fields and the tabs; the parent's would show a fraction of them.
+  const ownClass = record?.class;
+  useEffect(() => {
+    if (ownClass && ownClass !== className) navigate(`/records/${ownClass}/${id}`, { replace: true });
+  }, [ownClass, className, id, navigate]);
+
   /**
    * Applies an action, asking first for whatever its target state demands.
    * An action that needs nothing (close, reopen) is applied straight away.
@@ -116,6 +124,10 @@ export function RecordDetailPage() {
     const rest = info.related.filter((code) => !declared.includes(code));
     return [...declared, ...rest]
       .filter((code) => info.fields[code]?.linkedAvailable !== false)
+      // Only lists and logs get a tab. An abstract class such as Contact
+      // declares its plain fields here (name, status, email…), which made a
+      // tab of each; those belong in Details.
+      .filter((code) => info.fields[code]?.ui === 'related' || info.fields[code]?.type === 'CaseLog')
       .map((code) => ({
         code,
         kind: info.fields[code]?.ui === 'related' ? ('related' as const) : ('log' as const),
@@ -136,7 +148,9 @@ export function RecordDetailPage() {
         // Anything iTop gives a tab is shown there, not repeated inline: the
         // case logs are scalars, so they would otherwise appear twice.
         !tabFields.has(code) &&
-        !['related', 'ignored'].includes(info.fields[code]?.ui ?? ''),
+        !['related', 'ignored'].includes(info.fields[code]?.ui ?? '') &&
+        // An organization's "Overview" is a dashboard definition, not a value.
+        info.fields[code]?.type !== 'Dashboard',
     );
   }, [info, record, editing, editableSet, tabFields]);
 
