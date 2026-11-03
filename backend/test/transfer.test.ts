@@ -47,6 +47,22 @@ describe("parseImportReport", () => {
     assert.deepEqual(report.messages, ["Warning: Column 'foo' is unknown and was ignored"]);
   });
 
+  it("keeps an HTML-escaped message in one cell (its entities end in the separator)", () => {
+    const report = parseImportReport(
+      [
+        "#Issues: 1",
+        "#Created: 0",
+        "Line;Status;Object Class;Object Id;icon (Icon);name (Name)",
+        "0;Issue: Unexpected attribute value(s);n/a;n/a;&#039;laptop&#039; is an invalid value. [Failed to load the file &#039;&#039;. A &amp; B];\"End User Computing\"",
+      ].join("\n"),
+      true,
+    );
+    assert.deepEqual(report.rows[0]?.cells, [
+      "'laptop' is an invalid value. [Failed to load the file ''. A & B]",
+      "End User Computing",
+    ]);
+  });
+
   it("turns a report with no counts into a clear refusal", () => {
     assert.throws(
       () => parseImportReport("Invalid login\n", false),

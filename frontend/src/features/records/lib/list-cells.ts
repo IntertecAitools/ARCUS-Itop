@@ -30,13 +30,30 @@ const MAX_COLUMNS = 6;
  * classes that declare none.
  */
 export function defaultColumns(info: ClassInfo): string[] {
-  const declared = (info.presentation?.list ?? []).filter((a) => info.fields[a]);
-  if (declared.length > 0) return declared.slice(0, MAX_COLUMNS);
+  const declared = (info.presentation?.list ?? []).filter((a) => info.fields[a] && !isBareId(info, a));
+  if (declared.length > 0) {
+    // iTop's lists always lead with the record's name, so its <list> rarely
+    // names it (Service: provider, status, family). Put it back first.
+    const named = NAME_COLUMNS.some((a) => declared.includes(a));
+    return (named || !info.fields.name ? declared : ['name', ...declared]).slice(0, MAX_COLUMNS);
+  }
 
   const preferred = ['name', 'friendlyname', 'ref', 'title', 'status', 'org_name'];
   const scalars = info.writable.filter((a) => info.fields[a]?.ui === 'scalar');
   const ordered = [...preferred.filter((a) => info.fields[a]), ...scalars.filter((a) => !preferred.includes(a))];
   return [...new Set(ordered)].slice(0, MAX_COLUMNS);
+}
+
+/** Columns that already say which record a row is. */
+const NAME_COLUMNS = ['name', 'friendlyname', 'title', 'ref'];
+
+/**
+ * A field copied from a linked record that is itself that record's key, such
+ * as a subcategory's `service_org_id`: its value is a bare number ("1"), with
+ * no name beside it to show instead.
+ */
+function isBareId(info: ClassInfo, attcode: string): boolean {
+  return info.fields[attcode]?.type === 'ExternalField' && attcode.endsWith('_id');
 }
 
 /** True when the column is a reference to another record. */
@@ -56,6 +73,12 @@ export function listCell(
   fields: Record<string, unknown>,
 ): ListCell {
   const value = fields[attcode];
+  // An Image or Blob arrives as an object (data, mimetype, filename): show
+  // its file name, never "[object Object]".
+  if (value !== null && typeof value === 'object') {
+    const filename = (value as { filename?: unknown }).filename;
+    return { text: typeof filename === 'string' && filename ? filename : EMPTY };
+  }
   const raw = value === null || value === undefined ? '' : String(value);
 
   if (isPickerColumn(info, attcode)) {

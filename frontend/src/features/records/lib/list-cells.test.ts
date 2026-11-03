@@ -1,6 +1,30 @@
 import { describe, expect, it } from 'vitest';
 import type { ClassInfo } from '../types';
-import { listCell, listFields } from './list-cells';
+import { defaultColumns, listCell, listFields } from './list-cells';
+
+describe('default list columns', () => {
+  /** ServiceSubcategory as iTop declares its list: no name, and the service's org as a bare id. */
+  const subcategory = {
+    name: 'ServiceSubcategory',
+    writable: ['name', 'service_id', 'status', 'request_type'],
+    presentation: { list: ['service_id', 'status', 'request_type', 'service_org_id'] },
+    fields: {
+      name: { type: 'String', ui: 'scalar' },
+      service_id: { type: 'ExternalKey', ui: 'picker', target: 'Service' },
+      status: { type: 'Enum', ui: 'scalar' },
+      request_type: { type: 'Enum', ui: 'scalar' },
+      service_org_id: { type: 'ExternalField', ui: 'readonly' },
+    },
+  } as unknown as ClassInfo;
+
+  it('puts the name first when the declared list leaves it out, and drops bare-id fields', () => {
+    expect(defaultColumns(subcategory)).toEqual(['name', 'service_id', 'status', 'request_type']);
+  });
+
+  it('keeps a declared list that already names the record', () => {
+    expect(defaultColumns(info)).toEqual(['title', 'org_id', 'service_id', 'status']);
+  });
+});
 
 /** Problem's list columns as iTop declares them: two of them are pickers. */
 const info = {
@@ -14,6 +38,7 @@ const info = {
     start_date: { type: 'DateTime', ui: 'scalar' },
     due_date: { type: 'Date', ui: 'scalar' },
   },
+  presentation: { list: ['title', 'org_id', 'service_id', 'status'] },
   labels: { values: { status: { assigned: 'Assigned' } } },
 } as unknown as ClassInfo;
 
@@ -45,6 +70,13 @@ describe('list cells', () => {
   it('keeps enum wording and the empty dash for ordinary columns', () => {
     expect(listCell(info, 'status', { status: 'assigned' }).text).toBe('Assigned');
     expect(listCell(info, 'title', { title: '' }).text).toBe('—');
+  });
+
+  it('shows an image by its file name, never as [object Object]', () => {
+    expect(listCell(info, 'title', { title: { data: '', mimetype: 'image/png', filename: 'router.png' } }).text).toBe(
+      'router.png',
+    );
+    expect(listCell(info, 'title', { title: { data: '', mimetype: '', filename: '' } }).text).toBe('—');
   });
 
   it("shows a DateTime instant on the viewer's clock, a Date as its day", () => {

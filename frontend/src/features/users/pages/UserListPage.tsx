@@ -21,12 +21,31 @@ const visibleProfiles = (profiles: string[]) => profiles.filter((p) => p !== 'RE
 const columns: Column<UserSummary>[] = [
   { id: 'login', header: 'Login', enableSorting: false, cell: ({ row }) => <span className="font-medium text-ink">{row.original.login}</span> },
   { id: 'name', header: 'Name', enableSorting: false, cell: ({ row }) => row.original.name || '—' },
-  { id: 'email', header: 'Email', enableSorting: false, cell: ({ row }) => row.original.email || '—' },
+  {
+    id: 'email',
+    header: 'Email',
+    enableSorting: false,
+    size: 280,
+    // Long addresses are cut with an ellipsis (full one on hover) instead of
+    // running into the Profiles column.
+    cell: ({ row }) => (
+      <span className="block truncate" title={row.original.email || undefined}>
+        {row.original.email || '—'}
+      </span>
+    ),
+  },
   {
     id: 'profiles',
     header: 'Profiles',
     enableSorting: false,
-    cell: ({ row }) => <span className="block truncate">{visibleProfiles(row.original.profiles).join(', ') || '—'}</span>,
+    cell: ({ row }) => {
+      const profiles = visibleProfiles(row.original.profiles).join(', ');
+      return (
+        <span className="block truncate" title={profiles || undefined}>
+          {profiles || '—'}
+        </span>
+      );
+    },
   },
   { id: 'type', header: 'Sign-in', enableSorting: false, size: 90, cell: ({ row }) => TYPE_LABEL[row.original.type] },
   {

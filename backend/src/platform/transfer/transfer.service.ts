@@ -271,7 +271,7 @@ export function parseImportReport(text: string, simulated: boolean): ImportRepor
   const [header, ...body] = tableLines;
   const rows = body.map((line) => {
     // Cells are `"`-qualified when they hold the separator.
-    const cells = parseCsv(line, ";", '"')[0] ?? [];
+    const cells = (parseCsv(decodeBeforeSplit(line), ";", '"')[0] ?? []).map(decodeQuotes);
     const status = cells[1] ?? "";
     return {
       line: Number(cells[0]) || 0,
@@ -290,6 +290,25 @@ export function parseImportReport(text: string, simulated: boolean): ImportRepor
     columns: header ? (parseCsv(header, ";", '"')[0] ?? []).slice(4) : [],
     rows,
   };
+}
+
+/**
+ * iTop HTML-escapes the messages in its report: `'laptop'` arrives as
+ * `&#039;laptop&#039;`. Each entity ends in `;`, the report's separator, so
+ * split as they are they cut a message into pieces across columns. These are
+ * decoded before splitting; none of them yields a `;` or a `"`.
+ */
+function decodeBeforeSplit(line: string): string {
+  return line
+    .replace(/&#0*39;|&apos;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&");
+}
+
+/** A quote would end a qualified cell early, so it is decoded after splitting. */
+function decodeQuotes(cell: string): string {
+  return cell.replace(/&quot;|&#0*34;/g, '"');
 }
 
 function rowKind(status: string): ImportRowKind {
