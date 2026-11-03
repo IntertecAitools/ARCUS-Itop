@@ -142,3 +142,32 @@ describe('import mapping', () => {
     expect(importMutate.mock.calls[0]?.[0]).not.toHaveProperty('mapping');
   }, SLOW);
 });
+
+describe('import separator', () => {
+  it('picks the separator from a semicolon file', async () => {
+    const user = userEvent.setup();
+    at('/records/:className/import', <RecordImportPage />, '/records/UserRequest/import');
+    await user.click(screen.getByPlaceholderText(/paste csv/i));
+    await user.paste('title;org_id\nx;1\n');
+
+    expect(screen.getByRole('combobox', { name: /separator/i })).toHaveValue(';');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Check file' }));
+    expect(importMutate.mock.calls[0]?.[0]).toMatchObject({ separator: ';' });
+  }, SLOW);
+
+  it('warns when the chosen separator would load each line as one column, and fixes it', async () => {
+    const user = userEvent.setup();
+    at('/records/:className/import', <RecordImportPage />, '/records/UserRequest/import');
+    await user.click(screen.getByPlaceholderText(/paste csv/i));
+    await user.paste('title,org_id\nx,1\n');
+    await user.selectOptions(screen.getByRole('combobox', { name: /separator/i }), ';');
+
+    const alert = screen.getByRole('alert');
+    expect(alert).toHaveTextContent(/looks separated by comma/i);
+    await user.click(within(alert).getByRole('button', { name: /use comma/i }));
+
+    expect(screen.getByRole('combobox', { name: /separator/i })).toHaveValue(',');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  }, SLOW);
+});
