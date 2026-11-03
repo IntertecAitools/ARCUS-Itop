@@ -7,7 +7,7 @@ import { NotificationEditorPage } from './NotificationEditorPage';
 const save = vi.fn();
 
 /** User Request has a lifecycle; a plain Ticket has no statuses. */
-const optionsFor = (recordType: string) => ({
+const makeOptions = (recordType: string) => ({
   recordTypes: [
     { name: 'Ticket', label: 'Ticket', ticket: true },
     { name: 'UserRequest', label: 'User Request', ticket: true },
@@ -19,6 +19,10 @@ const optionsFor = (recordType: string) => ({
   roles: ['caller'],
   tokens: [],
 });
+// One object per record type, as react-query returns the same data on every
+// render: a fresh object each time re-runs the page's effects forever.
+const OPTIONS = { Ticket: makeOptions('Ticket'), UserRequest: makeOptions('UserRequest') };
+const optionsFor = (recordType: string) => OPTIONS[recordType as keyof typeof OPTIONS];
 
 vi.mock('../api/notifications.api', () => ({
   useRule: () => ({ data: undefined, isLoading: false, isError: false }),
