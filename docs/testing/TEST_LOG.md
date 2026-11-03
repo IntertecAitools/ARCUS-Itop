@@ -4,6 +4,21 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-11-03 — Import: separator guessed, wrong one warned
+
+**The problem.** On production, a Service Family CSV (`icon,name`, comma-separated) was imported with another separator selected. Each line was read as one column, matched to Name, and saved as e.g. `laptop,End User Computing`. As a check, the same file simulated against local iTop with a comma separator split correctly (it then refuses `icon`, an image field).
+
+**The fix.** The import screen now guesses the separator when a file is loaded or pasted. If the chosen separator would give fewer columns, it warns, with a button to switch.
+
+| What ran | Result |
+|---|---|
+| `vitest run src/features/records` | 9 files, 54 tests passed |
+| New: `guessSeparator` unit tests (comma, semicolon, tab, quoted heading, one column) | Passed |
+| New screen tests: semicolon file is detected; wrong separator warns and "Use comma" fixes it | Passed |
+| `tsc -b --noEmit` | Clean |
+
+Not covered: the browser check. The mock-mode worker would not start in the in-app browser, so the screen tests stand in for it.
+
 ### 2026-11-03 — First production deploy on AWS (CodePipeline)
 
 The AWS setup from `deploy/aws/` (PR #50): Terraform in account 557690608274, us-east-1, `Intertec-vpc`.

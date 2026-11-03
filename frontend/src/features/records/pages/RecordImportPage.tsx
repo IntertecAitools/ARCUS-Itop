@@ -50,6 +50,11 @@ export function RecordImportPage() {
   const [showMapping, setShowMapping] = useState(false);
 
   const headings = useMemo(() => headerOf(csv, separator), [csv, separator]);
+  // The separator that splits the header into the most columns. When another
+  // one is chosen, every line would load as one column (into a field such as
+  // Name): say so before anything is checked or imported.
+  const guessed = useMemo(() => guessSeparator(csv), [csv]);
+  const wrongSeparator = guessed !== null && guessed !== separator && headerOf(csv, guessed).length > headings.length;
   const suggested = useMemo(() => (info ? suggestMapping(info, headings) : []), [info, headings]);
   const mapping = editedMapping ?? suggested;
   const mustMap = info ? needsMapping(info, headings) : false;
@@ -74,6 +79,8 @@ export function RecordImportPage() {
   const reset = (text: string, name: string) => {
     setCsv(text);
     setFileName(name);
+    const guess = guessSeparator(text);
+    if (guess !== null) setSeparator(guess);
     setKeys(null);
     setEditedMapping(null);
     setShowMapping(false);
@@ -176,6 +183,28 @@ export function RecordImportPage() {
             onChange={(e) => reset(e.target.value, '')}
           />
           {fileName ? <p className="text-[12px] text-ink-muted">{fileName}</p> : null}
+          {wrongSeparator && guessed !== null ? (
+            <div
+              role="alert"
+              className="flex flex-wrap items-center gap-3 rounded-card border border-warning/30 bg-warning-soft px-4 py-3 text-[13px] text-warning-ink"
+            >
+              <span>
+                This file looks separated by {separatorLabel(guessed).toLowerCase()}, but{' '}
+                {separatorLabel(separator).toLowerCase()} is selected: each line would load as a single column.
+              </span>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setSeparator(guessed);
+                  setKeys(null);
+                  setReport(null);
+                }}
+              >
+                Use {separatorLabel(guessed)}
+              </Button>
+            </div>
+          ) : null}
         </CardBody>
       </Card>
 
@@ -436,6 +465,27 @@ function ImportReportView({ className, report }: { className: string; report: Im
       </CardBody>
     </Card>
   );
+}
+
+function separatorLabel(value: string): string {
+  return SEPARATORS.find((s) => s.value === value)?.label ?? value;
+}
+
+/**
+ * The offered separator that splits the header row into the most columns,
+ * or null when none splits it (a one-column file). Comma wins a tie.
+ */
+export function guessSeparator(csv: string): string | null {
+  let best: string | null = null;
+  let most = 1;
+  for (const { value } of SEPARATORS) {
+    const count = headerOf(csv, value).length;
+    if (count > most) {
+      best = value;
+      most = count;
+    }
+  }
+  return best;
 }
 
 /**
