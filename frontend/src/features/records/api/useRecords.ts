@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   addLink,
   applyStimulus,
@@ -53,12 +53,19 @@ export function useRecord(className: string, id: string, fields?: string) {
   });
 }
 
-export function useFieldOptions(className: string, attcode: string, enabled = true) {
+export function useFieldOptions(
+  className: string,
+  attcode: string,
+  params: { q?: string; context?: Record<string, string> } = {},
+  enabled = true,
+) {
   return useQuery({
-    queryKey: ['meta', 'options', className, attcode],
-    queryFn: () => getFieldOptions(className, attcode),
+    queryKey: ['meta', 'options', className, attcode, params.q ?? '', params.context ?? {}],
+    queryFn: () => getFieldOptions(className, attcode, params),
     enabled: enabled && Boolean(className && attcode),
     staleTime: 10 * 60_000,
+    // Keep the list on screen while a search or a new organization loads.
+    placeholderData: keepPreviousData,
   });
 }
 

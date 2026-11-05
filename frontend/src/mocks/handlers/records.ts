@@ -51,9 +51,12 @@ export const recordHandlers = [
     const info = classInfos[String(params.className)];
     return info ? HttpResponse.json(info) : notFound(`Unknown class ${String(params.className)}.`);
   }),
-  http.get(url('/meta/classes/:className/fields/:attcode/options'), ({ params }) => {
+  http.get(url('/meta/classes/:className/fields/:attcode/options'), ({ params, request }) => {
     const target = classInfos[String(params.className)]?.fields[String(params.attcode)]?.target ?? '';
-    const options = (records[target] ?? []).map((r) => ({ id: r.id, label: r.label }));
+    const q = new URL(request.url).searchParams.get('q')?.toLowerCase() ?? '';
+    const options = (records[target] ?? [])
+      .filter((r) => r.label.toLowerCase().includes(q))
+      .map((r) => ({ id: r.id, label: r.label }));
     return HttpResponse.json({ options, total: options.length, truncated: false });
   }),
   http.get(url('/lookups/:className'), ({ params, request }) => {

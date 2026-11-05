@@ -1,4 +1,7 @@
+import { useEffect, useId, useRef, useState } from 'react';
+import { ChevronDown, X } from 'lucide-react';
 import { useFieldOptions } from '../api/useRecords';
+import { pickerContext } from '../lib/picker-dependencies';
 import type { FieldSpec } from '../types';
 import { cn, dateTimeText, fromDateTimeInput, toDateTimeInput } from '@/lib/utils';
 
@@ -128,6 +131,177 @@ export function FieldValue({
 }
 
 /**
+ * A field to pick another class's record: type a few letters and choose from the
+ * suggestions, which the BFF searches for. It sends at most 100 options, so a long
+ * list (over a thousand customer organizations) is only reachable by typing.
+ *
+ * Shows the chosen record's name when closed. A record keeps its name when a later
+ * search no longer lists it.
+ */
+function PickerInput({
+  id,
+  className: itopClass,
+  attcode,
+  spec,
+  value,
+  onChange,
+  formValues,
+  waitingFor,
+  currentLabel,
+}: {
+  id: string;
+  className: string;
+  attcode: string;
+  spec: FieldSpec;
+  value: string;
+  onChange: (value: string) => void;
+  formValues?: Record<string, unknown>;
+  waitingFor?: string;
+  currentLabel?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [term, setTerm] = useState('');
+  const [q, setQ] = useState('');
+  const [active, setActive] = useState(0);
+  const listId = useId();
+
+  useEffect(() => {
+    const timer = setTimeout(() => setQ(term.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [term]);
+
+  const context = pickerContext(itopClass, spec, formValues);
+  const { data: picker, isPending, isPlaceholderData } = useFieldOptions(
+    itopClass,
+    attcode,
+    { ...(q ? { q } : {}), context },
+    !waitingFor,
+  );
+  // Until the list catches up with what was typed, it answers an older question.
+  const searching = (isPending && !picker) || isPlaceholderData || term.trim() !== q;
+  const options = searching ? [] : (picker?.options ?? []);
+
+  const seen = useRef(new Map<string, string>());
+  for (const o of picker?.options ?? []) seen.current.set(String(o.id), o.label);
+  const chosenLabel = value ? (seen.current.get(value) ?? currentLabel ?? `#${value}`) : '';
+
+  const close = () => {
+    setOpen(false);
+    setTerm('');
+    setQ('');
+    setActive(0);
+  };
+  const choose = (option: { id: string | number }) => {
+    onChange(String(option.id));
+    close();
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      setOpen(true);
+      if (options.length > 0) {
+        const step = e.key === 'ArrowDown' ? 1 : options.length - 1;
+        setActive((a) => (a + step) % options.length);
+      }
+    } else if (e.key === 'Enter' && open) {
+      // Picks a suggestion; must not submit the form around it.
+      e.preventDefault();
+      const option = options[active];
+      if (option) choose(option);
+    } else if (e.key === 'Escape' && open) {
+      e.stopPropagation();
+      close();
+    }
+  };
+
+  const showing = open && !waitingFor;
+
+  return (
+    <div className="relative">
+      <input
+        id={id}
+        type="text"
+        role="combobox"
+        autoComplete="off"
+        aria-autocomplete="list"
+        aria-expanded={showing}
+        aria-controls={listId}
+        {...(showing && options[active] ? { 'aria-activedescendant': `${listId}-${active}` } : {})}
+        className={cn(CONTROL, 'pe-14')}
+        disabled={Boolean(waitingFor)}
+        placeholder={waitingFor ? `Choose ${waitingFor} first` : 'Type to search…'}
+        value={open ? term : chosenLabel}
+        onFocus={() => setOpen(true)}
+        onClick={() => setOpen(true)}
+        onBlur={close}
+        onChange={(e) => {
+          setTerm(e.target.value);
+          setActive(0);
+          setOpen(true);
+        }}
+        onKeyDown={onKeyDown}
+      />
+      <span className="absolute inset-y-0 end-2 flex items-center gap-1 text-ink-muted">
+        {value && !waitingFor ? (
+          <button
+            type="button"
+            aria-label={`Clear ${humaniseAttcode(attcode)}`}
+            className="rounded p-0.5 hover:text-ink"
+            // Before the field's blur, which would otherwise close it first.
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => {
+              onChange('');
+              close();
+            }}
+          >
+            <X className="size-3.5" aria-hidden />
+          </button>
+        ) : null}
+        <ChevronDown className="pointer-events-none size-4" aria-hidden />
+      </span>
+      {showing ? (
+        <ul
+          id={listId}
+          role="listbox"
+          aria-label={`${humaniseAttcode(attcode)} suggestions`}
+          className="absolute z-30 mt-1 max-h-60 w-full overflow-y-auto rounded-card border border-line bg-surface py-1 shadow-lg"
+        >
+          {options.map((o, index) => (
+            <li
+              key={o.id}
+              id={`${listId}-${index}`}
+              role="option"
+              aria-selected={String(o.id) === value}
+              className={cn(
+                'cursor-pointer px-3 py-1.5 text-[13px] text-ink',
+                index === active && 'bg-surface-hover',
+                String(o.id) === value && 'font-medium',
+              )}
+              onMouseEnter={() => setActive(index)}
+              // Before the field's blur, which would otherwise close the list first.
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => choose(o)}
+            >
+              {o.label}
+            </li>
+          ))}
+          {searching ? (
+            <li className="px-3 py-1.5 text-[13px] text-ink-muted">Searching…</li>
+          ) : options.length === 0 ? (
+            <li className="px-3 py-1.5 text-[13px] text-ink-muted">{q ? 'No matches.' : 'Nothing to choose from.'}</li>
+          ) : picker?.truncated ? (
+            <li className="border-t border-line px-3 py-1.5 text-[12px] text-ink-muted">
+              Showing {options.length} of {picker.total.toLocaleString('en')}. Keep typing to narrow it down.
+            </li>
+          ) : null}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
+/**
  * Renders one field's INPUT.
  *
  * Pickers fetch their options from the BFF on demand rather than up front:
@@ -140,6 +314,9 @@ export function FieldInput({
   value,
   onChange,
   valueLabels,
+  formValues,
+  waitingFor,
+  currentLabel,
 }: {
   className: string;
   attcode: string;
@@ -148,28 +325,28 @@ export function FieldInput({
   onChange: (value: string) => void;
   /** iTop's wording for this field's enum values. */
   valueLabels?: Record<string, string>;
+  /** The form's values, for a picker whose options depend on them. */
+  formValues?: Record<string, unknown>;
+  /** The label of the field to fill in first, when this picker depends on it. */
+  waitingFor?: string;
+  /** The name of the stored value, which a long list may not include. */
+  currentLabel?: string;
 }) {
-  const isPicker = spec.ui === 'picker';
-  const { data: picker, isFetching } = useFieldOptions(itopClass, attcode, isPicker);
-
   const id = `field-${attcode}`;
 
-  if (isPicker) {
+  if (spec.ui === 'picker') {
     return (
-      <select
+      <PickerInput
         id={id}
-        className={cn(CONTROL, 'appearance-none')}
+        className={itopClass}
+        attcode={attcode}
+        spec={spec}
         value={value}
-        disabled={isFetching}
-        onChange={(e) => onChange(e.target.value)}
-      >
-        <option value="">{isFetching ? 'Loading…' : 'Not set'}</option>
-        {picker?.options.map((o) => (
-          <option key={o.id} value={String(o.id)}>
-            {o.label}
-          </option>
-        ))}
-      </select>
+        onChange={onChange}
+        {...(formValues ? { formValues } : {})}
+        {...(waitingFor ? { waitingFor } : {})}
+        {...(currentLabel ? { currentLabel } : {})}
+      />
     );
   }
 

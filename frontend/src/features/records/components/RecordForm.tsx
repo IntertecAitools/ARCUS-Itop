@@ -1,6 +1,7 @@
 import { Card, CardBody } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import { FieldInput, FieldValue, humaniseAttcode } from './FieldControls';
+import { dependentsOf, unsetParent } from '../lib/picker-dependencies';
 import type { ClassInfo, Fieldset } from '../types';
 
 /**
@@ -156,6 +157,17 @@ export function RecordForm({
   draft?: Record<string, string>;
   onChange?: (attcode: string, value: string) => void;
 }) {
+  // What dependent pickers read: the draft, over the stored record.
+  const formValues = { ...values, ...draft };
+
+  // A new organization invalidates the caller chosen for the old one.
+  const change = (attcode: string, value: string) => {
+    onChange?.(attcode, value);
+    for (const dependent of dependentsOf(info, attcode)) {
+      if (draft?.[dependent]) change(dependent, '');
+    }
+  };
+
   return (
     <div
       className={cn(
@@ -180,6 +192,8 @@ export function RecordForm({
               {fieldset.fields.map((attcode) => {
                 const spec = info.fields[attcode];
                 if (!spec) return null;
+                const parent = unsetParent(info, spec, formValues);
+                const shown = displayValue(info, attcode, spec, values);
                 return (
                   <FieldRow key={attcode} info={info} attcode={attcode}>
                     {editing ? (
@@ -188,8 +202,11 @@ export function RecordForm({
                         attcode={attcode}
                         spec={spec}
                         value={draft?.[attcode] ?? ''}
-                        onChange={(v) => onChange?.(attcode, v)}
+                        onChange={(v) => change(attcode, v)}
                         valueLabels={info.labels?.values?.[attcode]}
+                        formValues={formValues}
+                        {...(parent ? { waitingFor: fieldLabel(info, parent) } : {})}
+                        {...(typeof shown === 'string' && shown ? { currentLabel: shown } : {})}
                       />
                     ) : (
                       <FieldValue

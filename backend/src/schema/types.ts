@@ -132,6 +132,8 @@ export interface Field {
   filter?: string;
   /** Attributes this field's options depend on (dependent pickers). */
   dependsOn?: string[];
+  /** The form fields that narrow this picker's options, when the BFF can apply its filter. */
+  narrowedBy?: string[];
   /** True when the extractor's category was corrected during normalisation. */
   normalized?: { from: UiCategory; reason: string };
 }
