@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import { AppError } from "../src/core/errors.js";
-import { LookupsService, translateFilter } from "../src/platform/lookups/lookups.service.js";
+import { LookupsService, teamMembersOql, translateFilter } from "../src/platform/lookups/lookups.service.js";
+import type { CmdbSchema } from "../src/schema/load.js";
+import type { ClassInfo, Field } from "../src/schema/types.js";
 import { FakeItopClient, getResponse, sampleSchema } from "./helpers.js";
 
 const schema = sampleSchema();
@@ -16,6 +18,55 @@ describe("narrowedBy", () => {
     const model = schema.require("Server").fields["model_id"]!;
     assert.ok(model.dependsOn?.length);
     assert.deepEqual(model.narrowedBy, model.dependsOn);
+  });
+});
+
+describe("teamMembersOql", () => {
+  const filter =
+    "SELECT Person AS p JOIN lnkPersonToTeam AS l ON l.person_id=p.id JOIN Team AS t ON l.team_id=t.id WHERE t.id = :this->team_id";
+  const agent = { filter, dependsOn: ["team_id"] } as Field;
+  const person = { searchable: ["name", "email"] } as ClassInfo;
+
+  it("fills in the team", () => {
+    assert.equal(teamMembersOql(agent, person, { team_id: "7" }), filter.replace(":this->team_id", "7"));
+  });
+
+  it("adds the search on the selected class's alias", () => {
+    const oql = teamMembersOql(agent, person, { team_id: "7" }, "ravi")!;
+    assert.ok(oql.endsWith("WHERE t.id = 7 AND (p.name LIKE '%ravi%' OR p.email LIKE '%ravi%')"), oql);
+  });
+
+  it("waits for the team", () => {
+    assert.equal(teamMembersOql(agent, person, {}), undefined);
+    assert.equal(teamMembersOql(agent, person, { team_id: "" }), undefined);
+  });
+
+  it("never puts anything but a whole number into the query", () => {
+    assert.equal(teamMembersOql(agent, person, { team_id: "7 OR 1=1" }), undefined);
+    assert.equal(teamMembersOql(agent, person, { team_id: "0" }), undefined);
+  });
+
+  it("leaves other JOIN filters alone", () => {
+    const team = { filter: "SELECT Team AS t JOIN lnkDeliveryModelToContact AS l ON l.contact_id=t.id WHERE t.org_id = :this->org_id" } as Field;
+    assert.equal(teamMembersOql(team, person, { org_id: "7" }), undefined);
+  });
+
+  it("is what forField asks iTop for, and the search stays quoted", async () => {
+    const fake = new FakeItopClient().on("core/get", getResponse([]));
+    const members = { ...agent, ui: "picker", target: "Organization" } as Field;
+    const server = schema.require("Server");
+    const stub = {
+      require: (name: string) =>
+        name === "Server" ? { ...server, fields: { ...server.fields, agent_id: members } } : schema.require(name),
+    };
+    const scoped = new LookupsService(fake.asClient(), stub as unknown as CmdbSchema, 0);
+
+    const result = await scoped.forField("Server", "agent_id", { context: { team_id: "7" }, q: "o'brien" });
+
+    const key = String(fake.lastCall().params["key"]);
+    assert.ok(key.includes("WHERE t.id = 7 AND ("), key);
+    assert.ok(!key.includes("o'brien"), "the apostrophe must be escaped");
+    assert.equal(result.filterIgnored, undefined);
   });
 });
 
