@@ -3,7 +3,8 @@ import type { ItopClient } from "../../itop/client.js";
 import { normalizeObjects, parseFoundCount } from "../../itop/normalize.js";
 import { buildOql } from "../../itop/oql.js";
 import { currentCaller } from "../../core/request-context.js";
-import { UNTRANSLATED_FILTER, type CmdbSchema } from "../../schema/load.js";
+import { assertIdentifier, likeContains } from "../../itop/oql.js";
+import { TEAM_MEMBERS_FILTER, UNTRANSLATED_FILTER, type CmdbSchema } from "../../schema/load.js";
 import type { ClassInfo, Field } from "../../schema/types.js";
 
 export interface Option {
@@ -98,18 +99,19 @@ export class LookupsService {
     }
 
     const targetInfo = this.schema.require(field.target);
+    const members = teamMembersOql(field, targetInfo, query.context ?? {}, query.q);
     const translated = translateFilter(field, targetInfo, query.context ?? {});
 
-    const result = await this.fetch(targetInfo, {
-      q: query.q,
-      limit: query.limit,
-      equals: translated.equals,
-      contextFields: translated.contextFields,
-    });
+    const result = await this.fetch(
+      targetInfo,
+      members
+        ? { limit: query.limit, oql: members }
+        : { q: query.q, limit: query.limit, equals: translated.equals, contextFields: translated.contextFields },
+    );
 
     if (field.dependsOn) result.dependsOn = field.dependsOn;
     if (field.filter) result.filter = field.filter;
-    if (translated.ignored) result.filterIgnored = true;
+    if (!members && translated.ignored) result.filterIgnored = true;
     return result;
   }
 
@@ -120,6 +122,8 @@ export class LookupsService {
       limit?: number;
       equals?: Record<string, string | number | null>;
       contextFields?: string[];
+      /** A complete query, used as it is instead of the conditions above. */
+      oql?: string;
     },
   ): Promise<OptionsResult> {
     const limit = Math.min(Math.max(1, options.limit ?? DEFAULT_OPTION_LIMIT), MAX_OPTION_LIMIT);
@@ -129,7 +133,7 @@ export class LookupsService {
     if (options.q && options.q.trim() !== "" && info.searchable.length > 0) {
       built.search = { term: options.q, attributes: info.searchable };
     }
-    const oql = buildOql(built);
+    const oql = options.oql ?? buildOql(built);
 
     // Per user: iTop limits what each account may see (allowed organisations),
     // so one user's option list must never be served to another.
@@ -196,6 +200,36 @@ export class LookupsService {
   clearCache(): void {
     this.cache.clear();
   }
+}
+
+/**
+ * The query for a people-in-a-team picker: iTop's own filter with the form's ids
+ * filled in, plus the search. Undefined for any other filter, or until the team
+ * is known. Only whole numbers go into the query.
+ */
+export function teamMembersOql(
+  field: Field,
+  targetInfo: ClassInfo,
+  context: Record<string, string>,
+  q?: string,
+): string | undefined {
+  if (!field.filter || !TEAM_MEMBERS_FILTER.test(field.filter)) return undefined;
+
+  let complete = true;
+  const oql = field.filter.replace(/:this->(\w+)/g, (_, code: string) => {
+    const value = context[code];
+    if (value === undefined || !/^[1-9]\d*$/.test(value)) complete = false;
+    return value ?? "";
+  });
+  const alias = /^\s*SELECT\s+\w+\s+AS\s+(\w+)/i.exec(oql)?.[1];
+  if (!complete || !alias) return undefined;
+
+  const term = q?.trim();
+  if (!term || targetInfo.searchable.length === 0) return oql;
+  const matches = targetInfo.searchable.map(
+    (attcode) => `${alias}.${assertIdentifier(attcode, "attribute")} LIKE ${likeContains(term)}`,
+  );
+  return `${oql} AND (${matches.join(" OR ")})`;
 }
 
 interface TranslatedFilter {

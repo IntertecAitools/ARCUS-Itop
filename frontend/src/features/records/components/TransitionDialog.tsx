@@ -4,6 +4,7 @@ import { Button, Input } from '@/components/ui';
 import { asksNextActionDate } from '../lib/transitions';
 import type { ClassInfo, RecordDto } from '../types';
 import { FieldInput } from './FieldControls';
+import { dependentsOf, unsetParent } from '../lib/picker-dependencies';
 import { fieldLabel } from './RecordForm';
 
 /** The modal frame shared by the record screen's dialogs. */
@@ -96,6 +97,24 @@ export function TransitionDialog({
     return initial;
   });
 
+  // What dependent pickers read: an agent lists the chosen team's people, and a
+  // team this action doesn't ask for is the record's own.
+  const formValues = { ...record.fields, ...values };
+  const change = (attcode: string, value: string) => {
+    setValues((v) => {
+      const next = { ...v, [attcode]: value };
+      for (const dependent of dependentsOf(info, attcode)) {
+        if (dependent in next) next[dependent] = '';
+      }
+      return next;
+    });
+  };
+  // Waits only for a field this dialog asks for: anything else could never be filled.
+  const waitingProp = (attcode: string) => {
+    const parent = unsetParent(info, info.fields[attcode]!, formValues);
+    return parent && prompts.includes(parent) ? { waitingFor: fieldLabel(info, parent) } : {};
+  };
+
   // Putting a ticket on hold also asks when someone acts on it again.
   const asksDate = asksNextActionDate(info, record, action);
   const [nextActionDate, setNextActionDate] = useState('');
@@ -151,8 +170,10 @@ export function TransitionDialog({
             attcode={attcode}
             spec={info.fields[attcode]!}
             value={values[attcode] ?? ''}
-            onChange={(value) => setValues((v) => ({ ...v, [attcode]: value }))}
+            onChange={(value) => change(attcode, value)}
             valueLabels={info.labels.values?.[attcode]}
+            formValues={formValues}
+            {...waitingProp(attcode)}
           />
         </div>
       ))}

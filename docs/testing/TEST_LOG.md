@@ -23,7 +23,15 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 Bug found by CI: the first version read iTop's filter text in the browser, which the architecture test forbids ("never writes OQL"). The decision moved to the BFF.
 
-Not covered: real iTop data in a browser (the journey uses the mock API; the BFF's filter has its own tests). `live.spec.ts` was updated for the new field but not run. Still unfiltered: pickers whose filter has a JOIN, such as a ticket's team, agent and service.
+Then, at the user's request, Agent lists only the chosen team's people, on forms and in the Assign dialog: the BFF applies iTop's people-in-a-team filter (also a change's manager and supervisor), with only whole-number ids put into the query.
+
+| What ran (after the Agent change) | Result |
+|---|---|
+| backend `test/lookups.test.ts` (new: `teamMembersOql`) | 25/25 passed |
+| `vitest run src/features/records` + architecture test (new: `TransitionDialog.pickers.test.tsx`) | 13 files, 81 tests passed |
+| frontend and backend `tsc --noEmit` | Clean |
+
+Not covered: real iTop data (local iTop was not running, so the people-in-a-team query itself has not run against iTop; it is iTop's own filter with the id filled in). `live.spec.ts` was updated for the new field but not run. Still unfiltered: a ticket's team and service, which would be empty for customers without a delivery model or contract.
 
 ### 2026-11-03 — Record pages and lists: names, one Details page, fixes from production use
 

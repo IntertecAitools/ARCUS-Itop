@@ -6,6 +6,15 @@ import type { ClassInfo, Field, RawClass, RawField, RawSchema, StateFlag, UiCate
 /** Picker filters beyond a flat WHERE of ANDed equalities, which the BFF does not apply. */
 export const UNTRANSLATED_FILTER = /\bJOIN\b|\bBELOW\b|\bFROM\b/i;
 
+/**
+ * The one JOIN filter the BFF does apply: people in a team (a ticket's agent,
+ * a change's manager and supervisor). A team's members are always there to pick.
+ * The others stay unapplied: a ticket's team and service join through the delivery
+ * model and the contract, which most customers don't have, so their lists would
+ * be empty.
+ */
+export const TEAM_MEMBERS_FILTER = /\bJOIN\s+lnkPersonToTeam\b/i;
+
 const WIDGET_BY_TYPE: Record<string, Widget> = {
   String: "text",
   Text: "textarea",
@@ -317,8 +326,12 @@ function buildClass(
     if (rawField.filter) field.filter = rawField.filter;
     if (rawField.depends_on) field.dependsOn = rawField.depends_on;
     // What a form must send for this picker's options to be narrowed. A filter
-    // the BFF can't apply (translateFilter) narrows nothing, so it has none.
-    if (rawField.depends_on && rawField.filter?.includes(":this->") && !UNTRANSLATED_FILTER.test(rawField.filter)) {
+    // the BFF doesn't apply narrows nothing, so it has none.
+    if (
+      rawField.depends_on &&
+      rawField.filter?.includes(":this->") &&
+      (!UNTRANSLATED_FILTER.test(rawField.filter) || TEAM_MEMBERS_FILTER.test(rawField.filter))
+    ) {
       field.narrowedBy = rawField.depends_on;
     }
 
