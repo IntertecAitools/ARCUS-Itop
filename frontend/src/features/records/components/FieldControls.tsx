@@ -1,4 +1,6 @@
+import { useEffect, useRef, useState } from 'react';
 import { useFieldOptions } from '../api/useRecords';
+import { pickerContext } from '../lib/picker-dependencies';
 import type { FieldSpec } from '../types';
 import { cn, dateTimeText, fromDateTimeInput, toDateTimeInput } from '@/lib/utils';
 
@@ -128,6 +130,97 @@ export function FieldValue({
 }
 
 /**
+ * A dropdown of another class's records.
+ *
+ * The BFF sends at most 100 options, so a longer list (over a thousand customer
+ * organizations) offers a search box to reach the rest. A chosen record keeps its
+ * name when a later search no longer lists it.
+ */
+function PickerInput({
+  id,
+  className: itopClass,
+  attcode,
+  spec,
+  value,
+  onChange,
+  formValues,
+  waitingFor,
+  currentLabel,
+}: {
+  id: string;
+  className: string;
+  attcode: string;
+  spec: FieldSpec;
+  value: string;
+  onChange: (value: string) => void;
+  formValues?: Record<string, unknown>;
+  waitingFor?: string;
+  currentLabel?: string;
+}) {
+  const [term, setTerm] = useState('');
+  const [q, setQ] = useState('');
+  useEffect(() => {
+    const timer = setTimeout(() => setQ(term.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [term]);
+
+  const context = pickerContext(itopClass, spec, formValues);
+  const { data: picker, isPending, isPlaceholderData } = useFieldOptions(
+    itopClass,
+    attcode,
+    { ...(q ? { q } : {}), context },
+    !waitingFor,
+  );
+  const options = picker?.options ?? [];
+
+  const seen = useRef(new Map<string, string>());
+  for (const o of options) seen.current.set(String(o.id), o.label);
+  const listed = options.some((o) => String(o.id) === value);
+  const searchable = Boolean(picker?.truncated) || term !== '' || q !== '';
+  // Waiting on the parent, or still showing the previous organization's people.
+  const blocked = Boolean(waitingFor) || (isPending && !picker) || isPlaceholderData;
+
+  return (
+    <div className="space-y-1.5">
+      {searchable && !waitingFor ? (
+        <input
+          type="search"
+          aria-label={`Search ${humaniseAttcode(attcode)}`}
+          className={CONTROL}
+          placeholder="Type to search…"
+          value={term}
+          onChange={(e) => setTerm(e.target.value)}
+        />
+      ) : null}
+      <select
+        id={id}
+        className={cn(CONTROL, 'appearance-none')}
+        value={value}
+        disabled={blocked}
+        onChange={(e) => onChange(e.target.value)}
+      >
+        <option value="">{waitingFor ? `Choose ${waitingFor} first` : isPending ? 'Loading…' : 'Not set'}</option>
+        {value && !listed ? (
+          <option value={value}>{seen.current.get(value) ?? currentLabel ?? `#${value}`}</option>
+        ) : null}
+        {options.map((o) => (
+          <option key={o.id} value={String(o.id)}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+      {picker?.truncated ? (
+        <p className="text-[12px] text-ink-muted">
+          Showing {options.length} of {picker.total.toLocaleString('en')}. Type above to find the rest.
+        </p>
+      ) : q && options.length === 0 && !isPlaceholderData ? (
+        <p className="text-[12px] text-ink-muted">No matches.</p>
+      ) : null}
+    </div>
+  );
+}
+
+/**
  * Renders one field's INPUT.
  *
  * Pickers fetch their options from the BFF on demand rather than up front:
@@ -140,6 +233,9 @@ export function FieldInput({
   value,
   onChange,
   valueLabels,
+  formValues,
+  waitingFor,
+  currentLabel,
 }: {
   className: string;
   attcode: string;
@@ -148,28 +244,28 @@ export function FieldInput({
   onChange: (value: string) => void;
   /** iTop's wording for this field's enum values. */
   valueLabels?: Record<string, string>;
+  /** The form's values, for a picker whose options depend on them. */
+  formValues?: Record<string, unknown>;
+  /** The label of the field to fill in first, when this picker depends on it. */
+  waitingFor?: string;
+  /** The name of the stored value, which a long list may not include. */
+  currentLabel?: string;
 }) {
-  const isPicker = spec.ui === 'picker';
-  const { data: picker, isFetching } = useFieldOptions(itopClass, attcode, isPicker);
-
   const id = `field-${attcode}`;
 
-  if (isPicker) {
+  if (spec.ui === 'picker') {
     return (
-      <select
+      <PickerInput
         id={id}
-        className={cn(CONTROL, 'appearance-none')}
+        className={itopClass}
+        attcode={attcode}
+        spec={spec}
         value={value}
-        disabled={isFetching}
-        onChange={(e) => onChange(e.target.value)}
-      >
-        <option value="">{isFetching ? 'Loading…' : 'Not set'}</option>
-        {picker?.options.map((o) => (
-          <option key={o.id} value={String(o.id)}>
-            {o.label}
-          </option>
-        ))}
-      </select>
+        onChange={onChange}
+        {...(formValues ? { formValues } : {})}
+        {...(waitingFor ? { waitingFor } : {})}
+        {...(currentLabel ? { currentLabel } : {})}
+      />
     );
   }
 

@@ -62,9 +62,15 @@ export const updateRecord = (className: string, id: string, fields: Record<strin
   );
 
 /** Options for one picker field, resolved by the BFF. */
-export const getFieldOptions = (className: string, attcode: string) =>
+/** `context`: the form values the picker's filter reads, e.g. `org_id` for a caller. */
+export const getFieldOptions = (
+  className: string,
+  attcode: string,
+  params: { q?: string; context?: Record<string, string> } = {},
+) =>
   apiClient.get<{ options: PickerOption[]; total: number; truncated: boolean }>(
     `/meta/classes/${className}/fields/${attcode}/options`,
+    { query: { ...params.context, ...(params.q ? { q: params.q } : {}) } },
   );
 
 /** Objects on the far side of a LinkedSet — iTop's related-object tabs. */

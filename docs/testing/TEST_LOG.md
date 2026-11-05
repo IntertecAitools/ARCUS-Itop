@@ -4,6 +4,24 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-11-05 — Caller follows the organization; search in long dropdowns
+
+**Reported on production:** the Caller dropdown on a new incident listed everyone, not the chosen organization's people.
+
+**Causes (both in the frontend):**
+- Pickers never sent the form's values, so the BFF could not apply iTop's rule (`SELECT Person WHERE org_id = :this->org_id`).
+- The BFF returns at most 100 options, and the dropdown had no search: most of the 1,314 organizations could not be picked.
+
+**Fix:** the form sends the values a flat filter reads; such a picker waits for its parent ("Choose Organization first") and is cleared when the parent changes; a truncated list gets a search box and "Showing 100 of 1,314".
+
+| What ran | Result |
+|---|---|
+| New `picker-dependencies.test.ts` | 7/7 passed |
+| New `RecordForm.pickers.test.tsx` (caller waits and follows the organization, cleared on change, search keeps a choice) | 3/3 passed |
+| frontend `tsc -b --noEmit` | Clean |
+
+Not covered: a browser check against real iTop data (the screen tests mock the options; the BFF's filter has its own tests). Still unfiltered: pickers whose filter has a JOIN, such as a ticket's team, agent and service.
+
 ### 2026-11-03 — Record pages and lists: names, one Details page, fixes from production use
 
 These are fixes for what the user saw while loading production data:
