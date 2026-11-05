@@ -12,15 +12,18 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 - Pickers never sent the form's values, so the BFF could not apply iTop's rule (`SELECT Person WHERE org_id = :this->org_id`).
 - The BFF returns at most 100 options, and the dropdown had no search: most of the 1,314 organizations could not be picked.
 
-**Fix:** the form sends the values a flat filter reads; such a picker waits for its parent ("Choose Organization first") and is cleared when the parent changes; a truncated list gets a search box and "Showing 100 of 1,314".
+**Fix:** the BFF publishes `narrowedBy` (the form fields a picker's filter reads) and the form sends them; such a picker waits for its parent ("Choose Organization first") and is cleared when the parent changes. Pickers became type-to-search fields (at the user's request): typing shows only the matches, and "Showing 100 of 1,314" appears until the list is narrowed.
 
 | What ran | Result |
 |---|---|
-| New `picker-dependencies.test.ts` | 7/7 passed |
-| New `RecordForm.pickers.test.tsx` (caller waits and follows the organization, cleared on change, search keeps a choice) | 3/3 passed |
-| frontend `tsc -b --noEmit` | Clean |
+| `vitest run src/features/records` + the architecture test (new: `picker-dependencies.test.ts`, `RecordForm.pickers.test.tsx`) | 12 files, 78 tests passed |
+| New browser journey `pickers.spec.ts` (Chromium, mock API; screenshot checked) | Passed |
+| backend `test/lookups.test.ts` (new: `narrowedBy`) | 19/19 passed |
+| frontend and backend `tsc --noEmit` | Clean |
 
-Not covered: a browser check against real iTop data (the screen tests mock the options; the BFF's filter has its own tests). Still unfiltered: pickers whose filter has a JOIN, such as a ticket's team, agent and service.
+Bug found by CI: the first version read iTop's filter text in the browser, which the architecture test forbids ("never writes OQL"). The decision moved to the BFF.
+
+Not covered: real iTop data in a browser (the journey uses the mock API; the BFF's filter has its own tests). `live.spec.ts` was updated for the new field but not run. Still unfiltered: pickers whose filter has a JOIN, such as a ticket's team, agent and service.
 
 ### 2026-11-03 — Record pages and lists: names, one Details page, fixes from production use
 

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
-import { renderWithProviders, screen, waitFor } from '@/test/render';
+import { renderWithProviders, screen, waitFor, within } from '@/test/render';
 import type { ClassInfo } from '../types';
 import { RecordForm } from './RecordForm';
 
@@ -25,7 +25,7 @@ vi.mock('../api/useRecords', () => ({
     const key = JSON.stringify([attcode, params]);
     if (attcode === 'org_id') {
       const data = params.q
-        ? { options: [{ id: 900, label: 'Zenith Bank' }], total: 1, truncated: false }
+        ? { options: [{ id: 900, label: 'Virgin Mobiles' }], total: 1, truncated: false }
         : {
             options: [
               { id: 12, label: 'Acme' },
@@ -37,10 +37,7 @@ vi.mock('../api/useRecords', () => ({
       return answer(key, { data, isPending: false, isPlaceholderData: false });
     }
     if (!enabled) return answer(key, { data: undefined, isPending: true, isPlaceholderData: false });
-    const people =
-      params.context?.org_id === '13'
-        ? [{ id: 2, label: 'Bea Beta' }]
-        : [{ id: 1, label: 'Al Acme' }];
+    const people = params.context?.org_id === '13' ? [{ id: 2, label: 'Bea Beta' }] : [{ id: 1, label: 'Al Acme' }];
     return answer(key, {
       data: { options: people, total: 1, truncated: false },
       isPending: false,
@@ -58,8 +55,7 @@ const info = {
       type: 'ExternalKey',
       ui: 'picker',
       target: 'Person',
-      dependsOn: ['org_id'],
-      filter: 'SELECT Person WHERE org_id = :this->org_id',
+      narrowedBy: ['org_id'],
     },
   },
   labels: { class: 'Incident', fields: { org_id: 'Organization', caller_id: 'Caller' }, values: {} },
@@ -70,64 +66,117 @@ const FIELDSETS = [{ id: 'main', label: 'Main', fields: ['org_id', 'caller_id'] 
 function Form() {
   const [draft, setDraft] = useState<Record<string, string>>({});
   return (
-    <RecordForm
-      info={info}
-      fieldsets={FIELDSETS}
-      editing
-      draft={draft}
-      onChange={(attcode, value) => setDraft((d) => ({ ...d, [attcode]: value }))}
-    />
+    <>
+      <RecordForm
+        info={info}
+        fieldsets={FIELDSETS}
+        editing
+        draft={draft}
+        onChange={(attcode, value) => setDraft((d) => ({ ...d, [attcode]: value }))}
+      />
+      <output data-testid="draft">{JSON.stringify(draft)}</output>
+    </>
   );
 }
 
-const select = (id: string) => document.getElementById(id) as HTMLSelectElement;
+const org = () => screen.getByRole('combobox', { name: 'Organization' });
+const caller = () => screen.getByRole('combobox', { name: 'Caller' });
+const draft = () => JSON.parse(screen.getByTestId('draft').textContent ?? '{}') as Record<string, string>;
+
+/** Opens a field's suggestions and clicks one. */
+async function pick(user: ReturnType<typeof userEvent.setup>, field: HTMLElement, label: string) {
+  await user.click(field);
+  await user.click(await screen.findByRole('option', { name: label }));
+}
 
 beforeEach(() => optionCalls.mockClear());
 
 describe('record form pickers', () => {
+  it('suggests only what matches as you type', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<Form />);
+
+    await user.click(org());
+    expect(screen.getByRole('option', { name: 'Acme' })).toBeInTheDocument();
+    expect(screen.getByText(/Showing 2 of 1,314/)).toBeInTheDocument();
+
+    await user.type(org(), 'virg');
+
+    await screen.findByRole('option', { name: 'Virgin Mobiles' });
+    expect(screen.queryByRole('option', { name: 'Acme' })).not.toBeInTheDocument();
+    expect(optionCalls).toHaveBeenCalledWith('org_id', { q: 'virg', context: {} }, true);
+
+    await user.click(screen.getByRole('option', { name: 'Virgin Mobiles' }));
+
+    expect(draft().org_id).toBe('900');
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    expect(org()).toHaveValue('Virgin Mobiles');
+  }, 30_000);
+
+  it('picks with the keyboard, without submitting the form', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<Form />);
+
+    await user.click(org());
+    await user.keyboard('{ArrowDown}{Enter}');
+
+    expect(draft().org_id).toBe('13');
+    expect(org()).toHaveValue('Beta');
+  }, 30_000);
+
+  it('keeps the choice when you leave the field without picking', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<Form />);
+
+    await pick(user, org(), 'Acme');
+    await user.type(org(), 'zzz');
+    await user.tab();
+
+    expect(draft().org_id).toBe('12');
+    expect(org()).toHaveValue('Acme');
+  }, 30_000);
+
   it('holds the caller back until an organization is chosen, then lists only its people', async () => {
     const user = userEvent.setup();
     renderWithProviders(<Form />);
 
-    expect(select('field-caller_id')).toBeDisabled();
-    expect(screen.getByRole('option', { name: 'Choose Organization first' })).toBeInTheDocument();
+    expect(caller()).toBeDisabled();
+    expect(caller()).toHaveAttribute('placeholder', 'Choose Organization first');
 
-    await user.selectOptions(select('field-org_id'), '12');
+    await pick(user, org(), 'Acme');
 
-    expect(select('field-caller_id')).toBeEnabled();
+    expect(caller()).toBeEnabled();
     expect(optionCalls).toHaveBeenCalledWith('caller_id', { context: { org_id: '12' } }, true);
-    expect(screen.getByRole('option', { name: 'Al Acme' })).toBeInTheDocument();
-    expect(screen.queryByRole('option', { name: 'Bea Beta' })).not.toBeInTheDocument();
+    await user.click(caller());
+    const list = screen.getByRole('listbox');
+    expect(within(list).getByRole('option', { name: 'Al Acme' })).toBeInTheDocument();
+    expect(within(list).queryByRole('option', { name: 'Bea Beta' })).not.toBeInTheDocument();
   }, 30_000);
 
   it('clears the caller when the organization changes', async () => {
     const user = userEvent.setup();
     renderWithProviders(<Form />);
 
-    await user.selectOptions(select('field-org_id'), '12');
-    await user.selectOptions(select('field-caller_id'), '1');
-    expect(select('field-caller_id')).toHaveValue('1');
+    await pick(user, org(), 'Acme');
+    await pick(user, caller(), 'Al Acme');
+    expect(draft().caller_id).toBe('1');
 
-    await user.selectOptions(select('field-org_id'), '13');
+    await pick(user, org(), 'Beta');
 
-    expect(select('field-caller_id')).toHaveValue('');
+    await waitFor(() => expect(draft().caller_id).toBe(''));
+    expect(caller()).toHaveValue('');
+    await user.click(caller());
     expect(screen.getByRole('option', { name: 'Bea Beta' })).toBeInTheDocument();
   }, 30_000);
 
-  it('offers a search for a list too long to load, and keeps a choice it found', async () => {
+  it('can be cleared', async () => {
     const user = userEvent.setup();
     renderWithProviders(<Form />);
 
-    expect(screen.getByText(/Showing 2 of 1,314/)).toBeInTheDocument();
-    await user.type(screen.getByRole('searchbox', { name: 'Search Org' }), 'zen');
-    await waitFor(() => expect(screen.getByRole('option', { name: 'Zenith Bank' })).toBeInTheDocument());
+    await pick(user, org(), 'Acme');
+    await user.click(screen.getByRole('button', { name: 'Clear Org' }));
 
-    await user.selectOptions(select('field-org_id'), '900');
-    expect(select('field-org_id')).toHaveValue('900');
-
-    await user.clear(screen.getByRole('searchbox', { name: 'Search Org' }));
-    await waitFor(() => expect(screen.getByRole('option', { name: 'Acme' })).toBeInTheDocument());
-    expect(select('field-org_id')).toHaveValue('900');
-    expect(screen.getByRole('option', { name: 'Zenith Bank' })).toBeInTheDocument();
+    expect(draft().org_id).toBe('');
+    expect(org()).toHaveValue('');
   }, 30_000);
 });

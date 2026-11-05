@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
+import { ChevronDown, X } from 'lucide-react';
 import { useFieldOptions } from '../api/useRecords';
 import { pickerContext } from '../lib/picker-dependencies';
 import type { FieldSpec } from '../types';
@@ -130,11 +131,12 @@ export function FieldValue({
 }
 
 /**
- * A dropdown of another class's records.
+ * A field to pick another class's record: type a few letters and choose from the
+ * suggestions, which the BFF searches for. It sends at most 100 options, so a long
+ * list (over a thousand customer organizations) is only reachable by typing.
  *
- * The BFF sends at most 100 options, so a longer list (over a thousand customer
- * organizations) offers a search box to reach the rest. A chosen record keeps its
- * name when a later search no longer lists it.
+ * Shows the chosen record's name when closed. A record keeps its name when a later
+ * search no longer lists it.
  */
 function PickerInput({
   id,
@@ -157,8 +159,12 @@ function PickerInput({
   waitingFor?: string;
   currentLabel?: string;
 }) {
+  const [open, setOpen] = useState(false);
   const [term, setTerm] = useState('');
   const [q, setQ] = useState('');
+  const [active, setActive] = useState(0);
+  const listId = useId();
+
   useEffect(() => {
     const timer = setTimeout(() => setQ(term.trim()), 300);
     return () => clearTimeout(timer);
@@ -171,50 +177,125 @@ function PickerInput({
     { ...(q ? { q } : {}), context },
     !waitingFor,
   );
-  const options = picker?.options ?? [];
+  // Until the list catches up with what was typed, it answers an older question.
+  const searching = (isPending && !picker) || isPlaceholderData || term.trim() !== q;
+  const options = searching ? [] : (picker?.options ?? []);
 
   const seen = useRef(new Map<string, string>());
-  for (const o of options) seen.current.set(String(o.id), o.label);
-  const listed = options.some((o) => String(o.id) === value);
-  const searchable = Boolean(picker?.truncated) || term !== '' || q !== '';
-  // Waiting on the parent, or still showing the previous organization's people.
-  const blocked = Boolean(waitingFor) || (isPending && !picker) || isPlaceholderData;
+  for (const o of picker?.options ?? []) seen.current.set(String(o.id), o.label);
+  const chosenLabel = value ? (seen.current.get(value) ?? currentLabel ?? `#${value}`) : '';
+
+  const close = () => {
+    setOpen(false);
+    setTerm('');
+    setQ('');
+    setActive(0);
+  };
+  const choose = (option: { id: string | number }) => {
+    onChange(String(option.id));
+    close();
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      setOpen(true);
+      if (options.length > 0) {
+        const step = e.key === 'ArrowDown' ? 1 : options.length - 1;
+        setActive((a) => (a + step) % options.length);
+      }
+    } else if (e.key === 'Enter' && open) {
+      // Picks a suggestion; must not submit the form around it.
+      e.preventDefault();
+      const option = options[active];
+      if (option) choose(option);
+    } else if (e.key === 'Escape' && open) {
+      e.stopPropagation();
+      close();
+    }
+  };
+
+  const showing = open && !waitingFor;
 
   return (
-    <div className="space-y-1.5">
-      {searchable && !waitingFor ? (
-        <input
-          type="search"
-          aria-label={`Search ${humaniseAttcode(attcode)}`}
-          className={CONTROL}
-          placeholder="Type to search…"
-          value={term}
-          onChange={(e) => setTerm(e.target.value)}
-        />
-      ) : null}
-      <select
+    <div className="relative">
+      <input
         id={id}
-        className={cn(CONTROL, 'appearance-none')}
-        value={value}
-        disabled={blocked}
-        onChange={(e) => onChange(e.target.value)}
-      >
-        <option value="">{waitingFor ? `Choose ${waitingFor} first` : isPending ? 'Loading…' : 'Not set'}</option>
-        {value && !listed ? (
-          <option value={value}>{seen.current.get(value) ?? currentLabel ?? `#${value}`}</option>
+        type="text"
+        role="combobox"
+        autoComplete="off"
+        aria-autocomplete="list"
+        aria-expanded={showing}
+        aria-controls={listId}
+        {...(showing && options[active] ? { 'aria-activedescendant': `${listId}-${active}` } : {})}
+        className={cn(CONTROL, 'pe-14')}
+        disabled={Boolean(waitingFor)}
+        placeholder={waitingFor ? `Choose ${waitingFor} first` : 'Type to search…'}
+        value={open ? term : chosenLabel}
+        onFocus={() => setOpen(true)}
+        onClick={() => setOpen(true)}
+        onBlur={close}
+        onChange={(e) => {
+          setTerm(e.target.value);
+          setActive(0);
+          setOpen(true);
+        }}
+        onKeyDown={onKeyDown}
+      />
+      <span className="absolute inset-y-0 end-2 flex items-center gap-1 text-ink-muted">
+        {value && !waitingFor ? (
+          <button
+            type="button"
+            aria-label={`Clear ${humaniseAttcode(attcode)}`}
+            className="rounded p-0.5 hover:text-ink"
+            // Before the field's blur, which would otherwise close it first.
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => {
+              onChange('');
+              close();
+            }}
+          >
+            <X className="size-3.5" aria-hidden />
+          </button>
         ) : null}
-        {options.map((o) => (
-          <option key={o.id} value={String(o.id)}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-      {picker?.truncated ? (
-        <p className="text-[12px] text-ink-muted">
-          Showing {options.length} of {picker.total.toLocaleString('en')}. Type above to find the rest.
-        </p>
-      ) : q && options.length === 0 && !isPlaceholderData ? (
-        <p className="text-[12px] text-ink-muted">No matches.</p>
+        <ChevronDown className="pointer-events-none size-4" aria-hidden />
+      </span>
+      {showing ? (
+        <ul
+          id={listId}
+          role="listbox"
+          aria-label={`${humaniseAttcode(attcode)} suggestions`}
+          className="absolute z-30 mt-1 max-h-60 w-full overflow-y-auto rounded-card border border-line bg-surface py-1 shadow-lg"
+        >
+          {options.map((o, index) => (
+            <li
+              key={o.id}
+              id={`${listId}-${index}`}
+              role="option"
+              aria-selected={String(o.id) === value}
+              className={cn(
+                'cursor-pointer px-3 py-1.5 text-[13px] text-ink',
+                index === active && 'bg-surface-hover',
+                String(o.id) === value && 'font-medium',
+              )}
+              onMouseEnter={() => setActive(index)}
+              // Before the field's blur, which would otherwise close the list first.
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => choose(o)}
+            >
+              {o.label}
+            </li>
+          ))}
+          {searching ? (
+            <li className="px-3 py-1.5 text-[13px] text-ink-muted">Searching…</li>
+          ) : options.length === 0 ? (
+            <li className="px-3 py-1.5 text-[13px] text-ink-muted">{q ? 'No matches.' : 'Nothing to choose from.'}</li>
+          ) : picker?.truncated ? (
+            <li className="border-t border-line px-3 py-1.5 text-[12px] text-ink-muted">
+              Showing {options.length} of {picker.total.toLocaleString('en')}. Keep typing to narrow it down.
+            </li>
+          ) : null}
+        </ul>
       ) : null}
     </div>
   );

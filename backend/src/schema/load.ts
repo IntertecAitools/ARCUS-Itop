@@ -3,6 +3,9 @@ import { readFileSync } from "node:fs";
 import { AppError, notFound } from "../core/errors.js";
 import type { ClassInfo, Field, RawClass, RawField, RawSchema, StateFlag, UiCategory, Widget } from "./types.js";
 
+/** Picker filters beyond a flat WHERE of ANDed equalities, which the BFF does not apply. */
+export const UNTRANSLATED_FILTER = /\bJOIN\b|\bBELOW\b|\bFROM\b/i;
+
 const WIDGET_BY_TYPE: Record<string, Widget> = {
   String: "text",
   Text: "textarea",
@@ -313,6 +316,11 @@ function buildClass(
     if (rawField.values) field.values = rawField.values;
     if (rawField.filter) field.filter = rawField.filter;
     if (rawField.depends_on) field.dependsOn = rawField.depends_on;
+    // What a form must send for this picker's options to be narrowed. A filter
+    // the BFF can't apply (translateFilter) narrows nothing, so it has none.
+    if (rawField.depends_on && rawField.filter?.includes(":this->") && !UNTRANSLATED_FILTER.test(rawField.filter)) {
+      field.narrowedBy = rawField.depends_on;
+    }
 
     if (ui === "picker") {
       // HierarchicalKey points at its own class and carries no target_class.

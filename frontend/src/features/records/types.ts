@@ -27,9 +27,8 @@ export interface FieldSpec {
   values?: string[];
   /** For a picker: the class it points at. */
   target?: string;
-  /** For a picker: iTop's rule for its options, and the fields that rule reads. */
-  filter?: string;
-  dependsOn?: string[];
+  /** For a picker: the form fields its options depend on, e.g. a caller's organization. */
+  narrowedBy?: string[];
   /**
    * For a read-only ExternalField: the picker it is resolved through, and the
    * attribute it reads on the far side. `org_name` is `org_id` -> `name`.

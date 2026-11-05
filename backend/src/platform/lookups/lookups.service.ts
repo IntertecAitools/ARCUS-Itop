@@ -3,7 +3,7 @@ import type { ItopClient } from "../../itop/client.js";
 import { normalizeObjects, parseFoundCount } from "../../itop/normalize.js";
 import { buildOql } from "../../itop/oql.js";
 import { currentCaller } from "../../core/request-context.js";
-import type { CmdbSchema } from "../../schema/load.js";
+import { UNTRANSLATED_FILTER, type CmdbSchema } from "../../schema/load.js";
 import type { ClassInfo, Field } from "../../schema/types.js";
 
 export interface Option {
@@ -235,7 +235,7 @@ export function translateFilter(
 
   // Anything beyond a flat WHERE of ANDed equalities is out of scope.
   const whereMatch = /^\s*SELECT\s+\w+\s+WHERE\s+(.+)$/is.exec(filter);
-  if (!whereMatch?.[1] || /\bJOIN\b|\bBELOW\b|\bFROM\b/i.test(filter)) {
+  if (!whereMatch?.[1] || UNTRANSLATED_FILTER.test(filter)) {
     result.ignored = true;
     for (const dep of field.dependsOn ?? []) result.contextFields.push(dep);
     return result;

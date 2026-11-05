@@ -96,12 +96,17 @@ test('a portal request, resolved by staff, emails the caller', { tag: '@live' },
     await expect(staff.getByRole('heading', { name: new RegExp(`^R-0*${id}$`), level: 1 })).toBeVisible();
     await expect(staff.getByText(title).first()).toBeVisible();
     await applyAction(staff, 'Assign', async (dialog) => {
-      await dialog.locator('#field-team_id').selectOption({ index: 1 });
-      await dialog.locator('#field-agent_id').selectOption({ label: process.env.E2E_STAFF_NAME ?? '' });
+      await dialog.locator('#field-team_id').click();
+      await dialog.getByRole('option').first().click();
+      await dialog.locator('#field-agent_id').fill(process.env.E2E_STAFF_NAME ?? '');
+      await dialog.getByRole('option', { name: process.env.E2E_STAFF_NAME ?? '' }).click();
     });
     await applyAction(staff, 'Mark as resolved', async (dialog) => {
       const service = dialog.locator('#field-service_id');
-      if ((await service.count()) && !(await service.inputValue())) await service.selectOption({ index: 1 });
+      if ((await service.count()) && !(await service.inputValue())) {
+        await service.click();
+        await dialog.getByRole('option').first().click();
+      }
       const code = dialog.locator('#field-resolution_code');
       if (await code.count()) await code.selectOption('assistance');
       await dialog.locator('#field-solution').fill('Re-seated the reader and re-synced its card list.');

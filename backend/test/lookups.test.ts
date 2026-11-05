@@ -11,6 +11,14 @@ function service(fake: FakeItopClient, ttlMs = 0): LookupsService {
   return new LookupsService(fake.asClient(), schema, ttlMs);
 }
 
+describe("narrowedBy", () => {
+  it("names the form fields of a filter the BFF can apply", () => {
+    const model = schema.require("Server").fields["model_id"]!;
+    assert.ok(model.dependsOn?.length);
+    assert.deepEqual(model.narrowedBy, model.dependsOn);
+  });
+});
+
 describe("translateFilter", () => {
   const server = schema.require("Server");
   const model = schema.require("Model");

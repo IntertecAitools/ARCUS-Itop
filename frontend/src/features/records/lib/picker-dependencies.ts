@@ -2,16 +2,11 @@ import type { ClassInfo, FieldSpec } from '../types';
 
 /**
  * Pickers whose options depend on another field of the form: a ticket's caller
- * must belong to its organization (`SELECT Person WHERE org_id = :this->org_id`).
- *
- * The BFF applies a flat filter like that one given the form's values. A filter
- * with a JOIN (a ticket's team, agent and service) is not applied by the BFF, so
- * those pickers are neither held back nor cleared: they'd wait on a parent
- * without narrowing anything.
+ * must belong to its organization. The BFF says which (`narrowedBy`) and applies
+ * the rule given the form's values. A picker whose rule it can't apply (a ticket's
+ * team, agent and service) has no `narrowedBy`, so it is neither held back nor
+ * cleared: it would wait on a parent without narrowing anything.
  */
-export function narrowsByParent(spec: FieldSpec): boolean {
-  return Boolean(spec.filter?.includes(':this->') && !/\b(JOIN|BELOW)\b/i.test(spec.filter));
-}
 
 /** iTop's "no link" is 0, a blank form field is ''. */
 function isSet(value: unknown): boolean {
@@ -24,9 +19,9 @@ export function pickerContext(
   spec: FieldSpec,
   formValues: Record<string, unknown> | undefined,
 ): Record<string, string> {
-  if (!formValues || !narrowsByParent(spec)) return {};
+  if (!formValues) return {};
   const context: Record<string, string> = {};
-  for (const parent of spec.dependsOn ?? []) {
+  for (const parent of spec.narrowedBy ?? []) {
     if (parent === 'finalclass') context[parent] = className;
     else if (isSet(formValues[parent])) context[parent] = String(formValues[parent]);
   }
@@ -42,8 +37,8 @@ export function unsetParent(
   spec: FieldSpec,
   formValues: Record<string, unknown> | undefined,
 ): string | undefined {
-  if (!formValues || !narrowsByParent(spec)) return undefined;
-  return spec.dependsOn?.find(
+  if (!formValues) return undefined;
+  return spec.narrowedBy?.find(
     (parent) => parent !== 'finalclass' && info.writable.includes(parent) && !isSet(formValues[parent]),
   );
 }
@@ -51,6 +46,6 @@ export function unsetParent(
 /** The pickers whose choice stops being valid when this field changes. */
 export function dependentsOf(info: ClassInfo, attcode: string): string[] {
   return Object.entries(info.fields)
-    .filter(([, spec]) => narrowsByParent(spec) && spec.dependsOn?.includes(attcode))
+    .filter(([, spec]) => spec.narrowedBy?.includes(attcode))
     .map(([code]) => code);
 }
