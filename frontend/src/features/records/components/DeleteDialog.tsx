@@ -70,7 +70,7 @@ export function DeleteDialog({
         <>
           <p className="text-[13px] text-ink-secondary">
             {blocked
-              ? 'This record cannot be deleted as it stands. iTop reports:'
+              ? 'This record cannot be deleted as it stands:'
               : others.length === 0
                 ? 'Nothing else is affected. This cannot be undone.'
                 : `Deleting it also changes ${others.length} other record${others.length === 1 ? '' : 's'}. This cannot be undone.`}

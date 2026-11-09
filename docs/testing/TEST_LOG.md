@@ -4,6 +4,23 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-11-09 — The name "iTop" removed from what users see
+
+| What ran | Result |
+|---|---|
+| Backend `npm run typecheck` | Pass |
+| Backend `npm test` | 905/905 pass (3 new: 5xx and 4xx messages never name iTop; setting names such as `ITOP_EXTERNAL_AUTH_HEADER` keep their spelling) |
+| Frontend `tsc -b --noEmit` | Pass |
+| Frontend `vitest run` (full) | 60 files, 310/310 pass |
+
+Found: about 40 frontend texts and every BFF error message named iTop, the hidden system of record. Fixed in branch `claude/hide-itop-name`. The frontend texts are reworded, so "feature not switched on" messages tell users to ask an administrator. The BFF's error handler now passes every message through `publicText()`, which says "Servicedesk" instead of "iTop". The 5xx texts are now generic.
+
+Five tests were updated to expect the new wording.
+
+Not covered:
+- No browser check (text only). The Playwright journeys run in CI.
+- Labels that come from iTop's own data, such as menu names, are not reworded.
+
 ### 2026-11-05 — Caller follows the organization; search in long dropdowns
 
 **Reported on production:** the Caller dropdown on a new incident listed everyone, not the chosen organization's people.

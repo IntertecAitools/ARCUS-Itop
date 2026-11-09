@@ -71,9 +71,9 @@ describe('ChangeGovernancePanel', () => {
     expect(screen.getByText('Still missing: implementation plan.')).toBeInTheDocument();
   });
 
-  it('says when the iTop lacks the extension, and keeps only the rollback plan editable', async () => {
+  it('says when the extension is missing, and keeps only the rollback plan editable', async () => {
     renderWithProviders(<ChangeGovernancePanel id="999" />);
-    expect(await screen.findByText(/installs the arcus-change-cab extension/)).toBeInTheDocument();
+    expect(await screen.findByText(/arcus-change-cab extension/)).toBeInTheDocument();
     expect(screen.getByLabelText('Implementation plan')).toBeDisabled();
     expect(screen.getByLabelText('Test plan')).toBeDisabled();
     expect(screen.getByLabelText('Rollback plan')).toBeEnabled();

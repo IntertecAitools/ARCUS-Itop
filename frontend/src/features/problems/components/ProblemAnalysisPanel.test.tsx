@@ -43,13 +43,13 @@ describe('ProblemAnalysisPanel', () => {
     expect(await screen.findAllByRole('link', { name: 'P-000501: Mail queue stalls every Monday' })).toHaveLength(2);
   });
 
-  it('says when the iTop lacks the root-cause fields, and offers nothing to save', async () => {
+  it('says when root cause analysis is not switched on, and offers nothing to save', async () => {
     renderWithProviders(<ProblemAnalysisPanel id="999" />);
-    expect(await screen.findByText(/install(s)? the\s+arcus-problem-rca extension/)).toBeInTheDocument();
+    expect(await screen.findByText(/arcus-problem-rca extension/)).toBeInTheDocument();
     expect(screen.getByLabelText('Root cause')).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Save analysis' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Create known error' })).toBeDisabled();
-    expect(screen.getByText('Needs the root-cause fields on this iTop.')).toBeInTheDocument();
+    expect(screen.getByText('Needs root cause analysis to be switched on.')).toBeInTheDocument();
   });
 
   it('discards unsaved edits', async () => {

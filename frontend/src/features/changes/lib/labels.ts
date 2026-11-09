@@ -12,7 +12,7 @@ export const PLAN_LABEL: Record<PlanKind, string> = {
 
 export const PLAN_HINT: Record<PlanKind, string> = {
   implementation: 'The steps that carry out the change, in order, with who does what.',
-  rollback: 'How to put things back if the change fails (iTop’s fallback plan).',
+  rollback: 'How to put things back if the change fails.',
   test: 'How the change is verified once it is in.',
 };
 

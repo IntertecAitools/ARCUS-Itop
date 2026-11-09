@@ -81,7 +81,7 @@ export function ProblemAnalysisPanel({ id }: { id: string }) {
           title="Root cause analysis"
           subtitle={
             !data.available
-              ? 'Not available on this iTop'
+              ? 'Not switched on yet'
               : saved.rootCause || saved.workaround || saved.resolution
                 ? 'Changes are recorded in the History tab.'
                 : 'Not analysed yet'
@@ -104,8 +104,8 @@ export function ProblemAnalysisPanel({ id }: { id: string }) {
         <CardBody>
           {!data.available ? (
             <div role="status" className="mb-4 rounded-card border border-warning/30 bg-warning-soft px-3 py-2 text-[13px] text-ink">
-              This iTop has no root-cause fields on problems yet. An administrator installs the
-              arcus-problem-rca extension to turn them on.
+              Root cause analysis isn’t switched on yet. Ask your administrator to enable it
+              (the arcus-problem-rca extension).
             </div>
           ) : null}
           {drafting.isError ? (
@@ -239,7 +239,7 @@ export function ProblemAnalysisPanel({ id }: { id: string }) {
           {!canRaise ? (
             <p className="text-[12px] text-ink-muted">
               {!data.available
-                ? 'Needs the root-cause fields on this iTop.'
+                ? 'Needs root cause analysis to be switched on.'
                 : dirty
                   ? 'Save the analysis first, so the known error gets the current version.'
                   : 'Record a root cause or a workaround first.'}

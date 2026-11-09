@@ -182,7 +182,7 @@ function scoreChange(change: EvidenceChange, input: ScoringInput, perCi: Map<str
     reasons.push({ text: `Recorded as the related change of ${input.problemRef}`, points: WEIGHTS.changeLinked });
   } else if (change.linkedIncidents > 0 && n > 0) {
     reasons.push({
-      text: `${change.linkedIncidents} of ${n} incident${n === 1 ? " is" : "s are"} linked to it in iTop`,
+      text: `${change.linkedIncidents} of ${n} incident${n === 1 ? " is" : "s are"} linked to it`,
       points: round(WEIGHTS.changeLinked * Math.min(1, change.linkedIncidents / n)),
     });
   }

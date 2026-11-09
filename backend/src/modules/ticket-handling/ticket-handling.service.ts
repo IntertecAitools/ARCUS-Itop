@@ -256,7 +256,7 @@ export class TicketHandlingService {
     ].filter(Boolean);
     const note =
       `Priority overridden from ${PRIORITY_LABEL[from]} to ${PRIORITY_LABEL[input.priority]} by ${callerName(c)}: ${reason}` +
-      ` (${changed.join(", ")}, so iTop computes the new priority)`;
+      ` (${changed.join(", ")}, so the new priority is computed from them)`;
 
     const result = await this.client.call("core/update", {
       class: cls,

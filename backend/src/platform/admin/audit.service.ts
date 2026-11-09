@@ -355,7 +355,7 @@ export class AuditService {
         percentOk: 100,
         status: "bad",
         rules: [],
-        error: "The records this category checks could not be read from iTop.",
+        error: "The records this category checks could not be read.",
       };
     }
     const inSet = `SELECT ${setClass} WHERE id IN (${category.definition})`;
@@ -386,7 +386,7 @@ export class AuditService {
           status: "bad",
           records: [],
           truncated: false,
-          error: "This rule's check could not be run in iTop.",
+          error: "This rule's check could not be run.",
         };
       }
       ran.push(row);
@@ -440,7 +440,7 @@ export class AuditService {
         percentOk: 100,
         status: "bad",
         rules: [],
-        error: "The records this category checks could not be read from iTop.",
+        error: "The records this category checks could not be read.",
       };
     }
     const total = set.length;
@@ -465,7 +465,7 @@ export class AuditService {
           status: "bad",
           records: [],
           truncated: false,
-          error: "This rule's check could not be run in iTop.",
+          error: "This rule's check could not be run.",
         };
       }
       const failing = failingRecords(set, returned, rule.lists);

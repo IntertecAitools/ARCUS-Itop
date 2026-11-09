@@ -76,7 +76,7 @@ function NewUser() {
       <PageHeader
         breadcrumbs={[{ label: 'Home', to: '/' }, { label: 'Users', to: '/users' }, { label: 'New user' }]}
         title="New user"
-        description="The account is created in iTop and can sign in to this platform at once."
+        description="The account is created and can sign in to this platform at once."
         actions={
           <Link to="/users" className={buttonClasses({ variant: 'secondary', size: 'sm' })}>
             <ArrowLeft className="me-1.5 size-4 rtl:-scale-x-100" />

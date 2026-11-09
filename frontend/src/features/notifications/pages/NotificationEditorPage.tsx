@@ -84,7 +84,7 @@ function RecipientPicker({
       />
       {value.custom.length ? (
         <div className="mt-2 flex items-center gap-2 text-[12px] text-ink-secondary">
-          <span>Also: a recipient list set up in iTop (kept as it is).</span>
+          <span>Also: a recipient list set up by an administrator outside this screen (kept as it is).</span>
           <button
             type="button"
             className="font-medium text-brand-ink hover:underline"
@@ -282,8 +282,8 @@ function RuleEditor({ id, rule }: { id: string; rule: Rule | undefined }) {
           <div className="flex gap-2 rounded-card border border-warning/30 bg-warning-soft px-3 py-2 text-[13px] text-warning-ink">
             <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
             <span>
-              {describeEvent(rule.event)}. This kind of rule was set up in iTop and fires only from iTop’s own
-              screens, so nothing done in this platform triggers it. Its email can still be edited.
+              {describeEvent(rule.event)}. This kind of rule was set up by an administrator outside this
+              platform, and nothing done in this platform triggers it. Its email can still be edited.
             </span>
           </div>
         ) : (
@@ -399,7 +399,7 @@ function RuleEditor({ id, rule }: { id: string; rule: Rule | undefined }) {
           )}
           {keepCondition ? (
             <div className="flex flex-wrap items-center gap-2 text-[12px] text-ink-secondary">
-              <span>Also: a condition set up in iTop that cannot be shown here. It is kept as it is.</span>
+              <span>Also: a condition set up outside this screen that cannot be shown here. It is kept as it is.</span>
               <button type="button" className="font-medium text-brand-ink hover:underline" onClick={() => setKeepCondition(false)}>
                 Remove it
               </button>

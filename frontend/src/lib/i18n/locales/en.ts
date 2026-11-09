@@ -414,7 +414,7 @@ export const en = {
   },
   tenantAdmin: {
     title: 'Organisation admin',
-    lead: 'Your organisation’s people, teams, branding and email domains, without iTop.',
+    lead: 'Your organisation’s people, teams, branding and email domains.',
     off: 'This platform serves one organisation, so there is no customer to manage here. Use Users for accounts.',
     customer: 'Customer',
     tabs: {

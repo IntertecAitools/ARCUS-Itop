@@ -152,7 +152,7 @@ export function ImpactTab({ className, id }: { className: string; id: string }) 
             description={
               direction === 'down'
                 ? 'No other record is affected if this one fails.'
-                : 'iTop records no dependency for this record.'
+                : 'No dependency is recorded for this record.'
             }
           />
         ) : (

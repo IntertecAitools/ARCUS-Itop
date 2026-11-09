@@ -159,7 +159,7 @@ function QueryEditor({ id, query }: { id: string; query: SavedQuery | undefined 
       ) : null}
       {query && query.parameters.length ? (
         <p className="mb-4 text-[13px] text-ink-secondary">
-          iTop uses this query in notifications, where it is run against the record that set it off. It needs values
+          This query is used in notifications, where it is run against the record that set it off. It needs values
           from that record ({query.parameters.join(', ')}), so it cannot be run on its own.
         </p>
       ) : null}
@@ -216,7 +216,7 @@ function QueryEditor({ id, query }: { id: string; query: SavedQuery | undefined 
                   run.reset();
                 }}
               />
-              Advanced: iTop’s query language
+              Advanced query (OQL)
             </label>
           </div>
         ) : null}
@@ -239,13 +239,13 @@ function QueryEditor({ id, query }: { id: string; query: SavedQuery | undefined 
                   placeholder="SELECT …"
                 />
                 <p className={HINT}>
-                  iTop runs it before it is saved; if iTop cannot, its reason is shown above. Everyone who runs it sees
+                  It is run once before it is saved; if it cannot run, the reason is shown above. Everyone who runs it sees
                   only the records their own rights allow.
                 </p>
               </>
             ) : (
               <p className="text-[13px] text-ink-secondary">
-                Written by an administrator in iTop’s query language{query?.recordTypeLabel ? `; it lists ${query.recordTypeLabel}` : ''}.
+                Written by an administrator as an advanced query (OQL){query?.recordTypeLabel ? `; it lists ${query.recordTypeLabel}` : ''}.
               </p>
             )}
           </div>

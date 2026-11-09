@@ -2,6 +2,7 @@ import Fastify, { type FastifyInstance } from "fastify";
 import multipart from "@fastify/multipart";
 
 import type { Config } from "./config/env.js";
+import { publicText } from "./core/public-text.js";
 import { AppError } from "./core/errors.js";
 import { registerCors } from "./core/cors.js";
 import { registerSecurityHeaders } from "./core/security-headers.js";
@@ -38,15 +39,15 @@ export interface BuildAppResult {
  * socket error, or `details` holding up to 600 characters of a PHP error page.
  */
 const PUBLIC_5XX: Partial<Record<AppError["code"], string>> = {
-  upstream_unavailable: "iTop cannot be reached right now. Try again in a moment.",
-  upstream_timeout: "iTop took too long to answer. Try again in a moment.",
-  upstream_error: "iTop could not complete the request. If it keeps happening, tell an administrator.",
+  upstream_unavailable: "The service is unavailable right now. Please try again in a moment.",
+  upstream_timeout: "The service took too long to answer. Please try again in a moment.",
+  upstream_error: "The request could not be completed. If it keeps happening, tell an administrator.",
   internal_error: "Internal server error.",
 };
 
 function publicPayload(error: AppError) {
   const message =
-    error.itopCode !== undefined ? error.message : (PUBLIC_5XX[error.code] ?? "Internal server error.");
+    error.itopCode !== undefined ? publicText(error.message) : (PUBLIC_5XX[error.code] ?? "Internal server error.");
   return {
     error: { code: error.code, message, ...(error.itopCode !== undefined ? { itopCode: error.itopCode } : {}) },
   };
@@ -143,7 +144,13 @@ export function buildApp(config: Config, options: BuildServicesOptions = {}): Bu
       if (error.code === "rate_limited" && typeof retryAfter === "number") {
         reply.header("Retry-After", String(retryAfter));
       }
-      reply.code(error.status).send(error.status >= 500 ? publicPayload(error) : error.toPayload());
+      if (error.status >= 500) {
+        reply.code(error.status).send(publicPayload(error));
+      } else {
+        const payload = error.toPayload();
+        payload.error.message = publicText(payload.error.message);
+        reply.code(error.status).send(payload);
+      }
       return;
     }
 

@@ -729,7 +729,7 @@ const INTEGRATIONS = [
   { icon: KeyRound, name: 'Microsoft Entra ID', body: 'Single sign-on for staff and employees.' },
   { icon: BellRing, name: 'Microsoft Teams', body: 'P1 alerts straight into the on-call channel.' },
   { icon: MessageSquare, name: 'Slack', body: 'Route updates to the right channel.' },
-  { icon: Database, name: 'iTop', body: 'A proven CMDB and record store underneath.' },
+  { icon: Database, name: 'Built-in CMDB', body: 'A proven CMDB and record store underneath.' },
   { icon: Users, name: 'LDAP / Active Directory', body: 'People and teams kept in sync.' },
   { icon: FileSpreadsheet, name: 'Data import', body: 'Bring CSV and scheduled syncs in, mapped.' },
   { icon: Globe, name: 'REST API', body: 'Automate anything the screens can do.' },

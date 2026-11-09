@@ -3,6 +3,7 @@ import { after, describe, it } from "node:test";
 
 import { buildApp } from "../src/app.js";
 import { AppError } from "../src/core/errors.js";
+import { publicText } from "../src/core/public-text.js";
 import {
   FakeItopClient,
   getResponse,
@@ -372,6 +373,36 @@ describe("5xx answers", () => {
     assert.equal(res.statusCode, 502);
     assert.match(res.json().error.message, /is not allowed/);
     assert.equal(res.json().error.itopCode, 100);
+  });
+});
+
+describe("error messages never name iTop", () => {
+  it("on a 5xx, whether iTop answered or not", async () => {
+    const down = new FakeItopClient();
+    down.callRaw = async () => {
+      throw new AppError("upstream_unavailable", "Cannot reach iTop at http://itop-internal:8080: ECONNREFUSED");
+    };
+    const unreachable = await app(down).inject({ method: "GET", url: "/api/objects/Server" });
+    assert.equal(unreachable.statusCode, 502);
+    assert.equal(unreachable.json().error.message, "The service is unavailable right now. Please try again in a moment.");
+
+    const refused = new FakeItopClient().on("core/get", { code: 100, message: "Error: this iTop refused it" });
+    const answered = await app(refused).inject({ method: "GET", url: "/api/objects/Server" });
+    assert.ok(!/iTop/.test(answered.body), answered.body);
+  });
+
+  it("on a 4xx", async () => {
+    const fake = new FakeItopClient();
+    fake.callRaw = async () => {
+      throw new AppError("bad_request", "iTop did not import the file: iTop's rule refused it.");
+    };
+    const res = await app(fake).inject({ method: "GET", url: "/api/objects/Server" });
+    assert.equal(res.statusCode, 400);
+    assert.equal(res.json().error.message, "Servicedesk did not import the file: Servicedesk's rule refused it.");
+  });
+
+  it("but setting names keep their spelling", () => {
+    assert.equal(publicText("This iTop has no SSO: set ITOP_EXTERNAL_AUTH_HEADER."), "Servicedesk has no SSO: set ITOP_EXTERNAL_AUTH_HEADER.");
   });
 });
 
