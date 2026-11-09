@@ -290,7 +290,7 @@ function AssignmentsCard({ data }: { data: BusinessHours }) {
     <Card>
       <CardHeader
         title="Customer contracts"
-        subtitle="The coverage window each service of a customer contract runs in. A change applies to tickets opened from then on; iTop keeps the deadlines it has already set."
+        subtitle="The coverage window each service of a customer contract runs in. A change applies to tickets opened from then on; deadlines already set are kept."
       />
       <CardBody>
         {data.assignments.length === 0 ? (
@@ -368,7 +368,7 @@ export function BusinessHoursPage() {
         isError ? null : <Skeleton className="h-64 w-full" />
       ) : !data.available ? (
         <div role="status" className="rounded-card border border-warning/30 bg-warning-soft px-4 py-3 text-[13px] text-ink">
-          Business hours aren’t switched on for this iTop: it needs Combodo’s “SLA considering business hours” extension
+          Business hours aren’t switched on yet: they need Combodo’s “SLA considering business hours” extension
           (modules combodo-sla-computation and combodo-coverage-windows-computation). Until then every TTO and TTR counts
           around the clock. See backend/README.md, “Business hours”.
         </div>

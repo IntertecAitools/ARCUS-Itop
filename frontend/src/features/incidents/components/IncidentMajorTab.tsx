@@ -13,7 +13,7 @@ export function IncidentMajorTab({ id }: { id: string }) {
   if (incident.extrasAvailable === false) {
     return (
       <p className="text-[13px] text-ink-muted">
-        Major incidents need the incident extras installed on iTop.
+        Major incidents aren’t switched on yet. Ask your administrator to enable them.
       </p>
     );
   }

@@ -331,7 +331,7 @@ export const modules: ModuleDefinition[] = [
     path: 'dashboards',
     icon: LayoutGrid,
     group: 'resources',
-    description: 'iTop overview dashboards.',
+    description: 'Overview dashboards.',
     // Reached from the "Overview" entries in each module group.
     hidden: true,
     component: lazy(() =>

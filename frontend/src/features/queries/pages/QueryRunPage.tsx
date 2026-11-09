@@ -80,7 +80,7 @@ export function QueryRunPage() {
       {notRunnable ? (
         <p className="text-[13px] text-ink-secondary">
           {query.parameters.length
-            ? 'iTop uses this query in notifications, against the record that set one off; it cannot be run on its own.'
+            ? 'This query is used in notifications, against the record that set one off; it cannot be run on its own.'
             : 'This query lists something the platform has no screens for.'}
         </p>
       ) : null}

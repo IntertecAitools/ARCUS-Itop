@@ -147,7 +147,7 @@ export function BulkDeleteDialog({
               ? 'Nothing else is affected. This cannot be undone.'
               : `This also changes ${others.length} other record${others.length === 1 ? '' : 's'}. This cannot be undone.`}
             {issues.length > 0
-              ? ` iTop reports ${issues.length} problem${issues.length === 1 ? '' : 's'}; those records will fail and be listed afterwards.`
+              ? ` There ${issues.length === 1 ? 'is' : 'are'} ${issues.length} problem${issues.length === 1 ? '' : 's'}; those records will fail and be listed afterwards.`
               : ''}
           </p>
           {others.length > 0 || issues.length > 0 ? (

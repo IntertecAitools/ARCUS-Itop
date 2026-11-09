@@ -66,7 +66,7 @@ export function resultFields(info: ClassInfo, columns: string[]): string {
 export function describeQuery(query: SavedQuery): string {
   if (query.parameters.length) return 'Used by notifications: needs a record to run against';
   if (!query.recordType) return `Lists ${query.recordTypeLabel || 'records'} the platform does not show`;
-  if (query.mode === 'oql') return 'Written in iTop’s query language';
+  if (query.mode === 'oql') return 'Advanced query (OQL)';
   const n = query.conditions.length;
   return n === 0 ? 'Every record' : n === 1 ? '1 condition' : `${n} conditions`;
 }

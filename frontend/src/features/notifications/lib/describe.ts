@@ -7,9 +7,9 @@ export const EVENT_LABEL: Record<EventKind, string> = {
   state_entered: 'enters a status',
   state_left: 'leaves a status',
   sla_threshold: 'reaches an SLA threshold',
-  mentioned: 'mentions someone in iTop’s editor',
-  portal_update: 'is updated from iTop’s portal',
-  other: 'has another event set up in iTop',
+  mentioned: 'mentions someone in the record editor',
+  portal_update: 'is updated from the classic portal',
+  other: 'has another event set up by an administrator',
 };
 
 export const ROLE_LABEL: Record<Role, string> = {
@@ -57,7 +57,7 @@ export function describeRecipients(recipients: Recipient[]): string {
       r.kind === 'people'
         ? r.people.map((p) => p.name).join(', ')
         : r.kind === 'custom'
-          ? 'A list set up in iTop'
+          ? 'A list set up by an administrator'
           : ROLE_LABEL[r.kind],
     )
     .join(', ');

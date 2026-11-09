@@ -34,7 +34,7 @@ export function NotificationListPage() {
           {row.original.event.firesFromPlatform ? null : (
             <AlertTriangle
               className="size-4 shrink-0 text-warning"
-              aria-label="Only fires from iTop's own screens"
+              aria-label="Not triggered by anything done in this platform"
             />
           )}
           <span className="truncate">{row.original.name}</span>
@@ -111,7 +111,7 @@ export function NotificationListPage() {
       <PageHeader
         breadcrumbs={[{ label: 'Home', to: '/' }, { label: 'Notifications' }]}
         title="Notifications"
-        description="Who gets an email when something happens. iTop sends them; links in them open this platform."
+        description="Who gets an email when something happens. Links in them open this platform."
         actions={
           <Link to="/notifications/new" className={buttonClasses({ variant: 'primary', size: 'sm' })}>
             <Plus className="me-1.5 size-4" />
@@ -148,8 +148,7 @@ export function NotificationListPage() {
           {rules?.some((r) => !r.event.firesFromPlatform) ? (
             <p className="mt-3 flex items-center gap-1.5 text-[12px] text-ink-muted">
               <AlertTriangle className="size-3.5 text-warning" aria-hidden />
-              Fires only from iTop’s own screens (its editor’s @mentions, its portal), so nothing done in this platform
-              triggers it.
+              Set up by an administrator outside this platform; nothing done in this platform triggers it.
             </p>
           ) : null}
         </>

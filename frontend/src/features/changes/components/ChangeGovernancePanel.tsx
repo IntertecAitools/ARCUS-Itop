@@ -56,9 +56,9 @@ export function ChangeGovernancePanel({ id }: { id: string }) {
     <div className="space-y-4">
       {!data.available ? (
         <div role="status" className={`${ALERT} border-warning/30 bg-warning-soft text-ink`}>
-          This iTop has no implementation or test plans and no CAB decisions on changes yet. An
-          administrator installs the arcus-change-cab extension to turn them on; the rollback plan
-          works without it.
+          Implementation and test plans and CAB decisions aren’t switched on yet. Ask your
+          administrator to enable them (the arcus-change-cab extension); the rollback plan works
+          without it.
         </div>
       ) : null}
       <div className="grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">

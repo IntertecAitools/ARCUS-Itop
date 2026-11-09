@@ -118,7 +118,7 @@ export function CabQueuePage() {
 
       {data && !data.available ? (
         <div role="status" className="mb-4 rounded-card border border-warning/30 bg-warning-soft px-4 py-3 text-[13px] text-ink">
-          This iTop cannot keep CAB decisions yet: an administrator installs the arcus-change-cab extension.
+          CAB decisions aren’t switched on yet. Ask your administrator to enable them (the arcus-change-cab extension).
         </div>
       ) : null}
 

@@ -85,7 +85,7 @@ describe('describeQuery', () => {
   it('says what defines a query', () => {
     expect(describeQuery(saved())).toBe('Every record');
     expect(describeQuery(saved({ conditions: [{ field: 'name', op: 'empty' }] }))).toBe('1 condition');
-    expect(describeQuery(saved({ mode: 'oql' }))).toMatch(/query language/);
+    expect(describeQuery(saved({ mode: 'oql' }))).toBe('Advanced query (OQL)');
     expect(describeQuery(saved({ parameters: ['this->id'], runnable: false }))).toMatch(/notifications/);
     expect(describeQuery(saved({ recordType: '', recordTypeLabel: 'Person' }))).toMatch(/Person/);
   });

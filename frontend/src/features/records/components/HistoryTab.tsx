@@ -58,7 +58,7 @@ export function HistoryTab({ className, id }: { className: string; id: string })
         </ol>
         {data.truncated ? (
           <p className="mt-3 text-[12px] text-ink-muted">
-            iTop holds {data.total} changes for this record; only part of them is shown.
+            There are {data.total} changes for this record; only part of them is shown.
           </p>
         ) : null}
       </CardBody>

@@ -29,10 +29,10 @@ describe('describeEvent', () => {
 });
 
 describe('describeRecipients', () => {
-  it('names roles and people, and flags lists set up in iTop', () => {
+  it('names roles and people, and flags lists set up by an administrator', () => {
     expect(
       describeRecipients([{ kind: 'caller' }, { kind: 'people', people: [{ id: 1, name: 'Jane Doe' }] }, { kind: 'custom', index: 0 }]),
-    ).toBe('The caller, Jane Doe, A list set up in iTop');
+    ).toBe('The caller, Jane Doe, A list set up by an administrator');
     expect(describeRecipients([])).toBe('—');
   });
 });

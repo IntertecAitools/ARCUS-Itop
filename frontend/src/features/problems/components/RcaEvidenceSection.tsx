@@ -237,7 +237,7 @@ export function RcaEvidenceSection({
             )}
             <p className="text-[12px] text-ink-muted">
               Scores add up the points shown: timing of a change before the first incident (up to 40), the CIs the
-              incidents share (up to 35 for a change, 45 for the CI itself), and links iTop already records (up to 25).
+              incidents share (up to 35 for a change, 45 for the CI itself), and links already recorded (up to 25).
             </p>
             <Details e={e} />
           </>

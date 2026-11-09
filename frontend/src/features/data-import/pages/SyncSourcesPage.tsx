@@ -253,7 +253,7 @@ export function SyncSourcePage() {
       <RunCard source={data} onRan={(result) => result.log && setLogId(result.log.id)} />
 
       <Card className="mb-4">
-        <CardHeader title="Runs" subtitle="iTop's log of each synchronization, newest first." />
+        <CardHeader title="Runs" subtitle="The log of each synchronization, newest first." />
         <CardBody>
           {data.logs.length === 0 ? (
             <p className="text-[13px] text-ink-muted">Not run yet.</p>
@@ -555,7 +555,7 @@ function RunCard({ source, onRan }: { source: SyncSourceDetail; onRan: (result: 
     <Card className="mb-4">
       <CardHeader
         title="Run from a file"
-        subtitle="Load the feed's file and synchronize. Map one column to primary_key: the feed's own id for each row, which iTop keeps to recognise it next time."
+        subtitle="Load the feed's file and synchronize. Map one column to primary_key: the feed's own id for each row, which is kept to recognise it next time."
       />
       <CardBody className="space-y-3">
         <input
@@ -658,7 +658,7 @@ function LogView({ sourceId, logId }: { sourceId: string; logId: number }) {
       </p>
       {log.data.lastError ? <p className="mb-1 text-critical-ink">{log.data.lastError}</p> : null}
       <pre className="max-h-80 overflow-auto whitespace-pre-wrap text-[12px] text-ink-secondary">
-        {log.data.traces || 'No trace kept (iTop keeps one when its synchro_trace setting is on).'}
+        {log.data.traces || 'No trace kept (one is kept when the synchro_trace setting is on).'}
       </pre>
     </div>
   );
