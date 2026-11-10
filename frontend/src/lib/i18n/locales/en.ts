@@ -78,6 +78,7 @@ export const en = {
     notifications: 'Notifications',
     'request-forms': 'Request forms',
     'data-import': 'Data import',
+    'service-levels': 'Service levels',
     'business-hours': 'Business hours',
     'assignment-rules': 'Assignment rules',
     'auto-close': 'Auto-close',

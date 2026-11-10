@@ -16,7 +16,8 @@ import { problemHandlers } from './problems';
 import { recordHandlers } from './records';
 import { requestFormHandlers } from './request-forms';
 import { businessHoursHandlers, slaHandlers } from './sla';
+import { serviceLevelHandlers } from './service-levels';
 import { tenantAdminHandlers } from './tenant-admin';
 
 /** Every mock handler in the app. Append a module's handlers as it lands. */
-export const handlers = [...approvalHandlers, ...authHandlers, ...autoCloseHandlers, ...changeHandlers, ...dashboardHandlers, ...dataImportHandlers, ...dispatchHandlers, ...inboxHandlers, ...incidentHandlers, ...knowledgeHandlers, ...mailIntakeHandlers, ...notificationHandlers, ...portalHandlers, ...problemHandlers, ...recordHandlers, ...requestFormHandlers, ...slaHandlers, ...businessHoursHandlers, ...ticketHandlingHandlers, ...tenantAdminHandlers];
+export const handlers = [...approvalHandlers, ...authHandlers, ...autoCloseHandlers, ...changeHandlers, ...dashboardHandlers, ...dataImportHandlers, ...dispatchHandlers, ...inboxHandlers, ...incidentHandlers, ...knowledgeHandlers, ...mailIntakeHandlers, ...notificationHandlers, ...portalHandlers, ...problemHandlers, ...recordHandlers, ...requestFormHandlers, ...slaHandlers, ...businessHoursHandlers, ...serviceLevelHandlers, ...ticketHandlingHandlers, ...tenantAdminHandlers];

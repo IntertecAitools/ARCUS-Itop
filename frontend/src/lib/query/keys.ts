@@ -40,6 +40,7 @@ export const queryKeys = {
     dashboard: (type: string) => ['sla', 'dashboard', type] as const,
     tickets: (query: object) => ['sla', 'tickets', query] as const,
     businessHours: () => ['sla', 'business-hours'] as const,
+    serviceLevels: () => ['sla', 'service-levels'] as const,
   },
 
   dataImport: {

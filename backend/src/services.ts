@@ -16,6 +16,7 @@ import {
 import { SlaService } from "./modules/sla/index.js";
 import { AutoCloseService } from "./modules/auto-close/index.js";
 import { BusinessHoursService } from "./modules/business-hours/index.js";
+import { ServiceLevelsService } from "./modules/service-levels/index.js";
 import { createMailSource, type MailSource, MailIntakeService } from "./modules/mail-intake/index.js";
 import {
   type AssignmentRuleStore,
@@ -142,6 +143,8 @@ export interface Services {
   sla: SlaService;
   /** Coverage windows and holidays (Combodo's business-hours modules). */
   businessHours: BusinessHoursService;
+  /** SLA targets, SLAs, and customer contracts with the SLA of each service. */
+  serviceLevels: ServiceLevelsService;
   changes: ChangesService;
   /** Changes by planned dates, clashes, blackout windows. */
   changeCalendar: ChangeCalendarService;
@@ -434,6 +437,7 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     rca,
     sla: new SlaService(objects, config.itop.timezone, businessHours),
     businessHours,
+    serviceLevels: new ServiceLevelsService(client),
     changes,
     changeCalendar: new ChangeCalendarService(client, documents, config.itop.timezone, (ids) => changeRisk.levels(ids)),
     changeRisk,

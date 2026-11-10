@@ -77,6 +77,7 @@ export const ar: Messages = {
     notifications: 'الإشعارات',
     'request-forms': 'نماذج الطلبات',
     'data-import': 'استيراد البيانات',
+    'service-levels': 'مستويات الخدمة',
     'business-hours': 'ساعات العمل',
     'assignment-rules': 'قواعد الإسناد',
     'auto-close': 'الإغلاق التلقائي',
