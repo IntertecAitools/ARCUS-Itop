@@ -4,6 +4,20 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-11-10 — Service levels: folding sections and contracts, contract search
+
+| What ran | Result |
+|---|---|
+| Frontend `tsc -b --noEmit` | Pass |
+| Frontend `vitest run` (full) | 61 files, 319/319 pass (`ServiceLevelsPage.test.tsx` now 9: folded summaries, remembered open section, contract search and Expand all, plus the earlier journeys run through the folded sections) |
+| Browser, mock mode (port 5191) | All three sections folded with their summaries; Customer contracts opens to the search box and the contract row (customer, status, "2 services", "1 without SLA"); no console errors |
+
+Found: the page grew long, so finding one customer meant scrolling. Changed in branch `claude/service-levels-accordion`: each section folds to a title and a one-line summary (open state remembered per browser), each contract folds to one row with its service count and a warning for services without an SLA, and a search box finds a contract by customer, contract, service or SLA name.
+
+Not covered:
+- Frontend only, so the backend was not rerun.
+- The Playwright journeys run in CI.
+
 ### 2026-11-10 — Service levels screen: targets, SLAs, and the SLA of each contract service
 
 | What ran | Result |
