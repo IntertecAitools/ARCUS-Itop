@@ -4,6 +4,8 @@ import { configure, renderWithProviders, screen, within } from '@/test/render';
 import { useSessionStore } from '@/stores/session.store';
 import { useUiStore } from '@/stores/ui.store';
 import type { NavEntry, NavGroup } from '@/features/navigation';
+import { navigableModules, standaloneModules } from '@/config/modules';
+import realNavigation from '../../../../cmdb-schema/cmdb-navigation.json';
 import { Sidebar } from './Sidebar';
 import { sidebarGroups } from './ItopNavigation';
 
@@ -18,6 +20,45 @@ const ITOP: NavGroup[] = [
   group('AdminTools', 'Administration', [entry('UserAccountsMenu', 'User accounts'), entry('ProfilesMenu', 'Profiles'), entry('AuditCategories', 'Audit configuration')], true),
   group('ConfigurationTools', 'Configuration', [entry('OAuthClient', 'OAuth Mail Access')], true),
 ];
+
+describe('no page goes missing', () => {
+  // The real iTop menu, as extracted from iTop (what the BFF publishes).
+  const real = (realNavigation as unknown as { groups: NavGroup[] }).groups;
+  const REPLACED: Record<string, string> = {
+    UserAccountsMenu: 'users',
+    AuditCategories: 'audit',
+    CustomerContract: 'service-levels',
+    SLA: 'service-levels',
+    SLT: 'service-levels',
+  };
+
+  for (const isAdmin of [true, false]) {
+    it(`keeps every page of the old sidebar (${isAdmin ? 'administrator' : 'agent'})`, () => {
+      // Before: every offered page on top, then every iTop entry.
+      const before = [...navigableModules(isAdmin).map((m) => m.id), ...real.flatMap((g) => g.entries.map((e) => e.id))];
+      // After: the top items, then each module's iTop entries and our pages.
+      const groups = sidebarGroups(real, isAdmin);
+      const after = new Set([
+        ...standaloneModules(isAdmin).map((m) => m.id),
+        ...groups.flatMap((g) => [...g.entries.map((e) => e.id), ...g.pages.map((p) => p.id)]),
+      ]);
+      const gone = before.filter((id) => !after.has(id));
+      // Only the iTop entries our pages replace are gone, and only when the
+      // replacing page is there for this user.
+      for (const id of gone) {
+        expect(REPLACED[id], `${id} is missing`).toBeDefined();
+        expect(after.has(REPLACED[id]!), `${id}'s replacement ${REPLACED[id]} is missing`).toBe(true);
+      }
+      expect(gone.sort()).toEqual(isAdmin ? Object.keys(REPLACED).sort() : []);
+      // And nothing is listed twice.
+      const listed = [
+        ...standaloneModules(isAdmin).map((m) => m.id),
+        ...groups.flatMap((g) => [...g.entries.map((e) => e.id), ...g.pages.map((p) => p.id)]),
+      ];
+      expect(new Set(listed).size).toBe(listed.length);
+    });
+  }
+});
 
 describe('sidebarGroups', () => {
   it('puts each built page inside its module, after iTop’s entries', () => {
