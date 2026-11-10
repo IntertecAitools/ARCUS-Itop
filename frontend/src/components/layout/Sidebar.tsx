@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ChevronLeft, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSessionStore } from '@/stores/session.store';
-import { modulesInGroup, navGroups, type ModuleDefinition } from '@/config/modules';
+import { navigableModules, standaloneModules, type ModuleDefinition } from '@/config/modules';
 import { useUiStore } from '@/stores/ui.store';
 import { ItopNavigation } from './ItopNavigation';
 import { Logo } from './Logo';
@@ -135,34 +135,22 @@ export function Sidebar({ counts = {} }: SidebarProps) {
         aria-label={t('shell.mainNavigation')}
         className="flex-1 overflow-x-hidden overflow-y-auto px-2.5 py-3"
       >
-        {/* Only groups that actually contain a built module are rendered —
-            otherwise an empty group still draws its separator rule. */}
-        {/* Scoped so "which modules have we built" stays answerable now that
-            iTop's whole tree is rendered below it. */}
-        <div aria-label={t('shell.builtModules')} role="group">
-          {navGroups
-            .map((group) => ({ group, items: modulesInGroup(group, isAdmin) }))
-            .filter(({ items }) => items.length > 0)
-            .map(({ group, items }, groupIndex) => (
-              <div
-                key={group}
-                className={cn(groupIndex > 0 && 'mt-3 border-t border-line pt-3', 'space-y-0.5')}
-              >
-                {items.map((module) => (
-                  <NavItem
-                    key={module.id}
-                    module={module}
-                    collapsed={collapsed}
-                    count={module.badgeKey ? counts[module.badgeKey] : undefined}
-                  />
-                ))}
-              </div>
-            ))}
+        {/* On top, the pages that belong to no one module: Dashboard and the
+            day-to-day lists. Every other page sits inside its module below
+            (ModuleDefinition.home). Folded to icons there is no room for the
+            modules' trees, so every page shows here as an icon instead. */}
+        <div aria-label={t('shell.builtModules')} role="group" className="space-y-0.5">
+          {(collapsed ? navigableModules(isAdmin) : standaloneModules(isAdmin)).map((module) => (
+            <NavItem
+              key={module.id}
+              module={module}
+              collapsed={collapsed}
+              count={module.badgeKey ? counts[module.badgeKey] : undefined}
+            />
+          ))}
         </div>
 
-        {/* Above: modules we have built. Below: everything else iTop has,
-            rendered from the tree the BFF publishes. */}
-        <ItopNavigation collapsed={collapsed} />
+        <ItopNavigation collapsed={collapsed} counts={counts} />
       </nav>
 
       <div className="hidden shrink-0 border-t border-line p-2.5 lg:block">
