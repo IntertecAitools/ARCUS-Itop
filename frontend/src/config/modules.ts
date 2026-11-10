@@ -79,6 +79,35 @@ import {
 /** Visual grouping in the sidebar — each group is separated by a hairline. */
 export type NavGroup = 'operations' | 'resources' | 'administration';
 
+/**
+ * The module (one of iTop's menu groups) a page belongs to in the sidebar.
+ * The sidebar lists the page inside that module, after iTop's own entries.
+ */
+export type ModuleHome =
+  | 'ConfigManagement'
+  | 'RequestManagement'
+  | 'IncidentManagement'
+  | 'ProblemManagement'
+  | 'ChangeManagement'
+  | 'ServiceManagement'
+  | 'DataAdministration'
+  | 'AdminTools';
+
+/**
+ * Every home, in sidebar order, with the label used when iTop does not
+ * publish that group (an iTop without the module, the mock API).
+ */
+export const moduleHomes: Array<{ id: ModuleHome; label: string }> = [
+  { id: 'ConfigManagement', label: 'Configuration management' },
+  { id: 'RequestManagement', label: 'Helpdesk' },
+  { id: 'IncidentManagement', label: 'Incident Management' },
+  { id: 'ProblemManagement', label: 'Problem management' },
+  { id: 'ChangeManagement', label: 'Change management' },
+  { id: 'ServiceManagement', label: 'Service management' },
+  { id: 'DataAdministration', label: 'Data administration' },
+  { id: 'AdminTools', label: 'Administration' },
+];
+
 export interface ModuleDefinition {
   /** Stable id. Also the i18n key and the query-key namespace. */
   id: string;
@@ -88,6 +117,11 @@ export interface ModuleDefinition {
   path: string;
   icon: LucideIcon;
   group: NavGroup;
+  /**
+   * The sidebar module this page sits in. Without one, the page is its own
+   * item at the top of the sidebar (Dashboard, Approvals, My work pages).
+   */
+  home?: ModuleHome;
   /** Short line shown in the command palette. */
   description: string;
   /**
@@ -223,6 +257,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'cab',
+    home: 'ChangeManagement',
     label: 'Awaiting CAB',
     path: 'cab',
     icon: CalendarCheck2,
@@ -232,6 +267,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'change-calendar',
+    home: 'ChangeManagement',
     label: 'Change calendar',
     path: 'change-calendar',
     icon: CalendarDays,
@@ -241,6 +277,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'pir-due',
+    home: 'ChangeManagement',
     label: 'PIR due',
     path: 'pir-due',
     icon: FileCheck2,
@@ -250,6 +287,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'problem-trends',
+    home: 'ProblemManagement',
     label: 'Problem trends',
     path: 'problem-trends',
     icon: Repeat,
@@ -261,6 +299,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'sla',
+    home: 'ServiceManagement',
     label: 'SLA dashboard',
     path: 'sla',
     icon: Timer,
@@ -312,6 +351,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'knowledge',
+    home: 'ProblemManagement',
     label: 'Knowledge',
     path: 'knowledge',
     icon: BookOpen,
@@ -384,6 +424,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'users',
+    home: 'AdminTools',
     label: 'Users',
     path: 'users',
     icon: UsersRound,
@@ -401,6 +442,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'tenant-admin',
+    home: 'AdminTools',
     label: 'Organisation admin',
     path: 'organisation',
     icon: Building2,
@@ -411,6 +453,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'notifications',
+    home: 'AdminTools',
     label: 'Notifications',
     path: 'notifications',
     icon: BellRing,
@@ -432,6 +475,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'request-forms',
+    home: 'RequestManagement',
     label: 'Request forms',
     path: 'request-forms',
     icon: ClipboardList,
@@ -453,6 +497,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'data-import',
+    home: 'DataAdministration',
     label: 'Data import',
     path: 'data-import',
     icon: FileUp,
@@ -475,6 +520,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'service-levels',
+    home: 'ServiceManagement',
     label: 'Service levels',
     path: 'service-levels',
     icon: Handshake,
@@ -485,6 +531,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'business-hours',
+    home: 'ServiceManagement',
     label: 'Business hours',
     path: 'business-hours',
     icon: CalendarClock,
@@ -495,6 +542,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'assignment-rules',
+    home: 'IncidentManagement',
     label: 'Assignment rules',
     path: 'assignment-rules',
     icon: Route,
@@ -505,6 +553,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'auto-close',
+    home: 'IncidentManagement',
     label: 'Auto-close',
     path: 'auto-close',
     icon: CalendarX2,
@@ -515,6 +564,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'change-rules',
+    home: 'ChangeManagement',
     label: 'Change plan rules',
     path: 'change-rules',
     icon: ListChecks,
@@ -525,6 +575,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'change-risk',
+    home: 'ChangeManagement',
     label: 'Change risk questions',
     path: 'change-risk',
     icon: Gauge,
@@ -535,6 +586,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'change-blackouts',
+    home: 'ChangeManagement',
     label: 'Change blackouts',
     path: 'change-blackouts',
     icon: CalendarOff,
@@ -545,6 +597,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'knowledge-settings',
+    home: 'ProblemManagement',
     label: 'Knowledge reviewers',
     path: 'knowledge-settings',
     icon: NotebookPen,
@@ -555,6 +608,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'audit',
+    home: 'AdminTools',
     label: 'Audit',
     path: 'audit',
     icon: ShieldCheck,
@@ -592,6 +646,16 @@ export function navigableModules(isAdmin = false) {
 
 export function modulesInGroup(group: NavGroup, isAdmin = false) {
   return navigableModules(isAdmin).filter((m) => m.group === group);
+}
+
+/** Pages listed on their own at the top of the sidebar. */
+export function standaloneModules(isAdmin = false) {
+  return navigableModules(isAdmin).filter((m) => !m.home);
+}
+
+/** Pages listed inside one sidebar module. */
+export function modulesAtHome(home: string, isAdmin = false) {
+  return navigableModules(isAdmin).filter((m) => m.home === home);
 }
 
 export function findModuleByPath(path: string) {

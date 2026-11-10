@@ -4,6 +4,20 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-11-10 — Sidebar organised by module
+
+| What ran | Result |
+|---|---|
+| Frontend `tsc -b --noEmit` | Pass |
+| Frontend `vitest run` (full) | 62 files, 326/326 pass (7 new in `Sidebar.test.tsx`: pages placed in their module after iTop's entries, replaced iTop entries dropped only when the replacement is offered, Configuration folded into Administration, a module iTop does not publish still shown, six standalone items on top, the current page's module opens and folds on click, every page shown as an icon on the folded rail) |
+| Browser, mock mode (port 5192) | Six standalone items on top; under Modules, Helpdesk lists its iTop entries and then Request forms; the other modules fold; no console errors |
+
+Found: the sidebar had two unrelated lists, our pages (without headings) and iTop's modules, with two "Administration"s. Changed in branch `claude/sidebar-by-module`: each page now has a home module (`ModuleDefinition.home`) and is listed inside it. Only Dashboard, Approvals, My team's queue, My drafts, Time logged and Queries stay on top. iTop entries that our pages replace (User accounts, Audit configuration, SLAs, SLTs, Customer contracts) are hidden when the replacement is offered to that user.
+
+Not covered:
+- Not checked against the real iTop menu (the mock publishes two groups). Real group ids are taken from `cmdb-schema/cmdb-navigation.json`.
+- The Playwright journeys run in CI.
+
 ### 2026-11-10 — Service levels: folding sections and contracts, contract search
 
 | What ran | Result |
