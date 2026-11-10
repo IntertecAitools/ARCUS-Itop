@@ -4,6 +4,20 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-11-10 — Production build failed after the sidebar merge (PR #59)
+
+| What ran | Result |
+|---|---|
+| CodePipeline build `arcus-servicedesk-build:1bccee85…` (commit 3ddd5108) | **Failed**: `docker build frontend` → `tsc -b` → `Sidebar.test.tsx: Cannot find module '../../../../cmdb-schema/cmdb-navigation.json'` (TS2307). Deploy did not run, so production stayed on the previous version. |
+| Frontend `tsc -b --noEmit` (after the fix) | Pass |
+| `npm run build` from a copy of `frontend/` alone (as in the production image) | Pass |
+| Frontend `vitest run` (full) | 62 files, 329/329 pass (new check: the real iTop menu is read) |
+
+Found: the "no page goes missing" test imported the real menu from outside `frontend/`. GitHub CI builds from the whole repository, so it passed there. The production image is built from `frontend/` alone, so its type-check failed. Fixed in branch `claude/fix-build-sidebar-test`: the test loads the file with `import.meta.glob`, which is resolved only when the tests run. A test also fails if the file is not found, so the check cannot pass empty.
+
+Not covered:
+- GitHub CI still does not build the frontend the way the production image does. Follow-up: add a `docker build frontend` step to CI.
+
 ### 2026-11-10 — Sidebar organised by module
 
 | What ran | Result |
