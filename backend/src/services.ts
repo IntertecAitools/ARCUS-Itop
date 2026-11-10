@@ -401,7 +401,7 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     dashboards,
     client,
     objects,
-    attachments: new AttachmentsService(objects, schema),
+    attachments: new AttachmentsService(objects, schema, client),
     lookups: new LookupsService(client, schema, config.lookupCacheTtlMs),
     relations,
     history: new HistoryService(client, schema, config.itop.timezone),

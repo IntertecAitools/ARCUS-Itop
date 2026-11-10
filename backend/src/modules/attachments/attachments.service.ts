@@ -1,5 +1,7 @@
 import { badRequest, notFound } from "../../core/errors.js";
 import type { CmdbSchema } from "../../schema/load.js";
+import type { ItopClient } from "../../itop/client.js";
+import { normalizeObjects } from "../../itop/normalize.js";
 import type { ObjectDto, ObjectsService } from "../../platform/objects/objects.service.js";
 import { oqlString, str } from "../../shared/ticket-mapping.js";
 import type {
@@ -32,6 +34,13 @@ import type {
  *    upload made through the service account for someone else (the portal)
  *    sends that person's user and contact, and iTop records them as the
  *    uploader; its own attachment list shows `contact_id`.
+ *  - `item_org_id` is the organisation iTop's data silos filter attachments
+ *    on (Attachment::MapContextParam maps org_id to it), and so does our
+ *    tenancy (platform/tenancy/scope-rules.ts). iTop fills it only in its own
+ *    screens (SetItem, SetDefaultOrgId), never on a REST create. Left empty,
+ *    every user limited to some organisations stops seeing the file: only
+ *    administrators, who have no such limit, still do. So an upload sends its
+ *    ticket's org_id, and repairMissingOrgs() fills the ones made before.
  */
 
 /** iTop's `itop-attachments/allowed_classes`, verified in config-itop.php. */
@@ -70,6 +79,8 @@ export class AttachmentsService {
   constructor(
     private readonly objects: ObjectsService,
     private readonly schema: CmdbSchema,
+    /** For the repair, which reads and writes as the service account. */
+    private readonly client?: ItopClient,
   ) {}
 
   /**
@@ -91,17 +102,28 @@ export class AttachmentsService {
     }
   }
 
-  /** Confirms the host row exists, so an upload cannot be orphaned. */
-  private async assertItemExists(itemClass: string, itemId: string): Promise<void> {
+  /** Does this class name its organisation in org_id (every ticket class does)? */
+  private hasOrg(itemClass: string): boolean {
+    return Boolean(this.schema.require(itemClass).fields["org_id"]);
+  }
+
+  /**
+   * Confirms the host row exists, so an upload cannot be orphaned, and
+   * answers its organisation (0 when it has none) for `item_org_id`.
+   */
+  private async itemOrg(itemClass: string, itemId: string): Promise<number> {
+    const withOrg = this.hasOrg(itemClass);
     const found = await this.objects.list(itemClass, {
       page: 1,
       limit: 1,
       oql: `SELECT ${itemClass} WHERE id = ${Number(itemId)}`,
-      fields: "id",
+      fields: withOrg ? "id,org_id" : "id",
     });
-    if (found.items.length === 0) {
+    const row = found.items[0];
+    if (!row) {
       throw notFound(`${itemClass} ${itemId} was not found.`);
     }
+    return withOrg ? Number(row.fields["org_id"] ?? 0) || 0 : 0;
   }
 
   private assertValidId(itemId: string): void {
@@ -188,7 +210,7 @@ export class AttachmentsService {
       );
     }
 
-    await this.assertItemExists(itemClass, itemId);
+    const orgId = await this.itemOrg(itemClass, itemId);
 
     const created = await this.objects.create(
       "Attachment",
@@ -201,6 +223,7 @@ export class AttachmentsService {
           filename: file.filename,
           downloads_count: 0,
         },
+        ...(orgId > 0 ? { item_org_id: orgId } : {}),
         ...(onBehalfOf && onBehalfOf.userId > 0 ? { user_id: onBehalfOf.userId } : {}),
         ...(onBehalfOf && onBehalfOf.contactId > 0 ? { contact_id: onBehalfOf.contactId } : {}),
       },
@@ -213,6 +236,65 @@ export class AttachmentsService {
     );
 
     return this.toDto(created.object) as AttachmentDto;
+  }
+
+  /**
+   * Fills `item_org_id` on attachments uploaded without it (through the REST
+   * API, before this was set on upload), from the ticket each is attached to.
+   * Runs as the service account, since the users who cannot see these files
+   * are exactly the ones who could not repair them. Safe to run again: it
+   * only touches attachments whose organisation is still empty.
+   */
+  async repairMissingOrgs(): Promise<{ checked: number; repaired: number }> {
+    if (!this.client) return { checked: 0, repaired: 0 };
+    const client = this.client;
+    const rows = async (cls: string, oql: string, fields: string) =>
+      normalizeObjects(
+        (await client.call("core/get", { class: cls, key: oql, output_fields: fields }, { asService: true })).objects,
+      );
+
+    const orphans = await rows(
+      "Attachment",
+      "SELECT Attachment WHERE ISNULL(item_org_id) OR item_org_id = 0",
+      "item_class,item_id",
+    );
+    const byClass = new Map<string, number[]>();
+    for (const a of orphans) {
+      const cls = str(a.fields["item_class"]);
+      const id = Number(a.fields["item_id"]);
+      if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(cls) || !(id > 0) || !this.schema.get(cls) || !this.hasOrg(cls)) continue;
+      byClass.set(cls, [...(byClass.get(cls) ?? []), id]);
+    }
+
+    const orgOf = new Map<string, number>();
+    for (const [cls, ids] of byClass) {
+      const unique = [...new Set(ids)];
+      for (let i = 0; i < unique.length; i += 200) {
+        const chunk = unique.slice(i, i + 200);
+        for (const host of await rows(cls, `SELECT ${cls} WHERE id IN (${chunk.join(",")})`, "org_id")) {
+          orgOf.set(`${cls}:${host.id}`, Number(host.fields["org_id"] ?? 0) || 0);
+        }
+      }
+    }
+
+    let repaired = 0;
+    for (const a of orphans) {
+      const org = orgOf.get(`${str(a.fields["item_class"])}:${Number(a.fields["item_id"])}`) ?? 0;
+      if (org <= 0) continue;
+      await client.call(
+        "core/update",
+        {
+          class: "Attachment",
+          key: a.id,
+          fields: { item_org_id: org },
+          comment: "Attachment organisation set from its ticket",
+          output_fields: "id",
+        },
+        { asService: true },
+      );
+      repaired += 1;
+    }
+    return { checked: orphans.length, repaired };
   }
 
   /** Metadata plus bytes. Separate from list() so listing stays cheap. */

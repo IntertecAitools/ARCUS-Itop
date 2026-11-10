@@ -433,3 +433,116 @@ describe("attachment routes", () => {
     assert.equal(response.statusCode, 400);
   });
 });
+
+/* ------------------------------------------------------------------------- *
+ * The attachment's organisation (item_org_id)
+ * ------------------------------------------------------------------------- */
+
+/** As attachmentSchema, with the ticket's org_id and Attachment's item_org_id. */
+function orgSchema() {
+  const base = {
+    is_ci: false,
+    lifecycle: null,
+    readonly: [],
+  };
+  return CmdbSchema.fromRaw({
+    ...SAMPLE_RAW_SCHEMA,
+    Ticket: {
+      ...base,
+      abstract: true,
+      inherits: ["cmdbAbstractObject"],
+      writable: ["title", "org_id"],
+      fields: {
+        title: { type: "String", ui: "scalar", owner: "Ticket", required: true },
+        org_id: { type: "ExternalKey", ui: "picker", owner: "Ticket", target: "Organization" },
+      },
+    },
+    Incident: {
+      ...base,
+      abstract: false,
+      inherits: ["cmdbAbstractObject", "Ticket"],
+      writable: ["title", "org_id"],
+      fields: {
+        title: { type: "String", ui: "scalar", owner: "Ticket", required: true },
+        org_id: { type: "ExternalKey", ui: "picker", owner: "Ticket", target: "Organization" },
+      },
+    },
+    Attachment: {
+      ...base,
+      abstract: false,
+      inherits: ["DBObject"],
+      writable: ["item_class", "item_id", "item_org_id", "contents", "user_id", "contact_id"],
+      fields: {
+        item_class: { type: "String", ui: "scalar", owner: "Attachment" },
+        item_id: { type: "ObjectKey", ui: "scalar", owner: "Attachment" },
+        item_org_id: { type: "Integer", ui: "scalar", owner: "Attachment" },
+        contents: { type: "Blob", ui: "scalar", owner: "Attachment" },
+        creation_date: { type: "DateTime", ui: "scalar", owner: "Attachment" },
+        user_id: { type: "ExternalKey", ui: "picker", owner: "Attachment", target: "Organization" },
+        contact_id: { type: "ExternalKey", ui: "picker", owner: "Attachment", target: "Organization" },
+      },
+    },
+  } as never);
+}
+
+function orgService(fake: FakeItopClient) {
+  const schema = orgSchema();
+  return new AttachmentsService(new ObjectsService(fake.asClient(), schema, "test"), schema, fake.asClient());
+}
+
+describe("attachment organisation", () => {
+  it("records the ticket's organisation on upload, so users limited to it can see the file", async () => {
+    const fake = new FakeItopClient()
+      .on("core/get", getResponse([{ class: "Incident", id: 7, fields: { id: "7", org_id: "3" } }]))
+      .on("core/create", getResponse([attachmentRow(9, "payload")]));
+
+    await orgService(fake).upload("Incident", "7", { filename: "a.txt", mimeType: "text/plain", content: Buffer.from("x") });
+
+    assert.match(String(fake.calls[0]!.params["output_fields"]), /org_id/);
+    const sent = fake.lastCall().params["fields"] as Record<string, unknown>;
+    assert.equal(sent["item_org_id"], 3);
+  });
+
+  it("repairs attachments saved without an organisation, from their ticket, as the service account", async () => {
+    const fake = new FakeItopClient()
+      .on("core/get", (params) => {
+        if (params["class"] === "Attachment") {
+          assert.match(String(params["key"]), /ISNULL\(item_org_id\) OR item_org_id = 0/);
+          return getResponse([
+            { class: "Attachment", id: 21, fields: { item_class: "Incident", item_id: "7" } },
+            { class: "Attachment", id: 22, fields: { item_class: "Incident", item_id: "8" } },
+            { class: "Attachment", id: 23, fields: { item_class: "Incident", item_id: "9" } },
+            // Not a class we know: left alone.
+            { class: "Attachment", id: 24, fields: { item_class: "Gone", item_id: "1" } },
+          ]);
+        }
+        assert.equal(params["key"], "SELECT Incident WHERE id IN (7,8,9)");
+        return getResponse([
+          { class: "Incident", id: 7, fields: { org_id: "3" } },
+          { class: "Incident", id: 8, fields: { org_id: "5" } },
+          // A ticket without an organisation: nothing to set.
+          { class: "Incident", id: 9, fields: { org_id: "0" } },
+        ]);
+      })
+      .on("core/update", getResponse([]));
+
+    const result = await orgService(fake).repairMissingOrgs();
+
+    assert.deepEqual(result, { checked: 4, repaired: 2 });
+    const updates = fake.calls.filter((c) => c.verb === "core/update");
+    assert.deepEqual(
+      updates.map((c) => [c.params["key"], c.params["fields"]]),
+      [
+        [21, { item_org_id: 3 }],
+        [22, { item_org_id: 5 }],
+      ],
+    );
+    assert.ok(fake.calls.every((c) => c.as === "service"));
+  });
+
+  it("does nothing when every attachment already has its organisation", async () => {
+    const fake = new FakeItopClient().on("core/get", getResponse([]));
+    assert.deepEqual(await orgService(fake).repairMissingOrgs(), { checked: 0, repaired: 0 });
+    assert.equal(fake.calls.length, 1);
+  });
+});
