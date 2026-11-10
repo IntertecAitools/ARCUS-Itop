@@ -54,6 +54,14 @@ async function main(): Promise<void> {
   );
 
   await app.listen({ host: config.server.host, port: config.server.port });
+
+  // Attachments uploaded before their organisation was recorded are hidden
+  // from every user limited to some organisations. Repaired once per start,
+  // in the background: a failure is logged, never a reason not to serve.
+  void services.attachments
+    .repairMissingOrgs()
+    .then((r) => app.log.info(r, "Attachment organisations checked"))
+    .catch((error: unknown) => app.log.warn({ err: error }, "Attachment organisations could not be repaired"));
 }
 
 main().catch((error: unknown) => {

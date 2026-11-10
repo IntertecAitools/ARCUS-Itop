@@ -4,6 +4,19 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-11-10 — Attachments hidden from everyone but administrators
+
+| What ran | Result |
+|---|---|
+| Backend `npm run typecheck` | Pass |
+| Backend `npm test` | 917/917 pass (3 new in `attachments.test.ts`: an upload records its ticket's `org_id` as `item_org_id`; the repair fills empty ones from each ticket as the service account, skipping tickets with no organisation and unknown classes; the repair does nothing when none are empty) |
+
+Found: files uploaded through our app were stored with an empty `item_org_id`. iTop fills it only in its own screens (`Attachment::SetItem` / `SetDefaultOrgId`), never on a REST create. iTop's data silos (`MapContextParam('org_id')` → `item_org_id`) and our tenancy (`scope-rules.ts`) both filter attachments on it. So every user limited to some organisations saw no files, and only administrators did. Fixed in branch `claude/attachment-org`: uploads (staff and portal) now send the ticket's `org_id`, and on every start the BFF repairs attachments still missing it (logged as "Attachment organisations checked").
+
+Not covered:
+- Not run against a real iTop (Docker not running); the fix is checked against the fake client only. After the deploy, the BFF log line gives the count repaired in production.
+- The Playwright journeys run in CI.
+
 ### 2026-11-10 — Production build failed after the sidebar merge (PR #59)
 
 | What ran | Result |
