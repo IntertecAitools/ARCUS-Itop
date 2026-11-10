@@ -13,6 +13,7 @@ import { registerKnowledgeRoutes } from "../modules/knowledge/index.js";
 import { registerMailIntakeRoutes } from "../modules/mail-intake/index.js";
 import { registerProblemRoutes } from "../modules/problems/index.js";
 import { registerRequestFormRoutes } from "../modules/request-forms/index.js";
+import { registerServiceLevelRoutes } from "../modules/service-levels/index.js";
 import { registerSlaRoutes } from "../modules/sla/index.js";
 import { registerTicketHandlingRoutes } from "../modules/ticket-handling/index.js";
 
@@ -73,6 +74,12 @@ export const modules: BackendModule[] = [
     basePath: "/api/admin/business-hours",
     description: "Coverage windows (open hours), holidays, and which window each contract's service runs in, so TTO/TTR count working time.",
     register: registerBusinessHoursRoutes,
+  },
+  {
+    id: "service-levels",
+    basePath: "/api/admin/service-levels",
+    description: "SLA targets (TTO/TTR per request type and priority), SLAs that group them, and customer contracts with the SLA each service runs under.",
+    register: registerServiceLevelRoutes,
   },
   {
     id: "changes",

@@ -295,7 +295,7 @@ function AssignmentsCard({ data }: { data: BusinessHours }) {
       <CardBody>
         {data.assignments.length === 0 ? (
           <p className="py-4 text-center text-[13px] text-ink-muted">
-            No services on customer contracts yet. Add them on a customer contract’s record.
+            No services on customer contracts yet. Add them under Administration → Service levels.
           </p>
         ) : (
           <div className="ui-table-frame">

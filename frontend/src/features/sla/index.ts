@@ -1,6 +1,8 @@
 // sla: public API. Other features may import ONLY from this file.
 export { SlaDashboardPage } from './pages/SlaDashboardPage';
 export { BusinessHoursPage } from './pages/BusinessHoursPage';
+export { ServiceLevelsPage } from './pages/ServiceLevelsPage';
+export type { ServiceLevels, ServiceTarget, ServiceLevelAgreement, CustomerContract, ContractService } from './service-levels.types';
 export type {
   BusinessHours,
   CoverageAssignment,

@@ -4,6 +4,23 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-11-10 — Service levels screen: targets, SLAs, and the SLA of each contract service
+
+| What ran | Result |
+|---|---|
+| Backend `npm run typecheck` | Pass |
+| Backend `npm test` | 914/914 pass (9 new in `service-levels.test.ts`: overview, an SLA's targets written as a whole set, unknown target refused, contract services moved to "no SLA" before an SLA is deleted, add service once, set and clear a line's SLA, 404s, contract fields, 15 bad inputs answered 400 with no iTop call) |
+| Frontend `tsc -b --noEmit` | Pass |
+| Frontend `vitest run` (full) | 61 files, 316/316 pass (6 new in `ServiceLevelsPage.test.tsx`) |
+| Browser, mock mode (`VITE_API_MODE=mock`, port 5191) | Page renders its three sections, no console errors; setting the VPN line's SLA to Gold updated Gold to "2 contract services" |
+
+Found: admins could not attach an SLA to a customer contract's service anywhere in the app. The related tab on a contract adds a service without its SLA, and the only way in was the raw `lnkCustomerContractToService` records. Fixed in branch `claude/contracts-sla-screen`: a new Administration → Service levels screen (BFF module `service-levels` under `/api/admin/service-levels`) for targets (SLT), SLAs and customer contracts, with an SLA picker on every contract service line.
+
+Not covered:
+- Not run against a real iTop (Docker was not running). The iTop writes follow the standard datamodel (`slts_list` replaced whole, `sla_id` on the link row) and are checked only against the fake client.
+- Clearing a contract's start or end date sends an empty string; not confirmed on a real iTop.
+- The Playwright journeys run in CI.
+
 ### 2026-11-09 — The name "iTop" removed from what users see
 
 | What ran | Result |
