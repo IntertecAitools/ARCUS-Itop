@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { FileText, Pencil, Plus, Target, Trash2 } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
+import { ChevronDown, FileText, Pencil, Plus, Search, Target, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/layout';
-import { Badge, Button, Card, CardBody, CardHeader, Input, Select, Skeleton } from '@/components/ui';
+import { Badge, Button, Card, Input, Select, Skeleton } from '@/components/ui';
 import { EmptyState } from '@/components/feedback';
 import { longDate } from '@/lib/utils';
 import {
@@ -60,6 +60,92 @@ export function describeTarget(t: Pick<ServiceTarget, 'requestType' | 'priority'
 }
 
 const field = 'text-[13px] text-ink-secondary';
+
+/** Remembered per viewer, so the page opens the way it was left. */
+function useRemembered(key: string, initial: boolean): [boolean, (open: boolean) => void] {
+  const storageKey = `service-levels:${key}`;
+  const [open, setOpen] = useState<boolean>(() => {
+    try {
+      const saved = window.localStorage.getItem(storageKey);
+      return saved === null ? initial : saved === '1';
+    } catch {
+      return initial;
+    }
+  });
+  const set = (next: boolean) => {
+    setOpen(next);
+    try {
+      window.localStorage.setItem(storageKey, next ? '1' : '0');
+    } catch {
+      /* private window: the open state is simply not kept */
+    }
+  };
+  return [open, set];
+}
+
+/**
+ * A card that folds: the header always shows the title and a one-line
+ * summary, the body only when open. The action (New …) opens it too.
+ */
+function Section({
+  id,
+  title,
+  summary,
+  subtitle,
+  actionLabel,
+  onAction,
+  children,
+}: {
+  id: string;
+  title: string;
+  summary: string;
+  subtitle: string;
+  actionLabel: string;
+  onAction: () => void;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useRemembered(id, false);
+  const bodyId = `section-${id}`;
+  return (
+    <Card className="mb-4">
+      <div className="flex items-center gap-3 px-5 py-4">
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls={bodyId}
+          onClick={() => setOpen(!open)}
+          className="flex min-w-0 grow items-center gap-3 text-start"
+        >
+          <ChevronDown
+            className={`size-4 shrink-0 text-ink-muted transition-transform duration-200 ${open ? '' : '-rotate-90 rtl:rotate-90'}`}
+            aria-hidden
+          />
+          <span className="min-w-0">
+            <span className="block text-[15px] leading-6 font-semibold text-ink">{title}</span>
+            <span className="block text-[13px] text-ink-muted">{open ? subtitle : summary}</span>
+          </span>
+        </button>
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => {
+            setOpen(true);
+            onAction();
+          }}
+        >
+          <Plus className="size-4" aria-hidden /> {actionLabel}
+        </Button>
+      </div>
+      {open ? (
+        <div id={bodyId} className="border-t border-line px-5 pt-4 pb-5">
+          {children}
+        </div>
+      ) : null}
+    </Card>
+  );
+}
+
+const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 /* ------------------------------------------------------------------------- *
  * 1. Targets
@@ -141,21 +227,21 @@ function TargetForm({ initial, onDone }: { initial?: ServiceTarget; onDone: () =
 function TargetsCard({ data }: { data: ServiceLevels }) {
   const [editing, setEditing] = useState<string | 'new' | null>(null);
   const remove = useDeleteTarget();
+  const unused = data.targets.filter((t) => t.usedBy === 0).length;
 
   return (
-    <Card className="mb-4">
-      <CardHeader
-        title="1. Targets"
-        subtitle="How fast a ticket must be owned (TTO) or resolved (TTR), for one ticket type and priority. SLAs group targets."
-        action={
-          editing === null ? (
-            <Button size="sm" variant="secondary" onClick={() => setEditing('new')}>
-              <Plus className="size-4" aria-hidden /> New target
-            </Button>
-          ) : null
-        }
-      />
-      <CardBody>
+    <Section
+      id="targets"
+      title="1. Targets"
+      summary={
+        data.targets.length
+          ? `${plural(data.targets.length, 'target')}${unused ? ` · ${unused} not in any SLA` : ''}`
+          : 'No targets yet'
+      }
+      subtitle="How fast a ticket must be owned (TTO) or resolved (TTR), for one ticket type and priority. SLAs group targets."
+      actionLabel="New target"
+      onAction={() => setEditing('new')}
+    >
         {editing === 'new' ? <TargetForm onDone={() => setEditing(null)} /> : null}
         {data.targets.length === 0 && editing !== 'new' ? (
           <EmptyState icon={<Target className="size-5" />} title="No targets yet" description="Add one per ticket type, priority and measure, e.g. “P1 incident: resolve within 4 hours”." />
@@ -217,8 +303,7 @@ function TargetsCard({ data }: { data: ServiceLevels }) {
           </div>
         )}
         <Problem error={remove.error} />
-      </CardBody>
-    </Card>
+    </Section>
   );
 }
 
@@ -300,19 +385,14 @@ function SlasCard({ data }: { data: ServiceLevels }) {
   const targetName = new Map(data.targets.map((t) => [t.id, t.name]));
 
   return (
-    <Card className="mb-4">
-      <CardHeader
-        title="2. SLAs"
-        subtitle="A named set of targets, such as Gold or Standard. Each service on a customer contract runs under one SLA."
-        action={
-          editing === null ? (
-            <Button size="sm" variant="secondary" onClick={() => setEditing('new')}>
-              <Plus className="size-4" aria-hidden /> New SLA
-            </Button>
-          ) : null
-        }
-      />
-      <CardBody>
+    <Section
+      id="slas"
+      title="2. SLAs"
+      summary={data.slas.length ? `${plural(data.slas.length, 'SLA')}: ${data.slas.map((s) => s.name).join(', ')}` : 'No SLAs yet'}
+      subtitle="A named set of targets, such as Gold or Standard. Each service on a customer contract runs under one SLA."
+      actionLabel="New SLA"
+      onAction={() => setEditing('new')}
+    >
         {editing === 'new' ? <SlaForm data={data} onDone={() => setEditing(null)} /> : null}
         {data.slas.length === 0 && editing !== 'new' ? (
           <EmptyState title="No SLAs yet" description="Create one and tick the targets it promises." />
@@ -364,8 +444,7 @@ function SlasCard({ data }: { data: ServiceLevels }) {
           </ul>
         )}
         <Problem error={remove.error} />
-      </CardBody>
-    </Card>
+    </Section>
   );
 }
 
@@ -477,7 +556,17 @@ function AddServiceForm({ data, contract }: { data: ServiceLevels; contract: Cus
   );
 }
 
-function ContractBlock({ data, contract }: { data: ServiceLevels; contract: CustomerContract }) {
+function ContractBlock({
+  data,
+  contract,
+  open,
+  onToggle,
+}: {
+  data: ServiceLevels;
+  contract: CustomerContract;
+  open: boolean;
+  onToggle: () => void;
+}) {
   const [editing, setEditing] = useState(false);
   const setSla = useSetContractServiceSla();
   const removeService = useRemoveContractService();
@@ -490,25 +579,44 @@ function ContractBlock({ data, contract }: { data: ServiceLevels; contract: Cust
     .filter(Boolean)
     .join(' ');
 
+  const withoutSla = contract.services.filter((l) => !l.slaId).length;
+  const bodyId = `contract-${contract.id}`;
+
   return (
-    <section aria-label={`Contract ${contract.name}`} className="rounded-card border border-line p-3">
-      <div className="flex flex-wrap items-start gap-2">
-        <div className="min-w-0 grow">
-          <p className="flex flex-wrap items-center gap-2 text-[14px] font-medium text-ink">
-            {contract.name}
-            {contract.status ? (
-              <Badge tone={contract.status === 'production' ? 'good' : contract.status === 'obsolete' ? 'neutral' : 'info'}>
-                {STATUS[contract.status]}
-              </Badge>
-            ) : null}
-          </p>
-          <p className="text-[12.5px] text-ink-secondary">
-            {contract.customerName || 'No customer'}
-            {contract.providerName ? `, provided by ${contract.providerName}` : ''}
-            {dates ? ` · ${dates}` : ''}
-          </p>
-        </div>
-        <div className="whitespace-nowrap">
+    <section aria-label={`Contract ${contract.name}`} className="rounded-card border border-line">
+      <div className="flex items-center gap-2 px-3 py-2.5">
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls={bodyId}
+          onClick={onToggle}
+          className="flex min-w-0 grow items-center gap-3 text-start"
+        >
+          <ChevronDown
+            className={`size-4 shrink-0 text-ink-muted transition-transform duration-200 ${open ? '' : '-rotate-90 rtl:rotate-90'}`}
+            aria-hidden
+          />
+          <span className="min-w-0 grow">
+            <span className="flex flex-wrap items-center gap-2 text-[14px] font-medium text-ink">
+              {contract.customerName || 'No customer'}
+              <span className="font-normal text-ink-secondary">· {contract.name}</span>
+              {contract.status ? (
+                <Badge tone={contract.status === 'production' ? 'good' : contract.status === 'obsolete' ? 'neutral' : 'info'}>
+                  {STATUS[contract.status]}
+                </Badge>
+              ) : null}
+            </span>
+            <span className="block truncate text-[12.5px] text-ink-secondary">
+              {contract.providerName ? `Provided by ${contract.providerName}` : 'No provider'}
+              {dates ? ` · ${dates}` : ''}
+            </span>
+          </span>
+          <span className="hidden shrink-0 items-center gap-1.5 sm:flex">
+            <Badge>{plural(contract.services.length, 'service')}</Badge>
+            {withoutSla ? <Badge tone="warning">{withoutSla} without SLA</Badge> : null}
+          </span>
+        </button>
+        <div className="shrink-0 whitespace-nowrap">
           <Button variant="ghost" size="sm" aria-label={`Edit ${contract.name}`} onClick={() => setEditing(true)}>
             <Pencil className="size-4" aria-hidden />
           </Button>
@@ -527,84 +635,137 @@ function ContractBlock({ data, contract }: { data: ServiceLevels; contract: Cust
         </div>
       </div>
 
-      {contract.services.length === 0 ? (
-        <p className="mt-2 text-[13px] text-warning-ink">No services yet: this customer’s tickets get no SLA deadline.</p>
-      ) : (
-        <div className="ui-table-frame mt-2">
-          <div className="overflow-x-auto">
-            <table className="ui-table" aria-label={`Services on ${contract.name}`}>
-              <thead>
-                <tr>
-                  <th>Service</th>
-                  <th>SLA</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {contract.services.map((line) => (
-                  <tr key={line.id}>
-                    <td className="text-ink">{line.serviceName}</td>
-                    <td className="py-2">
-                      <Select
-                        aria-label={`SLA for ${contract.name}: ${line.serviceName}`}
-                        className="w-60"
-                        value={line.slaId}
-                        disabled={setSla.isPending}
-                        onChange={(e) => setSla.mutate({ id: line.id, slaId: e.target.value })}
-                        options={slaOptions}
-                      />
-                    </td>
-                    <td className="py-2 text-end">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        aria-label={`Remove ${line.serviceName} from ${contract.name}`}
-                        onClick={() => removeService.mutate(line.id)}
-                      >
-                        <Trash2 className="size-4" aria-hidden />
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      {open ? (
+        <div id={bodyId} className="border-t border-line px-3 pt-2 pb-3">
+          {contract.services.length === 0 ? (
+            <p className="mt-2 text-[13px] text-warning-ink">No services yet: this customer’s tickets get no SLA deadline.</p>
+          ) : (
+            <div className="ui-table-frame mt-2">
+              <div className="overflow-x-auto">
+                <table className="ui-table" aria-label={`Services on ${contract.name}`}>
+                  <thead>
+                    <tr>
+                      <th>Service</th>
+                      <th>SLA</th>
+                      <th />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {contract.services.map((line) => (
+                      <tr key={line.id}>
+                        <td className="text-ink">{line.serviceName}</td>
+                        <td className="py-2">
+                          <Select
+                            aria-label={`SLA for ${contract.name}: ${line.serviceName}`}
+                            className="w-60"
+                            value={line.slaId}
+                            disabled={setSla.isPending}
+                            onChange={(e) => setSla.mutate({ id: line.id, slaId: e.target.value })}
+                            options={slaOptions}
+                          />
+                        </td>
+                        <td className="py-2 text-end">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            aria-label={`Remove ${line.serviceName} from ${contract.name}`}
+                            onClick={() => removeService.mutate(line.id)}
+                          >
+                            <Trash2 className="size-4" aria-hidden />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+          <AddServiceForm data={data} contract={contract} />
         </div>
-      )}
-      <AddServiceForm data={data} contract={contract} />
-      <Problem error={setSla.error ?? removeService.error ?? remove.error} />
+      ) : null}
+      <div className="px-3">
+        <Problem error={setSla.error ?? removeService.error ?? remove.error} />
+      </div>
     </section>
   );
 }
 
 function ContractsCard({ data }: { data: ServiceLevels }) {
   const [creating, setCreating] = useState(false);
+  const [query, setQuery] = useState('');
+  const [openIds, setOpenIds] = useState<Set<string>>(() => new Set());
+  const toggle = (id: string) =>
+    setOpenIds((ids) => {
+      const next = new Set(ids);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const term = query.trim().toLowerCase();
+  const shown = term
+    ? data.contracts.filter((c) =>
+        [c.name, c.customerName, c.providerName, ...c.services.map((l) => `${l.serviceName} ${l.slaName}`)]
+          .join(' ')
+          .toLowerCase()
+          .includes(term),
+      )
+    : data.contracts;
+  const lines = data.contracts.reduce((n, c) => n + c.services.length, 0);
+  const withoutSla = data.contracts.reduce((n, c) => n + c.services.filter((l) => !l.slaId).length, 0);
+  const allOpen = shown.length > 0 && shown.every((c) => openIds.has(c.id));
+
   return (
-    <Card>
-      <CardHeader
-        title="3. Customer contracts"
-        subtitle="A customer’s contract lists the services they get and the SLA of each. A ticket gets its deadline from its caller’s organisation, its service, and that line’s SLA."
-        action={
-          creating ? null : (
-            <Button size="sm" variant="secondary" onClick={() => setCreating(true)}>
-              <Plus className="size-4" aria-hidden /> New contract
+    <Section
+      id="contracts"
+      title="3. Customer contracts"
+      summary={
+        data.contracts.length
+          ? `${plural(data.contracts.length, 'contract')} · ${plural(lines, 'service')}${withoutSla ? ` · ${withoutSla} without SLA` : ''}`
+          : 'No customer contracts yet'
+      }
+      subtitle="A customer’s contract lists the services they get and the SLA of each. A ticket gets its deadline from its caller’s organisation, its service, and that line’s SLA."
+      actionLabel="New contract"
+      onAction={() => setCreating(true)}
+    >
+      {creating ? <ContractForm data={data} onDone={() => setCreating(false)} /> : null}
+      {data.contracts.length === 0 && !creating ? (
+        <EmptyState icon={<FileText className="size-5" />} title="No customer contracts yet" description="Create one per customer, then add its services with their SLA." />
+      ) : (
+        <>
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <Input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Find a customer, contract or service…"
+              aria-label="Find a contract"
+              leadingIcon={<Search className="size-4" />}
+              className="w-full sm:w-80"
+            />
+            <Button variant="ghost" size="sm" onClick={() => setOpenIds(allOpen ? new Set() : new Set(shown.map((c) => c.id)))}>
+              {allOpen ? 'Collapse all' : 'Expand all'}
             </Button>
-          )
-        }
-      />
-      <CardBody>
-        {creating ? <ContractForm data={data} onDone={() => setCreating(false)} /> : null}
-        {data.contracts.length === 0 && !creating ? (
-          <EmptyState icon={<FileText className="size-5" />} title="No customer contracts yet" description="Create one per customer, then add its services with their SLA." />
-        ) : (
-          <div className="flex flex-col gap-3">
-            {data.contracts.map((c) => (
-              <ContractBlock key={c.id} data={data} contract={c} />
-            ))}
           </div>
-        )}
-      </CardBody>
-    </Card>
+          {shown.length === 0 ? (
+            <p className="py-4 text-center text-[13px] text-ink-muted">No contract matches “{query.trim()}”.</p>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {shown.map((c) => (
+                <ContractBlock
+                  key={c.id}
+                  data={data}
+                  contract={c}
+                  open={openIds.has(c.id) || shown.length === 1}
+                  onToggle={() => toggle(c.id)}
+                />
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </Section>
   );
 }
 
