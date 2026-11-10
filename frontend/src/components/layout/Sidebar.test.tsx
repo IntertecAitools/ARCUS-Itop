@@ -5,7 +5,12 @@ import { useSessionStore } from '@/stores/session.store';
 import { useUiStore } from '@/stores/ui.store';
 import type { NavEntry, NavGroup } from '@/features/navigation';
 import { navigableModules, standaloneModules } from '@/config/modules';
-import realNavigation from '../../../../cmdb-schema/cmdb-navigation.json';
+// The real iTop menu lives outside frontend/, which the production image is
+// built from alone: a static import would fail its type-check. A glob is
+// resolved only when the tests run, from the whole repository.
+const realNavigation = Object.values(
+  import.meta.glob('../../../../cmdb-schema/cmdb-navigation.json', { eager: true, import: 'default' }),
+)[0];
 import { Sidebar } from './Sidebar';
 import { sidebarGroups } from './ItopNavigation';
 
@@ -23,7 +28,8 @@ const ITOP: NavGroup[] = [
 
 describe('no page goes missing', () => {
   // The real iTop menu, as extracted from iTop (what the BFF publishes).
-  const real = (realNavigation as unknown as { groups: NavGroup[] }).groups;
+  const real = (realNavigation as { groups: NavGroup[] } | undefined)?.groups ?? [];
+  it('reads the real iTop menu', () => expect(real.length).toBeGreaterThan(5));
   const REPLACED: Record<string, string> = {
     UserAccountsMenu: 'users',
     AuditCategories: 'audit',
