@@ -4,6 +4,7 @@ import { AppError } from "../../core/errors.js";
 import { currentCaller, currentTenant } from "../../core/request-context.js";
 import { parse } from "../../core/validate.js";
 import { LicenceError, type LicenceService } from "./licence.service.js";
+import type { UsageService } from "./usage.service.js";
 import type { LicenceStatus } from "./licence.types.js";
 import { FEATURES, lowestEditionWith } from "./editions.js";
 
@@ -32,7 +33,7 @@ const PLATFORM_STATUS = (mode: LicenceStatus["mode"]): LicenceStatus => ({
   banners: [],
 });
 
-export function registerLicenceRoutes(app: FastifyInstance, licensing: LicenceService, options: { platformLogins: string[] }): void {
+export function registerLicenceRoutes(app: FastifyInstance, licensing: LicenceService, options: { platformLogins: string[]; usage?: UsageService }): void {
   const operators = new Set(options.platformLogins.map((l) => l.toLowerCase()));
 
   const scope = () => {
@@ -64,7 +65,10 @@ export function registerLicenceRoutes(app: FastifyInstance, licensing: LicenceSe
     const caller = currentCaller();
     const s = licensing.scopeFor(currentTenant()?.id);
     if (s === null) return PLATFORM_STATUS(licensing.mode);
-    return licensing.toDto(await licensing.statusOf(s), { isAdmin: !!caller?.isAdmin, isStaff: caller?.kind === "staff" });
+    const dto = licensing.toDto(await licensing.statusOf(s), { isAdmin: !!caller?.isAdmin, isStaff: caller?.kind === "staff" });
+    // Limit warnings at 80% and 100%, for administrators (Build Guide, section 11).
+    if (caller?.isAdmin && caller.kind === "staff" && options.usage) dto.banners.push(...(await options.usage.banners(s)));
+    return dto;
   });
 
   app.post("/api/licence/check", async (request) => {

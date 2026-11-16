@@ -1729,6 +1729,32 @@ downgrade hides records, an upgrade brings them back, and an administrator
 can still export a hidden class's records (`GET /api/objects/:class/export`
 is never gated for administrators).
 
+### Limits and metering
+
+Each limit is checked where usage grows, counted live at that moment, and
+kept as a daily figure (`usage.service.ts`, `usage.guard.ts`). The rule for
+every limit (LIC-09): a warning at 80% and 100%, then 10% more is allowed,
+then **new** use of that kind pauses with `403 LICENCE_LIMIT`
+(`details: {metric, used, limit}`). Existing use is never taken away. With
+`warn` the refusal is recorded as `would_refuse` and the request goes through.
+The limits come from the licence; the defaults per edition are **drafts**.
+
+| Limit | Counted as | Checked |
+| --- | --- | --- |
+| Agents (`named_seats`) | enabled staff accounts holding an agent profile (`AGENT_PROFILES` in `editions.ts`), in the tenant | creating an account, enabling one, or adding an agent profile (`UsersService`): "All 60 agent seats are in use." |
+| Agent sessions (`named_seats + concurrent_seats`) | agents with a request in the last 15 minutes (signing out frees one at once) | sign-in of an agent not already active (`SignInFlow`) |
+| CIs (`ci_limit`) | `FunctionalCI` and its subclasses in the tenant | creating a CI record, a data import into a CI class, a synchronised source run; editing existing CIs always works |
+| AI actions (`ai_actions_per_month`) | each AI root-cause draft that answered, per calendar month | just before the draft |
+| Storage (`storage_gb`, SaaS) | bytes uploaded as attachments | a staff upload; requesters' uploads are counted, never refused |
+| Monitored nodes (`node_limit`) | not counted: event management is not built | — |
+
+- Warnings show to administrators as a banner and are recorded once a day as
+  a `limit_warning` licence event, not on every request.
+- `bff_usage_daily` keeps, per scope and day, agents, peak sessions, CIs, AI
+  actions and bytes stored; written every hour and at shutdown, kept two years.
+- Seats and CIs shown in banners are at most five minutes old; the checks
+  count live, so two administrators cannot both take the last seat.
+
 ### Issuing licences: `npm run licence`
 
 ```bash

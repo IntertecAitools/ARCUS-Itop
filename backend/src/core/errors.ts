@@ -23,6 +23,8 @@ export type ErrorCode =
   | "LICENCE_READ_ONLY"
   /** The edition does not include this feature. */
   | "LICENCE_FEATURE"
+  /** A licence limit (seats, CIs, AI actions, storage) is used up, past its 10% allowance. */
+  | "LICENCE_LIMIT"
   | "upstream_unavailable"
   | "upstream_timeout"
   | "upstream_error"
@@ -40,6 +42,7 @@ const STATUS_BY_CODE: Record<ErrorCode, number> = {
   rate_limited: 429,
   LICENCE_READ_ONLY: 403,
   LICENCE_FEATURE: 403,
+  LICENCE_LIMIT: 403,
   upstream_unavailable: 502,
   upstream_timeout: 504,
   upstream_error: 502,
