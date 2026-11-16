@@ -291,6 +291,20 @@
     border-radius: var(--arcus-radius-control);
   }
 
+  /* The open list of a native <select>. Our selects are transparent over
+     their chrome, so the browser draws the list on its own default (white on
+     Windows) while the options inherit our ink — white on white in the dark
+     looks. Giving the options the theme's raised surface and ink makes the
+     list follow every theme, light and dark, staff and public. */
+  option,
+  optgroup {
+    background-color: var(--arcus-surface-raised);
+    color: var(--arcus-ink);
+  }
+  option:disabled {
+    color: var(--arcus-ink-muted);
+  }
+
   /* Header cells read from the start edge (left, or right in RTL). Browsers
      centre a <th> unless an ancestor sets a non-default alignment, and
      `text-start` IS the default, so it has to be said on the cell itself. A

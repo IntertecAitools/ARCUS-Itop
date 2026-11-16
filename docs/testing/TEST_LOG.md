@@ -4,6 +4,19 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-11-16 — Dropdown lists unreadable in the dark theme
+
+| What ran | Result |
+|---|---|
+| `npm run build` (frontend) | passed |
+| `npx vitest run` (frontend) | 329/329 passed |
+| Mock preview, dark theme: option colours of every select on Incidents, Problems, Changes, Requests, Data import | all dark raised surface with white ink |
+| Same check in the light theme | white surface with dark ink |
+
+**Bug:** an open native `<select>` list showed white options on a white list in the dark look (seen on the Incidents status filter, same on every page). Our selects are transparent over their chrome, so the browser drew the list on its own white default while the options inherited the white ink. **Fix:** a base rule in `frontend/src/styles/globals.css` gives `option`/`optgroup` the theme's raised surface and ink, so every select follows light and dark.
+
+**Not covered:** the native popup itself can't be screenshotted from the preview; checked through the options' computed colours. Not checked on macOS/Safari.
+
 ### 2026-11-10 — Attachments hidden from everyone but administrators
 
 | What ran | Result |
