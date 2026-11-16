@@ -48,7 +48,7 @@ export type LicenceState =
 
 export type LicenceType = "subscription" | "perpetual" | "evaluation" | "nonprod";
 
-export type BannerKind = "expiring_soon" | "grace" | "read_only" | "evaluation_mode" | "trial" | "evaluation_expired" | "nonprod" | "limit";
+export type BannerKind = "expiring_soon" | "grace" | "read_only" | "evaluation_mode" | "trial" | "evaluation_expired" | "nonprod" | "limit" | "eula";
 
 export interface LicenceBanner {
   kind: BannerKind;
@@ -131,4 +131,38 @@ export interface UsageRow {
   percent: number | null;
   /** "warning" from 80%, "full" from 100%, "over" past the 10% allowance (new use paused). */
   level: "ok" | "warning" | "full" | "over";
+}
+
+/** One line of the licence history (bff_licence_events). */
+export interface LicenceEventDto {
+  id: number;
+  at: string;
+  type: string;
+  /** The type in words: "Key installed", "State changed"… */
+  label: string;
+  actor: string | null;
+  detail: string;
+}
+
+/** GET /api/licence: everything the licence page shows. Administrators only. */
+export interface LicenceDetail {
+  status: LicenceStatus;
+  /** The licence in force; null while there is none (evaluation, no valid key). */
+  summary: LicenceSummary | null;
+  usage: UsageRow[];
+  history: LicenceEventDto[];
+  /** This user may install a key: the installation's administrators, or (SaaS) the platform operator. */
+  canInstall: boolean;
+  deployment: "saas" | "deployed";
+  /** Deployed: this installation's id and the public key its reports are signed with. */
+  installation: { id: string; reportKeyId: string; reportPublicKey: string } | null;
+  /** The end-user licence agreement (deployed) or terms of service (SaaS): LIC-17. */
+  eula: {
+    version: string;
+    text: string;
+    /** Not yet accepted for this tenant or installation. */
+    required: boolean;
+    acceptedBy: string | null;
+    acceptedAt: string | null;
+  };
 }

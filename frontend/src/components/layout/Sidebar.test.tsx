@@ -91,7 +91,7 @@ describe('sidebarGroups', () => {
     expect(groups.find((g) => g.id === 'ServiceManagement')!.entries.map((e) => e.id)).toEqual(['Service']);
     const admin = groups.find((g) => g.id === 'AdminTools')!;
     expect(admin.entries.map((e) => e.id)).toEqual(['ProfilesMenu', 'OAuthClient']);
-    expect(admin.pages.map((p) => p.id)).toEqual(['users', 'tenant-admin', 'notifications', 'audit']);
+    expect(admin.pages.map((p) => p.id)).toEqual(['users', 'tenant-admin', 'notifications', 'licence', 'audit']);
     expect(groups.some((g) => g.id === 'ConfigurationTools')).toBe(false);
   });
 

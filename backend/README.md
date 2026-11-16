@@ -1755,6 +1755,19 @@ The limits come from the licence; the defaults per edition are **drafts**.
 - Seats and CIs shown in banners are at most five minutes old; the checks
   count live, so two administrators cannot both take the last seat.
 
+### The licence page, the EULA and the usage report
+
+**Administration → Licence** (`frontend/src/features/licensing/`, administrators only):
+
+- **Summary**: customer, edition, licence type, dates, days left, state, licence id, order.
+- **Usage against entitlement**: agents, agent sessions, CIs, AI actions this month, storage, with a bar coloured at 80% and 100%.
+- **Install a licence**: paste the text or choose the `.lic` file. It is checked first (`POST /api/licence/check`) and the page lists what changes ("Agents 60 → 80") before **Install licence**. A key that fails the check is never saved. In SaaS a tenant administrator sees the licence read-only: the platform operator installs keys.
+- **EULA (LIC-17)**: on a deployed installation, the first administrator to install a key accepts the end-user licence agreement with it (`acceptEula` on `PUT /api/licence`; without it the install is refused). In SaaS, the tenant's first administrator accepts the terms of service (`POST /api/licence/eula`); until then administrators see an "Accept the terms" banner. Acceptance is recorded with the name, time and text version on the licence row and as a licence event. **The text is a placeholder** (`src/platform/licensing/eula.ts`) until Legal provides the agreement and the terms.
+- **Usage report (LIC-14)**: `GET /api/licence/usage-report?from=&to=` downloads a signed JSON document: the licence, the limits, the daily figures and the peaks, signed with the installation's own Ed25519 key (made on first start, in `bff_installation`). Intertec checks it against the public key the installation registered: `npm run licence -- verify-report usage.json --key installation-public.pem`. The page shows the installation id and that public key (deployed).
+- **History**: keys installed, state changes, warnings, refusals, terms accepted (`bff_licence_events`).
+
+`GET /api/licence` (administrators) returns all of it in one call; it answers 404 when licensing is off, and the page then says so.
+
 ### Issuing licences: `npm run licence`
 
 ```bash
@@ -1766,6 +1779,7 @@ npm run licence -- reissue ARC-2026-000001 --reason upgrade --edition ENT --agen
 npm run licence -- revoke ARC-2026-000001 --reason "contract ended"
 npm run licence -- list [--customer "Example Co"]
 npm run licence -- verify acme-2026.lic [--tenant acme]
+npm run licence -- verify-report usage.json --key installation-public.pem
 ```
 
 - **Limits come from the edition and the packs** (`--ci-packs`, `--ai-packs`,

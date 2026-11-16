@@ -4,6 +4,22 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-11-16 — Licensing phase 5: licence page, EULA, signed usage report
+
+| What ran | Result |
+|---|---|
+| `npm test` (backend) | 979/979 passed (4 new in `test/licence-page.test.ts`) |
+| `npm run typecheck` / `npm run build` (backend) | passed |
+| `npx vitest run` (frontend) | 332/332 passed (3 new in `LicencePage.test.tsx`; the sidebar test now lists the Licence page) |
+| `npm run typecheck` / `npm run build` (frontend) | passed |
+| `npm run e2e` (mock journeys, port 5781) | 37/37 passed (1 new: the licence page) |
+
+**Tested:** the page's summary, usage against every limit (levels at 80%/100%) and history, for administrators only; LIC-17 on a deployed installation (the first key is refused without the EULA, recorded with name, time and version, not asked again) and in SaaS (the terms banner until the tenant's first administrator accepts); **LT-15** through the route: the downloaded report verifies with the installation's public key, one edited figure fails, a reversed period is refused; check → changes → EULA → install in the browser; the report download.
+
+**Found while testing:** the mock's install handler read the request body twice (`TypeError: unusable`); fixed. A first full journey run overlapped with a second one I started on the same port and build folder, so each rebuilt the other's site mid-run (3 failures, "not mocked" calls, missing trace files); rerun alone: 37/37. Lesson: never run two mock journey runs on one port at once.
+
+**Not covered:** the EULA and terms text is a placeholder until Legal provides it; storage in the report counts uploads since licensing was on; no live run.
+
 ### 2026-11-16 — Licensing phase 4: limits and metering
 
 | What ran | Result |
