@@ -1,4 +1,5 @@
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
+import type { Feature } from '@/features/licensing';
 import {
   BellRing,
   Building2,
@@ -125,6 +126,12 @@ export interface ModuleDefinition {
   /** Short line shown in the command palette. */
   description: string;
   /**
+   * The licence feature that unlocks this module (the BFF's editions.ts).
+   * With licensing enforced, a module the edition lacks leaves the sidebar
+   * and the palette, and its route shows "Not included in your edition".
+   */
+  feature: Feature;
+  /**
    * Which counter (if any) feeds this item's sidebar badge. The shell reads the
    * value from the nav-counts query — the module itself owns the number.
    */
@@ -164,6 +171,7 @@ export interface ModuleRoute {
 export const modules: ModuleDefinition[] = [
   {
     id: 'dashboard',
+    feature: 'service_desk',
     label: 'Dashboard',
     path: 'dashboard',
     icon: LayoutDashboard,
@@ -175,6 +183,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'approvals',
+    feature: 'approvals_forms',
     label: 'Approvals',
     path: 'approvals',
     icon: ClipboardCheck,
@@ -196,6 +205,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'incidents',
+    feature: 'service_desk',
     label: 'Incidents',
     path: 'incidents',
     icon: LifeBuoy,
@@ -230,6 +240,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'team-queue',
+    feature: 'service_desk',
     label: 'My team’s queue',
     path: 'team-queue',
     icon: Inbox,
@@ -239,6 +250,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'drafts',
+    feature: 'service_desk',
     label: 'My drafts',
     path: 'drafts',
     icon: FilePen,
@@ -248,6 +260,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'time-logged',
+    feature: 'service_desk',
     label: 'Time logged',
     path: 'time-logged',
     icon: Timer,
@@ -257,6 +270,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'cab',
+    feature: 'change',
     home: 'ChangeManagement',
     label: 'Awaiting CAB',
     path: 'cab',
@@ -267,6 +281,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'change-calendar',
+    feature: 'change',
     home: 'ChangeManagement',
     label: 'Change calendar',
     path: 'change-calendar',
@@ -277,6 +292,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'pir-due',
+    feature: 'change',
     home: 'ChangeManagement',
     label: 'PIR due',
     path: 'pir-due',
@@ -287,6 +303,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'problem-trends',
+    feature: 'problem',
     home: 'ProblemManagement',
     label: 'Problem trends',
     path: 'problem-trends',
@@ -299,6 +316,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'sla',
+    feature: 'service_levels',
     home: 'ServiceManagement',
     label: 'SLA dashboard',
     path: 'sla',
@@ -309,6 +327,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'records',
+    feature: 'service_desk',
     label: 'Records',
     path: 'records',
     icon: Database,
@@ -351,6 +370,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'knowledge',
+    feature: 'knowledge',
     home: 'ProblemManagement',
     label: 'Knowledge',
     path: 'knowledge',
@@ -368,6 +388,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'dashboards',
+    feature: 'analytics',
     label: 'Dashboards',
     path: 'dashboards',
     icon: LayoutGrid,
@@ -389,6 +410,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'modules',
+    feature: 'service_desk',
     label: 'Modules',
     path: 'modules',
     icon: LayoutGrid,
@@ -402,6 +424,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'queries',
+    feature: 'analytics',
     label: 'Queries',
     path: 'queries',
     icon: ListFilter,
@@ -424,6 +447,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'users',
+    feature: 'service_desk',
     home: 'AdminTools',
     label: 'Users',
     path: 'users',
@@ -442,6 +466,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'tenant-admin',
+    feature: 'multi_org',
     home: 'AdminTools',
     label: 'Organisation admin',
     path: 'organisation',
@@ -453,6 +478,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'notifications',
+    feature: 'service_desk',
     home: 'AdminTools',
     label: 'Notifications',
     path: 'notifications',
@@ -475,6 +501,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'request-forms',
+    feature: 'approvals_forms',
     home: 'RequestManagement',
     label: 'Request forms',
     path: 'request-forms',
@@ -497,6 +524,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'data-import',
+    feature: 'import_export',
     home: 'DataAdministration',
     label: 'Data import',
     path: 'data-import',
@@ -520,6 +548,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'service-levels',
+    feature: 'service_levels',
     home: 'ServiceManagement',
     label: 'Service levels',
     path: 'service-levels',
@@ -531,6 +560,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'business-hours',
+    feature: 'service_levels',
     home: 'ServiceManagement',
     label: 'Business hours',
     path: 'business-hours',
@@ -542,6 +572,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'assignment-rules',
+    feature: 'service_desk',
     home: 'IncidentManagement',
     label: 'Assignment rules',
     path: 'assignment-rules',
@@ -553,6 +584,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'auto-close',
+    feature: 'service_desk',
     home: 'IncidentManagement',
     label: 'Auto-close',
     path: 'auto-close',
@@ -564,6 +596,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'change-rules',
+    feature: 'change',
     home: 'ChangeManagement',
     label: 'Change plan rules',
     path: 'change-rules',
@@ -575,6 +608,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'change-risk',
+    feature: 'change',
     home: 'ChangeManagement',
     label: 'Change risk questions',
     path: 'change-risk',
@@ -586,6 +620,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'change-blackouts',
+    feature: 'change',
     home: 'ChangeManagement',
     label: 'Change blackouts',
     path: 'change-blackouts',
@@ -597,6 +632,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'knowledge-settings',
+    feature: 'knowledge',
     home: 'ProblemManagement',
     label: 'Knowledge reviewers',
     path: 'knowledge-settings',
@@ -608,6 +644,7 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'audit',
+    feature: 'audit_sync',
     home: 'AdminTools',
     label: 'Audit',
     path: 'audit',
@@ -640,22 +677,30 @@ export const navGroups: NavGroup[] = ['operations', 'resources', 'administration
  * these two separate — conflating them is how a reachable screen becomes
  * unreachable, or a hidden one reappears in a menu.
  */
-export function navigableModules(isAdmin = false) {
-  return modules.filter((m) => !m.hidden && (!m.adminOnly || isAdmin));
+/**
+ * The features the edition includes, when licensing enforces them
+ * (`useEditionFeatures`); null or absent shows everything.
+ */
+export type EditionFilter = ReadonlySet<Feature> | null | undefined;
+
+const inEdition = (m: ModuleDefinition, features: EditionFilter) => !features || features.has(m.feature);
+
+export function navigableModules(isAdmin = false, features?: EditionFilter) {
+  return modules.filter((m) => !m.hidden && (!m.adminOnly || isAdmin) && inEdition(m, features));
 }
 
-export function modulesInGroup(group: NavGroup, isAdmin = false) {
-  return navigableModules(isAdmin).filter((m) => m.group === group);
+export function modulesInGroup(group: NavGroup, isAdmin = false, features?: EditionFilter) {
+  return navigableModules(isAdmin, features).filter((m) => m.group === group);
 }
 
 /** Pages listed on their own at the top of the sidebar. */
-export function standaloneModules(isAdmin = false) {
-  return navigableModules(isAdmin).filter((m) => !m.home);
+export function standaloneModules(isAdmin = false, features?: EditionFilter) {
+  return navigableModules(isAdmin, features).filter((m) => !m.home);
 }
 
 /** Pages listed inside one sidebar module. */
-export function modulesAtHome(home: string, isAdmin = false) {
-  return navigableModules(isAdmin).filter((m) => m.home === home);
+export function modulesAtHome(home: string, isAdmin = false, features?: EditionFilter) {
+  return navigableModules(isAdmin, features).filter((m) => m.home === home);
 }
 
 export function findModuleByPath(path: string) {

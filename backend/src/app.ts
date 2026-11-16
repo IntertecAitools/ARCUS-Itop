@@ -99,7 +99,10 @@ export function buildApp(config: Config, options: BuildServicesOptions = {}): Bu
   // Then the licence guard (LICENSING=warn|enforce; not loaded when off):
   // read-only mode needs the caller and tenant the sign-in guard bound.
   if (services.licensing) {
-    registerLicensing(app, services.licensing, { platformLogins: config.tenancy?.platformLogins ?? [] });
+    registerLicensing(app, services.licensing, {
+      platformLogins: config.tenancy?.platformLogins ?? [],
+      lineage: (cls) => services.schema.lineage(cls),
+    });
   }
 
   registerHealthRoutes(app, services);
@@ -124,7 +127,9 @@ export function buildApp(config: Config, options: BuildServicesOptions = {}): Bu
   // Adding a module is one entry in src/config/modules.ts and nothing here.
   assertNoDuplicatePaths();
   for (const module of modules) {
-    module.register(app, services);
+    // With licensing on, its routes are remembered under the module's feature (edition gating).
+    if (services.licensing) services.licensing.withModuleFeature(module.feature, () => module.register(app, services));
+    else module.register(app, services);
     app.log.debug({ module: module.id, basePath: module.basePath }, "module registered");
   }
 

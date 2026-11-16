@@ -1,19 +1,24 @@
 import { http, HttpResponse } from 'msw';
 import { env } from '@/config/env';
-import type { Feature, LicenceBanner, LicenceCheckResult, LicenceStatus, LicenceSummary } from '@/features/licensing/types';
+import type { Edition, Feature, LicenceBanner, LicenceCheckResult, LicenceStatus, LicenceSummary } from '@/features/licensing/types';
 import { readStored, writeStored } from '../storage';
 import { currentMockUser } from './auth';
 
 const url = (path: string) => `${env.bffUrl}${path}`;
 
-const ALL: Feature[] = ['service_desk', 'service_levels', 'knowledge', 'cmdb', 'import_export', 'problem', 'change', 'approvals_forms', 'analytics', 'ai', 'multi_org', 'sso', 'audit_sync'];
+const ESS: Feature[] = ['service_desk', 'service_levels', 'knowledge', 'cmdb', 'import_export'];
+const PRO: Feature[] = [...ESS, 'problem', 'change', 'approvals_forms', 'analytics', 'ai'];
+const ALL: Feature[] = [...PRO, 'multi_org', 'sso', 'audit_sync'];
+/** The draft matrix, as the BFF reports it. */
+const FEATURE_EDITIONS = Object.fromEntries(ALL.map((f) => [f, ESS.includes(f) ? 'ESS' : PRO.includes(f) ? 'PRO' : 'ENT'])) as Record<Feature, Edition>;
+const EDITION_NAMES: Record<Edition, string> = { ESS: 'Essentials', PRO: 'Professional', ENT: 'Enterprise' };
 
 /**
  * Licence scenarios a journey picks before the app loads
  * (`sessionStorage['arcus.mock.licence'] = '"nonprod"'`). The default is a
  * valid Enterprise licence, so every module shows, as with licensing off.
  */
-type Scenario = 'enterprise' | 'nonprod' | 'expiring' | 'grace' | 'read_only';
+type Scenario = 'enterprise' | 'professional' | 'essentials' | 'nonprod' | 'expiring' | 'grace' | 'read_only';
 const scenario = () => readStored<Scenario>('licence', 'enterprise');
 
 function status(): LicenceStatus {
@@ -21,6 +26,7 @@ function status(): LicenceStatus {
   const staff = user.kind === 'staff';
   const s = scenario();
   const banners: LicenceBanner[] = [];
+  const edition: Edition = s === 'essentials' ? 'ESS' : s === 'professional' ? 'PRO' : 'ENT';
   if (s === 'nonprod') banners.push({ kind: 'nonprod', tone: 'info', message: 'Non-production licence: not for live use.' });
   if (staff && s === 'expiring' && user.isAdmin) {
     banners.push({ kind: 'expiring_soon', tone: 'info', message: 'The licence ends on 2027-11-30 (12 days left). Renew it to keep working without interruption.' });
@@ -35,9 +41,10 @@ function status(): LicenceStatus {
     mode: 'enforce',
     state: s === 'expiring' ? 'expiring_soon' : s === 'grace' ? 'grace' : s === 'read_only' ? 'read_only' : 'valid',
     readOnly: s === 'read_only',
-    edition: 'ENT',
-    editionName: 'Enterprise',
-    features: ALL,
+    edition,
+    editionName: EDITION_NAMES[edition],
+    features: edition === 'ESS' ? ESS : edition === 'PRO' ? PRO : ALL,
+    featureEditions: FEATURE_EDITIONS,
     licenceType: s === 'nonprod' ? 'nonprod' : 'subscription',
     expiresAt: '2027-11-30',
     daysLeft: s === 'expiring' ? 12 : s === 'grace' ? -9 : s === 'read_only' ? -40 : 380,

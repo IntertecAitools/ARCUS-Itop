@@ -627,7 +627,7 @@ One setting turns it on, in steps, so nobody is locked out:
 | --- | --- |
 | `off` (default) | The licence module is not loaded. Nothing is checked or blocked; no licence routes. |
 | `warn` | Every licence is checked and recorded, banners show, but nothing is blocked. What would have been refused is recorded once a day as a `would_refuse` licence event. |
-| `enforce` | Read-only mode when a licence has ended past its grace or is not valid (and, as later phases land, edition gating and limits). |
+| `enforce` | Read-only mode when a licence has ended past its grace or is not valid; edition gating (modules, platform routes and record classes the edition lacks answer 403 and leave the menus); limits as they land. |
 
 **Production stays at `off`** until every tenant, Intertec's own included,
 has a licence installed. Then `warn` for about two weeks, reading the

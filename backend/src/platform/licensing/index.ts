@@ -10,7 +10,7 @@ import type { Pool } from "mysql2/promise";
 import type { LicensingConfig } from "../../config/env.js";
 import { Sealer } from "../auth/seal.js";
 import { readDevPublicKey } from "./issuer/signers.js";
-import { registerLicenceGuard } from "./licence.guard.js";
+import { registerFeatureGate, registerLicenceGuard } from "./licence.guard.js";
 import { registerLicenceRoutes } from "./licence.routes.js";
 import { LicenceService } from "./licence.service.js";
 import { MemoryLicenceStore, MySqlLicenceStore, type LicenceStore } from "./licence.store.js";
@@ -18,6 +18,7 @@ import { MemoryLicenceStore, MySqlLicenceStore, type LicenceStore } from "./lice
 export { LicenceService, TRIAL_DAYS, type ScopeStatus } from "./licence.service.js";
 export { MemoryLicenceStore, INSTALLATION_SCOPE, type LicenceStore } from "./licence.store.js";
 export { isWriteExempt } from "./licence.guard.js";
+export { featureOfClass, featureOfRoute, type Feature } from "./editions.js";
 export type * from "./licence.types.js";
 
 export interface BuildLicensingOptions {
@@ -49,7 +50,14 @@ export function buildLicensing(config: LicensingConfig | undefined, tenancy: boo
 }
 
 /** The read-only guard, the licence API, and the minute refresh. Called after the sign-in guard. */
-export function registerLicensing(app: FastifyInstance, licensing: LicenceService, options: { platformLogins: string[] }): void {
+export function registerLicensing(
+  app: FastifyInstance,
+  licensing: LicenceService,
+  options: { platformLogins: string[]; lineage: (cls: string) => string[] },
+): void {
+  // Remembers which module's feature each route belongs to (door 1).
+  app.addHook("onRoute", (route) => licensing.noteRoute(route.url));
+  registerFeatureGate(app, licensing, options.lineage);
   registerLicenceGuard(app, licensing);
   registerLicenceRoutes(app, licensing, options);
   app.addHook("onReady", async () => {
