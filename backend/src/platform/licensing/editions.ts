@@ -10,8 +10,11 @@
  * decisions 2-6). Changing them later is an edit to this file only.
  */
 
-export const EDITIONS = ["ESS", "PRO", "ENT"] as const;
-export type Edition = (typeof EDITIONS)[number];
+import type { Edition, Feature } from "./licence.types.js";
+
+export type { Edition, Feature };
+
+export const EDITIONS = ["ESS", "PRO", "ENT"] as const satisfies readonly Edition[];
 
 export const EDITION_NAMES: Record<Edition, string> = {
   ESS: "Essentials",
@@ -34,8 +37,10 @@ export const FEATURES = [
   "multi_org",
   "sso",
   "audit_sync",
-] as const;
-export type Feature = (typeof FEATURES)[number];
+] as const satisfies readonly Feature[];
+// Every Feature in the DTO is listed above: a compile error otherwise.
+type MissingFeature = Exclude<Feature, (typeof FEATURES)[number]>;
+export const ALL_FEATURES_LISTED: [MissingFeature] extends [never] ? true : never = true;
 
 const ESSENTIALS: readonly Feature[] = ["service_desk", "service_levels", "knowledge", "cmdb", "import_export"];
 const PROFESSIONAL: readonly Feature[] = [...ESSENTIALS, "problem", "change", "approvals_forms", "analytics", "ai"];

@@ -4,6 +4,22 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-11-16 — Licensing phase 2: licence module, states, read-only mode
+
+| What ran | Result |
+|---|---|
+| `npm test` (backend) | 960/960 passed (13 new in `test/licence-states.test.ts`) |
+| `npm run typecheck` / `npm run build` (backend) | passed |
+| `npx vitest run` (frontend) | 329/329 passed |
+| `npm run typecheck` / `npm run build` (frontend) | passed |
+| `npm run e2e` (mock journeys, port 5781) | 34/34 passed (4 new in `tests/journeys/licence.spec.ts`) |
+
+**LT-06** (grace banner, then read-only, export works), **LT-09** (clock moved back 60 days: detected, audited, no term extension), **LT-13** (evaluation key day 31 read-only, export works): backend tests with a fake clock, all passing. **LT-14** (non-production banner on every page): backend per audience, and the Playwright journey on the staff pages and the portal, passing. The second half of **LT-08** (a key edited in the database gives evaluation mode and a `tamper_detected` event): passing. Also tested: `LICENSING=warn` records "would refuse" once a day and blocks nothing, SaaS per tenant (operator only installs), replay of an older licence needs confirmation, deployed 30-day trial, `LICENSING=off` loads nothing.
+
+**Bug found while testing:** none in the product. Two test mistakes fixed before the run (object creation answers 201, not 200; a test helper's type).
+
+**Not covered:** the MySQL licence tables against a real database (memory store only); no screen to upload a key yet (phase 5); the live stack was not run with `LICENSING` on.
+
 ### 2026-11-16 — Licensing phase 1: licence format, verifier, issuing CLI
 
 | What ran | Result |

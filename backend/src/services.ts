@@ -67,6 +67,7 @@ import { HistoryService } from "./platform/history/history.service.js";
 import { TransferService } from "./platform/transfer/transfer.service.js";
 import { AuthService } from "./platform/auth/auth.service.js";
 import { createPool, type Pool } from "mysql2/promise";
+import { buildLicensing, type LicenceService, type LicenceStore } from "./platform/licensing/index.js";
 import { MySqlSessionStore } from "./platform/auth/session.mysql.js";
 import { MemorySessionStore, type SessionStore } from "./platform/auth/session.store.js";
 import { type Mailer, SmtpMailer } from "./platform/auth/mailer.js";
@@ -180,6 +181,8 @@ export interface Services {
   registration: RegistrationService;
   /** Per-account settings iTop cannot keep: the interface language. */
   preferences: PreferencesStore;
+  /** The licence module; absent with LICENSING=off (not loaded). */
+  licensing?: LicenceService;
 }
 
 export interface BuildServicesOptions {
@@ -216,6 +219,10 @@ export interface BuildServicesOptions {
   mailSource?: MailSource;
   /** Stands in for the Claude API in tests. */
   rcaModel?: RcaModel;
+  /** Licence tables for tests; otherwise in the BFF database, or memory. */
+  licenceStore?: LicenceStore;
+  /** The licence module's clock, for tests. */
+  licenceClock?: () => Date;
   logger?: Logger;
 }
 
@@ -470,7 +477,20 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     registration: new RegistrationService(client, tenancy, passwordReset, config.selfRegistration === true),
     preferences:
       options.preferences ?? (stores?.pool ? new MySqlPreferencesStore(stores.pool) : new MemoryPreferencesStore()),
+    ...licensingService(config, stores?.pool, options),
   };
+}
+
+/** The licence module, only when LICENSING is warn or enforce. */
+function licensingService(config: Config, pool: Pool | undefined, options: BuildServicesOptions): { licensing?: LicenceService } {
+  const licensing = buildLicensing(config.licensing, config.tenancy?.enabled === true, {
+    ...(pool ? { pool } : {}),
+    ...(config.auth.secret ? { secret: config.auth.secret } : {}),
+    ...(options.licenceStore ? { store: options.licenceStore } : {}),
+    ...(options.licenceClock ? { now: options.licenceClock } : {}),
+    ...(options.logger ? { logger: options.logger } : {}),
+  });
+  return licensing ? { licensing } : {};
 }
 
 export {
