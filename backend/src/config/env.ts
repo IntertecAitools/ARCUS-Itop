@@ -588,6 +588,67 @@ function sessionStoreConfig(): SessionStoreConfig {
   };
 }
 
+/** Which licence-signing keys this build trusts beyond Intertec's (platform/licensing). */
+export interface LicenceKeysConfig {
+  /**
+   * Accept development licences (kid "dev"). Never on a production build
+   * (NODE_ENV=production, as the BFF image sets): there is no override.
+   */
+  allowDevKey: boolean;
+  /** Where the local development key pair lives (kept out of Git). */
+  devKeyDir: string;
+}
+
+function licenceKeysConfig(): LicenceKeysConfig {
+  return {
+    allowDevKey: optional("NODE_ENV", "development").toLowerCase() !== "production",
+    devKeyDir: resolve(PACKAGE_ROOT, optional("LICENCE_DEV_KEY_DIR", ".licence-dev")),
+  };
+}
+
+/** The issuing CLI (`npm run licence`): how it signs and where the register is. */
+export interface LicenceIssuerConfig {
+  keys: LicenceKeysConfig;
+  signer:
+    | { kind: "dev" }
+    | { kind: "kms"; keyId: string; kid: string; alg: "Ed25519" | "RSA-PSS-SHA256"; region?: string };
+  /** The register: the BFF database (SESSION_STORE=mysql), else a local file. */
+  register: { kind: "mysql"; store: Extract<SessionStoreConfig, { kind: "mysql" }> } | { kind: "file"; path: string };
+}
+
+/**
+ * Settings for the licence CLI only. Unlike loadConfig it needs no iTop
+ * settings, so the licence desk can run it anywhere it has the KMS role.
+ */
+export function loadLicenceIssuerConfig(envFile = resolve(PACKAGE_ROOT, ".env")): LicenceIssuerConfig {
+  loadDotEnv(envFile);
+  const keys = licenceKeysConfig();
+  const kind = oneOf("LICENCE_SIGNER", "dev", ["dev", "kms"] as const);
+  if (kind === "dev" && !keys.allowDevKey) {
+    throw new Error("LICENCE_SIGNER=dev is refused on a production build: set LICENCE_SIGNER=kms.");
+  }
+  const region = optional("LICENCE_KMS_REGION", "");
+  const signer: LicenceIssuerConfig["signer"] =
+    kind === "dev"
+      ? { kind: "dev" }
+      : {
+          kind: "kms",
+          keyId: optional("LICENCE_KMS_KEY_ID", "alias/arcus-licence-signing"),
+          kid: required("LICENCE_KMS_KID"),
+          alg: optional("LICENCE_KMS_ALG", "RSA-PSS-SHA256") === "Ed25519" ? "Ed25519" : "RSA-PSS-SHA256",
+          ...(region ? { region } : {}),
+        };
+  const store = sessionStoreConfig();
+  return {
+    keys,
+    signer,
+    register:
+      store.kind === "mysql"
+        ? { kind: "mysql", store }
+        : { kind: "file", path: resolve(PACKAGE_ROOT, optional("LICENCE_REGISTER_FILE", ".licence-dev/register.json")) },
+  };
+}
+
 export function loadConfig(envFile = resolve(PACKAGE_ROOT, ".env")): Config {
   loadDotEnv(envFile);
 

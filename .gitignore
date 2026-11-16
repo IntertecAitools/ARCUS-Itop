@@ -17,3 +17,7 @@ frontend/test-results/
 
 # Local e2e test accounts and their TOTP secrets (backend/README.md, "Problems")
 backend/e2e.local.json
+
+# Local licence-signing development key and register (backend/README.md, "Licensing")
+backend/.licence-dev/
+*.lic
