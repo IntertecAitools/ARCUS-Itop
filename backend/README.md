@@ -1681,7 +1681,7 @@ not states: a non-production key shows a banner to everyone, always.
 
 - **Read-only** (`licence.guard.ts`): one hook after the sign-in guard
   refuses any change by staff with `403 LICENCE_READ_ONLY`. Always allowed:
-  every GET (reads, exports), sign-in and out, `/api/licence*`, `/api/me/*`,
+  every GET (reads, exports), sign-in and out, `/api/licence*`, the user's own `/api/me/*` (preferences, drafts; approval decisions change records and are refused),
   the requester portal, and the POSTs that only read (`/api/queries/run`,
   the delete plan, duplicate suggestions, the assignment-rule test, the
   root-cause draft). With `warn`, the refusal is recorded as `would_refuse`
@@ -1719,7 +1719,7 @@ Every door into a feature is gated, for staff (requesters are never gated):
 | Door | How |
 | --- | --- |
 | 1. Business modules | Each entry in both registries has a `feature`. The module's routes (as it registers them, wherever they live) answer `403 LICENCE_FEATURE`; `GET /api/meta/modules` leaves it out; the frontend drops it from the sidebar and palette, and its routes show "Not included in your edition". |
-| 2. Platform routes | `ROUTE_FEATURES` in `editions.ts`: saved queries and dashboards (`analytics`), approvals (`approvals_forms`), audit and synchronised sources (`audit_sync`), organisation admin (`multi_org`), single sign-on (`sso`), the AI root-cause draft (`ai`). It also overrides a module's feature for one route. |
+| 2. Platform routes | `ROUTE_FEATURES` in `editions.ts`: saved queries and dashboards (`analytics`), approvals (`approvals_forms`), audit and synchronised sources (`audit_sync`), organisation admin (`multi_org`), the AI root-cause draft (`ai`). It also overrides a module's feature for one route. Single sign-on (`sso`) is checked at sign-in instead, once the user is known: requesters are never refused, and staff only when they can sign in with a password (otherwise it is recorded and allowed, so nobody is locked out). |
 | 3. Record classes | `CLASS_FEATURES` in `editions.ts` (`Change` and its subclasses, `Problem`, `KnownError`, audit classes): any route with a `:class` (records, export, pickers, history, schema, import preview) and a saved query's `recordType`. `GET /api/meta/navigation` leaves those classes' menu entries out. |
 
 A refusal is `403 {"error": {"code": "LICENCE_FEATURE", "message", "details": {"feature", "edition", "includedIn"}}}`
