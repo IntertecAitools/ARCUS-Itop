@@ -1629,6 +1629,78 @@ the logs. With `E2E_TENANT_BFF` (a second BFF with `TENANCY=on` and the
 `npm run tenants -- seed-test` tenants) it adds the tenant checks.
 Everything it creates is deleted at the end.
 
+## Licensing
+
+Arcus checks a licence signed by Intertec: which edition the customer
+bought, for how long, and how much they may use. The design is the
+*Arcus Licensing Module: Build Guide*; it lands in phases, and this section
+grows with them.
+
+**The edition matrix and every limit are drafts** (`src/platform/licensing/editions.ts`),
+waiting for Product to confirm them. Changing them is an edit to that one file.
+
+### Where it lives
+
+| Folder | Holds |
+| ------ | ----- |
+| `src/platform/licensing/sdk/` | The licence format, signing, verifying, term dates, binding and signed documents. Product-neutral and self-contained (only Node built-ins), so it can become a shared Intertec SDK. See its `README.md`. |
+| `src/platform/licensing/editions.ts` | Arcus editions (ESS, PRO, ENT), the features each has, the default limits and pack sizes, the agent profiles. Shared by the product and the CLI. |
+| `src/platform/licensing/licence.verify.ts` | Arcus on top of the SDK: product `arcus`, the `entitlements` check, the trusted keys of this build. |
+| `src/platform/licensing/issuer/` | Issuing (Intertec only): building a licence from an order, the signers (development key, AWS KMS), the licence register. |
+| `src/cli/licence.ts` | `npm run licence`. |
+
+A licence's JSON carries the common fields (`product`, `licence_id`,
+`customer_name`, `order_ref`, `licence_type`, `term_years`, `issued_at`,
+`valid_from`, `expires_at`, `maintenance_until`, `grace_days`, `binding`,
+`instances`, `key_version`, `alg`, `kid`) and an `entitlements` object with
+the Arcus ones (`edition`, `deployment`, `named_seats`, `concurrent_seats`,
+`ci_limit`, `node_limit`, `ai_actions_per_month`, `storage_gb`, `features`).
+
+### Issuing licences: `npm run licence`
+
+```bash
+npm run licence -- dev-key        # once: a local development key pair in .licence-dev/
+npm run licence -- issue --customer "Example Co" --order SO-45678 \
+  --type subscription --term 3 --edition PRO --deployment saas \
+  --binding tenant:acme --agents 60 --valid-from 2026-12-01 --out acme-2026.lic
+npm run licence -- reissue ARC-2026-000001 --reason upgrade --edition ENT --agents 80
+npm run licence -- revoke ARC-2026-000001 --reason "contract ended"
+npm run licence -- list [--customer "Example Co"]
+npm run licence -- verify acme-2026.lic [--tenant acme]
+```
+
+- **Limits come from the edition and the packs** (`--ci-packs`, `--ai-packs`,
+  `--storage-packs`), from `editions.ts`: PRO with 60 agents is 5,000 CIs and
+  18,000 AI actions a month. `--concurrent`, `--addon byok|dedicated_instance|premium_support`,
+  `--instances production,nonprod,standby` (default `1,1,1`).
+- **Types:** `subscription` (`--term 1|3|5`; ends the day before the
+  anniversary), `perpetual` (deployed only; maintenance for a year),
+  `evaluation` (30 days, no grace), `nonprod`. Grace is 30 days unless `--grace-days`.
+- **Binding:** `tenant:<id>` for SaaS, `install:<uuid>` for a deployed installation.
+- **Re-issue** keeps everything from the old licence and changes only what
+  you pass; the end date stays unless `--term`, `--valid-from` or `--expires`
+  changes it. The new licence gets a new id and the register records which
+  one it replaces.
+- **The register** (LIC-02): every issue, re-issue and revocation, who and
+  why. In the BFF database (`bff_licence_register`) with
+  `SESSION_STORE=mysql`, else the file `LICENCE_REGISTER_FILE`
+  (default `.licence-dev/register.json`). Rows are never deleted.
+- **Signing.** `LICENCE_SIGNER=dev` (the default) signs with the local
+  development key: licences carry `kid: dev`, and a production build
+  (`NODE_ENV=production`, as the BFF image sets) refuses them, and refuses
+  to sign with it. `LICENCE_SIGNER=kms` signs in AWS KMS through the `aws`
+  CLI, with the licence-issuer role: `LICENCE_KMS_KEY_ID` (default
+  `alias/arcus-licence-signing`), `LICENCE_KMS_KID` (the kid its public key
+  has in `sdk/public-keys.ts`), `LICENCE_KMS_ALG` (`RSA-PSS-SHA256`, or
+  `Ed25519`), `LICENCE_KMS_REGION`. The CLI needs no system-of-record settings.
+- `.licence-dev/` and `*.lic` files are in `.gitignore`: never commit a key
+  or a customer's licence.
+
+The KMS key and the issuer role are in `deploy/aws/terraform/licensing.tf`,
+behind `licence_signing_enabled` (default `false`): nothing is created until
+someone sets it, names the issuers and two key custodians, and applies by
+hand. `sdk/public-keys.ts` holds no production key until then.
+
 ## What this layer is actually for
 
 Five upstream behaviours make a direct browser-to-iTop integration painful.
@@ -2022,6 +2094,7 @@ finding out via a 404.
 | `npm run smoke` | live read-only check (`-- --write` for full CRUD) |
 | `npm run schema:pull` | vendor `cmdb-schema.json` into `schema/` |
 | `npm run tenants -- <command>` | list / set / enable / disable / remove tenants; `seed-test` for a local iTop |
+| `npm run licence -- <command>` | issue, re-issue, revoke, list and verify licences (see "Licensing") |
 | `npm run e2e:tenancy` | live cross-tenant leak test (BFF on :4010 with `TENANCY=on`, after `seed-test`) |
 | `npm run e2e:problems` | live problem management: root cause, known error, trends (BFF on :4050, MFA on; account and TOTP secret in `backend/e2e.local.json`, see "Problems"). Creates and deletes its own records |
 | `npm run e2e:changes` | live change management: plan rules, CAB decisions, profile rights (BFF on :4020, MFA on; accounts created on the first run, see "Changes"). Creates and deletes its own changes |

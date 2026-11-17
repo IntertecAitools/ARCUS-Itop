@@ -4,6 +4,23 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-11-16 — Licensing phase 1: licence format, verifier, issuing CLI
+
+| What ran | Result |
+|---|---|
+| `npm test` (backend) | 947/947 passed (30 new in `test/licence-format.test.ts`) |
+| `npm run typecheck` / `npm run build` (backend) | passed; `dist/cli/licence.js` built |
+| `npx vitest run` (frontend) | 329/329 passed |
+| `npm run typecheck` / `npm run build` (frontend) | passed |
+| `npm run e2e` (mock journeys, own port 5781) | 30/30 passed |
+| `terraform fmt -check`, `terraform validate` on `deploy/aws/terraform` (offline copy, no backend, nothing planned or applied) | valid |
+| `npm run licence -- dev-key / issue / verify / reissue / revoke / list` by hand, file register | as expected; a damaged file is refused (exit 1) |
+
+**LT-08** (one edited field fails the signature): passing for agents, end date, edition and binding edits, a weaker algorithm named in the file, a home-made key, an unknown kid, and Ed25519 and RSA-PSS-SHA256 (3072-bit) keys. The "evaluation mode plus audit event" half of LT-08 needs the licence module (phase 2).
+**LT-15** (usage report verifies with the installation's key; edit one byte, fails): passing, including pretty-printed reports and the wrong key or kind refused.
+
+**Not covered:** signing through AWS KMS for real (the key does not exist; the Terraform is written, not applied). The `aws kms sign` call is tested with a fake `aws` that signs with a local RSA key. Ed25519 through KMS is not tested. The MySQL register (`bff_licence_register`) is not exercised against a database in this phase (memory and file stores are).
+
 ### 2026-11-16 — Dropdown lists unreadable in the dark theme
 
 | What ran | Result |
