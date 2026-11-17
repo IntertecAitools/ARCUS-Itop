@@ -1656,6 +1656,59 @@ A licence's JSON carries the common fields (`product`, `licence_id`,
 the Arcus ones (`edition`, `deployment`, `named_seats`, `concurrent_seats`,
 `ci_limit`, `node_limit`, `ai_actions_per_month`, `storage_gb`, `features`).
 
+### The licence module: states and read-only mode
+
+`LICENSING` (`off`, `warn`, `enforce`; default `off`) decides whether it is
+loaded at all; `docs/deployment.md`, "Licensing", has the rollout. With it
+on, `licence.service.ts` keeps one status per **scope** in memory: each
+tenant with `TENANCY=on` (SaaS, binding `tenant:<id>`), else the
+installation (binding `install:<installation id>`). Every minute it re-reads
+the licences (a key saved on another instance applies everywhere) and works
+out the state from the date:
+
+| State | When | Blocked (with `enforce`) |
+| --- | --- | --- |
+| `valid` | verified, inside its dates | nothing |
+| `expiring_soon` | the last 30 days | nothing; banner for administrators |
+| `grace` | after the end date, within `grace_days` | nothing; banner for every agent |
+| `read_only` | grace over | every change by an agent |
+| `evaluation_mode` | no valid licence: edited, another tenant's or installation's, a non-production key on a production installation, the clock moved back more than a day, or (SaaS) none installed | as read-only, plus an audit event |
+| `trial` | a deployed installation with no licence, first 30 days | nothing |
+| `evaluation_expired` | an evaluation licence or the trial has ended | as read-only |
+
+Non-production licences and lapsed maintenance are flags on the status,
+not states: a non-production key shows a banner to everyone, always.
+
+- **Read-only** (`licence.guard.ts`): one hook after the sign-in guard
+  refuses any change by staff with `403 LICENCE_READ_ONLY`. Always allowed:
+  every GET (reads, exports), sign-in and out, `/api/licence*`, the user's own `/api/me/*` (preferences, drafts; approval decisions change records and are refused),
+  the requester portal, and the POSTs that only read (`/api/queries/run`,
+  the delete plan, duplicate suggestions, the assignment-rule test, the
+  root-cause draft). With `warn`, the refusal is recorded as `would_refuse`
+  once a day per kind of request and the request goes through.
+- **The clock**: the latest time ever seen is kept per scope; a current time
+  more than a day earlier puts the scope in evaluation mode and the high
+  water mark is used, so the term is never extended. It recovers when the
+  clock is right again.
+- **Several licences per scope** are kept, never overwritten: the newest one
+  that verifies and has started wins, so a renewal can be installed early.
+- **Tables** (created on first use, in the BFF database with
+  `SESSION_STORE=mysql`): `bff_installation` (the installation id, a random
+  UUID made on first start, and its report-signing key pair, the private
+  half sealed with `SESSION_SECRET`), `bff_licences`, `bff_licence_state`,
+  `bff_licence_events` (key uploaded, state changed, clock warning, tamper
+  detected, refused, would refuse).
+
+| Endpoint | Who | What |
+| --- | --- | --- |
+| `GET /api/licence/status` | every signed-in user, requesters too | edition, features, state, days left, the banners for this user |
+| `POST /api/licence/check` | administrators | checks a key without saving it: what it grants, what would change ("Edition PRO → ENT") |
+| `PUT /api/licence` | the installation's administrators; with `TENANCY=on`, platform operators only | saves a checked key; it applies at once. A key issued before the one installed needs `confirmOlder: true` |
+
+A key that fails the check is never saved. The frontend shows the banners in
+the staff shell and the portal (`frontend/src/features/licensing/`); with
+licensing off the status route does not exist and the app shows none.
+
 ### Issuing licences: `npm run licence`
 
 ```bash

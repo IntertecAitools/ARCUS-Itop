@@ -618,6 +618,36 @@ Frontend values are compiled into the bundle, so they are build arguments
 `VITE_PLATFORM_NAME`, `VITE_DEFAULT_LOCALE`. `VITE_BFF_URL` is `/api` (same
 origin) and `VITE_API_MODE` is `live`; do not change them for this layout.
 
+### Licensing (`LICENSING`)
+
+Arcus checks a licence signed by Intertec (backend/README.md, "Licensing").
+One setting turns it on, in steps, so nobody is locked out:
+
+| `LICENSING` | Behaviour |
+| --- | --- |
+| `off` (default) | The licence module is not loaded. Nothing is checked or blocked; no licence routes. |
+| `warn` | Every licence is checked and recorded, banners show, but nothing is blocked. What would have been refused is recorded once a day as a `would_refuse` licence event. |
+| `enforce` | Read-only mode when a licence has ended past its grace or is not valid (and, as later phases land, edition gating and limits). |
+
+**Production stays at `off`** until every tenant, Intertec's own included,
+has a licence installed. Then `warn` for about two weeks, reading the
+licence events, then `enforce` with Commercial's agreement, through the
+pipeline and its manual approval. Setting `warn` again blocks nothing.
+A newly deployed customer installation starts at `enforce`.
+
+| Setting | Default | Notes |
+| --- | --- | --- |
+| `LICENSING` | `off` | `off`, `warn` or `enforce`. In SSM with the other settings. |
+| `LICENCE_INSTALLATION_KIND` | `production` on the production image | `production`, `nonprod` or `standby`. A non-production licence is refused on a `production` installation. |
+
+The licence tables (`bff_installation`, `bff_licences`,
+`bff_licence_state`, `bff_licence_events`) are created in the BFF database
+on first start with `LICENSING` on; the installation's private report key
+is sealed with `SESSION_SECRET`. With `TENANCY=on` each tenant has its own
+licence, installed by a platform operator (`PLATFORM_LOGINS`); otherwise
+the installation has one, installed by an administrator. Without one, a
+deployed installation runs a 30-day evaluation from its first start.
+
 ### Network and host
 
 - [ ] Only the TLS proxy is reachable from users; `web` binds to `127.0.0.1`

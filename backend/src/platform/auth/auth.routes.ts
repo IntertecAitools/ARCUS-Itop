@@ -48,7 +48,7 @@ export function pendingSignIn(request: FastifyRequest): { id: string; caller: Ca
 const breakGlassByRequest = new WeakMap<FastifyRequest, Caller>();
 
 /** What an end-user (portal) session may reach. Everything else is staff-only. */
-const PORTAL_PREFIXES = ["/api/auth/", "/api/portal/", "/api/me/"];
+const PORTAL_PREFIXES = ["/api/auth/", "/api/portal/", "/api/me/", "/api/licence/status"];
 
 export function readCookie(request: FastifyRequest, name: string): string | undefined {
   const header = request.headers.cookie;

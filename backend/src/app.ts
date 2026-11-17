@@ -25,6 +25,7 @@ import { registerQueryRoutes } from "./platform/queries/queries.routes.js";
 import { registerInboxRoutes } from "./platform/inbox/inbox.routes.js";
 import { registerPortalRoutes } from "./platform/portal/portal.routes.js";
 import { registerApprovalRoutes } from "./platform/approvals/approvals.routes.js";
+import { registerLicensing } from "./platform/licensing/index.js";
 import { buildServices, type BuildServicesOptions, type Services } from "./services.js";
 
 export interface BuildAppResult {
@@ -95,6 +96,11 @@ export function buildApp(config: Config, options: BuildServicesOptions = {}): Bu
   // First: the guard binds the signed-in user to every request after it.
   registerAuth(app, services);
   app.addHook("onClose", async () => services.sessions.close());
+  // Then the licence guard (LICENSING=warn|enforce; not loaded when off):
+  // read-only mode needs the caller and tenant the sign-in guard bound.
+  if (services.licensing) {
+    registerLicensing(app, services.licensing, { platformLogins: config.tenancy?.platformLogins ?? [] });
+  }
 
   registerHealthRoutes(app, services);
   registerMetaRoutes(app, services);

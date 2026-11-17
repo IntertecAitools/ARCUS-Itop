@@ -141,6 +141,8 @@ export interface Config {
   autoCloseIntervalMs?: number;
   /** Root-cause help on problems (modules/problems). Defaults apply when absent. */
   rca?: RcaConfig;
+  /** The licence module (platform/licensing). Absent: LICENSING=off, not loaded. */
+  licensing?: LicensingConfig;
   auth: {
     /**
      * When true (the default) every /api route except sign-in needs a session,
@@ -606,6 +608,33 @@ function licenceKeysConfig(): LicenceKeysConfig {
   };
 }
 
+/**
+ * LICENSING (Build Guide, section 15): `off` (the default) does not load the
+ * licence module at all; `warn` checks and records everything, shows the
+ * banners, blocks nothing; `enforce` blocks.
+ */
+export interface LicensingConfig {
+  mode: "warn" | "enforce";
+  keys: LicenceKeysConfig;
+  /**
+   * LICENCE_INSTALLATION_KIND: what this installation is. A non-production
+   * licence is refused on a production one. Defaults to production on a
+   * production build, nonprod otherwise.
+   */
+  installationKind: "production" | "nonprod" | "standby";
+}
+
+function licensingConfig(): LicensingConfig | undefined {
+  const mode = oneOf("LICENSING", "off", ["off", "warn", "enforce"] as const);
+  if (mode === "off") return undefined;
+  const keys = licenceKeysConfig();
+  return {
+    mode,
+    keys,
+    installationKind: oneOf("LICENCE_INSTALLATION_KIND", keys.allowDevKey ? "nonprod" : "production", ["production", "nonprod", "standby"] as const),
+  };
+}
+
 /** The issuing CLI (`npm run licence`): how it signs and where the register is. */
 export interface LicenceIssuerConfig {
   keys: LicenceKeysConfig;
@@ -723,6 +752,7 @@ export function loadConfig(envFile = resolve(PACKAGE_ROOT, ".env")): Config {
     ...(mailIntakeConfig() ? { mailIntake: mailIntakeConfig()! } : {}),
     autoCloseIntervalMs: integer("AUTO_CLOSE_CHECK_MINUTES", 60, 0, 1_440) * 60_000,
     rca: rcaConfig(),
+    ...(licensingConfig() ? { licensing: licensingConfig()! } : {}),
     auth: {
       required: optional("AUTH_REQUIRED", "true").toLowerCase() !== "false",
       sessionIdleMs: integer("SESSION_IDLE_MINUTES", 60, 5, 24 * 60) * 60_000,
