@@ -388,7 +388,8 @@ export const modules: ModuleDefinition[] = [
   },
   {
     id: 'dashboards',
-    feature: 'analytics',
+    // The standard overview dashboards are in every edition; custom queries are analytics.
+    feature: 'service_desk',
     label: 'Dashboards',
     path: 'dashboards',
     icon: LayoutGrid,

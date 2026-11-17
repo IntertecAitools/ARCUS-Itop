@@ -7,8 +7,8 @@ import { currentMockUser } from './auth';
 const url = (path: string) => `${env.bffUrl}${path}`;
 
 const ESS: Feature[] = ['service_desk', 'service_levels', 'knowledge', 'cmdb', 'import_export'];
-const PRO: Feature[] = [...ESS, 'problem', 'change', 'approvals_forms', 'analytics', 'ai'];
-const ALL: Feature[] = [...PRO, 'multi_org', 'sso', 'audit_sync'];
+const PRO: Feature[] = [...ESS, 'problem', 'change', 'approvals_forms', 'analytics', 'ai', 'sso'];
+const ALL: Feature[] = [...PRO, 'multi_org', 'audit_sync'];
 /** The draft matrix, as the BFF reports it. */
 const FEATURE_EDITIONS = Object.fromEntries(ALL.map((f) => [f, ESS.includes(f) ? 'ESS' : PRO.includes(f) ? 'PRO' : 'ENT'])) as Record<Feature, Edition>;
 const EDITION_NAMES: Record<Edition, string> = { ESS: 'Essentials', PRO: 'Professional', ENT: 'Enterprise' };

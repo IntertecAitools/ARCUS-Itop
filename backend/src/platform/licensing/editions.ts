@@ -43,8 +43,10 @@ type MissingFeature = Exclude<Feature, (typeof FEATURES)[number]>;
 export const ALL_FEATURES_LISTED: [MissingFeature] extends [never] ? true : never = true;
 
 const ESSENTIALS: readonly Feature[] = ["service_desk", "service_levels", "knowledge", "cmdb", "import_export"];
-const PROFESSIONAL: readonly Feature[] = [...ESSENTIALS, "problem", "change", "approvals_forms", "analytics", "ai"];
-const ENTERPRISE: readonly Feature[] = [...PROFESSIONAL, "multi_org", "sso", "audit_sync"];
+// Single sign-on is in Professional: buyers of that size expect it, and
+// Enterprise is set apart by multiple organisations and audit.
+const PROFESSIONAL: readonly Feature[] = [...ESSENTIALS, "problem", "change", "approvals_forms", "analytics", "ai", "sso"];
+const ENTERPRISE: readonly Feature[] = [...PROFESSIONAL, "multi_org", "audit_sync"];
 
 /** DRAFT (section 3, "Draft edition matrix"). */
 export const EDITION_FEATURES: Record<Edition, readonly Feature[]> = {
@@ -73,9 +75,11 @@ export interface EditionLimits {
 }
 
 export const EDITION_LIMITS: Record<Edition, EditionLimits> = {
-  ESS: { cis: 1_000, aiActionsPerAgent: 0, storageGb: 100 },
-  PRO: { cis: 5_000, aiActionsPerAgent: 300, storageGb: 250 },
-  ENT: { cis: 25_000, aiActionsPerAgent: 500, storageGb: 500 },
+  // CIs sized so a typical customer of each size is not at the limit in its
+  // first month (about 3-5 CIs per employee).
+  ESS: { cis: 2_500, aiActionsPerAgent: 0, storageGb: 100 },
+  PRO: { cis: 10_000, aiActionsPerAgent: 300, storageGb: 250 },
+  ENT: { cis: 50_000, aiActionsPerAgent: 500, storageGb: 500 },
 };
 
 /** DRAFT: pack sizes are not in the guide; placeholders until the SKU list exists (decision 7). */
@@ -91,6 +95,25 @@ export const PACK_SIZES = {
 /** Add-on flags a licence may carry in `entitlements.features`. Edition features are never listed there. */
 export const ADDON_FLAGS = ["byok", "dedicated_instance", "premium_support"] as const;
 export type AddonFlag = (typeof ADDON_FLAGS)[number];
+
+/** Add-ons an edition includes without being ordered. DRAFT. */
+export const EDITION_ADDONS: Record<Edition, readonly AddonFlag[]> = {
+  ESS: [],
+  PRO: [],
+  ENT: ["premium_support"],
+};
+
+/**
+ * What is wrong with an order, empty when fine. AI packs need the AI
+ * feature: an Essentials customer could not use them.
+ */
+export function orderProblems(order: Order): string[] {
+  const problems: string[] = [];
+  if ((order.aiPacks ?? 0) > 0 && !editionHas(order.edition, "ai")) {
+    problems.push(`AI packs need an edition with AI (${EDITION_NAMES[lowestEditionWith("ai")]} or above).`);
+  }
+  return problems;
+}
 
 /** Percentages of a limit that raise a warning, and the overage allowed before new use pauses (LIC-09). */
 export const WARN_AT = [80, 100] as const;
@@ -156,7 +179,7 @@ export function entitlementsFor(order: Order): ArcusEntitlements {
     node_limit: order.nodes ?? 0,
     ai_actions_per_month: order.agents * limits.aiActionsPerAgent + (order.aiPacks ?? 0) * PACK_SIZES.ai,
     storage_gb: order.deployment === "saas" ? limits.storageGb + (order.storagePacks ?? 0) * PACK_SIZES.storageGb : null,
-    features: [...new Set(order.addons ?? [])].sort(),
+    features: [...new Set([...EDITION_ADDONS[order.edition], ...(order.addons ?? [])])].sort(),
   };
 }
 
@@ -198,9 +221,10 @@ export const ROUTE_FEATURES: readonly (readonly [string, Feature])[] = [
   ["/api/problems/:id/rca-draft", "ai"],
   ["/api/admin/data-import/sync-sources", "audit_sync"],
   ["/api/admin/audit", "audit_sync"],
+  // Custom queries are analytics. The standard overview dashboards
+  // (/api/dashboards, /api/meta/dashboards) are in every edition: they
+  // belong to no module, so they are not gated.
   ["/api/queries", "analytics"],
-  ["/api/dashboards", "analytics"],
-  ["/api/meta/dashboards", "analytics"],
   ["/api/approvals", "approvals_forms"],
   ["/api/admin/approvals", "approvals_forms"],
   ["/api/me/approvals", "approvals_forms"],
