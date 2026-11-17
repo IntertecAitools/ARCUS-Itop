@@ -152,3 +152,30 @@ export function registerLicensing(
     await options.usage?.snapshot().catch(() => undefined);
   });
 }
+
+/**
+ * Single sign-on and the edition (feature `sso`), once the user is known:
+ * requesters are never refused (the portal is outside licensing); staff are
+ * refused only when they can sign in with a password instead, so licensing
+ * never locks anyone out. Otherwise, and with LICENSING=warn, the sign-in
+ * goes through and is recorded. Returns a refusal message, or undefined.
+ */
+export async function ssoRefusal(
+  licensing: LicenceService | undefined,
+  caller: { kind: "staff" | "portal"; login: string },
+  tenantId: string | undefined,
+  staffMayUsePassword: boolean,
+): Promise<string | undefined> {
+  if (!licensing || caller.kind !== "staff") return undefined;
+  const scope = licensing.scopeFor(tenantId);
+  if (scope === null) return undefined;
+  const status = await licensing.statusOf(scope);
+  if (status.features.includes("sso")) return undefined;
+  const refusal = licensing.featureRefusal(status, "sso");
+  if (licensing.mode === "enforce" && staffMayUsePassword) {
+    await licensing.recordOnce(scope, "refused", `sso:${caller.login}`, `Refused single sign-on for ${caller.login}: sso is not in the edition.`, caller.login);
+    return `Single sign-on is not included in your edition; sign in with your password. ${refusal.message}`;
+  }
+  await licensing.recordOnce(scope, "would_refuse", `sso:${caller.login}`, `Single sign-on for ${caller.login} although sso is not in the edition${licensing.mode === "enforce" ? " (allowed: password sign-in is off for staff)" : ""}.`, caller.login);
+  return undefined;
+}

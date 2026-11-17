@@ -169,3 +169,47 @@ describe("limits", () => {
     assert.deepEqual(rows.map((r) => r.metric), ["agents", "sessions", "cis", "ai_actions", "storage"]);
   });
 });
+
+describe("review fixes", () => {
+  it("counts agents across every page of enabled accounts, not only the first", async () => {
+    const { UsersService, AGENT_COUNT_PAGE } = await import("../src/platform/admin/users.service.js");
+    const { AuthService } = await import("../src/platform/auth/auth.service.js");
+    const { MemorySessionStore } = await import("../src/platform/auth/session.store.js");
+    const { ObjectsService } = await import("../src/platform/objects/objects.service.js");
+    const { FakeItopClient, sampleSchema } = await import("./helpers.js");
+    // 2,500 enabled accounts; every 100th holds an agent profile, the rest are requesters.
+    const total = AGENT_COUNT_PAGE * 2 + 500;
+    const fake = new FakeItopClient().on("core/get", (p) => {
+      if (p["class"] === "User") {
+        const page = Number(p["page"]);
+        const from = (page - 1) * AGENT_COUNT_PAGE + 1;
+        const to = Math.min(total, page * AGENT_COUNT_PAGE);
+        return getResponse(Array.from({ length: Math.max(0, to - from + 1) }, (_, i) => ({ class: "UserLocal", id: from + i, fields: {} })));
+      }
+      const ids = /IN \(([^)]*)\)/.exec(String(p["key"]))![1]!.split(",").map(Number);
+      return getResponse(ids.map((id) => ({ class: "URP_UserProfile", id, fields: { userid: id, profile: id % 100 === 0 ? "Service Desk Agent" : "Portal user" } })));
+    });
+    const users = new UsersService(fake.asClient(), new ObjectsService(fake.asClient(), sampleSchema(), "t"), new AuthService(fake.asClient()), new MemorySessionStore(1, 1));
+    assert.equal(await users.countAgents(["Service Desk Agent"]), 25);
+  });
+
+  it("keeps stored bytes in the storage total when old daily figures are pruned", async () => {
+    const { MemoryLicenceStore } = await import("../src/platform/licensing/index.js");
+    const store = new MemoryLicenceStore();
+    await store.addUsage("acme", "2024-03-01", { storageBytes: 5_000 });
+    await store.addUsage("acme", "2027-01-10", { storageBytes: 700, aiActions: 3 });
+    await store.pruneUsage("2025-01-01");
+    const days = await store.usageDays("acme", "0000-01-01", "9999-12-31");
+    assert.deepEqual(days.map((d) => d.day), ["2025-01-01", "2027-01-10"]);
+    assert.equal(days.reduce((n, d) => n + d.storageBytes, 0), 5_700);
+  });
+
+  it("still answers the licence status when usage cannot be counted", async () => {
+    const t = await licenceApp();
+    await t.install(await t.issue());
+    t.services.licenceUsage!["counters" as never] = { agents: async () => { throw new Error("upstream timeout"); }, cis: async () => 0 } as never;
+    const res = await t.send("GET", "/api/licence/status", t.users.admin);
+    assert.equal(res.statusCode, 200);
+    assert.equal((res.json() as { state: string }).state, "valid");
+  });
+});

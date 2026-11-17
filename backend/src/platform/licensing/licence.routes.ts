@@ -89,13 +89,21 @@ export function registerLicenceRoutes(
     return caller;
   };
 
-  app.get("/api/licence/status", async (): Promise<LicenceStatus> => {
+  app.get("/api/licence/status", async (request): Promise<LicenceStatus> => {
     const caller = currentCaller();
     const s = licensing.scopeFor(currentTenant()?.id);
     if (s === null) return { ...PLATFORM_STATUS(licensing.mode), operator: !!caller && operators.has(caller.login.toLowerCase()) };
     const dto = licensing.toDto(await licensing.statusOf(s), { isAdmin: !!caller?.isAdmin, isStaff: caller?.kind === "staff" });
     // Limit warnings at 80% and 100%, for administrators (Build Guide, section 11).
-    if (caller?.isAdmin && caller.kind === "staff" && options.usage) dto.banners.push(...(await options.usage.banners(s)));
+    // A failure to count (the system of record slow or down) must not take
+    // the status with it: the shell reads the features from it.
+    if (caller?.isAdmin && caller.kind === "staff" && options.usage) {
+      try {
+        dto.banners.push(...(await options.usage.banners(s)));
+      } catch (err) {
+        request.log.warn({ err }, "licence limit banners skipped: usage could not be counted");
+      }
+    }
     return dto;
   });
 
