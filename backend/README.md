@@ -1681,7 +1681,7 @@ not states: a non-production key shows a banner to everyone, always.
 
 - **Read-only** (`licence.guard.ts`): one hook after the sign-in guard
   refuses any change by staff with `403 LICENCE_READ_ONLY`. Always allowed:
-  every GET (reads, exports), sign-in and out, `/api/licence*`, `/api/me/*`,
+  every GET (reads, exports), sign-in and out, `/api/licence*`, the user's own `/api/me/*` (preferences, drafts; approval decisions change records and are refused),
   the requester portal, and the POSTs that only read (`/api/queries/run`,
   the delete plan, duplicate suggestions, the assignment-rule test, the
   root-cause draft). With `warn`, the refusal is recorded as `would_refuse`
