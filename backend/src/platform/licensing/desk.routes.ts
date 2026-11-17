@@ -6,7 +6,7 @@ import { parse } from "../../core/validate.js";
 import { validateTenants, type Tenant, type TenantStore } from "../tenancy/tenant.store.js";
 import { DEPLOYMENTS, EDITIONS, type Edition } from "./editions.js";
 import { issueAndRegister, reissueRequest, renewals } from "./issuer/desk.js";
-import { IssueError, type IssueRequest } from "./issuer/issue.js";
+import { buildLicenceFields, IssueError, type IssueRequest } from "./issuer/issue.js";
 import type { RegisterEntry, RegisterStore } from "./issuer/register.store.js";
 import { LicenceError, type LicenceService } from "./licence.service.js";
 import type { IssueLicenceResult, LicenceType, LicencesOverview, RegisterRow } from "./licence.types.js";
@@ -178,9 +178,26 @@ export function registerDeskRoutes(app: FastifyInstance, licensing: LicenceServi
         throw new AppError("bad_request", (err as Error).message);
       }
     }
-    // The licence is built and checked before the tenant is saved: a refused order creates nothing.
-    const issued = await issueAndRegister(deps.register, signer(), toRequest(body), { by: caller.login, reason: body.reason || "new order" }).catch(asBadRequest);
+    // One step for the operator, and all or nothing: the order is checked
+    // first (nothing is saved for a refused one), then the tenant is saved,
+    // then the licence is signed and registered. If signing fails, the new
+    // tenant is taken away again; if saving the tenant fails, no licence
+    // exists yet.
+    const req = toRequest(body);
+    const sign = signer();
+    try {
+      buildLicenceFields(req, "ARC-0000-000000", new Date());
+    } catch (err) {
+      asBadRequest(err);
+    }
     if (tenant) await deps.tenants.save(tenant);
+    let issued: Awaited<ReturnType<typeof issueAndRegister>>;
+    try {
+      issued = await issueAndRegister(deps.register, sign, req, { by: caller.login, reason: body.reason || "new order" });
+    } catch (err) {
+      if (tenant) await deps.tenants.remove(tenant.id).catch(() => undefined);
+      return asBadRequest(err);
+    }
     const installed = await installForTenant(issued.entry.binding, issued.text, caller.login);
     reply.code(201);
     return { licence: toRow(issued.entry), text: issued.text, installed, tenantCreated: !!tenant };

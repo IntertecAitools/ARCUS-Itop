@@ -58,6 +58,29 @@ describe("the licence desk (operator Licences page)", () => {
     assert.deepEqual((await t.services.licenceDesk!.register.list()).length, 0);
   });
 
+  it("leaves no licence behind when the tenant cannot be saved, and no tenant when signing fails", async () => {
+    const t = await licenceApp({ tenancy: true });
+    const store = t.services.tenantStore;
+    const save = store.save.bind(store);
+    store.save = async () => {
+      throw new Error("database unavailable");
+    };
+    const failedSave = await t.send("POST", "/api/platform/licences", t.users.operator, { ...order, newTenant }, PLATFORM);
+    assert.equal(failedSave.statusCode, 500);
+    assert.equal((await t.services.licenceDesk!.register.list()).length, 0, "no orphan licence");
+    store.save = save;
+
+    const signer = t.services.licenceDesk!.signer!;
+    const sign = signer.sign;
+    (signer as { sign: typeof sign }).sign = async () => {
+      throw new Error("KMS unavailable");
+    };
+    const failedSign = await t.send("POST", "/api/platform/licences", t.users.operator, { ...order, newTenant }, PLATFORM);
+    assert.equal(failedSign.statusCode, 500);
+    assert.ok(!(await store.list()).some((x) => x.id === "beta"), "the new tenant is taken away again");
+    (signer as { sign: typeof sign }).sign = sign;
+  });
+
   it("re-issues an upgrade with the same end date, installs it, and marks the old one replaced", async () => {
     const t = await licenceApp({ tenancy: true });
     await t.send("POST", "/api/platform/licences", t.users.operator, { ...order, binding: "tenant:acme" }, PLATFORM);
