@@ -167,6 +167,10 @@ describe("licence states and read-only mode", () => {
     assert.ok(isWriteExempt("GET", "/api/objects/:class/export"));
     assert.ok(!isWriteExempt("POST", "/api/objects/:class"));
     assert.ok(!isWriteExempt("POST", "/api/objects/:class/:id/stimulus"));
+    // An approver's decision changes records: read-only refuses it (requesters are not checked at all).
+    assert.ok(!isWriteExempt("POST", "/api/me/approvals/:id/approve"));
+    assert.ok(!isWriteExempt("POST", "/api/me/approvals/:id/reject"));
+    assert.ok(isWriteExempt("POST", "/api/me/drafts"));
   });
 
   it("LICENSING=warn records what it would have refused, once a day, and blocks nothing", async () => {
