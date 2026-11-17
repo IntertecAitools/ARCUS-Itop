@@ -12,6 +12,7 @@ import { Sealer } from "../auth/seal.js";
 import { devSigner, kmsSigner, readDevPublicKey } from "./issuer/signers.js";
 import { MemoryRegisterStore, MySqlRegisterStore, type RegisterStore } from "./issuer/register.store.js";
 import { registerDeskRoutes } from "./desk.routes.js";
+import { fetchRevocationList, registerActivationRoutes, type ActivationOptions } from "./activation.routes.js";
 import type { Signer } from "./sdk/index.js";
 import type { TenantStore } from "../tenancy/tenant.store.js";
 import { registerFeatureGate, registerLicenceGuard } from "./licence.guard.js";
@@ -24,6 +25,9 @@ import { UsageService, type UsageCounters } from "./usage.service.js";
 export { LicenceService, TRIAL_DAYS, type ScopeStatus } from "./licence.service.js";
 export { MemoryLicenceStore, INSTALLATION_SCOPE, type LicenceStore } from "./licence.store.js";
 export { isWriteExempt } from "./licence.guard.js";
+export { activationRequest, readActivationRequest, readRevocationList, ACTIVATION_KIND, REVOCATION_KIND, type ActivationRequest, type RevocationList } from "./activation.js";
+export { fetchRevocationList, type ActivationOptions } from "./activation.routes.js";
+export { REACTIVATION_DAYS } from "./licence.service.js";
 export { MemoryRegisterStore, type RegisterStore } from "./issuer/register.store.js";
 export { UsageService, LicenceLimitError, hardCap, ACTIVE_MS, type UsageCounters } from "./usage.service.js";
 export { isAgent, limitError } from "./usage.guard.js";
@@ -71,6 +75,8 @@ export function buildLicensing(
       keys: { allowDevKey: config.keys.allowDevKey, ...(devPublicKeyPem ? { devPublicKeyPem } : {}) },
       tenancy,
       installationKind: config.installationKind,
+      ...(config.clusterId ? { clusterId: config.clusterId } : {}),
+      ...(config.releaseDate ? { releaseDate: config.releaseDate } : {}),
       // SaaS: the platform's register says which licences are revoked.
       ...(tenancy
         ? { revokedIds: async () => new Set((await register.list()).filter((e) => e.revokedAt).map((e) => e.licenceId)) }
@@ -103,6 +109,8 @@ export function registerLicensing(
     usage?: UsageService;
     /** The licence desk (operator Licences page); with TENANCY's tenant store. */
     desk?: LicenceDeskParts & { tenants: TenantStore };
+    /** Deployed activation and the revocation list. */
+    activation?: ActivationOptions;
   },
 ): void {
   // Remembers which module's feature each route belongs to (door 1).
@@ -110,13 +118,27 @@ export function registerLicensing(
   registerFeatureGate(app, licensing, options.lineage);
   registerLicenceGuard(app, licensing);
   if (options.usage) registerLimitGuard(app, licensing, options.usage, options.lineage);
-  registerLicenceRoutes(app, licensing, options);
+  registerLicenceRoutes(app, licensing, {
+    ...options,
+    activation: { online: !!options.activation?.activationUrl, ...(options.activation?.clusterId ? { clusterId: options.activation.clusterId } : {}) },
+  });
+  if (options.activation) registerActivationRoutes(app, licensing, options.activation);
   if (options.desk) registerDeskRoutes(app, licensing, { ...options.desk, platformLogins: options.platformLogins });
   // The daily figures: stored every hour (the day's latest), so a restart loses at most an hour of peaks.
   let snapshots: NodeJS.Timeout | undefined;
+  let revocations: NodeJS.Timeout | undefined;
   app.addHook("onReady", async () => {
     await licensing.init();
     licensing.start();
+    // Deployed, online: Intertec's signed revocation list, at start and once a day.
+    const revocationUrl = options.activation?.revocationUrl;
+    if (revocationUrl && !licensing.settings.tenancy) {
+      const fetchList = () =>
+        void fetchRevocationList(licensing, revocationUrl, options.activation?.fetch).then((r) => app.log.info({ result: r }, "licence revocation list"));
+      fetchList();
+      revocations = setInterval(fetchList, 86_400_000);
+      revocations.unref?.();
+    }
     if (options.usage) {
       const usage = options.usage;
       snapshots = setInterval(() => void usage.snapshot().catch((err: unknown) => app.log.error({ err }, "usage snapshot failed")), 3_600_000);
@@ -126,6 +148,7 @@ export function registerLicensing(
   app.addHook("onClose", async () => {
     licensing.stop();
     if (snapshots) clearInterval(snapshots);
+    if (revocations) clearInterval(revocations);
     await options.usage?.snapshot().catch(() => undefined);
   });
 }

@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient, ApiError } from '@/lib/api-client';
-import type { Edition, Feature, LicenceCheckResult, LicenceDetail, LicenceStatus } from '../types';
+import type { ActivationResponse, Edition, Feature, LicenceCheckResult, LicenceDetail, LicenceStatus } from '../types';
 
 export const LICENCE_STATUS_KEY = ['licence', 'status'] as const;
 
@@ -116,5 +116,31 @@ export function useUsageReport() {
         setTimeout(() => URL.revokeObjectURL(url), 10_000);
       }
     },
+  });
+}
+
+/**
+ * Creates the activation request. Online, the answer says whether the
+ * licence came back and was installed; offline (or when sending failed),
+ * the signed request is saved as a file to send to Intertec.
+ */
+export function useActivationRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { orderRef: string; acceptEula?: boolean }) => {
+      const answer = await apiClient.post<ActivationResponse>('/licence/activation-request', input);
+      if (answer.request) {
+        const url = URL.createObjectURL(new Blob([JSON.stringify(answer.request, null, 2)], { type: 'application/json' }));
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'arcus-activation-request.json';
+        document.body.append(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 10_000);
+      }
+      return answer;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['licence'] }),
   });
 }

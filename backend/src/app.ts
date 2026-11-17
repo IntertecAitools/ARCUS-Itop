@@ -104,6 +104,14 @@ export function buildApp(config: Config, options: BuildServicesOptions = {}): Bu
       lineage: (cls) => services.schema.lineage(cls),
       ...(services.licenceUsage ? { usage: services.licenceUsage } : {}),
       ...(services.licenceDesk ? { desk: { ...services.licenceDesk, tenants: services.tenantStore } } : {}),
+      activation: {
+        version: config.licensing!.version,
+        ...(config.licensing!.releaseDate ? { releaseDate: config.licensing!.releaseDate } : {}),
+        ...(config.licensing!.clusterId ? { clusterId: config.licensing!.clusterId } : {}),
+        ...(config.licensing!.activationUrl ? { activationUrl: config.licensing!.activationUrl } : {}),
+        ...(config.licensing!.revocationUrl ? { revocationUrl: config.licensing!.revocationUrl } : {}),
+        ...(options.licenceFetch ? { fetch: options.licenceFetch } : {}),
+      },
     });
   }
 

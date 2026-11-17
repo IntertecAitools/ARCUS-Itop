@@ -49,7 +49,8 @@ export type LicenceEventType =
   | "would_refuse"
   | "refused"
   | "limit_warning"
-  | "eula_accepted";
+  | "eula_accepted"
+  | "activation";
 
 export interface LicenceEvent {
   id?: number;
@@ -92,6 +93,9 @@ export interface LicenceStore extends UsageStore {
   /** Records the EULA (or SaaS terms) as accepted, on the scope's newest licence row. False when it has none. */
   acceptEula(scope: string, by: string, at: Date): Promise<boolean>;
   states(): Promise<StateRow[]>;
+  /** Scopes whose licence names another cluster, since when (the 14-day re-activation window). */
+  rebinds(): Promise<{ scope: string; startedAt: Date }[]>;
+  saveRebind(scope: string, startedAt: Date | null): Promise<void>;
   saveState(row: StateRow): Promise<void>;
   addEvent(event: LicenceEvent): Promise<void>;
   events(scope: string, limit: number): Promise<LicenceEvent[]>;
@@ -150,6 +154,14 @@ export class MemoryLicenceStore implements LicenceStore {
     newest.eulaAcceptedAt = at;
     return true;
   }
+  private readonly rebindRows = new Map<string, Date>();
+  async rebinds() {
+    return [...this.rebindRows].map(([scope, startedAt]) => ({ scope, startedAt }));
+  }
+  async saveRebind(scope: string, startedAt: Date | null) {
+    if (startedAt) this.rebindRows.set(scope, startedAt);
+    else this.rebindRows.delete(scope);
+  }
   async states() {
     return [...this.stateRows.values()].map((r) => ({ ...r }));
   }
@@ -205,6 +217,12 @@ export class MySqlLicenceStore implements LicenceStore {
            high_water DATETIME(3) NOT NULL,
            state VARCHAR(32) NOT NULL,
            grace_started_at DATETIME(3) NULL
+         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+      );
+      await this.pool.query(
+        `CREATE TABLE IF NOT EXISTS bff_licence_rebind (
+           scope VARCHAR(64) NOT NULL PRIMARY KEY,
+           started_at DATETIME(3) NOT NULL
          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
       );
       await this.pool.query(
@@ -286,6 +304,18 @@ export class MySqlLicenceStore implements LicenceStore {
       [by, at, scope],
     );
     return res.affectedRows === 1;
+  }
+
+  async rebinds(): Promise<{ scope: string; startedAt: Date }[]> {
+    await this.init();
+    const [rows] = await this.pool.query<RowDataPacket[]>("SELECT scope, started_at FROM bff_licence_rebind");
+    return rows.map((r) => ({ scope: r["scope"] as string, startedAt: r["started_at"] as Date }));
+  }
+
+  async saveRebind(scope: string, startedAt: Date | null): Promise<void> {
+    await this.init();
+    if (startedAt) await this.pool.query("INSERT IGNORE INTO bff_licence_rebind (scope, started_at) VALUES (?, ?)", [scope, startedAt]);
+    else await this.pool.query("DELETE FROM bff_licence_rebind WHERE scope = ?", [scope]);
   }
 
   async states(): Promise<StateRow[]> {

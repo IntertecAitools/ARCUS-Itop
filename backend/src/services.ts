@@ -244,6 +244,8 @@ export interface BuildServicesOptions {
   usageCounters?: UsageCounters;
   /** The licence register, for tests; otherwise the BFF database, or memory. */
   licenceRegister?: RegisterStore;
+  /** Stands in for Intertec's activation and revocation addresses in tests. */
+  licenceFetch?: typeof fetch;
   logger?: Logger;
 }
 

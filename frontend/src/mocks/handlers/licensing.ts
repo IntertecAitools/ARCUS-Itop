@@ -49,6 +49,7 @@ function status(): LicenceStatus {
     expiresAt: '2027-11-30',
     daysLeft: s === 'expiring' ? 12 : s === 'grace' ? -9 : s === 'read_only' ? -40 : 380,
     graceDaysLeft: s === 'grace' ? 21 : null,
+    reactivationDaysLeft: null,
     nonProduction: s === 'nonprod',
     maintenanceLapsed: false,
     banners,
@@ -112,6 +113,7 @@ function detail(): LicenceDetail {
     canInstall: true,
     deployment: 'deployed',
     installation: { id: '7f3c2a10-8f7e-4d1b-9c39-2b7e5f0a1c22', reportKeyId: 'k3y-1d', reportPublicKey: '-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEA\n-----END PUBLIC KEY-----\n' },
+    activation: { online: false, clusterId: null, last: readStored<{ at: string; result: string } | null>('licence.activation', null) },
     eula: { version: 'placeholder-2026-11', text: EULA_TEXT, required: !accepted, acceptedBy: accepted?.by ?? null, acceptedAt: accepted?.at ?? null },
   };
 }
@@ -122,6 +124,16 @@ function note(type: string, label: string, text: string) {
 }
 
 export const licensingHandlers = [
+  http.post(url('/licence/activation-request'), async ({ request }) => {
+    const { orderRef } = (await request.json()) as { orderRef: string };
+    writeStored('licence.activation', { at: new Date().toISOString(), result: 'Activation request created as a file, to send to Intertec.' });
+    return HttpResponse.json({
+      mode: 'offline',
+      installed: false,
+      message: 'Send this file to Intertec; upload the licence file that comes back.',
+      request: { kind: 'activation_request', alg: 'Ed25519', key_id: 'k3y-1d', payload: { product: 'arcus', installation_id: '7f3c2a10-8f7e-4d1b-9c39-2b7e5f0a1c22', order_ref: orderRef }, signature: 'mock' },
+    });
+  }),
   http.get(url('/licence'), () => HttpResponse.json(detail())),
   http.post(url('/licence/eula'), () => {
     writeStored('licence.eula', { by: 'admin', at: new Date().toISOString() });

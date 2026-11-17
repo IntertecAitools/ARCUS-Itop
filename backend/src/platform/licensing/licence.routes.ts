@@ -31,6 +31,7 @@ const EVENT_LABELS: Record<string, string> = {
   refused: "Refused",
   limit_warning: "Limit warning",
   eula_accepted: "Terms accepted",
+  activation: "Activation",
 };
 
 /** The platform's own address with tenancy on: not a customer, nothing to license. */
@@ -46,13 +47,18 @@ const PLATFORM_STATUS = (mode: LicenceStatus["mode"]): LicenceStatus => ({
   expiresAt: null,
   daysLeft: null,
   graceDaysLeft: null,
+  reactivationDaysLeft: null,
   nonProduction: false,
   maintenanceLapsed: false,
   banners: [],
   operator: false,
 });
 
-export function registerLicenceRoutes(app: FastifyInstance, licensing: LicenceService, options: { platformLogins: string[]; usage?: UsageService }): void {
+export function registerLicenceRoutes(
+  app: FastifyInstance,
+  licensing: LicenceService,
+  options: { platformLogins: string[]; usage?: UsageService; activation?: { online: boolean; clusterId?: string } },
+): void {
   const operators = new Set(options.platformLogins.map((l) => l.toLowerCase()));
 
   const scope = () => {
@@ -136,6 +142,16 @@ export function registerLicenceRoutes(app: FastifyInstance, licensing: LicenceSe
       installation: licensing.settings.tenancy
         ? null
         : { id: install.id, reportKeyId: keyFingerprint(install.reportPublicKeyPem), reportPublicKey: install.reportPublicKeyPem },
+      activation: licensing.settings.tenancy
+        ? null
+        : {
+            online: options.activation?.online ?? false,
+            clusterId: options.activation?.clusterId ?? null,
+            last: (() => {
+              const e = history.find((h) => h.type === "activation");
+              return e ? { at: e.at.toISOString(), result: e.detail } : null;
+            })(),
+          },
       eula: {
         version: EULA_VERSION,
         text: EULA_TEXT,

@@ -15,5 +15,6 @@ export {
   useLicence,
   useAcceptEula,
   useUsageReport,
+  useActivationRequest,
 } from './api/licensing.api';
 export type * from './types';

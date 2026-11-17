@@ -48,6 +48,12 @@ export interface SetupOptions {
   counts?: { agents: number; cis: number };
   /** The real schema instead of the small sample (CI classes, lineages). */
   schema?: CmdbSchema;
+  /** More licensing settings: cluster id, release date, activation and revocation addresses. */
+  settings?: Partial<Pick<NonNullable<Config["licensing"]>, "clusterId" | "releaseDate" | "activationUrl" | "revocationUrl">>;
+  /** Stands in for Intertec's activation and revocation addresses. */
+  fetch?: typeof fetch;
+  /** Reuse these tables: a restart of the BFF over the same database. */
+  store?: MemoryLicenceStore;
   /** The server cannot sign (no LICENCE_SIGNER): the desk lists and revokes only. */
   noSigner?: boolean;
   /** Extra fake upstream answers, after the defaults. */
@@ -63,7 +69,7 @@ export async function licenceApp(options: SetupOptions = {}) {
   const schema = options.schema ?? sampleSchema();
   const counts = options.counts ?? { agents: 0, cis: 0 };
   const sessions = new MemorySessionStore(3_600_000, 3_600_000);
-  const store = new MemoryLicenceStore();
+  const store = options.store ?? new MemoryLicenceStore();
   const tenancy = options.tenancy === true;
   const config: Config = {
     ...testConfig({ auth: { required: true, sessionIdleMs: 3_600_000, sessionMaxMs: 3_600_000, cookieSecure: false, sessionStore: { kind: "memory" } } }),
@@ -72,6 +78,8 @@ export async function licenceApp(options: SetupOptions = {}) {
       keys: { allowDevKey: true, devKeyDir: DEV_DIR },
       installationKind: options.kind ?? "production",
       ...(options.noSigner ? {} : { signer: { kind: "dev" as const } }),
+      version: "0.1.0-test",
+      ...options.settings,
     },
     ...(tenancy ? { tenancy: { enabled: true, platformLogins: ["operator"] } } : {}),
   };
@@ -84,6 +92,7 @@ export async function licenceApp(options: SetupOptions = {}) {
     licenceStore: store,
     licenceClock: () => clock.now,
     usageCounters: { agents: async () => counts.agents, cis: async () => counts.cis },
+    ...(options.fetch ? { licenceFetch: options.fetch } : {}),
     ...(tenancy ? { tenants: new MemoryTenantStore([{ id: "acme", name: "Acme", status: "active", domains: ["acme.test"], orgIds: [10] }]) } : {}),
   });
   await app.ready();

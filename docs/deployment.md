@@ -639,10 +639,14 @@ A newly deployed customer installation starts at `enforce`.
 | --- | --- | --- |
 | `LICENSING` | `off` | `off`, `warn` or `enforce`. In SSM with the other settings. |
 | `LICENCE_SIGNER` | unset on the production image | The operator Licences page signs licences only when set: `kms` (with `LICENCE_KMS_KID`, and `kms:Sign` for the server, not granted today). Unset: the page lists and revokes, the CLI issues. |
+| `LICENCE_CLUSTER_ID` | unset | Deployed in Kubernetes: the namespace UID, part of the licence binding. |
+| `LICENCE_ACTIVATION_URL` | unset | Deployed, online: Intertec's activation address (https). Unset: activation requests are files. |
+| `LICENCE_REVOCATION_URL` | unset | Deployed, online: Intertec's signed revocation list (https), fetched at start and daily. |
+| `ARCUS_RELEASE_DATE` | unset | This release's date (YYYY-MM-DD); perpetual licences refuse releases after their maintenance. Unset: no check. |
 | `LICENCE_INSTALLATION_KIND` | `production` on the production image | `production`, `nonprod` or `standby`. A non-production licence is refused on a `production` installation. |
 
 The licence tables (`bff_installation`, `bff_licences`,
-`bff_licence_state`, `bff_licence_events`, `bff_usage_daily`) are created in the BFF database
+`bff_licence_state`, `bff_licence_events`, `bff_usage_daily`, `bff_licence_rebind`) are created in the BFF database
 on first start with `LICENSING` on; the installation's private report key
 is sealed with `SESSION_SECRET`. With `TENANCY=on` each tenant has its own
 licence, installed by a platform operator (`PLATFORM_LOGINS`); otherwise

@@ -131,3 +131,14 @@ test('licence desk: a new SaaS customer and its licence from one form; renewals;
   await contoso.getByRole('button', { name: 'Revoke licence' }).click();
   await expect(register.getByRole('row').filter({ hasText: 'ARC-2026-000002' })).toContainText('Revoked: contract ended');
 });
+
+test('activation: an offline installation downloads its request file for Intertec @mock', async ({ page }) => {
+  await signIn(page, accounts.staff());
+  await page.goto('/licence');
+  await page.getByLabel('Order reference').fill('SO-45678');
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Create activation request' }).click();
+  expect((await download).suggestedFilename()).toBe('arcus-activation-request.json');
+  await expect(page.getByTestId('activation-result')).toContainText('Send this file to Intertec');
+  await expect(page.getByText(/Last activation, .*: Activation request created as a file/)).toBeVisible();
+});
