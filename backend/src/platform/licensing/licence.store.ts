@@ -79,7 +79,11 @@ export interface UsageStore {
   addUsage(scope: string, day: string, delta: { aiActions?: number; storageBytes?: number }): Promise<void>;
   saveUsageDay(scope: string, day: string, figures: { agents?: number; peakSessions?: number; cis?: number }): Promise<void>;
   usageDays(scope: string, from: string, to: string): Promise<UsageDay[]>;
-  /** Drops figures before `before` (YYYY-MM-DD). */
+  /**
+   * Drops figures before `before` (YYYY-MM-DD). Bytes stored on those days
+   * are carried into the row of `before` first: storage in use is the sum
+   * of every day's bytes, and files do not go away when their day is pruned.
+   */
   pruneUsage(before: string): Promise<void>;
 }
 
@@ -128,7 +132,13 @@ export class MemoryLicenceStore implements LicenceStore {
     return [...this.usage.values()].filter((r) => r.scope === scope && r.day >= from && r.day <= to).sort((a, b) => a.day.localeCompare(b.day)).map((r) => ({ ...r }));
   }
   async pruneUsage(before: string) {
-    for (const [k, r] of this.usage) if (r.day < before) this.usage.delete(k);
+    const carried = new Map<string, number>();
+    for (const [k, r] of this.usage) {
+      if (r.day >= before) continue;
+      carried.set(r.scope, (carried.get(r.scope) ?? 0) + r.storageBytes);
+      this.usage.delete(k);
+    }
+    for (const [scope, bytes] of carried) if (bytes !== 0) await this.addUsage(scope, before, { storageBytes: bytes });
   }
 
   async installation(make: () => Omit<InstallationRow, "createdAt">, now: Date) {
@@ -355,6 +365,29 @@ export class MySqlLicenceStore implements LicenceStore {
 
   async pruneUsage(before: string): Promise<void> {
     await this.init();
-    await this.pool.query("DELETE FROM bff_usage_daily WHERE day < ?", [before]);
+    const conn = await this.pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      const [rows] = await conn.query<RowDataPacket[]>(
+        "SELECT scope, SUM(storage_bytes) AS bytes FROM bff_usage_daily WHERE day < ? GROUP BY scope FOR UPDATE",
+        [before],
+      );
+      for (const r of rows) {
+        const bytes = Number(r["bytes"]);
+        if (!bytes) continue;
+        await conn.query(
+          `INSERT INTO bff_usage_daily (scope, day, storage_bytes) VALUES (?, ?, ?)
+           ON DUPLICATE KEY UPDATE storage_bytes = storage_bytes + VALUES(storage_bytes)`,
+          [r["scope"], before, bytes],
+        );
+      }
+      await conn.query("DELETE FROM bff_usage_daily WHERE day < ?", [before]);
+      await conn.commit();
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
+    }
   }
 }

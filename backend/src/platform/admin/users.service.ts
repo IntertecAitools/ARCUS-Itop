@@ -76,6 +76,8 @@ export interface UpdateUserInput {
 
 const str = (v: unknown) => (v === null || v === undefined ? "" : String(v));
 const USER_FIELDS = "id,login,status,contactid,first_name,last_name,email,language";
+/** Accounts read per page when counting agents for the licence. */
+export const AGENT_COUNT_PAGE = 1000;
 
 /**
  * Account administration, so nobody needs iTop's own console for it.
@@ -356,17 +358,25 @@ export class UsersService {
    * (the tenant guard holds the query to it): the agents a licence counts.
    */
   async countAgents(profileNames: readonly string[]): Promise<number> {
-    const result = await this.client.call("core/get", {
-      class: "User",
-      key: "SELECT User WHERE status = 'enabled'",
-      output_fields: "id",
-      limit: 5000,
-    });
-    const ids = normalizeObjects(result.objects).map((u) => u.id);
-    if (!ids.length) return 0;
     const names = new Set(profileNames);
-    const profiles = await this.profilesOf(ids);
-    return ids.filter((id) => (profiles.get(id) ?? []).some((p) => names.has(p))).length;
+    let agents = 0;
+    // Every enabled account, a page at a time: requesters are users too, and
+    // a tenant may have far more of them than one page holds.
+    for (let page = 1; ; page += 1) {
+      const result = await this.client.call("core/get", {
+        class: "User",
+        key: "SELECT User WHERE status = 'enabled'",
+        output_fields: "id",
+        limit: AGENT_COUNT_PAGE,
+        page,
+      });
+      const ids = normalizeObjects(result.objects).map((u) => u.id);
+      if (ids.length) {
+        const profiles = await this.profilesOf(ids);
+        agents += ids.filter((id) => (profiles.get(id) ?? []).some((p) => names.has(p))).length;
+      }
+      if (ids.length < AGENT_COUNT_PAGE) return agents;
+    }
   }
 
   async setPassword(id: number, password: string): Promise<void> {
