@@ -21,11 +21,11 @@ export function LicenceBanners({ className }: { className?: string }) {
   if (!banners.length) return null;
   return (
     <div className={className} data-testid="licence-banners">
-      {banners.map((b) => {
+      {banners.map((b, i) => {
         const Icon = ICON[b.tone];
         return (
           <p
-            key={b.kind}
+            key={`${b.kind}-${i}`}
             role={b.tone === 'danger' ? 'alert' : 'status'}
             data-kind={b.kind}
             className={`flex items-start gap-2 border-b px-4 py-2 text-[13px] leading-5 ${TONE[b.tone]}`}

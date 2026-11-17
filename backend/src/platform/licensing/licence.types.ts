@@ -48,7 +48,7 @@ export type LicenceState =
 
 export type LicenceType = "subscription" | "perpetual" | "evaluation" | "nonprod";
 
-export type BannerKind = "expiring_soon" | "grace" | "read_only" | "evaluation_mode" | "trial" | "evaluation_expired" | "nonprod";
+export type BannerKind = "expiring_soon" | "grace" | "read_only" | "evaluation_mode" | "trial" | "evaluation_expired" | "nonprod" | "limit";
 
 export interface LicenceBanner {
   kind: BannerKind;
@@ -116,4 +116,19 @@ export interface LicenceCheckResult {
   changes: string[];
   /** Issued before the licence now installed: saving it needs `confirmOlder`. */
   older: boolean;
+}
+
+/** What a licence limits. */
+export type LimitMetric = "agents" | "sessions" | "cis" | "ai_actions" | "storage";
+
+/** One limit against its use: a row of the licence page, a source of the limit banners. */
+export interface UsageRow {
+  metric: LimitMetric;
+  label: string;
+  used: number;
+  /** null: not limited (storage on a deployed installation). */
+  limit: number | null;
+  percent: number | null;
+  /** "warning" from 80%, "full" from 100%, "over" past the 10% allowance (new use paused). */
+  level: "ok" | "warning" | "full" | "over";
 }

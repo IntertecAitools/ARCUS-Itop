@@ -5,7 +5,7 @@ import type { Services } from "../../services.js";
 import { publicUser, type PublicUser } from "./auth.service.js";
 import type { SignInAuditEntry } from "./sign-in-audit.js";
 import { AppError } from "../../core/errors.js";
-import { ssoRefusal } from "../licensing/index.js";
+import { isAgent, LicenceLimitError, limitError, ssoRefusal } from "../licensing/index.js";
 
 export const SESSION_COOKIE = "intertec_sid";
 
@@ -86,6 +86,28 @@ export class SignInFlow {
     return enrolled ? "verify" : "enrol";
   }
 
+  /**
+   * Licence sessions (Build Guide, section 8): an agent not already active
+   * needs a free agent session (named seats plus concurrent seats, plus
+   * 10%); otherwise the sign-in is refused, and they try again when someone
+   * signs out. Requesters and administrators without an agent profile are
+   * never counted.
+   */
+  private async claimSession(request: FastifyRequest, caller: Caller): Promise<void> {
+    const { licensing, licenceUsage: usage, tenancy } = this.services;
+    if (!licensing || !usage || caller.kind !== "staff" || !isAgent(caller.profiles)) return;
+    const scope = licensing.scopeFor((await tenancy.resolve(request.host, caller)).tenant?.id);
+    if (scope === null) return;
+    if (!usage.isActive(scope, caller.login)) {
+      try {
+        await usage.assertCanAdd(scope, "sessions", 1, caller.login);
+      } catch (err) {
+        throw err instanceof LicenceLimitError ? limitError(err) : err;
+      }
+    }
+    usage.noteActivity(scope, caller.login);
+  }
+
   /** Swaps a pending session (if any) for a full one, and records the sign-in. */
   async complete(
     request: FastifyRequest,
@@ -96,6 +118,7 @@ export class SignInFlow {
   ): Promise<{ user: PublicUser }> {
     const method = caller.signIn?.method ?? "password";
     const full: Caller = { ...caller, signIn: { method, ...(mfaUsed ? { mfa: mfaUsed } : {}) } };
+    await this.claimSession(request, full);
     // A new id once fully signed in: whoever saw the pending cookie does not get the session.
     if (pendingId) await this.services.sessions.delete(pendingId);
     const id = await this.services.sessions.create(full);

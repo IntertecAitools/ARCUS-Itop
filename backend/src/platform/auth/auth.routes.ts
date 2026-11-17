@@ -2,7 +2,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 
 import { AppError } from "../../core/errors.js";
-import { currentCaller, enterRequestContext, type Caller } from "../../core/request-context.js";
+import { currentCaller, currentTenant, enterRequestContext, type Caller } from "../../core/request-context.js";
 import type { Resolution } from "../tenancy/resolve.js";
 import { parse } from "../../core/validate.js";
 import type { Services } from "../../services.js";
@@ -276,6 +276,10 @@ export function registerAuth(app: FastifyInstance, services: Services): void {
   });
 
   app.post("/api/auth/logout", async (request, reply) => {
+    // Signing out frees the agent session at once (licence sessions).
+    const leaving = currentCaller();
+    const scope = leaving && services.licensing?.scopeFor(currentTenant()?.id);
+    if (leaving && scope) services.licenceUsage?.forget(scope, leaving.login);
     await sessions.delete(readCookie(request, SESSION_COOKIE));
     reply.header("Set-Cookie", sessionCookie(services, "", 0));
     reply.code(204);

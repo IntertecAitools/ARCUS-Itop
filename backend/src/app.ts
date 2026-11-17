@@ -102,6 +102,7 @@ export function buildApp(config: Config, options: BuildServicesOptions = {}): Bu
     registerLicensing(app, services.licensing, {
       platformLogins: config.tenancy?.platformLogins ?? [],
       lineage: (cls) => services.schema.lineage(cls),
+      ...(services.licenceUsage ? { usage: services.licenceUsage } : {}),
     });
   }
 

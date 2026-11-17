@@ -67,7 +67,18 @@ import { HistoryService } from "./platform/history/history.service.js";
 import { TransferService } from "./platform/transfer/transfer.service.js";
 import { AuthService } from "./platform/auth/auth.service.js";
 import { createPool, type Pool } from "mysql2/promise";
-import { buildLicensing, type LicenceService, type LicenceStore } from "./platform/licensing/index.js";
+import {
+  AGENT_PROFILES,
+  buildLicensing,
+  buildUsage,
+  LicenceLimitError,
+  limitError,
+  type LicenceService,
+  type LicenceStore,
+  type UsageCounters,
+  type UsageService,
+} from "./platform/licensing/index.js";
+import { currentTenant } from "./core/request-context.js";
 import { MySqlSessionStore } from "./platform/auth/session.mysql.js";
 import { MemorySessionStore, type SessionStore } from "./platform/auth/session.store.js";
 import { type Mailer, SmtpMailer } from "./platform/auth/mailer.js";
@@ -183,6 +194,8 @@ export interface Services {
   preferences: PreferencesStore;
   /** The licence module; absent with LICENSING=off (not loaded). */
   licensing?: LicenceService;
+  /** Licence limits and metering, with the licence module. */
+  licenceUsage?: UsageService;
 }
 
 export interface BuildServicesOptions {
@@ -223,6 +236,8 @@ export interface BuildServicesOptions {
   licenceStore?: LicenceStore;
   /** The licence module's clock, for tests. */
   licenceClock?: () => Date;
+  /** Agent and CI counts for the licence limits, for tests. */
+  usageCounters?: UsageCounters;
   logger?: Logger;
 }
 
@@ -401,7 +416,7 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
   );
   const passwordReset = new PasswordResetService(client, auth, resetTokens, sessions, mailer, reset);
 
-  return {
+  const services: Services = {
     config,
     schema,
     navigation,
@@ -478,6 +493,31 @@ export function buildServices(config: Config, options: BuildServicesOptions = {}
     preferences:
       options.preferences ?? (stores?.pool ? new MySqlPreferencesStore(stores.pool) : new MemoryPreferencesStore()),
     ...licensingService(config, stores?.pool, options),
+  };
+  wireUsage(services, options);
+  return services;
+}
+
+/**
+ * Limits on top of the licence module: the seat check in the users service,
+ * and counts of agents and CIs from the services that own them (held to the
+ * current tenant by the scoped client).
+ */
+function wireUsage(services: Services, options: BuildServicesOptions): void {
+  const { licensing, users, objects } = services;
+  if (!licensing) return;
+  const counters: UsageCounters = options.usageCounters ?? {
+    agents: () => users.countAgents(AGENT_PROFILES),
+    cis: async () => (await objects.list("FunctionalCI", { page: 1, limit: 1, fields: "id" })).total,
+  };
+  const usage = buildUsage(licensing, counters, options.licenceClock);
+  services.licenceUsage = usage;
+  users.seats = {
+    agentProfiles: AGENT_PROFILES,
+    assertSeat: (login) =>
+      usage.assertCanAdd(licensing.scopeFor(currentTenant()?.id), "agents", 1, login).catch((err: unknown) => {
+        throw err instanceof LicenceLimitError ? limitError(err) : err;
+      }),
   };
 }
 

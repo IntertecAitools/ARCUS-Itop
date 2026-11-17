@@ -627,7 +627,7 @@ One setting turns it on, in steps, so nobody is locked out:
 | --- | --- |
 | `off` (default) | The licence module is not loaded. Nothing is checked or blocked; no licence routes. |
 | `warn` | Every licence is checked and recorded, banners show, but nothing is blocked. What would have been refused is recorded once a day as a `would_refuse` licence event. |
-| `enforce` | Read-only mode when a licence has ended past its grace or is not valid; edition gating (modules, platform routes and record classes the edition lacks answer 403 and leave the menus); limits as they land. |
+| `enforce` | Read-only mode when a licence has ended past its grace or is not valid; edition gating (modules, platform routes and record classes the edition lacks answer 403 and leave the menus); limits (agents, agent sessions, CIs, AI actions, storage: new use pauses past the limit plus 10%). |
 
 **Production stays at `off`** until every tenant, Intertec's own included,
 has a licence installed. Then `warn` for about two weeks, reading the
@@ -641,7 +641,7 @@ A newly deployed customer installation starts at `enforce`.
 | `LICENCE_INSTALLATION_KIND` | `production` on the production image | `production`, `nonprod` or `standby`. A non-production licence is refused on a `production` installation. |
 
 The licence tables (`bff_installation`, `bff_licences`,
-`bff_licence_state`, `bff_licence_events`) are created in the BFF database
+`bff_licence_state`, `bff_licence_events`, `bff_usage_daily`) are created in the BFF database
 on first start with `LICENSING` on; the installation's private report key
 is sealed with `SESSION_SECRET`. With `TENANCY=on` each tenant has its own
 licence, installed by a platform operator (`PLATFORM_LOGINS`); otherwise

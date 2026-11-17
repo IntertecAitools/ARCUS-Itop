@@ -61,7 +61,33 @@ export interface LicenceEvent {
   detail: string;
 }
 
-export interface LicenceStore {
+/** One scope's figures for one day (bff_usage_daily). */
+export interface UsageDay {
+  scope: string;
+  day: string;
+  agents: number;
+  peakSessions: number;
+  cis: number;
+  /** AI requests made that day. */
+  aiActions: number;
+  /** Bytes stored that day (negative when removed); the storage in use is the sum. */
+  storageBytes: number;
+}
+
+/** The daily figures (Build Guide, section 8): counted as they happen, kept two years. */
+export interface UsageStore {
+  addUsage(scope: string, day: string, delta: { aiActions?: number; storageBytes?: number }): Promise<void>;
+  saveUsageDay(scope: string, day: string, figures: { agents?: number; peakSessions?: number; cis?: number }): Promise<void>;
+  usageDays(scope: string, from: string, to: string): Promise<UsageDay[]>;
+  /**
+   * Drops figures before `before` (YYYY-MM-DD). Bytes stored on those days
+   * are carried into the row of `before` first: storage in use is the sum
+   * of every day's bytes, and files do not go away when their day is pruned.
+   */
+  pruneUsage(before: string): Promise<void>;
+}
+
+export interface LicenceStore extends UsageStore {
   /** The installation row, made on first call with `make` (a new id and key pair). */
   installation(make: () => Omit<InstallationRow, "createdAt">, now: Date): Promise<InstallationRow>;
   /** Every scope's licences, newest first. */
@@ -80,6 +106,40 @@ export class MemoryLicenceStore implements LicenceStore {
   private readonly stateRows = new Map<string, StateRow>();
   private readonly eventRows: LicenceEvent[] = [];
   private nextId = 1;
+  private readonly usage = new Map<string, UsageDay>();
+
+  private day(scope: string, day: string): UsageDay {
+    const key = `${scope}|${day}`;
+    let row = this.usage.get(key);
+    if (!row) {
+      row = { scope, day, agents: 0, peakSessions: 0, cis: 0, aiActions: 0, storageBytes: 0 };
+      this.usage.set(key, row);
+    }
+    return row;
+  }
+  async addUsage(scope: string, day: string, delta: { aiActions?: number; storageBytes?: number }) {
+    const row = this.day(scope, day);
+    row.aiActions += delta.aiActions ?? 0;
+    row.storageBytes += delta.storageBytes ?? 0;
+  }
+  async saveUsageDay(scope: string, day: string, f: { agents?: number; peakSessions?: number; cis?: number }) {
+    const row = this.day(scope, day);
+    if (f.agents !== undefined) row.agents = f.agents;
+    if (f.cis !== undefined) row.cis = f.cis;
+    if (f.peakSessions !== undefined) row.peakSessions = Math.max(row.peakSessions, f.peakSessions);
+  }
+  async usageDays(scope: string, from: string, to: string) {
+    return [...this.usage.values()].filter((r) => r.scope === scope && r.day >= from && r.day <= to).sort((a, b) => a.day.localeCompare(b.day)).map((r) => ({ ...r }));
+  }
+  async pruneUsage(before: string) {
+    const carried = new Map<string, number>();
+    for (const [k, r] of this.usage) {
+      if (r.day >= before) continue;
+      carried.set(r.scope, (carried.get(r.scope) ?? 0) + r.storageBytes);
+      this.usage.delete(k);
+    }
+    for (const [scope, bytes] of carried) if (bytes !== 0) await this.addUsage(scope, before, { storageBytes: bytes });
+  }
 
   async installation(make: () => Omit<InstallationRow, "createdAt">, now: Date) {
     this.install ??= { ...make(), createdAt: now };
@@ -146,6 +206,18 @@ export class MySqlLicenceStore implements LicenceStore {
            high_water DATETIME(3) NOT NULL,
            state VARCHAR(32) NOT NULL,
            grace_started_at DATETIME(3) NULL
+         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+      );
+      await this.pool.query(
+        `CREATE TABLE IF NOT EXISTS bff_usage_daily (
+           scope VARCHAR(64) NOT NULL,
+           day DATE NOT NULL,
+           agents INT NOT NULL DEFAULT 0,
+           peak_sessions INT NOT NULL DEFAULT 0,
+           cis INT NOT NULL DEFAULT 0,
+           ai_actions INT NOT NULL DEFAULT 0,
+           storage_bytes BIGINT NOT NULL DEFAULT 0,
+           PRIMARY KEY (scope, day)
          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
       );
       await this.pool.query(
@@ -251,5 +323,71 @@ export class MySqlLicenceStore implements LicenceStore {
       actor: (r["actor"] as string | null) ?? null,
       detail: r["detail"] as string,
     }));
+  }
+
+  async addUsage(scope: string, day: string, delta: { aiActions?: number; storageBytes?: number }): Promise<void> {
+    await this.init();
+    await this.pool.query(
+      `INSERT INTO bff_usage_daily (scope, day, ai_actions, storage_bytes) VALUES (?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE ai_actions = ai_actions + VALUES(ai_actions), storage_bytes = storage_bytes + VALUES(storage_bytes)`,
+      [scope, day, delta.aiActions ?? 0, delta.storageBytes ?? 0],
+    );
+  }
+
+  async saveUsageDay(scope: string, day: string, f: { agents?: number; peakSessions?: number; cis?: number }): Promise<void> {
+    await this.init();
+    await this.pool.query(
+      `INSERT INTO bff_usage_daily (scope, day, agents, peak_sessions, cis) VALUES (?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+         agents = IF(? IS NULL, agents, VALUES(agents)),
+         cis = IF(? IS NULL, cis, VALUES(cis)),
+         peak_sessions = GREATEST(peak_sessions, VALUES(peak_sessions))`,
+      [scope, day, f.agents ?? 0, f.peakSessions ?? 0, f.cis ?? 0, f.agents ?? null, f.cis ?? null],
+    );
+  }
+
+  async usageDays(scope: string, from: string, to: string): Promise<UsageDay[]> {
+    await this.init();
+    const [rows] = await this.pool.query<RowDataPacket[]>(
+      "SELECT scope, DATE_FORMAT(day, '%Y-%m-%d') AS day, agents, peak_sessions, cis, ai_actions, storage_bytes FROM bff_usage_daily WHERE scope = ? AND day BETWEEN ? AND ? ORDER BY day",
+      [scope, from, to],
+    );
+    return rows.map((r) => ({
+      scope: r["scope"] as string,
+      day: r["day"] as string,
+      agents: Number(r["agents"]),
+      peakSessions: Number(r["peak_sessions"]),
+      cis: Number(r["cis"]),
+      aiActions: Number(r["ai_actions"]),
+      storageBytes: Number(r["storage_bytes"]),
+    }));
+  }
+
+  async pruneUsage(before: string): Promise<void> {
+    await this.init();
+    const conn = await this.pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      const [rows] = await conn.query<RowDataPacket[]>(
+        "SELECT scope, SUM(storage_bytes) AS bytes FROM bff_usage_daily WHERE day < ? GROUP BY scope FOR UPDATE",
+        [before],
+      );
+      for (const r of rows) {
+        const bytes = Number(r["bytes"]);
+        if (!bytes) continue;
+        await conn.query(
+          `INSERT INTO bff_usage_daily (scope, day, storage_bytes) VALUES (?, ?, ?)
+           ON DUPLICATE KEY UPDATE storage_bytes = storage_bytes + VALUES(storage_bytes)`,
+          [r["scope"], before, bytes],
+        );
+      }
+      await conn.query("DELETE FROM bff_usage_daily WHERE day < ?", [before]);
+      await conn.commit();
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
+    }
   }
 }

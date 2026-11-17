@@ -12,6 +12,7 @@ import { devSigner } from "../src/platform/licensing/issuer/signers.js";
 import { MemoryLicenceStore, type LicenceStatus } from "../src/platform/licensing/index.js";
 import { signLicence } from "../src/platform/licensing/sdk/index.js";
 import { MemoryTenantStore } from "../src/platform/tenancy/tenant.store.js";
+import type { CmdbSchema } from "../src/schema/load.js";
 import { FakeItopClient, getResponse, sampleDashboards, sampleNavigation, sampleSchema, testConfig } from "./helpers.js";
 
 /**
@@ -43,6 +44,12 @@ export interface SetupOptions {
   tenancy?: boolean;
   kind?: "production" | "nonprod" | "standby";
   start?: string;
+  /** Agent and CI counts the limits see (default 0). */
+  counts?: { agents: number; cis: number };
+  /** The real schema instead of the small sample (CI classes, lineages). */
+  schema?: CmdbSchema;
+  /** Extra fake upstream answers, after the defaults. */
+  itop?: (fake: FakeItopClient) => void;
 }
 
 export async function licenceApp(options: SetupOptions = {}) {
@@ -50,7 +57,9 @@ export async function licenceApp(options: SetupOptions = {}) {
   const fake = new FakeItopClient();
   fake.on("core/get", () => getResponse([{ class: "Organization", id: 1, fields: { name: "HQ", status: "active", parent_id: 0 } }]));
   fake.on("core/create", (p) => getResponse([{ class: String(p["class"]), id: 99, fields: { name: "new" } }]));
-  const schema = sampleSchema();
+  options.itop?.(fake);
+  const schema = options.schema ?? sampleSchema();
+  const counts = options.counts ?? { agents: 0, cis: 0 };
   const sessions = new MemorySessionStore(3_600_000, 3_600_000);
   const store = new MemoryLicenceStore();
   const tenancy = options.tenancy === true;
@@ -67,6 +76,7 @@ export async function licenceApp(options: SetupOptions = {}) {
     sessions,
     licenceStore: store,
     licenceClock: () => clock.now,
+    usageCounters: { agents: async () => counts.agents, cis: async () => counts.cis },
     ...(tenancy ? { tenants: new MemoryTenantStore([{ id: "acme", name: "Acme", status: "active", domains: ["acme.test"], orgIds: [10] }]) } : {}),
   });
   await app.ready();
@@ -80,7 +90,7 @@ export async function licenceApp(options: SetupOptions = {}) {
     requester: await cookie(person("pat", "portal", ["Portal user"])),
     operator: await cookie(person("operator", "staff", ["Administrator"])),
   };
-  const send = (method: "GET" | "POST" | "PUT", url: string, who: string, payload?: unknown) =>
+  const send = (method: "GET" | "POST" | "PUT" | "PATCH", url: string, who: string, payload?: unknown) =>
     app.inject({ method, url, headers: { host, cookie: who }, ...(payload !== undefined ? { payload: payload as object } : {}) });
   const status = async (who = users.agent) => (await send("GET", "/api/licence/status", who)).json() as LicenceStatus;
   /** Moves the clock and lets the minute refresh run. */
@@ -107,7 +117,7 @@ export async function licenceApp(options: SetupOptions = {}) {
     send("PUT", "/api/licence", who, { text, ...(confirmOlder ? { confirmOlder } : {}) });
   const write = (who = users.agent) => send("POST", "/api/objects/Organization", who, { fields: { name: "Branch" } });
   const exportCsv = (who = users.agent) => send("GET", "/api/objects/Organization/export?format=csv", who);
-  return { app, licensing, store, clock, users, send, status, advanceTo, issue, install, write, exportCsv };
+  return { app, services, licensing, usage: services.licenceUsage!, counts, store, clock, users, send, status, advanceTo, issue, install, write, exportCsv };
 }
 
 

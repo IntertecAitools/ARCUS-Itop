@@ -4,6 +4,22 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-11-16 — Licensing phase 4: limits and metering
+
+| What ran | Result |
+|---|---|
+| `npm test` (backend) | 975/975 passed (8 new in `test/licence-limits.test.ts`) |
+| `npm run typecheck` / `npm run build` (backend) | passed |
+| `npx vitest run` (frontend) | 329/329 passed |
+| `npm run typecheck` / `npm run build` (frontend) | passed |
+| `npm run e2e` (mock journeys, port 5781) | 36/36 passed |
+
+**LT-03** (one agent beyond named seats refused, existing agents unaffected): through `POST /api/admin/users` and enabling a disabled agent, with a stubbed agent count; passing. **LT-04** (more sessions than seats refused): on `SignInFlow` with the memory session store, including a repeat sign-in, a requester, sign-out and 15 quiet minutes; passing. **LT-05** (CI warnings at 80% and 100%, pause above 110%): CI record creation, data import and synchronised sources with stubbed counts against the real schema; banners for administrators only, warnings recorded once a day; editing a CI and non-CI records unaffected; passing. Also: AI actions pause and return next month, `warn` mode, daily figures.
+
+**Bugs found while testing:** none in the product. Three test mistakes fixed: synchronised sources are Enterprise-only, so a Professional key got `LICENCE_FEATURE` first (the test now uses Enterprise); the administrator who installs the key holds an agent profile and so has a session, which the session and peak counts must include.
+
+**Not covered:** sessions are counted per BFF instance (one in production today); storage counts uploads since licensing was switched on, not files already there or deletions; an import is checked once per file, not per row; no live run with `LICENSING=enforce`; the MySQL `bff_usage_daily` table against a real database.
+
 ### 2026-11-16 — Licensing phase 3: edition gating
 
 | What ran | Result |

@@ -14,10 +14,15 @@ import { registerFeatureGate, registerLicenceGuard } from "./licence.guard.js";
 import { registerLicenceRoutes } from "./licence.routes.js";
 import { LicenceService } from "./licence.service.js";
 import { MemoryLicenceStore, MySqlLicenceStore, type LicenceStore } from "./licence.store.js";
+import { registerLimitGuard } from "./usage.guard.js";
+import { UsageService, type UsageCounters } from "./usage.service.js";
 
 export { LicenceService, TRIAL_DAYS, type ScopeStatus } from "./licence.service.js";
 export { MemoryLicenceStore, INSTALLATION_SCOPE, type LicenceStore } from "./licence.store.js";
 export { isWriteExempt } from "./licence.guard.js";
+export { UsageService, LicenceLimitError, hardCap, ACTIVE_MS, type UsageCounters } from "./usage.service.js";
+export { isAgent, limitError } from "./usage.guard.js";
+export { AGENT_PROFILES } from "./editions.js";
 export { featureOfClass, featureOfRoute, type Feature } from "./editions.js";
 export type * from "./licence.types.js";
 
@@ -50,21 +55,38 @@ export function buildLicensing(config: LicensingConfig | undefined, tenancy: boo
 }
 
 /** The read-only guard, the licence API, and the minute refresh. Called after the sign-in guard. */
+/** Limits and metering over the licence module's tables. */
+export function buildUsage(licensing: LicenceService, counters: UsageCounters, now?: () => Date): UsageService {
+  return new UsageService(licensing, licensing.usageStore, counters, now);
+}
+
 export function registerLicensing(
   app: FastifyInstance,
   licensing: LicenceService,
-  options: { platformLogins: string[]; lineage: (cls: string) => string[] },
+  options: { platformLogins: string[]; lineage: (cls: string) => string[]; usage?: UsageService },
 ): void {
   // Remembers which module's feature each route belongs to (door 1).
   app.addHook("onRoute", (route) => licensing.noteRoute(route.url));
   registerFeatureGate(app, licensing, options.lineage);
   registerLicenceGuard(app, licensing);
+  if (options.usage) registerLimitGuard(app, licensing, options.usage, options.lineage);
   registerLicenceRoutes(app, licensing, options);
+  // The daily figures: stored every hour (the day's latest), so a restart loses at most an hour of peaks.
+  let snapshots: NodeJS.Timeout | undefined;
   app.addHook("onReady", async () => {
     await licensing.init();
     licensing.start();
+    if (options.usage) {
+      const usage = options.usage;
+      snapshots = setInterval(() => void usage.snapshot().catch((err: unknown) => app.log.error({ err }, "usage snapshot failed")), 3_600_000);
+      snapshots.unref?.();
+    }
   });
-  app.addHook("onClose", async () => licensing.stop());
+  app.addHook("onClose", async () => {
+    licensing.stop();
+    if (snapshots) clearInterval(snapshots);
+    await options.usage?.snapshot().catch(() => undefined);
+  });
 }
 
 /**

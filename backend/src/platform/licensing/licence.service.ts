@@ -94,6 +94,11 @@ export class LicenceService {
     private readonly logger?: Logger,
   ) {}
 
+  /** The tables, for the usage service (they share the BFF database). */
+  get usageStore(): LicenceStore {
+    return this.store;
+  }
+
   get mode(): LicensingMode {
     return this.settings.mode;
   }
