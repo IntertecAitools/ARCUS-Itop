@@ -36,6 +36,9 @@ export type LicensingMode = 'warn' | 'enforce';
  *   installation, the clock moved back, or (SaaS) none installed. As read-only.
  * - `trial`: a deployed installation with no licence yet, in its first 30 days.
  * - `evaluation_expired`: an evaluation licence (or the trial) has ended. As read-only.
+ * - `reactivation`: a deployed installation now on another cluster than its
+ *   licence names (restored elsewhere): it works for 14 days while a
+ *   re-issued licence is asked for, then evaluation mode.
  */
 export type LicenceState =
   | 'valid'
@@ -44,11 +47,12 @@ export type LicenceState =
   | 'read_only'
   | 'evaluation_mode'
   | 'trial'
-  | 'evaluation_expired';
+  | 'evaluation_expired'
+  | 'reactivation';
 
 export type LicenceType = 'subscription' | 'perpetual' | 'evaluation' | 'nonprod';
 
-export type BannerKind = 'expiring_soon' | 'grace' | 'read_only' | 'evaluation_mode' | 'trial' | 'evaluation_expired' | 'nonprod' | 'limit' | 'eula';
+export type BannerKind = 'expiring_soon' | 'grace' | 'read_only' | 'evaluation_mode' | 'trial' | 'evaluation_expired' | 'nonprod' | 'limit' | 'eula' | 'reactivation';
 
 export interface LicenceBanner {
   kind: BannerKind;
@@ -74,6 +78,8 @@ export interface LicenceStatus {
   /** Days until expiresAt (trial: days of trial left). */
   daysLeft: number | null;
   graceDaysLeft: number | null;
+  /** In the re-activation window after a cluster change: days left. */
+  reactivationDaysLeft: number | null;
   nonProduction: boolean;
   /** Perpetual licence past its maintenance end: no upgrade rights. */
   maintenanceLapsed: boolean;
@@ -158,6 +164,15 @@ export interface LicenceDetail {
   deployment: 'saas' | 'deployed';
   /** Deployed: this installation's id and the public key its reports are signed with. */
   installation: { id: string; reportKeyId: string; reportPublicKey: string } | null;
+  /** Deployed: activation (Build Guide, section 10). */
+  activation: {
+    /** Requests are sent to Intertec directly (LICENCE_ACTIVATION_URL); otherwise downloaded as a file. */
+    online: boolean;
+    /** The cluster this installation runs in, when it has one. */
+    clusterId: string | null;
+    /** The last activation request and what came of it. */
+    last: { at: string; result: string } | null;
+  } | null;
   /** The end-user licence agreement (deployed) or terms of service (SaaS): LIC-17. */
   eula: {
     version: string;
@@ -227,4 +242,15 @@ export interface IssueLicenceResult {
   /** SaaS: the licence was installed for its tenant straight away. */
   installed: boolean;
   tenantCreated: boolean;
+}
+
+/** POST /api/licence/activation-request: what activating did (Build Guide, section 10). */
+export interface ActivationResponse {
+  /** 'online': sent to Intertec's activation address; 'offline': a file to send. */
+  mode: 'online' | 'offline';
+  /** The signed request, to download (offline, or when sending failed). */
+  request?: unknown;
+  /** Online: the licence that came back was installed. */
+  installed: boolean;
+  message: string;
 }

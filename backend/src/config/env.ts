@@ -630,6 +630,38 @@ export interface LicensingConfig {
    * lists, re-issues nothing and revokes, and the CLI issues.
    */
   signer?: LicenceIssuerConfig["signer"];
+  /**
+   * Deployed activation (Build Guide, section 10). LICENCE_CLUSTER_ID: the
+   * Kubernetes namespace UID, once Arcus runs in a cluster (part of the
+   * binding). LICENCE_ACTIVATION_URL: Intertec's activation address, when
+   * the installation may reach it (else the request is a file).
+   * LICENCE_REVOCATION_URL: Intertec's signed revocation list, fetched daily
+   * when set.
+   */
+  clusterId?: string;
+  activationUrl?: string;
+  revocationUrl?: string;
+  /** This release's date, ARCUS_RELEASE_DATE (set by the image build); perpetual licences refuse later releases. */
+  releaseDate?: string;
+  /** This release's version (package.json). */
+  version: string;
+}
+
+function packageVersion(): string {
+  try {
+    return (JSON.parse(readFileSync(resolve(PACKAGE_ROOT, "package.json"), "utf8")) as { version?: string }).version ?? "unknown";
+  } catch {
+    return "unknown";
+  }
+}
+
+function httpsUrl(name: string): string | undefined {
+  const raw = optional(name, "");
+  if (!raw) return undefined;
+  if (!/^https:\/\//.test(raw) && !/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?\//.test(raw)) {
+    throw new Error(`${name} must be an https:// address.`);
+  }
+  return raw;
 }
 
 /** LICENCE_SIGNER and its KMS settings; undefined when unset on a production build. */
@@ -651,6 +683,13 @@ function signerConfig(keys: LicenceKeysConfig, fallback: "dev" | undefined): Lic
   };
 }
 
+function releaseDate(): string | undefined {
+  const raw = optional("ARCUS_RELEASE_DATE", "");
+  if (!raw) return undefined;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) throw new Error("ARCUS_RELEASE_DATE must be a date, YYYY-MM-DD.");
+  return raw;
+}
+
 function licensingConfig(): LicensingConfig | undefined {
   const mode = oneOf("LICENSING", "off", ["off", "warn", "enforce"] as const);
   if (mode === "off") return undefined;
@@ -660,6 +699,11 @@ function licensingConfig(): LicensingConfig | undefined {
     keys,
     installationKind: oneOf("LICENCE_INSTALLATION_KIND", keys.allowDevKey ? "nonprod" : "production", ["production", "nonprod", "standby"] as const),
     ...(signerConfig(keys, keys.allowDevKey ? "dev" : undefined) ? { signer: signerConfig(keys, keys.allowDevKey ? "dev" : undefined)! } : {}),
+    ...(optional("LICENCE_CLUSTER_ID", "") ? { clusterId: optional("LICENCE_CLUSTER_ID", "") } : {}),
+    ...(httpsUrl("LICENCE_ACTIVATION_URL") ? { activationUrl: httpsUrl("LICENCE_ACTIVATION_URL")! } : {}),
+    ...(httpsUrl("LICENCE_REVOCATION_URL") ? { revocationUrl: httpsUrl("LICENCE_REVOCATION_URL")! } : {}),
+    ...(releaseDate() ? { releaseDate: releaseDate()! } : {}),
+    version: packageVersion(),
   };
 }
 
