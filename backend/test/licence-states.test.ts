@@ -1,114 +1,12 @@
 import assert from "node:assert/strict";
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { after, describe, it } from "node:test";
 
 import { buildApp } from "../src/app.js";
-import type { Config } from "../src/config/env.js";
-import type { Caller } from "../src/core/request-context.js";
-import { MemorySessionStore } from "../src/platform/auth/session.store.js";
-import { buildLicenceFields, type IssueRequest } from "../src/platform/licensing/issuer/issue.js";
-import { devSigner } from "../src/platform/licensing/issuer/signers.js";
-import { MemoryLicenceStore, isWriteExempt, type LicenceStatus } from "../src/platform/licensing/index.js";
-import { signLicence } from "../src/platform/licensing/sdk/index.js";
-import { MemoryTenantStore } from "../src/platform/tenancy/tenant.store.js";
+import { isWriteExempt } from "../src/platform/licensing/index.js";
 import { FakeItopClient, getResponse, sampleDashboards, sampleNavigation, sampleSchema, testConfig } from "./helpers.js";
+import { code, licenceApp as setup } from "./licence-app.js";
 import { tamper } from "./licence-helpers.js";
 
-/** A development key for this run only: the licence module trusts it as kid "dev". */
-const DEV_DIR = mkdtempSync(join(tmpdir(), "arcus-licence-test-"));
-const signer = devSigner(DEV_DIR);
-
-function person(login: string, kind: "staff" | "portal", profiles: string[]): Caller {
-  return {
-    userId: login.length,
-    login,
-    contactId: 1,
-    name: login,
-    email: "",
-    kind,
-    profiles,
-    isAdmin: profiles.includes("Administrator"),
-    allowedOrgIds: [],
-    orgId: 10,
-    credentials: { user: login, password: "pw" },
-  };
-}
-
-interface SetupOptions {
-  mode?: "warn" | "enforce";
-  tenancy?: boolean;
-  kind?: "production" | "nonprod" | "standby";
-  start?: string;
-}
-
-async function setup(options: SetupOptions = {}) {
-  const clock = { now: new Date(options.start ?? "2026-12-01T09:00:00Z") };
-  const fake = new FakeItopClient();
-  fake.on("core/get", () => getResponse([{ class: "Organization", id: 1, fields: { name: "HQ", status: "active", parent_id: 0 } }]));
-  fake.on("core/create", (p) => getResponse([{ class: String(p["class"]), id: 99, fields: { name: "new" } }]));
-  const schema = sampleSchema();
-  const sessions = new MemorySessionStore(3_600_000, 3_600_000);
-  const store = new MemoryLicenceStore();
-  const tenancy = options.tenancy === true;
-  const config: Config = {
-    ...testConfig({ auth: { required: true, sessionIdleMs: 3_600_000, sessionMaxMs: 3_600_000, cookieSecure: false, sessionStore: { kind: "memory" } } }),
-    licensing: { mode: options.mode ?? "enforce", keys: { allowDevKey: true, devKeyDir: DEV_DIR }, installationKind: options.kind ?? "production" },
-    ...(tenancy ? { tenancy: { enabled: true, platformLogins: ["operator"] } } : {}),
-  };
-  const { app, services } = buildApp(config, {
-    client: fake.asClient(),
-    schema,
-    navigation: sampleNavigation(schema),
-    dashboards: sampleDashboards(fake.asClient(), schema),
-    sessions,
-    licenceStore: store,
-    licenceClock: () => clock.now,
-    ...(tenancy ? { tenants: new MemoryTenantStore([{ id: "acme", name: "Acme", status: "active", domains: ["acme.test"], orgIds: [10] }]) } : {}),
-  });
-  await app.ready();
-  after(() => app.close());
-  const licensing = services.licensing!;
-  const cookie = async (c: Caller) => `intertec_sid=${await sessions.create(c)}`;
-  const host = tenancy ? "acme.test" : "app.test";
-  const users = {
-    admin: await cookie(person("admin", "staff", ["Administrator", "Support Agent"])),
-    agent: await cookie(person("agent", "staff", ["Support Agent"])),
-    requester: await cookie(person("pat", "portal", ["Portal user"])),
-    operator: await cookie(person("operator", "staff", ["Administrator"])),
-  };
-  const send = (method: "GET" | "POST" | "PUT", url: string, who: string, payload?: unknown) =>
-    app.inject({ method, url, headers: { host, cookie: who }, ...(payload !== undefined ? { payload: payload as object } : {}) });
-  const status = async (who = users.agent) => (await send("GET", "/api/licence/status", who)).json() as LicenceStatus;
-  /** Moves the clock and lets the minute refresh run. */
-  const advanceTo = async (iso: string) => {
-    clock.now = new Date(iso);
-    await licensing.refresh();
-  };
-  const binding = tenancy ? "tenant:acme" : `install:${licensing.installation().id}`;
-  const issue = async (req: Partial<Omit<IssueRequest, "order">> & { order?: Partial<IssueRequest["order"]> } = {}, id = "ARC-2026-000123") => {
-    const { order, ...rest } = req;
-    const full: IssueRequest = {
-      customer: "Example Co",
-      orderRef: "SO-1",
-      type: "subscription",
-      termYears: 1,
-      validFrom: "2026-12-01",
-      binding,
-      ...rest,
-      order: { edition: "PRO", deployment: tenancy ? "saas" : "deployed", agents: 10, ...order },
-    };
-    return (await signLicence(buildLicenceFields(full, id, clock.now), signer)).text;
-  };
-  const install = (text: string, who = tenancy ? users.operator : users.admin, confirmOlder?: boolean) =>
-    send("PUT", "/api/licence", who, { text, ...(confirmOlder ? { confirmOlder } : {}) });
-  const write = (who = users.agent) => send("POST", "/api/objects/Organization", who, { fields: { name: "Branch" } });
-  const exportCsv = (who = users.agent) => send("GET", "/api/objects/Organization/export?format=csv", who);
-  return { app, licensing, store, clock, users, send, status, advanceTo, issue, install, write, exportCsv };
-}
-
-const code = (r: { json(): unknown }) => (r.json() as { error?: { code?: string } }).error?.code;
 
 describe("licence states and read-only mode", () => {
   it("installs a checked key at once, with no restart (LIC-13)", async () => {

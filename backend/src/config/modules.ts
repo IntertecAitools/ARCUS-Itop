@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import type { Feature } from "../platform/licensing/editions.js";
 
 import type { Services } from "../services.js";
 import { registerAutoCloseRoutes } from "../modules/auto-close/index.js";
@@ -43,6 +44,7 @@ import { registerTicketHandlingRoutes } from "../modules/ticket-handling/index.j
  *
  *        {
  *          id: "incidents",
+ *          feature: "service_desk",             // licence feature (editions.ts)
  *          basePath: "/api/incidents",
  *          description: "Unplanned interruptions to a service.",
  *          register: registerIncidentRoutes,
@@ -56,6 +58,12 @@ export interface BackendModule {
   id: string;
   /** Route prefix this module owns. Documentation + collision checking. */
   basePath: string;
+  /**
+   * The licence feature that unlocks this module (platform/licensing/editions.ts).
+   * With LICENSING=enforce its routes answer 403 LICENCE_FEATURE when the
+   * edition does not include it, and GET /api/meta/modules leaves it out.
+   */
+  feature: Feature;
   /** One line, surfaced by GET /api/meta/modules. */
   description: string;
   /** Attaches the module's routes to the server. */
@@ -65,90 +73,105 @@ export interface BackendModule {
 export const modules: BackendModule[] = [
   {
     id: "auto-close",
+    feature: "service_desk",
     basePath: "/api/admin/auto-close",
     description: "Resolved incidents and requests close by themselves after a tenant's delay, with a reminder to the caller first.",
     register: registerAutoCloseRoutes,
   },
   {
     id: "business-hours",
+    feature: "service_levels",
     basePath: "/api/admin/business-hours",
     description: "Coverage windows (open hours), holidays, and which window each contract's service runs in, so TTO/TTR count working time.",
     register: registerBusinessHoursRoutes,
   },
   {
     id: "service-levels",
+    feature: "service_levels",
     basePath: "/api/admin/service-levels",
     description: "SLA targets (TTO/TTR per request type and priority), SLAs that group them, and customer contracts with the SLA each service runs under.",
     register: registerServiceLevelRoutes,
   },
   {
     id: "changes",
+    feature: "change",
     basePath: "/api/changes",
     description: "Plans each change type needs before Plan / Implement, CAB decisions, changes awaiting the CAB, the change calendar with clashes and blackout windows, the risk questionnaire, post-implementation reviews (rules under /api/admin/change-rules, change-risk, change-blackouts).",
     register: registerChangeRoutes,
   },
   {
     id: "dashboard",
+    feature: "service_desk",
     basePath: "/api/dashboard",
     description: "Aggregated KPIs, trends and queues for the agent home screen.",
     register: registerDashboardRoutes,
   },
   {
     id: "data-import",
+    feature: "import_export",
     basePath: "/api/admin/data-import",
     description: "Load people, organisations, teams and CIs from CSV/Excel (mapped, previewed, written through REST), and recurring feeds as iTop Data Synchro sources.",
     register: registerDataImportRoutes,
   },
   {
     id: "directory",
+    feature: "service_desk",
     basePath: "/api/directory",
     description: "Organisations, people and teams — onboarded before any ticket exists.",
     register: registerDirectoryRoutes,
   },
   {
     id: "dispatch",
+    feature: "service_desk",
     basePath: "/api/dispatch",
     description: "Tickets sent to a team before anyone takes them: the team's queue, Take it, and the assignment rules that route new tickets (under /api/admin/assignment-rules).",
     register: registerDispatchRoutes,
   },
   {
     id: "incidents",
+    feature: "service_desk",
     basePath: "/api/incidents",
     description: "Unplanned interruptions to a service.",
     register: registerIncidentRoutes,
   },
   {
     id: "knowledge",
+    feature: "knowledge",
     basePath: "/api/knowledge",
     description: "Knowledge articles (FAQs, known errors): draft, review, publish, retire; review-due dates; readers' helpfulness votes (reviewers under /api/admin/knowledge-settings).",
     register: registerKnowledgeRoutes,
   },
   {
     id: "mail-intake",
+    feature: "service_desk",
     basePath: "/api/admin/mail-intake",
     description: "Email to ticket: the support mailbox becomes incidents, replies land on theirs.",
     register: registerMailIntakeRoutes,
   },
   {
     id: "problems",
+    feature: "problem",
     basePath: "/api/problems",
     description: "Root-cause analysis, known errors raised from problems, recurring-incident trends.",
     register: registerProblemRoutes,
   },
   {
     id: "request-forms",
+    feature: "approvals_forms",
     basePath: "/api/request-forms",
     description: "The extra questions each catalogue item asks when a request is raised (edited under /api/admin/request-forms).",
     register: registerRequestFormRoutes,
   },
   {
     id: "sla",
+    feature: "service_levels",
     basePath: "/api/sla",
     description: "Open incidents and requests by SLA state: within target, at risk, breached.",
     register: registerSlaRoutes,
   },
   {
     id: "ticket-handling",
+    feature: "service_desk",
     basePath: "/api/ticket-handling",
     description: "Priority override with a reason, duplicates (suggested, linked, resolved), cancel, and worklogs on incidents and requests; each user's drafts of the new-ticket forms (/api/me/drafts).",
     register: registerTicketHandlingRoutes,

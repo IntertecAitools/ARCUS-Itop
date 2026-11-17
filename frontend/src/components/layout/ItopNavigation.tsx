@@ -17,10 +17,11 @@ import {
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
-import { modulesAtHome, moduleHomes, navigableModules, type ModuleDefinition } from '@/config/modules';
+import { modulesAtHome, moduleHomes, navigableModules, type EditionFilter, type ModuleDefinition } from '@/config/modules';
 import { activeEntryId, activeGroupId, entryPath, useNavigation, type NavEntry, type NavGroup } from '@/features/navigation';
 import { useSessionStore } from '@/stores/session.store';
 import { useUiStore } from '@/stores/ui.store';
+import { useEditionFeatures } from '@/features/licensing';
 
 /**
  * The sidebar's modules: iTop's own menu groups, rendered from what the BFF
@@ -83,8 +84,8 @@ export interface SidebarGroup {
  * iTop's groups with our pages merged in. Pure, so the merging rules are
  * tested without rendering.
  */
-export function sidebarGroups(groups: NavGroup[], isAdmin: boolean): SidebarGroup[] {
-  const offered = new Set(navigableModules(isAdmin).map((m) => m.id));
+export function sidebarGroups(groups: NavGroup[], isAdmin: boolean, features?: EditionFilter): SidebarGroup[] {
+  const offered = new Set(navigableModules(isAdmin, features).map((m) => m.id));
   const keep = (e: NavEntry) => !(REPLACED_BY[e.id] && offered.has(REPLACED_BY[e.id]!));
 
   const merged: SidebarGroup[] = [];
@@ -101,7 +102,7 @@ export function sidebarGroups(groups: NavGroup[], isAdmin: boolean): SidebarGrou
   // A home iTop did not publish (a module not installed, the mock API) still
   // gets its group, so a built page never drops out of the sidebar.
   for (const home of moduleHomes) {
-    const pages = modulesAtHome(home.id, isAdmin);
+    const pages = modulesAtHome(home.id, isAdmin, features);
     if (pages.length === 0) continue;
     const group = merged.find((g) => g.id === home.id);
     if (group) group.pages = pages;
@@ -234,6 +235,7 @@ export function ItopNavigation({
   const { pathname, search } = useLocation();
   const userId = useSessionStore((s) => s.user?.id);
   const isAdmin = useSessionStore((s) => s.user?.isAdmin ?? false);
+  const features = useEditionFeatures();
   const opened = useUiStore((s) => s.navGroupsOpen);
   const setNavGroupOpen = useUiStore((s) => s.setNavGroupOpen);
   const resetNavGroups = useUiStore((s) => s.resetNavGroups);
@@ -274,7 +276,7 @@ export function ItopNavigation({
   // Without iTop's tree, our pages still render in their groups: a failure
   // there must not hide the screens we built.
   const itopGroups = isError || !data ? [] : data.groups;
-  const groups = sidebarGroups(itopGroups, isAdmin);
+  const groups = sidebarGroups(itopGroups, isAdmin, features);
   if (groups.length === 0) return null;
 
   const activeId = activeEntryId(itopGroups, pathname, search);

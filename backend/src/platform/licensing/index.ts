@@ -10,7 +10,7 @@ import type { Pool } from "mysql2/promise";
 import type { LicensingConfig } from "../../config/env.js";
 import { Sealer } from "../auth/seal.js";
 import { readDevPublicKey } from "./issuer/signers.js";
-import { registerLicenceGuard } from "./licence.guard.js";
+import { registerFeatureGate, registerLicenceGuard } from "./licence.guard.js";
 import { registerLicenceRoutes } from "./licence.routes.js";
 import { LicenceService } from "./licence.service.js";
 import { MemoryLicenceStore, MySqlLicenceStore, type LicenceStore } from "./licence.store.js";
@@ -18,6 +18,7 @@ import { MemoryLicenceStore, MySqlLicenceStore, type LicenceStore } from "./lice
 export { LicenceService, TRIAL_DAYS, type ScopeStatus } from "./licence.service.js";
 export { MemoryLicenceStore, INSTALLATION_SCOPE, type LicenceStore } from "./licence.store.js";
 export { isWriteExempt } from "./licence.guard.js";
+export { featureOfClass, featureOfRoute, type Feature } from "./editions.js";
 export type * from "./licence.types.js";
 
 export interface BuildLicensingOptions {
@@ -49,7 +50,14 @@ export function buildLicensing(config: LicensingConfig | undefined, tenancy: boo
 }
 
 /** The read-only guard, the licence API, and the minute refresh. Called after the sign-in guard. */
-export function registerLicensing(app: FastifyInstance, licensing: LicenceService, options: { platformLogins: string[] }): void {
+export function registerLicensing(
+  app: FastifyInstance,
+  licensing: LicenceService,
+  options: { platformLogins: string[]; lineage: (cls: string) => string[] },
+): void {
+  // Remembers which module's feature each route belongs to (door 1).
+  app.addHook("onRoute", (route) => licensing.noteRoute(route.url));
+  registerFeatureGate(app, licensing, options.lineage);
   registerLicenceGuard(app, licensing);
   registerLicenceRoutes(app, licensing, options);
   app.addHook("onReady", async () => {
@@ -57,4 +65,31 @@ export function registerLicensing(app: FastifyInstance, licensing: LicenceServic
     licensing.start();
   });
   app.addHook("onClose", async () => licensing.stop());
+}
+
+/**
+ * Single sign-on and the edition (feature `sso`), once the user is known:
+ * requesters are never refused (the portal is outside licensing); staff are
+ * refused only when they can sign in with a password instead, so licensing
+ * never locks anyone out. Otherwise, and with LICENSING=warn, the sign-in
+ * goes through and is recorded. Returns a refusal message, or undefined.
+ */
+export async function ssoRefusal(
+  licensing: LicenceService | undefined,
+  caller: { kind: "staff" | "portal"; login: string },
+  tenantId: string | undefined,
+  staffMayUsePassword: boolean,
+): Promise<string | undefined> {
+  if (!licensing || caller.kind !== "staff") return undefined;
+  const scope = licensing.scopeFor(tenantId);
+  if (scope === null) return undefined;
+  const status = await licensing.statusOf(scope);
+  if (status.features.includes("sso")) return undefined;
+  const refusal = licensing.featureRefusal(status, "sso");
+  if (licensing.mode === "enforce" && staffMayUsePassword) {
+    await licensing.recordOnce(scope, "refused", `sso:${caller.login}`, `Refused single sign-on for ${caller.login}: sso is not in the edition.`, caller.login);
+    return `Single sign-on is not included in your edition; sign in with your password. ${refusal.message}`;
+  }
+  await licensing.recordOnce(scope, "would_refuse", `sso:${caller.login}`, `Single sign-on for ${caller.login} although sso is not in the edition${licensing.mode === "enforce" ? " (allowed: password sign-in is off for staff)" : ""}.`, caller.login);
+  return undefined;
 }

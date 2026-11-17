@@ -18,6 +18,7 @@ import { DeleteDialog } from '../components/DeleteDialog';
 import { TransitionDialog } from '../components/TransitionDialog';
 import { PendingBanner } from '../components/PendingBanner';
 import { asksNextActionDate, offeredActions, requiredForTransition, transitionPrompts } from '../lib/transitions';
+import { licenceFeatureRefusal, NotInEdition, useEditionFeatures } from '@/features/licensing';
 
 /**
  * A problem's root-cause analysis and known errors, a tab of their own.
@@ -61,6 +62,7 @@ export function RecordDetailPage() {
   const { className = '', id = '' } = useParams();
   const { data: info, isLoading: schemaLoading } = useClassInfo(className);
   const { data: record, isLoading, isError, error } = useRecord(className, id);
+  const features = useEditionFeatures();
   const update = useUpdateRecord(className, id);
   const stimulus = useApplyStimulus(className, id);
 
@@ -202,6 +204,9 @@ export function RecordDetailPage() {
     { label: info?.labels?.class ?? className, to: `/records/${className}` },
     { label: `#${id}` },
   ];
+
+  const notInEdition = licenceFeatureRefusal(error);
+  if (notInEdition) return <NotInEdition feature={notInEdition.feature} />;
 
   if (isError) {
     return (
@@ -378,7 +383,7 @@ export function RecordDetailPage() {
         </div>
       ) : null}
 
-      {className === 'UserRequest' && tab === 'details' ? (
+      {className === 'UserRequest' && tab === 'details' && (!features || features.has('approvals_forms')) ? (
         <RequestApprovalCard audience="staff" requestId={id} className="mb-4" />
       ) : null}
 

@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyRequest } from "fastify";
 import { AppError } from "../../core/errors.js";
 import { currentCaller, currentTenant } from "../../core/request-context.js";
 import type { LicenceService } from "./licence.service.js";
+import type { Feature } from "./licence.types.js";
 
 /**
  * Changes an agent may still make while the licence is read-only: signing in
@@ -74,5 +75,62 @@ export function registerLicenceGuard(app: FastifyInstance, licensing: LicenceSer
       },
       (err: Error) => done(err),
     );
+  });
+}
+
+/** Saved-query routes whose body names a record class (`recordType`). */
+const QUERY_BODY_ROUTES = new Set(["POST /api/queries", "PUT /api/queries/:id", "POST /api/queries/run"]);
+
+/**
+ * Edition gating (Build Guide, section 7): every door into a feature.
+ * Door 1, a business module's routes, and door 2, platform routes mapped in
+ * editions.ts: by the route. Door 3, a record class through the generic
+ * screens (records, export, pickers, history, import, schema): by the
+ * `:class` in the route, or a saved query's `recordType`. A gated request
+ * gets 403 LICENCE_FEATURE with the feature and the edition that has it;
+ * with LICENSING=warn it is recorded as "would refuse" and goes through.
+ * Requesters are never gated: the portal is outside licensing.
+ */
+export function registerFeatureGate(app: FastifyInstance, licensing: LicenceService, lineage: (cls: string) => string[]): void {
+  const gate = (request: FastifyRequest, feature: Feature, done: (err?: Error) => void) => {
+    const scope = licensing.scopeFor(currentTenant()?.id);
+    if (scope === null) return done();
+    licensing.statusOf(scope).then(
+      (status) => {
+        if (status.features.includes(feature)) return done();
+        const what = `${request.method} ${request.routeOptions.url}`;
+        const login = currentCaller()?.login ?? null;
+        if (licensing.mode === "warn") {
+          void licensing.recordOnce(scope, "would_refuse", `feature:${feature}:${what}`, `Would have refused ${what} (${feature} is not in the edition).`, login);
+          return done();
+        }
+        const refusal = licensing.featureRefusal(status, feature);
+        void licensing.recordOnce(scope, "refused", `feature:${feature}:${what}`, `Refused ${what}: ${feature} is not in the edition.`, login);
+        done(new AppError("LICENCE_FEATURE", refusal.message, { details: { feature, edition: refusal.edition, includedIn: refusal.includedIn } }));
+      },
+      (err: Error) => done(err),
+    );
+  };
+
+  app.addHook("onRequest", (request: FastifyRequest, _reply, done) => {
+    const path = request.routeOptions.url;
+    const caller = currentCaller();
+    if (!path?.startsWith("/api/") || caller?.kind === "portal") return done();
+    // Nothing is held hostage: an administrator can always export a class's
+    // records, whatever the edition (Build Guide, section 7).
+    if (path === "/api/objects/:class/export" && caller?.isAdmin) return done();
+    const cls = (request.params as Record<string, unknown> | undefined)?.["class"];
+    const feature = licensing.featureOfRoute(path) ?? (typeof cls === "string" ? licensing.featureOfClass(lineage(cls)) : undefined);
+    if (!feature) return done();
+    gate(request, feature, done);
+  });
+
+  app.addHook("preHandler", (request: FastifyRequest, _reply, done) => {
+    if (!QUERY_BODY_ROUTES.has(`${request.method} ${request.routeOptions.url}`) || currentCaller()?.kind === "portal") return done();
+    const body = request.body as { recordType?: unknown; query?: { recordType?: unknown } } | undefined;
+    const cls = body?.recordType ?? body?.query?.recordType;
+    const feature = typeof cls === "string" ? licensing.featureOfClass(lineage(cls)) : undefined;
+    if (!feature) return done();
+    gate(request, feature, done);
   });
 }

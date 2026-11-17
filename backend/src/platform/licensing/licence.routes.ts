@@ -5,6 +5,7 @@ import { currentCaller, currentTenant } from "../../core/request-context.js";
 import { parse } from "../../core/validate.js";
 import { LicenceError, type LicenceService } from "./licence.service.js";
 import type { LicenceStatus } from "./licence.types.js";
+import { FEATURES, lowestEditionWith } from "./editions.js";
 
 const KeyBody = z.object({
   /** The `.lic` text, pasted or read from the file. */
@@ -21,6 +22,7 @@ const PLATFORM_STATUS = (mode: LicenceStatus["mode"]): LicenceStatus => ({
   edition: null,
   editionName: null,
   features: [],
+  featureEditions: Object.fromEntries(FEATURES.map((f) => [f, lowestEditionWith(f)])) as LicenceStatus["featureEditions"],
   licenceType: null,
   expiresAt: null,
   daysLeft: null,

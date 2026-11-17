@@ -66,6 +66,8 @@ export interface LicenceStatus {
   editionName: string | null;
   /** Features the edition includes (all of them while there is no valid licence: it is read-only instead). */
   features: Feature[];
+  /** The cheapest edition that includes each feature: what the "not in your edition" page names. */
+  featureEditions: Record<Feature, Edition>;
   licenceType: LicenceType | null;
   /** Last day of use, YYYY-MM-DD; null for perpetual or no licence. */
   expiresAt: string | null;

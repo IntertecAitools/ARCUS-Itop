@@ -21,6 +21,8 @@ export type ErrorCode =
   | "rate_limited"
   /** The licence is read-only (expired past grace, or not valid): agents cannot change anything. */
   | "LICENCE_READ_ONLY"
+  /** The edition does not include this feature. */
+  | "LICENCE_FEATURE"
   | "upstream_unavailable"
   | "upstream_timeout"
   | "upstream_error"
@@ -37,6 +39,7 @@ const STATUS_BY_CODE: Record<ErrorCode, number> = {
   unsupported_media_type: 415,
   rate_limited: 429,
   LICENCE_READ_ONLY: 403,
+  LICENCE_FEATURE: 403,
   upstream_unavailable: 502,
   upstream_timeout: 504,
   upstream_error: 502,

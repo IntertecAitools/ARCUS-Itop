@@ -178,3 +178,66 @@ export function validateArcusEntitlements(raw: unknown): string[] {
   }
   return problems;
 }
+
+// --- Edition gating (Build Guide, section 7) ---------------------------------
+//
+// Door 1, business modules: each entry in both module registries
+// (backend/src/config/modules.ts, frontend/src/config/modules.ts) names its
+// feature. Doors 2 and 3 are below.
+
+/**
+ * Door 2: API routes whose feature is not their module's, or that belong to
+ * no module (platform routes). Matched against the route as registered
+ * (`/api/problems/:id/rca-draft`): an exact match, or a prefix followed by
+ * "/". The first match wins, so the more specific come first. DRAFT, with
+ * the matrix.
+ */
+export const ROUTE_FEATURES: readonly (readonly [string, Feature])[] = [
+  // Raising a ticket is core: the form questions it reads are only there if PRO set them up.
+  ["/api/request-forms/resolve", "service_desk"],
+  ["/api/problems/:id/rca-draft", "ai"],
+  ["/api/admin/data-import/sync-sources", "audit_sync"],
+  ["/api/admin/audit", "audit_sync"],
+  ["/api/queries", "analytics"],
+  ["/api/dashboards", "analytics"],
+  ["/api/meta/dashboards", "analytics"],
+  ["/api/approvals", "approvals_forms"],
+  ["/api/admin/approvals", "approvals_forms"],
+  ["/api/me/approvals", "approvals_forms"],
+  ["/api/admin/tenants", "multi_org"],
+  // Single sign-on is not gated here: the route cannot tell a requester
+  // from an agent, and requesters must never be locked out. SignInFlow
+  // checks it once it knows who signed in (licensing/index.ts, ssoAllowed).
+];
+
+/** The feature a route belongs to: from the table above, else its module's. Undefined: not gated. */
+export function featureOfRoute(route: string, moduleFeature?: Feature): Feature | undefined {
+  for (const [prefix, feature] of ROUTE_FEATURES) {
+    if (route === prefix || route.startsWith(`${prefix}/`)) return feature;
+  }
+  return moduleFeature;
+}
+
+/**
+ * Door 3: record classes each feature owns, with their subclasses. The
+ * generic record screens, export, search, pickers, imports and saved
+ * queries can reach any class, so they ask about the class too. Classes not
+ * listed are not gated. DRAFT, with the matrix.
+ */
+export const CLASS_FEATURES: Readonly<Record<string, Feature>> = {
+  Problem: "problem",
+  KnownError: "problem",
+  Change: "change",
+  AuditCategory: "audit_sync",
+  AuditRule: "audit_sync",
+  AuditDomain: "audit_sync",
+};
+
+/** The feature that owns a class, from its lineage (the class, then its ancestors). */
+export function featureOfClass(lineage: readonly string[]): Feature | undefined {
+  for (const cls of lineage) {
+    const f = CLASS_FEATURES[cls];
+    if (f) return f;
+  }
+  return undefined;
+}

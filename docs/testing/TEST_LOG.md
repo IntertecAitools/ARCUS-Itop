@@ -4,6 +4,22 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-11-16 — Licensing phase 3: edition gating
+
+| What ran | Result |
+|---|---|
+| `npm test` (backend) | 967/967 passed (7 new in `test/licence-gating.test.ts`; licence test setup moved to `test/licence-app.ts`) |
+| `npm run typecheck` / `npm run build` (backend) | passed |
+| `npx vitest run` (frontend) | 329/329 passed |
+| `npm run typecheck` / `npm run build` (frontend) | passed |
+| `npm run e2e` (mock journeys, port 5781) | 36/36 passed (2 new: LT-01, LT-02) |
+
+**LT-01** (an Essentials key shows only Essentials modules in the UI and API): backend checks `meta/modules`, all three doors (`/api/changes/cab`; queries and audit; `/api/objects/Change`, `/:id`, Problem export, `meta/classes/Change`, `lookups/KnownError`, creating a Change), the refusal details and event; the Playwright journey checks the palette and the "Not included in your edition" page. **LT-02** (PRO then ENT adds modules within minutes, no restart): backend with keys saved "on another instance" and a fake clock; journey: the palette gains Change calendar after the Enterprise key. Both passing.
+
+**Found and fixed while writing it:** the first version gated exports of a hidden class for everyone; the guide keeps hidden data in an administrator's export, so `GET /api/objects/:class/export` is now never gated for administrators (test added). The first journey for LT-02 opened the palette before the reloaded page was ready; it now waits for the sidebar. Its scenario switch is set once per tab, so a "new key" survives the reload.
+
+**Not covered:** a saved query run by id is not checked against its stored record type; the SSO button still shows on editions without SSO (starting SSO is refused); the mock build's iTop menu is not filtered by edition (the BFF filters the real one); no live run with `LICENSING=enforce`.
+
 ### 2026-11-16 — Licensing phase 2: licence module, states, read-only mode
 
 | What ran | Result |

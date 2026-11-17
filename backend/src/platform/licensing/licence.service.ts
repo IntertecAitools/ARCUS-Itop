@@ -9,10 +9,11 @@ import {
   utcDay,
   type Site,
 } from "./sdk/index.js";
-import { EDITION_FEATURES, EDITION_NAMES, FEATURES } from "./editions.js";
+import { EDITION_FEATURES, EDITION_NAMES, FEATURES, featureOfClass, featureOfRoute, lowestEditionWith } from "./editions.js";
 import { verifyArcusLicence, type ArcusKeyOptions, type ArcusLicence } from "./licence.verify.js";
 import { INSTALLATION_SCOPE, type InstallationRow, type LicenceEvent, type LicenceRow, type LicenceStore, type StateRow } from "./licence.store.js";
 import type {
+  Edition,
   Feature,
   LicenceBanner,
   LicenceCheckResult,
@@ -32,6 +33,8 @@ export interface LicensingSettings {
   /** How often licences are re-read and states recomputed. */
   refreshMs?: number;
 }
+
+const FEATURE_EDITIONS = Object.fromEntries(FEATURES.map((f) => [f, lowestEditionWith(f)])) as Record<Feature, Edition>;
 
 /** Days of full use for a deployed installation that has no licence yet. */
 export const TRIAL_DAYS = 30;
@@ -78,6 +81,9 @@ export class LicenceService {
   /** "scope|type|key|day" already recorded today: warnings are recorded once a day, not on every request. */
   private readonly recordedToday = new Set<string>();
   private installRow?: InstallationRow;
+  /** Route (as registered) → the feature of the module that registered it. */
+  private readonly routeModuleFeature = new Map<string, Feature>();
+  private registeringFeature?: Feature;
   private timer?: NodeJS.Timeout;
   private loaded?: Promise<void>;
 
@@ -266,6 +272,56 @@ export class LicenceService {
     return status;
   }
 
+  // --- Edition gating ---------------------------------------------------------
+
+  /** Registers a module's routes under its feature (called by app.ts for each module). */
+  withModuleFeature(feature: Feature, register: () => void): void {
+    this.registeringFeature = feature;
+    try {
+      register();
+    } finally {
+      this.registeringFeature = undefined;
+    }
+  }
+
+  /** Fastify onRoute: remembers which module's feature a route belongs to. */
+  noteRoute(url: string): void {
+    if (this.registeringFeature) this.routeModuleFeature.set(url, this.registeringFeature);
+  }
+
+  /** The feature a route needs, if any (door 1 and door 2). */
+  featureOfRoute(url: string): Feature | undefined {
+    return featureOfRoute(url, this.routeModuleFeature.get(url));
+  }
+
+  /** The feature a record class needs, if any (door 3), from its lineage. */
+  featureOfClass(lineage: readonly string[]): Feature | undefined {
+    return featureOfClass(lineage);
+  }
+
+  /**
+   * The features to hide for a tenant, when enforcing; undefined when nothing
+   * is hidden (LICENSING=warn, or a platform operator on the platform's address).
+   */
+  async enforcedFeatures(tenantId: string | undefined): Promise<ReadonlySet<Feature> | undefined> {
+    if (this.mode !== "enforce") return undefined;
+    const scope = this.scopeFor(tenantId);
+    if (scope === null) return undefined;
+    return new Set((await this.statusOf(scope)).features);
+  }
+
+  /** What a refusal says: the feature, this edition, and the edition that has it. */
+  featureRefusal(status: ScopeStatus, feature: Feature) {
+    const edition = status.licence?.entitlements.edition ?? null;
+    const includedIn = lowestEditionWith(feature);
+    return {
+      feature,
+      edition,
+      includedIn,
+      message: `This is not included in your edition${edition ? ` (${EDITION_NAMES[edition]})` : ""}. It is part of ${EDITION_NAMES[includedIn]}.`,
+    };
+  }
+
   // --- What users see ---------------------------------------------------------
 
   /** GET /api/licence/status for one user. */
@@ -278,6 +334,7 @@ export class LicenceService {
       edition: l?.entitlements.edition ?? null,
       editionName: l ? EDITION_NAMES[l.entitlements.edition] : null,
       features: status.features,
+      featureEditions: FEATURE_EDITIONS,
       licenceType: l?.licence_type ?? null,
       expiresAt: l?.expires_at ?? null,
       daysLeft: status.daysLeft,
