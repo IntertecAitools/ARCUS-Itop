@@ -11,7 +11,7 @@ const detail = async (t: Awaited<ReturnType<typeof licenceApp>>, who = t.users.a
 
 describe("the licence page", () => {
   it("shows the summary, usage against every limit and the history, to administrators only", async () => {
-    const t = await licenceApp({ counts: { agents: 8, cis: 4100 } });
+    const t = await licenceApp({ counts: { agents: 8, cis: 8200 } });
     await t.install(await t.issue({ order: { edition: "PRO", agents: 10 } }));
     const d = await detail(t);
     assert.equal(d.summary?.licenceId, "ARC-2026-000123");
@@ -22,7 +22,7 @@ describe("the licence page", () => {
     assert.match(d.installation!.reportPublicKey, /BEGIN PUBLIC KEY/);
     const usage = Object.fromEntries(d.usage.map((r) => [r.metric, r]));
     assert.deepEqual([usage["agents"]!.used, usage["agents"]!.limit, usage["agents"]!.level], [8, 10, "warning"]);
-    assert.deepEqual([usage["cis"]!.used, usage["cis"]!.limit, usage["cis"]!.percent], [4100, 5000, 82]);
+    assert.deepEqual([usage["cis"]!.used, usage["cis"]!.limit, usage["cis"]!.percent], [8200, 10000, 82]);
     assert.equal(usage["storage"]!.limit, null, "deployed: storage not limited");
     assert.ok(d.history.some((e) => e.label === "Key installed" && e.actor === "admin"));
     assert.ok(d.history.some((e) => e.label === "Terms accepted"));
@@ -69,7 +69,7 @@ describe("the licence page", () => {
     assert.equal(check.ok, true);
     const report = check.ok ? check.document.payload : undefined;
     assert.equal(report?.licence_id, "ARC-2026-000123");
-    assert.deepEqual(report?.limits, { agents: 10, sessions: 10, cis: 5000, ai_actions: 3000, storage: null });
+    assert.deepEqual(report?.limits, { agents: 10, sessions: 10, cis: 10000, ai_actions: 3000, storage: null });
     assert.deepEqual([report?.days[0]?.agents, report?.days[0]?.cis, report?.peaks.ai_actions_in_a_month], [6, 900, 12]);
     assert.equal(verifyDocument(res.body.replace('"cis":900', '"cis":90'), { kind: "usage_report", publicKeyPem }).ok, false);
     assert.equal(code(await t.send("GET", "/api/licence/usage-report?from=2026-12-31&to=2026-12-01", t.users.admin)), "bad_request");

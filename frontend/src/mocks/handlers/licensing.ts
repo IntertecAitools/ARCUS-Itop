@@ -74,10 +74,10 @@ const SUMMARY: LicenceSummary = {
   graceDays: 30,
   namedSeats: 80,
   concurrentSeats: 0,
-  ciLimit: 25000,
+  ciLimit: 50000,
   aiActionsPerMonth: 40000,
   storageGb: 500,
-  addons: [],
+  addons: ['premium_support'],
   binding: 'tenant:northwind',
 };
 
@@ -91,7 +91,7 @@ function check(text: string): LicenceCheckResult {
 const USAGE: UsageRow[] = [
   { metric: 'agents', label: 'Agents', used: 52, limit: 60, percent: 87, level: 'warning' },
   { metric: 'sessions', label: 'Agent sessions', used: 14, limit: 60, percent: 23, level: 'ok' },
-  { metric: 'cis', label: 'Configuration items', used: 3120, limit: 5000, percent: 62, level: 'ok' },
+  { metric: 'cis', label: 'Configuration items', used: 3120, limit: 10000, percent: 31, level: 'ok' },
   { metric: 'ai_actions', label: 'AI actions this month', used: 410, limit: 18000, percent: 2, level: 'ok' },
   { metric: 'storage', label: 'Storage (GB)', used: 18.4, limit: null, percent: null, level: 'ok' },
 ];
