@@ -1,5 +1,5 @@
 import { addDays, parseBinding, signLicence, utcDay, type Instances, type LicenceType, type Signer } from "../sdk/index.js";
-import { entitlementsFor, type Order } from "../editions.js";
+import { entitlementsFor, orderProblems, type Order } from "../editions.js";
 import { ARCUS_PRODUCT, type ArcusLicence } from "../licence.verify.js";
 
 /** Everything the issuer needs to build one Arcus licence. */
@@ -46,6 +46,8 @@ export function buildLicenceFields(req: IssueRequest, licenceId: string, now: Da
   }
   if (!Number.isInteger(req.order.agents) || req.order.agents < 1) throw new IssueError("Agents must be a whole number, 1 or more.");
   if (req.type === "perpetual" && req.order.deployment !== "deployed") throw new IssueError("Perpetual licences are for deployed installations only.");
+  const orderProblem = orderProblems(req.order)[0];
+  if (orderProblem) throw new IssueError(orderProblem);
 
   const validFrom = req.validFrom ?? utcDay(now);
   let termYears: number | null = null;
