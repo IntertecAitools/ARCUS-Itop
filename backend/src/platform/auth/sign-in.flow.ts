@@ -4,6 +4,8 @@ import type { Caller, SignInState } from "../../core/request-context.js";
 import type { Services } from "../../services.js";
 import { publicUser, type PublicUser } from "./auth.service.js";
 import type { SignInAuditEntry } from "./sign-in-audit.js";
+import { AppError } from "../../core/errors.js";
+import { ssoRefusal } from "../licensing/index.js";
 
 export const SESSION_COOKIE = "intertec_sid";
 
@@ -49,6 +51,11 @@ export class SignInFlow {
     // whichever way it signed in; refused before any session exists.
     const resolution = await this.services.tenancy.resolve(request.host, caller);
     if (resolution.refused) throw resolution.refused;
+    if (caller.signIn?.method === "sso") {
+      const policy = this.services.config.auth.signIn;
+      const refusal = await ssoRefusal(this.services.licensing, caller, resolution.tenant?.id, (policy?.passwordSignIn ?? "all") === "all");
+      if (refusal) throw new AppError("LICENCE_FEATURE", refusal, { details: { feature: "sso" } });
+    }
     const step = await this.mfaStep(caller, idpMfa);
     if (!step) {
       return this.complete(request, reply, caller, undefined, idpMfa ? "idp" : undefined);

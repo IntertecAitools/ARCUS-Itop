@@ -205,7 +205,9 @@ export const ROUTE_FEATURES: readonly (readonly [string, Feature])[] = [
   ["/api/admin/approvals", "approvals_forms"],
   ["/api/me/approvals", "approvals_forms"],
   ["/api/admin/tenants", "multi_org"],
-  ["/api/auth/sso", "sso"],
+  // Single sign-on is not gated here: the route cannot tell a requester
+  // from an agent, and requesters must never be locked out. SignInFlow
+  // checks it once it knows who signed in (licensing/index.ts, ssoAllowed).
 ];
 
 /** The feature a route belongs to: from the table above, else its module's. Undefined: not gated. */

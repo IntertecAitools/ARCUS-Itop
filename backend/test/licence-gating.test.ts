@@ -5,6 +5,7 @@ import { describe, it } from "node:test";
 import { modules } from "../src/config/modules.js";
 import { EDITION_FEATURES, featureOfClass, featureOfRoute, FEATURES } from "../src/platform/licensing/editions.js";
 import { CmdbSchema } from "../src/schema/load.js";
+import { ssoRefusal } from "../src/platform/licensing/index.js";
 import { code, licenceApp } from "./licence-app.js";
 
 const realSchema = CmdbSchema.fromFile(resolve(import.meta.dirname, "..", "..", "cmdb-schema", "cmdb-schema.json"));
@@ -106,5 +107,30 @@ describe("LT-02: a better key adds modules within minutes, with no restart", () 
     await t.advanceTo("2026-12-01T09:02:00Z");
     assert.equal((await t.status()).edition, "ENT");
     assert.notEqual(code(await t.send("GET", "/api/admin/audit", t.users.admin)), "LICENCE_FEATURE");
+  });
+});
+
+describe("single sign-on and the edition", () => {
+  const person = (kind: "staff" | "portal") => ({ kind, login: kind === "staff" ? "agent" : "pat" });
+
+  it("never refuses a requester, and refuses staff only when they can use a password instead", async () => {
+    const t = await licenceApp();
+    await t.install(await t.issue({ order: { edition: "PRO" } })); // no sso
+    assert.equal(await ssoRefusal(t.licensing, person("portal"), undefined, true), undefined, "requesters are never locked out");
+    assert.match((await ssoRefusal(t.licensing, person("staff"), undefined, true)) ?? "", /sign in with your password/);
+    // Password sign-in is off for staff: refusing would lock everyone out, so it goes through and is recorded.
+    assert.equal(await ssoRefusal(t.licensing, person("staff"), undefined, false), undefined);
+    assert.ok((await t.licensing.history("installation")).some((e) => e.type === "would_refuse" && /Single sign-on/.test(e.detail)));
+    // The SSO routes themselves are not gated: they cannot tell a requester from an agent.
+    assert.equal(featureOfRoute("/api/auth/sso/start"), undefined);
+  });
+
+  it("allows single sign-on on an edition that has it, and blocks nothing in warning mode", async () => {
+    const ent = await licenceApp();
+    await ent.install(await ent.issue({ order: { edition: "ENT" } }));
+    assert.equal(await ssoRefusal(ent.licensing, person("staff"), undefined, true), undefined);
+    const warn = await licenceApp({ mode: "warn" });
+    await warn.install(await warn.issue({ order: { edition: "ESS" } }));
+    assert.equal(await ssoRefusal(warn.licensing, person("staff"), undefined, true), undefined);
   });
 });
