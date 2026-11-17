@@ -18,9 +18,16 @@ const READS_BY_POST = new Set([
   "/api/problems/:id/rca-draft",
 ]);
 
+/**
+ * Under `/api/me/` but changing records, not the user's own things: an
+ * approver's decision updates the approval and the ticket behind it.
+ */
+const RECORD_CHANGES_UNDER_ME = ["/api/me/approvals/"];
+
 export function isWriteExempt(method: string, path: string): boolean {
   if (method === "GET" || method === "HEAD" || method === "OPTIONS") return true;
   if (!path.startsWith("/api/")) return true;
+  if (RECORD_CHANGES_UNDER_ME.some((p) => path.startsWith(p))) return false;
   return ALWAYS_ALLOWED_PREFIXES.some((p) => path.startsWith(p)) || READS_BY_POST.has(path);
 }
 
