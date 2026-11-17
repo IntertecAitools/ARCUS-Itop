@@ -11,6 +11,7 @@
  *   npm run licence -- revoke  ARC-2026-000123 --reason "contract ended"
  *   npm run licence -- list   [--customer "Example Co"]
  *   npm run licence -- verify acme-2026.lic [--tenant acme | --installation <uuid>]
+ *   npm run licence -- verify-report usage.json --key installation-public.pem
  *
  * Signing: LICENCE_SIGNER=dev (default; the local development key, kid
  * "dev", refused by production builds) or LICENCE_SIGNER=kms (AWS KMS, with
@@ -36,7 +37,7 @@ import { buildLicenceFields, IssueError, issueLicence, type IssueRequest } from 
 import { FileRegisterStore, MySqlRegisterStore, type RegisterStore } from "../platform/licensing/issuer/register.store.js";
 import { devSigner, ensureDevKey, kmsSigner, readDevPublicKey } from "../platform/licensing/issuer/signers.js";
 import { verifyArcusLicence } from "../platform/licensing/licence.verify.js";
-import { checkBinding, LICENCE_TYPES, termStatus, type LicenceType, type Signer } from "../platform/licensing/sdk/index.js";
+import { checkBinding, LICENCE_TYPES, termStatus, verifyDocument, type LicenceType, type Signer } from "../platform/licensing/sdk/index.js";
 
 const config = loadLicenceIssuerConfig();
 const [command, ...rest] = process.argv.slice(2);
@@ -291,12 +292,26 @@ async function main(): Promise<void> {
       }
       return;
     }
+    case "verify-report": {
+      // A usage report checked with the installation's registered public key (LT-15).
+      const file = args.positional[0] ?? fail("Which file? verify-report usage.json --key installation-public.pem");
+      const keyFile = flag("key") ?? fail("--key is the installation's public key (PEM), from its licence page or activation request.");
+      const check = verifyDocument<{ licence_id: string | null; from: string; to: string; installation_id: string; peaks: Record<string, number> }>(
+        readFileSync(file, "utf8"),
+        { kind: "usage_report", publicKeyPem: readFileSync(keyFile, "utf8") },
+      );
+      if (!check.ok) fail(`INVALID: ${check.message}`);
+      const p = check.document.payload;
+      console.log(`VALID usage report: licence ${p.licence_id ?? "none"}, installation ${p.installation_id}, ${p.from} → ${p.to}`);
+      console.log(`  peaks: ${Object.entries(p.peaks).map(([k, v]) => `${k} ${v}`).join(", ")}`);
+      return;
+    }
     case "verify": {
       verify(args.positional[0] ?? fail("Which file? verify acme-2026.lic"));
       return;
     }
     default:
-      fail("Usage: npm run licence -- dev-key | issue … | reissue <id> … | revoke <id> … | list | verify <file>  (see src/cli/licence.ts)");
+      fail("Usage: npm run licence -- dev-key | issue … | reissue <id> … | revoke <id> … | list | verify <file> | verify-report <file> --key <pem>  (see src/cli/licence.ts)");
   }
 }
 

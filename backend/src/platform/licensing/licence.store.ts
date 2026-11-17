@@ -93,6 +93,8 @@ export interface LicenceStore extends UsageStore {
   /** Every scope's licences, newest first. */
   licences(): Promise<LicenceRow[]>;
   addLicence(scope: string, text: string, by: string, at: Date): Promise<void>;
+  /** Records the EULA (or SaaS terms) as accepted, on the scope's newest licence row. False when it has none. */
+  acceptEula(scope: string, by: string, at: Date): Promise<boolean>;
   states(): Promise<StateRow[]>;
   saveState(row: StateRow): Promise<void>;
   addEvent(event: LicenceEvent): Promise<void>;
@@ -150,6 +152,13 @@ export class MemoryLicenceStore implements LicenceStore {
   }
   async addLicence(scope: string, text: string, by: string, at: Date) {
     this.rows.push({ id: this.nextId++, scope, text, uploadedBy: by, uploadedAt: at, eulaAcceptedBy: null, eulaAcceptedAt: null });
+  }
+  async acceptEula(scope: string, by: string, at: Date) {
+    const newest = this.rows.filter((r) => r.scope === scope).sort((a, b) => b.id - a.id)[0];
+    if (!newest) return false;
+    newest.eulaAcceptedBy = by;
+    newest.eulaAcceptedAt = at;
+    return true;
   }
   async states() {
     return [...this.stateRows.values()].map((r) => ({ ...r }));
@@ -278,6 +287,15 @@ export class MySqlLicenceStore implements LicenceStore {
   async addLicence(scope: string, text: string, by: string, at: Date): Promise<void> {
     await this.init();
     await this.pool.query("INSERT INTO bff_licences (scope, licence_text, uploaded_by, uploaded_at) VALUES (?, ?, ?, ?)", [scope, text, by, at]);
+  }
+
+  async acceptEula(scope: string, by: string, at: Date): Promise<boolean> {
+    await this.init();
+    const [res] = await this.pool.query<import("mysql2").ResultSetHeader>(
+      "UPDATE bff_licences SET eula_accepted_by = ?, eula_accepted_at = ? WHERE scope = ? ORDER BY id DESC LIMIT 1",
+      [by, at, scope],
+    );
+    return res.affectedRows === 1;
   }
 
   async states(): Promise<StateRow[]> {

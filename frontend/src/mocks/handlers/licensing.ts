@@ -1,6 +1,6 @@
 import { http, HttpResponse } from 'msw';
 import { env } from '@/config/env';
-import type { Edition, Feature, LicenceBanner, LicenceCheckResult, LicenceStatus, LicenceSummary } from '@/features/licensing/types';
+import type { Edition, Feature, LicenceBanner, LicenceCheckResult, LicenceDetail, LicenceEventDto, LicenceStatus, LicenceSummary, UsageRow } from '@/features/licensing/types';
 import { readStored, writeStored } from '../storage';
 import { currentMockUser } from './auth';
 
@@ -85,16 +85,68 @@ function check(text: string): LicenceCheckResult {
   return { ok: true, summary: SUMMARY, changes: ['Agents 60 → 80', 'End date 2027-11-30 → 2029-11-30'], older: false };
 }
 
+const USAGE: UsageRow[] = [
+  { metric: 'agents', label: 'Agents', used: 52, limit: 60, percent: 87, level: 'warning' },
+  { metric: 'sessions', label: 'Agent sessions', used: 14, limit: 60, percent: 23, level: 'ok' },
+  { metric: 'cis', label: 'Configuration items', used: 3120, limit: 5000, percent: 62, level: 'ok' },
+  { metric: 'ai_actions', label: 'AI actions this month', used: 410, limit: 18000, percent: 2, level: 'ok' },
+  { metric: 'storage', label: 'Storage (GB)', used: 18.4, limit: null, percent: null, level: 'ok' },
+];
+
+const EULA_TEXT = 'PLACEHOLDER — this is not the agreement.\n\nIntertec’s legal team will provide the end-user licence agreement.';
+
+/** The licence page of a deployed installation whose administrator may install keys. */
+function detail(): LicenceDetail {
+  const accepted = readStored<{ by: string; at: string } | null>('licence.eula', null);
+  const history = readStored<LicenceEventDto[]>('licence.history', [
+    { id: 2, at: '2026-11-16T09:00:00Z', type: 'state_changed', label: 'State changed', actor: null, detail: 'trial → valid' },
+    { id: 1, at: '2026-11-16T08:59:00Z', type: 'key_uploaded', label: 'Key installed', actor: 'admin', detail: 'ARC-2026-000123: Edition PRO, 60 agents, until 2029-11-30' },
+  ]);
+  return {
+    status: status(),
+    summary: { ...SUMMARY, licenceId: 'ARC-2026-000123', customer: 'Example Co', orderRef: 'SO-45678', edition: 'PRO', editionName: 'Professional', deployment: 'deployed', namedSeats: 60, ciLimit: 5000, aiActionsPerMonth: 18000, storageGb: null, binding: 'install:7f3c2a10-8f7e-4d1b-9c39-2b7e5f0a1c22' },
+    usage: USAGE,
+    history,
+    canInstall: true,
+    deployment: 'deployed',
+    installation: { id: '7f3c2a10-8f7e-4d1b-9c39-2b7e5f0a1c22', reportKeyId: 'k3y-1d', reportPublicKey: '-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEA\n-----END PUBLIC KEY-----\n' },
+    eula: { version: 'placeholder-2026-11', text: EULA_TEXT, required: !accepted, acceptedBy: accepted?.by ?? null, acceptedAt: accepted?.at ?? null },
+  };
+}
+
+function note(type: string, label: string, text: string) {
+  const d = detail();
+  writeStored('licence.history', [{ id: d.history.length + 1, at: new Date().toISOString(), type, label, actor: 'admin', detail: text }, ...d.history]);
+}
+
 export const licensingHandlers = [
+  http.get(url('/licence'), () => HttpResponse.json(detail())),
+  http.post(url('/licence/eula'), () => {
+    writeStored('licence.eula', { by: 'admin', at: new Date().toISOString() });
+    note('eula_accepted', 'Terms accepted', 'Accepted the terms of service (placeholder-2026-11).');
+    return new HttpResponse(null, { status: 204 });
+  }),
+  http.get(url('/licence/usage-report'), ({ request }) => {
+    const q = new URL(request.url).searchParams;
+    return HttpResponse.json(
+      { kind: 'usage_report', alg: 'Ed25519', key_id: 'k3y-1d', payload: { product: 'arcus', licence_id: 'ARC-2026-000123', from: q.get('from'), to: q.get('to'), days: [] }, signature: 'mock' },
+      { headers: { 'Content-Disposition': 'attachment; filename="arcus-usage.json"' } },
+    );
+  }),
   http.get(url('/licence/status'), () => HttpResponse.json(status())),
   http.post(url('/licence/check'), async ({ request }) => {
     const { text } = (await request.json()) as { text: string };
     return HttpResponse.json(check(text));
   }),
   http.put(url('/licence'), async ({ request }) => {
-    const { text } = (await request.json()) as { text: string };
-    const result = check(text);
+    const body = (await request.json()) as { text: string; acceptEula?: boolean };
+    const result = check(body.text);
     if (!result.ok) return HttpResponse.json({ error: { code: 'bad_request', message: result.message } }, { status: 400 });
+    if (detail().eula.required && !body.acceptEula) {
+      return HttpResponse.json({ error: { code: 'bad_request', message: 'Accept the end-user licence agreement to install the licence.' } }, { status: 400 });
+    }
+    if (body.acceptEula) writeStored('licence.eula', { by: 'admin', at: new Date().toISOString() });
+    note('key_uploaded', 'Key installed', `${result.summary!.licenceId}: ${result.changes.join('; ')}`);
     writeStored('licence', 'enterprise');
     return HttpResponse.json(result);
   }),

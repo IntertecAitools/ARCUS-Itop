@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient, ApiError } from '@/lib/api-client';
-import type { Edition, Feature, LicenceCheckResult, LicenceStatus } from '../types';
+import type { Edition, Feature, LicenceCheckResult, LicenceDetail, LicenceStatus } from '../types';
 
 export const LICENCE_STATUS_KEY = ['licence', 'status'] as const;
 
@@ -40,7 +40,7 @@ export function useCheckLicence() {
 export function useInstallLicence() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: { text: string; confirmOlder?: boolean }) => apiClient.put<LicenceCheckResult>('/licence', input),
+    mutationFn: (input: { text: string; confirmOlder?: boolean; acceptEula?: boolean }) => apiClient.put<LicenceCheckResult>('/licence', input),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['licence'] }),
   });
 }
@@ -69,4 +69,44 @@ export function licenceFeatureRefusal(error: unknown): { feature: Feature; inclu
   if (!(error instanceof ApiError) || error.code !== 'LICENCE_FEATURE') return null;
   const d = (error.details ?? {}) as { feature?: Feature; includedIn?: Edition };
   return d.feature ? { feature: d.feature, includedIn: d.includedIn ?? null } : null;
+}
+
+export const LICENCE_DETAIL_KEY = ['licence', 'detail'] as const;
+
+/** The licence page: summary, usage, history, EULA. Administrators only; 404 when licensing is off. */
+export function useLicence() {
+  return useQuery({
+    queryKey: LICENCE_DETAIL_KEY,
+    queryFn: () => apiClient.get<LicenceDetail>('/licence'),
+    retry: false,
+  });
+}
+
+/** Accepts the EULA (deployed) or the terms of service (SaaS) for the organisation. */
+export function useAcceptEula() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => apiClient.post<null>('/licence/eula'),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['licence'] }),
+  });
+}
+
+/** Downloads the signed usage report for a period. */
+export function useUsageReport() {
+  return useMutation({
+    mutationFn: async ({ from, to }: { from: string; to: string }) => {
+      const blob = await apiClient.getBlob('/licence/usage-report', { from, to });
+      const url = URL.createObjectURL(blob);
+      try {
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `arcus-usage-${from}-${to}.json`;
+        document.body.append(link);
+        link.click();
+        link.remove();
+      } finally {
+        setTimeout(() => URL.revokeObjectURL(url), 10_000);
+      }
+    },
+  });
 }

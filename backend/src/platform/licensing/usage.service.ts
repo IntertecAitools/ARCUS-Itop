@@ -2,7 +2,22 @@ import { OVERAGE_PERCENT, WARN_AT } from "./editions.js";
 import type { LicenceService, ScopeStatus } from "./licence.service.js";
 import type { UsageDay, UsageStore } from "./licence.store.js";
 import type { LicenceBanner, LimitMetric, UsageRow } from "./licence.types.js";
-import { addDays, utcDay } from "./sdk/index.js";
+import { addDays, keyFingerprint, localSigner, signDocument, utcDay, type SignedDocument } from "./sdk/index.js";
+
+/** The payload of a usage report (LIC-14): verified with the installation's registered public key. */
+export interface UsageReport {
+  product: "arcus";
+  licence_id: string | null;
+  customer: string | null;
+  scope: string;
+  installation_id: string;
+  from: string;
+  to: string;
+  generated_at: string;
+  limits: Record<LimitMetric, number | null>;
+  days: { day: string; agents: number; peak_sessions: number; cis: number; ai_actions: number; storage_bytes: number }[];
+  peaks: { agents: number; peak_sessions: number; cis: number; ai_actions_in_a_month: number };
+}
 
 /**
  * Live counts the licence module cannot make itself: they come from the
@@ -236,6 +251,47 @@ export class UsageService {
       });
     }
     await this.store.pruneUsage(addDays(today, -KEEP_DAYS));
+  }
+
+  /**
+   * The usage report for a period: the licence, the daily figures and the
+   * peaks, signed by this installation's own key (Build Guide, section 8).
+   * Intertec checks it with the public key the installation registered.
+   */
+  async report(scope: string, from: string, to: string): Promise<SignedDocument<UsageReport>> {
+    const status = await this.licensing.statusOf(scope);
+    const install = this.licensing.installation();
+    const l = status.licence;
+    const days = await this.store.usageDays(scope, from, to);
+    const months = new Map<string, number>();
+    for (const d of days) months.set(d.day.slice(0, 7), (months.get(d.day.slice(0, 7)) ?? 0) + d.aiActions);
+    const e = l?.entitlements;
+    const payload: UsageReport = {
+      product: "arcus",
+      licence_id: l?.licence_id ?? null,
+      customer: l?.customer_name ?? null,
+      scope,
+      installation_id: install.id,
+      from,
+      to,
+      generated_at: this.now().toISOString(),
+      limits: {
+        agents: e?.named_seats ?? null,
+        sessions: e ? e.named_seats + e.concurrent_seats : null,
+        cis: e?.ci_limit ?? null,
+        ai_actions: e?.ai_actions_per_month ?? null,
+        storage: e?.storage_gb ?? null,
+      },
+      days: days.map((d) => ({ day: d.day, agents: d.agents, peak_sessions: d.peakSessions, cis: d.cis, ai_actions: d.aiActions, storage_bytes: d.storageBytes })),
+      peaks: {
+        agents: Math.max(0, ...days.map((d) => d.agents)),
+        peak_sessions: Math.max(0, ...days.map((d) => d.peakSessions)),
+        cis: Math.max(0, ...days.map((d) => d.cis)),
+        ai_actions_in_a_month: Math.max(0, ...months.values()),
+      },
+    };
+    const signer = localSigner(keyFingerprint(install.reportPublicKeyPem), "Ed25519", install.reportPrivateKeyPem);
+    return signDocument("usage_report", payload, signer);
   }
 
   async days(scope: string, from: string, to: string): Promise<UsageDay[]> {

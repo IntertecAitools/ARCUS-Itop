@@ -113,8 +113,9 @@ export async function licenceApp(options: SetupOptions = {}) {
     };
     return (await signLicence(buildLicenceFields(full, id, clock.now), signer)).text;
   };
-  const install = (text: string, who = tenancy ? users.operator : users.admin, confirmOlder?: boolean) =>
-    send("PUT", "/api/licence", who, { text, ...(confirmOlder ? { confirmOlder } : {}) });
+  /** Installs a key; on a deployed installation the EULA is accepted with it unless `acceptEula: false`. */
+  const install = (text: string, who = tenancy ? users.operator : users.admin, confirmOlder?: boolean, acceptEula = !tenancy) =>
+    send("PUT", "/api/licence", who, { text, ...(confirmOlder ? { confirmOlder } : {}), ...(acceptEula ? { acceptEula } : {}) });
   const write = (who = users.agent) => send("POST", "/api/objects/Organization", who, { fields: { name: "Branch" } });
   const exportCsv = (who = users.agent) => send("GET", "/api/objects/Organization/export?format=csv", who);
   return { app, services, licensing, usage: services.licenceUsage!, counts, store, clock, users, send, status, advanceTo, issue, install, write, exportCsv };

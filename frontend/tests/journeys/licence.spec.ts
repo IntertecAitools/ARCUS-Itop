@@ -80,3 +80,22 @@ test.describe('Essentials edition @mock', () => {
     await expect(page.getByRole('heading', { name: 'Not included in your edition' })).toHaveCount(0);
   });
 });
+
+test('licence page: usage against entitlement, install a key with the EULA, download the usage report @mock', async ({ page }) => {
+  await signIn(page, accounts.staff());
+  await page.goto('/licence');
+  await expect(page.getByRole('heading', { name: 'Licence', exact: true })).toBeVisible();
+  await expect(page.getByTestId('licence-usage')).toContainText('52 of 60');
+
+  await page.getByLabel('Licence', { exact: true }).fill('-----BEGIN ARCUS LICENCE-----\neyJh\n.\nc2ln\n-----END ARCUS LICENCE-----');
+  await page.getByRole('button', { name: 'Check' }).click();
+  await expect(page.getByTestId('licence-changes')).toContainText('Agents 60 → 80');
+  await page.getByLabel('I accept the end-user licence agreement').check();
+  await page.getByRole('button', { name: 'Install licence' }).click();
+  await expect(page.getByText('Installed. It applies now.')).toBeVisible();
+  await expect(page.getByRole('cell', { name: 'Terms accepted' }).or(page.getByText('Terms accepted by admin'))).toBeVisible();
+
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download report' }).click();
+  expect((await download).suggestedFilename()).toMatch(/^arcus-usage-\d{4}-\d{2}-\d{2}-\d{4}-\d{2}-\d{2}\.json$/);
+});
