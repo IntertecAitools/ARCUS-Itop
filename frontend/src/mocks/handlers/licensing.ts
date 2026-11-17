@@ -52,6 +52,8 @@ function status(): LicenceStatus {
     nonProduction: s === 'nonprod',
     maintenanceLapsed: false,
     banners,
+    // The mock's administrator also runs the platform: the Licences page shows.
+    operator: staff && user.isAdmin,
   };
 }
 

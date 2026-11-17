@@ -33,6 +33,11 @@ export interface LicensingSettings {
   installationKind: "production" | "nonprod" | "standby";
   /** How often licences are re-read and states recomputed. */
   refreshMs?: number;
+  /**
+   * Licence ids revoked in the register (SaaS: the platform's own register,
+   * Build Guide section 5, "Revocation"). Re-read with the licences.
+   */
+  revokedIds?: () => Promise<ReadonlySet<string>>;
 }
 
 const FEATURE_EDITIONS = Object.fromEntries(FEATURES.map((f) => [f, lowestEditionWith(f)])) as Record<Feature, Edition>;
@@ -87,6 +92,7 @@ export class LicenceService {
   /** Route (as registered) → the feature of the module that registered it. */
   private readonly routeModuleFeature = new Map<string, Feature>();
   private registeringFeature?: Feature;
+  private revoked: ReadonlySet<string> = new Set();
   private timer?: NodeJS.Timeout;
   private loaded?: Promise<void>;
 
@@ -155,6 +161,7 @@ export class LicenceService {
    * everywhere), recomputes every known scope's state, and records changes.
    */
   async refresh(): Promise<void> {
+    if (this.settings.revokedIds) this.revoked = await this.settings.revokedIds();
     const rows = await this.store.licences();
     const byScope = new Map<string, LicenceRow[]>();
     for (const r of rows) byScope.set(r.scope, [...(byScope.get(r.scope) ?? []), r]);
@@ -191,6 +198,7 @@ export class LicenceService {
     const r = this.verify(text);
     if (!r.ok) return { problem: r.message, tamper: r.reason === "signature" || r.reason === "format" };
     const l = r.licence;
+    if (this.revoked.has(l.licence_id)) return { problem: `Licence ${l.licence_id} has been revoked.`, tamper: false };
     const binding = checkBinding(l.binding, this.site(scope));
     if (binding === "mismatch") {
       return { problem: `This licence is for ${l.binding.replace(/^tenant:/, "tenant ").replace(/^install:/, "installation ")}, not this one.`, tamper: false };
@@ -353,6 +361,7 @@ export class LicenceService {
       nonProduction: status.nonProduction,
       maintenanceLapsed: status.maintenanceLapsed,
       banners: this.banners(status, viewer),
+      operator: false,
     };
   }
 

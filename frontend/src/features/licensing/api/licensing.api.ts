@@ -55,6 +55,14 @@ export function useEditionFeatures(): ReadonlySet<Feature> | null {
   return useMemo(() => (data && data.mode === 'enforce' ? new Set(data.features) : null), [data]);
 }
 
+/** The registry's menu filter: the edition's features and whether this is a platform operator. */
+export function useMenuFilter(): { features: ReadonlySet<Feature> | null; operator: boolean } {
+  const { data } = useLicenceStatus();
+  const features = useEditionFeatures();
+  const operator = data?.operator === true;
+  return useMemo(() => ({ features, operator }), [features, operator]);
+}
+
 /** The edition that includes a feature, from the status (null when unknown). */
 export function useEditionFor(feature: Feature | undefined): { includedIn: string | null; current: string | null } {
   const { data } = useLicenceStatus();

@@ -21,7 +21,7 @@ import { modulesAtHome, moduleHomes, navigableModules, type EditionFilter, type 
 import { activeEntryId, activeGroupId, entryPath, useNavigation, type NavEntry, type NavGroup } from '@/features/navigation';
 import { useSessionStore } from '@/stores/session.store';
 import { useUiStore } from '@/stores/ui.store';
-import { useEditionFeatures } from '@/features/licensing';
+import { useMenuFilter } from '@/features/licensing';
 
 /**
  * The sidebar's modules: iTop's own menu groups, rendered from what the BFF
@@ -235,7 +235,7 @@ export function ItopNavigation({
   const { pathname, search } = useLocation();
   const userId = useSessionStore((s) => s.user?.id);
   const isAdmin = useSessionStore((s) => s.user?.isAdmin ?? false);
-  const features = useEditionFeatures();
+  const features = useMenuFilter();
   const opened = useUiStore((s) => s.navGroupsOpen);
   const setNavGroupOpen = useUiStore((s) => s.setNavGroupOpen);
   const resetNavGroups = useUiStore((s) => s.resetNavGroups);

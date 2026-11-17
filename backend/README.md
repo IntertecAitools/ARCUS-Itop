@@ -1768,6 +1768,33 @@ The limits come from the licence; the defaults per edition are **drafts**.
 
 `GET /api/licence` (administrators) returns all of it in one call; it answers 404 when licensing is off, and the page then says so.
 
+### The licence desk: the operator's Licences page
+
+**Administration → Licences**, for platform operators (`PLATFORM_LOGINS`) on
+the platform's own address only (`/api/platform/licences*`; anyone else gets
+403). The same code as the CLI (`issuer/desk.ts`):
+
+- **Register** (LIC-02): every licence issued, re-issued or revoked, who, when
+  and why, filterable by customer. Nothing is deleted.
+- **Issue a licence** from an order. For a **new SaaS customer**, the form
+  also creates the tenant (id, site host names, organisations) in the same
+  step, and the licence is installed for it at once. The order is checked
+  before anything is saved, so a refused order creates no tenant. A deployed
+  customer's licence is downloaded as a `.lic` file to send to them.
+- **Re-issue** (upgrade, more agents, moved): a new licence id that replaces
+  the old one in the register, the same end date unless the term changes;
+  SaaS licences are installed straight away.
+- **Revoke**: SaaS revocation takes effect at once on this instance and at
+  the next minute's refresh on the others (the licence module reads revoked
+  ids from the register); the tenant goes to evaluation mode.
+- **Renewals due** (SAS-03): current licences ending within 30, 60 and 90 days.
+
+The server signs only with `LICENCE_SIGNER` set: `dev` on a development
+build, `kms` in production, which needs `kms:Sign` on the licence key for the
+server's role (not granted today: `deploy/aws/terraform/licensing.tf` gives
+it to the issuer role only). Without a signer the page lists and revokes,
+and licences are issued with the CLI.
+
 ### Issuing licences: `npm run licence`
 
 ```bash

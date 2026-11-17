@@ -73,8 +73,10 @@ import {
   buildUsage,
   LicenceLimitError,
   limitError,
+  type LicenceDeskParts,
   type LicenceService,
   type LicenceStore,
+  type RegisterStore,
   type UsageCounters,
   type UsageService,
 } from "./platform/licensing/index.js";
@@ -196,6 +198,8 @@ export interface Services {
   licensing?: LicenceService;
   /** Licence limits and metering, with the licence module. */
   licenceUsage?: UsageService;
+  /** The licence desk's register and signer, with the licence module. */
+  licenceDesk?: LicenceDeskParts;
 }
 
 export interface BuildServicesOptions {
@@ -238,6 +242,8 @@ export interface BuildServicesOptions {
   licenceClock?: () => Date;
   /** Agent and CI counts for the licence limits, for tests. */
   usageCounters?: UsageCounters;
+  /** The licence register, for tests; otherwise the BFF database, or memory. */
+  licenceRegister?: RegisterStore;
   logger?: Logger;
 }
 
@@ -522,15 +528,20 @@ function wireUsage(services: Services, options: BuildServicesOptions): void {
 }
 
 /** The licence module, only when LICENSING is warn or enforce. */
-function licensingService(config: Config, pool: Pool | undefined, options: BuildServicesOptions): { licensing?: LicenceService } {
-  const licensing = buildLicensing(config.licensing, config.tenancy?.enabled === true, {
+function licensingService(
+  config: Config,
+  pool: Pool | undefined,
+  options: BuildServicesOptions,
+): { licensing?: LicenceService; licenceDesk?: LicenceDeskParts } {
+  const built = buildLicensing(config.licensing, config.tenancy?.enabled === true, {
     ...(pool ? { pool } : {}),
     ...(config.auth.secret ? { secret: config.auth.secret } : {}),
     ...(options.licenceStore ? { store: options.licenceStore } : {}),
+    ...(options.licenceRegister ? { register: options.licenceRegister } : {}),
     ...(options.licenceClock ? { now: options.licenceClock } : {}),
     ...(options.logger ? { logger: options.logger } : {}),
   });
-  return licensing ? { licensing } : {};
+  return built ? { licensing: built.licensing, licenceDesk: built.desk } : {};
 }
 
 export {

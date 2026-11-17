@@ -33,7 +33,8 @@ import {
   type Deployment,
   type Edition,
 } from "../platform/licensing/editions.js";
-import { buildLicenceFields, IssueError, issueLicence, type IssueRequest } from "../platform/licensing/issuer/issue.js";
+import { buildLicenceFields, IssueError, type IssueRequest } from "../platform/licensing/issuer/issue.js";
+import { issueAndRegister } from "../platform/licensing/issuer/desk.js";
 import { FileRegisterStore, MySqlRegisterStore, type RegisterStore } from "../platform/licensing/issuer/register.store.js";
 import { devSigner, ensureDevKey, kmsSigner, readDevPublicKey } from "../platform/licensing/issuer/signers.js";
 import { verifyArcusLicence } from "../platform/licensing/licence.verify.js";
@@ -137,33 +138,9 @@ function summary(l: ReturnType<typeof buildLicenceFields>, kid?: string): string
 }
 
 async function issue(store: RegisterStore, req: IssueRequest, reason: string, replaces: string | null): Promise<void> {
-  const now = new Date();
-  const id = await store.nextId(now.getUTCFullYear());
-  const { text, licence } = await issueLicence(req, id, signer(), now);
-  const out = flag("out") ?? `${id}.lic`;
+  const { text, licence } = await issueAndRegister(store, signer(), req, { by: issuedBy(), reason, replaces });
+  const out = flag("out") ?? `${licence.licence_id}.lic`;
   writeFileSync(out, text);
-  await store.add({
-    licenceId: id,
-    customer: licence.customer_name,
-    orderRef: licence.order_ref,
-    binding: licence.binding,
-    edition: licence.entitlements.edition,
-    licenceType: licence.licence_type,
-    validFrom: licence.valid_from,
-    expiresAt: licence.expires_at,
-    kid: licence.kid,
-    text,
-    request: req,
-    issuedBy: issuedBy(),
-    issuedAt: licence.issued_at,
-    reason,
-    replaces,
-    replacedBy: null,
-    revokedAt: null,
-    revokedBy: null,
-    revokeReason: null,
-  });
-  if (replaces) await store.markReplaced(replaces, id);
   console.log(`${summary(licence, licence.kid)}\nWritten to ${out}${replaces ? `; replaces ${replaces}` : ""}.`);
 }
 

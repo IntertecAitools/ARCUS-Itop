@@ -49,6 +49,7 @@ const PLATFORM_STATUS = (mode: LicenceStatus["mode"]): LicenceStatus => ({
   nonProduction: false,
   maintenanceLapsed: false,
   banners: [],
+  operator: false,
 });
 
 export function registerLicenceRoutes(app: FastifyInstance, licensing: LicenceService, options: { platformLogins: string[]; usage?: UsageService }): void {
@@ -85,7 +86,7 @@ export function registerLicenceRoutes(app: FastifyInstance, licensing: LicenceSe
   app.get("/api/licence/status", async (request): Promise<LicenceStatus> => {
     const caller = currentCaller();
     const s = licensing.scopeFor(currentTenant()?.id);
-    if (s === null) return PLATFORM_STATUS(licensing.mode);
+    if (s === null) return { ...PLATFORM_STATUS(licensing.mode), operator: !!caller && operators.has(caller.login.toLowerCase()) };
     const dto = licensing.toDto(await licensing.statusOf(s), { isAdmin: !!caller?.isAdmin, isStaff: caller?.kind === "staff" });
     // Limit warnings at 80% and 100%, for administrators (Build Guide, section 11).
     // A failure to count (the system of record slow or down) must not take

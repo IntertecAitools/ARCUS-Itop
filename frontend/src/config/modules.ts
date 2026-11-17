@@ -26,6 +26,7 @@ import {
   NotebookPen,
   Repeat,
   Route,
+  ScrollText,
   ShieldCheck,
   Handshake,
   Timer,
@@ -155,6 +156,11 @@ export interface ModuleDefinition {
    * the BFF refuses the API to anyone else; this only keeps it out of their menus.
    */
   adminOnly?: boolean;
+  /**
+   * Offered only to platform operators on the platform's own address (the
+   * licence desk). The BFF refuses its API to anyone else.
+   */
+  operatorOnly?: boolean;
   /** Route element. Required: a registered module is a built module. */
   component: LazyExoticComponent<ComponentType>;
   /** Nested routes (detail screens, tabs) owned by the module. */
@@ -656,6 +662,19 @@ export const modules: ModuleDefinition[] = [
     component: lazy(() => import('@/features/licensing').then((m) => ({ default: m.LicencePage }))),
   },
   {
+    id: 'licences',
+    feature: 'service_desk',
+    home: 'AdminTools',
+    label: 'Licences',
+    path: 'licences',
+    icon: ScrollText,
+    group: 'administration',
+    description: 'The licence desk: every licence issued, issue, re-issue, revoke, renewals due.',
+    adminOnly: true,
+    operatorOnly: true,
+    component: lazy(() => import('@/features/licensing').then((m) => ({ default: m.LicencesPage }))),
+  },
+  {
     id: 'audit',
     feature: 'audit_sync',
     home: 'AdminTools',
@@ -691,12 +710,17 @@ export const navGroups: NavGroup[] = ['operations', 'resources', 'administration
  * unreachable, or a hidden one reappears in a menu.
  */
 /**
- * The features the edition includes, when licensing enforces them
- * (`useEditionFeatures`); null or absent shows everything.
+ * What the menus offer beyond `isAdmin` (`useMenuFilter`): the features the
+ * edition includes when licensing enforces them (null or absent: all), and
+ * whether this is a platform operator (operator-only pages).
  */
-export type EditionFilter = ReadonlySet<Feature> | null | undefined;
+export interface EditionFilter {
+  features?: ReadonlySet<Feature> | null;
+  operator?: boolean;
+}
 
-const inEdition = (m: ModuleDefinition, features: EditionFilter) => !features || features.has(m.feature);
+const inEdition = (m: ModuleDefinition, filter: EditionFilter | undefined) =>
+  (!filter?.features || filter.features.has(m.feature)) && (!m.operatorOnly || filter?.operator === true);
 
 export function navigableModules(isAdmin = false, features?: EditionFilter) {
   return modules.filter((m) => !m.hidden && (!m.adminOnly || isAdmin) && inEdition(m, features));
