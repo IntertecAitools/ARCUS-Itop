@@ -83,6 +83,17 @@ describe("LT-01: an Essentials key shows only Essentials in the API", () => {
     assert.deepEqual((run.json() as { error: { details: { feature: string } } }).error.details.feature, "audit_sync");
   });
 
+  it("checks a saved query run by its id against the class it lists", async () => {
+    const lists: Record<number, string> = { 7: "AuditRule", 8: "UserRequest" };
+    const t = await licenceApp();
+    t.services.queries.recordTypeOf = async (id) => lists[id] ?? "";
+    await t.install(await t.issue({ order: { edition: "PRO" } }));
+    for (const path of ["/api/queries/7", "/api/queries/7/results", "/api/queries/7/export?format=csv"]) {
+      assert.equal(code(await t.send("GET", path, t.users.agent)), "LICENCE_FEATURE", path);
+    }
+    assert.notEqual(code(await t.send("GET", "/api/queries/8/results", t.users.agent)), "LICENCE_FEATURE");
+  });
+
   it("with LICENSING=warn hides nothing and refuses nothing, but records it", async () => {
     const t = await licenceApp({ mode: "warn" });
     await t.install(await t.issue({ order: { edition: "ESS" } }));

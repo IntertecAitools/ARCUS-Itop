@@ -638,11 +638,11 @@ A newly deployed customer installation starts at `enforce`.
 | Setting | Default | Notes |
 | --- | --- | --- |
 | `LICENSING` | `off` | `off`, `warn` or `enforce`. In SSM with the other settings. |
-| `LICENCE_SIGNER` | unset on the production image | The operator Licences page signs licences only when set: `kms` (with `LICENCE_KMS_KID`, and `kms:Sign` for the server, not granted today). Unset: the page lists and revokes, the CLI issues. |
+| `LICENCE_SIGNER` | unset on the production image | The operator Licences page signs licences only when set: `kms`, with `LICENCE_KMS_KID`. The server may sign only after Terraform runs with `licence_server_signs = true` (off by default). Unset: the page lists and revokes, and the CLI issues. |
 | `LICENCE_CLUSTER_ID` | unset | Deployed in Kubernetes: the namespace UID, part of the licence binding. |
 | `LICENCE_ACTIVATION_URL` | unset | Deployed, online: Intertec's activation address (https). Unset: activation requests are files. |
 | `LICENCE_REVOCATION_URL` | unset | Deployed, online: Intertec's signed revocation list (https), fetched at start and daily. |
-| `ARCUS_RELEASE_DATE` | unset | This release's date (YYYY-MM-DD); perpetual licences refuse releases after their maintenance. Unset: no check. |
+| `ARCUS_RELEASE_DATE` | the build day, set by the pipeline | This release's date (YYYY-MM-DD), baked into the image. Perpetual licences refuse releases dated after their maintenance ends. Empty: no check. |
 | `LICENCE_INSTALLATION_KIND` | `production` on the production image | `production`, `nonprod` or `standby`. A non-production licence is refused on a `production` installation. |
 
 The licence tables (`bff_installation`, `bff_licences`,

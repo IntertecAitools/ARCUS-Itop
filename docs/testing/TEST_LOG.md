@@ -4,6 +4,44 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-11-17 — Licensing: ready for production (first live run with licensing on)
+
+The matrix is confirmed by Product and Sales; the agreement text is with Legal.
+
+| Run | Result |
+|---|---|
+| Backend tests | 1000/1000 |
+| Backend and frontend typecheck | clean |
+| Frontend vitest | 332/332 (no frontend change in this branch) |
+| Terraform `fmt` and `validate` (`init -backend=false`, nothing planned or applied) | valid |
+| **Live: `npm run e2e:licensing`**: BFF on :4610 with `LICENSING=enforce`, local system of record, MySQL session store | **26/26** |
+
+The live run covered, for the first time against a real database and system of record:
+- the trial state;
+- an Essentials licence checked and installed with the terms accepted;
+- changes, problems and custom queries refused, while tickets and the standard dashboards answer;
+- an edited licence refused;
+- the upgrade to Professional;
+- usage counted live (16 agents, 11 CIs);
+- the signed usage report verified, and an edit breaking it.
+
+The licence tables it created in the local BFF database were dropped afterwards; they did not exist before the run.
+
+Changes:
+- **Draft labels removed** from `editions.ts`; the README shows the confirmed matrix.
+- **Signing uses the AWS SDK** (`@aws-sdk/client-kms`) instead of the `aws` command, which the BFF image does not have. Server-side signing would have failed in production even with the permission.
+- **Terraform:** `licence_server_signs` (default `false`) grants the server role `kms:Sign` on the licence key. Nothing applied.
+- **Release date:** the pipeline stamps the BFF image with its build day (`ARCUS_RELEASE_DATE`), so the perpetual-licence check is live.
+- **Saved queries opened, run or exported by id** are now checked against the class they list (one new test).
+
+Looked at and not changed:
+- The single sign-on button still shows on Essentials: requesters use it on every edition, so it must stay. Staff on Essentials are told to use their password.
+- The test-mode menu has no gated entries to filter.
+
+Not covered:
+- KMS signing against real AWS (the key is not created).
+- The pipeline build with the release-date argument (it runs on the next merge).
+
 ### 2026-11-17 — Licensing: recommended edition matrix and limits applied
 
 There was no agreed matrix, so the draft was replaced with a recommendation. It is still a draft for Product, Sales and Legal to confirm.

@@ -8,6 +8,10 @@
 # To create it, set licence_signing_enabled = true and the issuer and
 # custodian principals, plan, review, and apply by hand.
 #
+# With licence_server_signs = true as well, the server may sign too (the
+# operator Licences page): set LICENCE_SIGNER=kms and LICENCE_KMS_KID in the
+# server's settings.
+#
 # Once created, add the public key to
 # backend/src/platform/licensing/sdk/public-keys.ts under a new kid (the
 # output below shows the command) and ship it in a release.
@@ -46,9 +50,25 @@ variable "licence_key_custodians" {
   default = []
 }
 
+# Let the platform server sign too, so the operator Licences page can issue
+# and renew licences (LICENCE_SIGNER=kms on the server). Off by default:
+# with it on, anyone who controls the server or an operator account can
+# sign licences, where otherwise only the issuer role (with MFA) can.
+# Needs licence_signing_enabled.
+variable "licence_server_signs" {
+  description = "Allow the server's instance role to sign licences (the operator Licences page)."
+  type        = bool
+  default     = false
+}
+
 locals {
   licence_signing = var.licence_signing_enabled ? 1 : 0
-  account_root    = "arn:aws:iam::${local.account}:root"
+  licence_server  = var.licence_signing_enabled && var.licence_server_signs ? 1 : 0
+  licence_signers = concat(
+    ["arn:aws:iam::${local.account}:role/${var.project}-licence-issuer"],
+    var.licence_server_signs ? [aws_iam_role.server.arn] : [],
+  )
+  account_root = "arn:aws:iam::${local.account}:root"
 }
 
 resource "aws_iam_role" "licence_issuer" {
@@ -115,7 +135,7 @@ resource "aws_kms_key" "licence_signing" {
       {
         Sid       = "IssuerSigns"
         Effect    = "Allow"
-        Principal = { AWS = "arn:aws:iam::${local.account}:role/${var.project}-licence-issuer" }
+        Principal = { AWS = local.licence_signers }
         Action    = ["kms:Sign", "kms:GetPublicKey", "kms:DescribeKey"]
         Resource  = "*"
       },
@@ -153,6 +173,20 @@ resource "aws_kms_key" "licence_signing" {
       error_message = "Name at least two licence_key_custodians, so retiring the key needs a second person."
     }
   }
+}
+
+resource "aws_iam_role_policy" "server_signs_licences" {
+  count = local.licence_server
+  name  = "sign-licences"
+  role  = aws_iam_role.server.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["kms:Sign", "kms:GetPublicKey", "kms:DescribeKey"]
+      Resource = aws_kms_key.licence_signing[0].arn
+    }]
+  })
 }
 
 resource "aws_kms_alias" "licence_signing" {

@@ -1,11 +1,7 @@
-import { execFile } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { promisify } from "node:util";
+import { KMSClient, SignCommand, type SignCommandInput, type SigningAlgorithmSpec } from "@aws-sdk/client-kms";
 import { DEV_KID, generateSigningKeyPair, localSigner, type Algorithm, type Signer } from "../sdk/index.js";
-
-const run = promisify(execFile);
 
 export const DEV_PRIVATE_KEY_FILE = "dev-private.pem";
 export const DEV_PUBLIC_KEY_FILE = "dev-public.pem";
@@ -57,47 +53,36 @@ export const KMS_ALGORITHMS: Record<Algorithm, string> = {
 };
 
 /** The `aws` arguments that sign one message file. Exported for the tests. */
-export function kmsSignArgs(options: KmsSignerOptions, messageFile: string): string[] {
-  return [
-    "kms",
-    "sign",
-    "--key-id",
-    options.keyId,
-    "--message",
-    `fileb://${messageFile}`,
-    "--message-type",
-    "RAW",
-    "--signing-algorithm",
-    KMS_ALGORITHMS[options.alg],
-    "--query",
-    "Signature",
-    "--output",
-    "text",
-    ...(options.region ? ["--region", options.region] : []),
-  ];
+/** The one KMS call we make, so tests can stand in for KMS. */
+export interface KmsSignClient {
+  send(command: SignCommand): Promise<{ Signature?: Uint8Array }>;
+}
+
+/** The KMS request for one signature: the raw message, not a digest. */
+export function kmsSignInput(options: KmsSignerOptions, message: Uint8Array): SignCommandInput {
+  return {
+    KeyId: options.keyId,
+    Message: message,
+    MessageType: "RAW",
+    SigningAlgorithm: KMS_ALGORITHMS[options.alg] as SigningAlgorithmSpec,
+  };
 }
 
 /**
- * Signs in AWS KMS through the AWS CLI, with whatever credentials the
- * caller has (the licence-issuer role). The private key never leaves KMS;
- * no AWS SDK dependency is added to the BFF for one call.
+ * Signs in AWS KMS with whatever credentials the caller has: the
+ * licence-issuer role on an operator's machine, the server's instance role
+ * on the platform. The private key never leaves KMS.
  */
-export function kmsSigner(options: KmsSignerOptions, exec: typeof run = run): Signer {
+export function kmsSigner(options: KmsSignerOptions, client?: KmsSignClient): Signer {
+  let kms = client;
   return {
     kid: options.kid,
     alg: options.alg,
     async sign(data) {
-      const dir = mkdtempSync(join(tmpdir(), "arcus-licence-"));
-      const file = join(dir, "message.bin");
-      try {
-        writeFileSync(file, data);
-        const { stdout } = await exec("aws", kmsSignArgs(options, file), { maxBuffer: 1 << 20 });
-        const sig = Buffer.from(String(stdout).trim(), "base64");
-        if (!sig.length) throw new Error("KMS returned no signature.");
-        return sig;
-      } finally {
-        rmSync(dir, { recursive: true, force: true });
-      }
+      kms ??= new KMSClient(options.region ? { region: options.region } : {});
+      const { Signature } = await kms.send(new SignCommand(kmsSignInput(options, data)));
+      if (!Signature?.length) throw new Error("KMS returned no signature.");
+      return Buffer.from(Signature);
     },
   };
 }

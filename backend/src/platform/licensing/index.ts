@@ -106,6 +106,8 @@ export function registerLicensing(
   options: {
     platformLogins: string[];
     lineage: (cls: string) => string[];
+    /** The record class of a saved query, by id, so running one by id is gated like its class. */
+    savedQueryClass?: (id: number) => Promise<string>;
     usage?: UsageService;
     /** The licence desk (operator Licences page); with TENANCY's tenant store. */
     desk?: LicenceDeskParts & { tenants: TenantStore };
@@ -115,7 +117,7 @@ export function registerLicensing(
 ): void {
   // Remembers which module's feature each route belongs to (door 1).
   app.addHook("onRoute", (route) => licensing.noteRoute(route.url));
-  registerFeatureGate(app, licensing, options.lineage);
+  registerFeatureGate(app, licensing, options.lineage, options.savedQueryClass);
   registerLicenceGuard(app, licensing);
   if (options.usage) registerLimitGuard(app, licensing, options.usage, options.lineage);
   registerLicenceRoutes(app, licensing, {

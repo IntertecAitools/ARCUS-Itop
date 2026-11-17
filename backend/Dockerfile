@@ -25,7 +25,12 @@ RUN npm ci --omit=dev --no-audit --no-fund && npm cache clean --force
 
 # --- runtime -----------------------------------------------------------------
 FROM ${NODE_IMAGE}
-ENV NODE_ENV=production \
+# The day this release was built (YYYY-MM-DD), set by the pipeline. A
+# perpetual licence refuses releases dated after its maintenance ends.
+# Empty: no check.
+ARG ARCUS_RELEASE_DATE=""
+ENV ARCUS_RELEASE_DATE=${ARCUS_RELEASE_DATE} \
+    NODE_ENV=production \
     HOST=0.0.0.0 \
     PORT=4000 \
     CMDB_SCHEMA_PATH=/app/cmdb-schema/cmdb-schema.json \
