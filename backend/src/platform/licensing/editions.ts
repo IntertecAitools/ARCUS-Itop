@@ -221,9 +221,10 @@ export const ROUTE_FEATURES: readonly (readonly [string, Feature])[] = [
   ["/api/problems/:id/rca-draft", "ai"],
   ["/api/admin/data-import/sync-sources", "audit_sync"],
   ["/api/admin/audit", "audit_sync"],
+  // Custom queries are analytics. The standard overview dashboards
+  // (/api/dashboards, /api/meta/dashboards) are in every edition: they
+  // belong to no module, so they are not gated.
   ["/api/queries", "analytics"],
-  ["/api/dashboards", "analytics"],
-  ["/api/meta/dashboards", "analytics"],
   ["/api/approvals", "approvals_forms"],
   ["/api/admin/approvals", "approvals_forms"],
   ["/api/me/approvals", "approvals_forms"],

@@ -23,6 +23,9 @@ describe("edition gating tables", () => {
     assert.equal(featureOfRoute("/api/problems/:id/analysis", "problem"), "problem");
     assert.equal(featureOfRoute("/api/admin/audit/rules/:id"), "audit_sync");
     assert.equal(featureOfRoute("/api/queries/run"), "analytics");
+    // The standard dashboards are in every edition.
+    assert.equal(featureOfRoute("/api/dashboards/:id/dashlets/:dashletId"), undefined);
+    assert.equal(featureOfRoute("/api/meta/dashboards"), undefined);
     assert.equal(featureOfRoute("/api/request-forms/resolve", "approvals_forms"), "service_desk");
     assert.equal(featureOfRoute("/api/objects/:class"), undefined, "door 3 decides by class");
     assert.equal(featureOfRoute("/api/queriesx"), undefined, "a prefix matches whole segments only");
@@ -115,7 +118,7 @@ describe("single sign-on and the edition", () => {
 
   it("never refuses a requester, and refuses staff only when they can use a password instead", async () => {
     const t = await licenceApp();
-    await t.install(await t.issue({ order: { edition: "PRO" } })); // no sso
+    await t.install(await t.issue({ order: { edition: "ESS" } })); // no sso
     assert.equal(await ssoRefusal(t.licensing, person("portal"), undefined, true), undefined, "requesters are never locked out");
     assert.match((await ssoRefusal(t.licensing, person("staff"), undefined, true)) ?? "", /sign in with your password/);
     // Password sign-in is off for staff: refusing would lock everyone out, so it goes through and is recorded.
@@ -127,7 +130,7 @@ describe("single sign-on and the edition", () => {
 
   it("allows single sign-on on an edition that has it, and blocks nothing in warning mode", async () => {
     const ent = await licenceApp();
-    await ent.install(await ent.issue({ order: { edition: "ENT" } }));
+    await ent.install(await ent.issue({ order: { edition: "PRO" } }));
     assert.equal(await ssoRefusal(ent.licensing, person("staff"), undefined, true), undefined);
     const warn = await licenceApp({ mode: "warn" });
     await warn.install(await warn.issue({ order: { edition: "ESS" } }));
