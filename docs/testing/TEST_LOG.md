@@ -4,6 +4,28 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-11-17 — Licensing: recommended edition matrix and limits applied
+
+There was no agreed matrix, so the draft was replaced with a recommendation. It is still a draft for Product, Sales and Legal to confirm.
+
+| Change | Phase | Commit |
+|---|---|---|
+| Single sign-on moves to Professional; CIs included 2,500 / 10,000 / 50,000; Enterprise includes premium support; AI packs refused on Essentials | 1 | 8f7ee4b7 |
+| Status test: Professional has single sign-on | 2 | 4074a360 |
+| Standard overview dashboards in every edition (custom queries stay in Professional); SSO tests and mock matrix | 3 | 4e3c2f7a |
+| Limit tests follow the new CI numbers | 4 | 4f11c55d |
+| Page tests and mock data follow the new limits | 5 | d4d14796 |
+
+| Run (on phase 7, all merged forward) | Result |
+|---|---|
+| Backend tests | 999/999 |
+| Backend and frontend typecheck | clean |
+| Frontend vitest | 332/332 |
+| Frontend build | built |
+| Mock browser journeys | 39/39 |
+
+Not covered: no run with `LICENSING` on against the local stack (unchanged from before).
+
 ### 2026-11-17 — Licensing: review of the seven PRs, six bugs fixed
 
 A code review of the whole stack (`origin/main...claude/licensing-7-activation`) reported ten findings. The six real bugs were fixed in the phase that introduced each, then merged forward through the stack:
