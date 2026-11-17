@@ -76,6 +76,8 @@ export interface UpdateUserInput {
 
 const str = (v: unknown) => (v === null || v === undefined ? "" : String(v));
 const USER_FIELDS = "id,login,status,contactid,first_name,last_name,email,language";
+/** Accounts read per page when counting agents for the licence. */
+export const AGENT_COUNT_PAGE = 1000;
 
 /**
  * Account administration, so nobody needs iTop's own console for it.
@@ -89,8 +91,19 @@ const USER_FIELDS = "id,login,status,contactid,first_name,last_name,email,langua
  * (they call iTop as themselves), so it is added to every staff account here
  * rather than left for an administrator to remember.
  */
+/**
+ * Licence seats (platform/licensing): asked before an account becomes an
+ * agent. Throws when the edition's named seats (plus 10%) are all in use.
+ */
+export interface SeatCheck {
+  agentProfiles: readonly string[];
+  assertSeat(login: string): Promise<void>;
+}
+
 export class UsersService {
   private restProfileId?: number;
+  /** Set when licensing is on. */
+  seats?: SeatCheck;
 
   constructor(
     private readonly client: ItopClient,
@@ -244,6 +257,8 @@ export class UsersService {
         throw badRequest("An account can only be given organisations of its own customer.");
       }
     }
+    // A new agent takes a seat: checked before anything is created.
+    if (await this.isAgent(input.profileIds)) await this.seats?.assertSeat(login);
     const contactId = "id" in input.contact ? input.contact.id : await this.createPerson(input.contact);
     const profileIds = await this.withRestProfile(input.profileIds);
     const allowedOrgIds = await this.tenantOrgs(contactId, input.allowedOrgIds);
@@ -290,6 +305,13 @@ export class UsersService {
       }
     }
 
+    // Enabling an agent, or making an account an agent, takes a seat.
+    if (this.seats) {
+      const wasAgent = current.status === "enabled" && (await this.isAgent(current.profileIds));
+      const willBe = (input.status ?? current.status) === "enabled" && (await this.isAgent(input.profileIds ?? current.profileIds));
+      if (willBe && !wasAgent) await this.seats.assertSeat(current.login);
+    }
+
     const fields: Record<string, unknown> = {};
     if (input.status) fields["status"] = input.status;
     if (input.contactId !== undefined) fields["contactid"] = input.contactId;
@@ -324,6 +346,39 @@ export class UsersService {
   }
 
   /** An administrator sets a local account's password; the user is signed out everywhere. */
+  /** Does this set of profiles make an account an agent (a named seat)? */
+  private async isAgent(profileIds: number[]): Promise<boolean> {
+    if (!this.seats) return false;
+    const names = new Set(this.seats.agentProfiles);
+    return (await this.profiles()).some((p) => profileIds.includes(p.id) && names.has(p.name));
+  }
+
+  /**
+   * Enabled accounts holding one of `profileNames`, in the current tenant
+   * (the tenant guard holds the query to it): the agents a licence counts.
+   */
+  async countAgents(profileNames: readonly string[]): Promise<number> {
+    const names = new Set(profileNames);
+    let agents = 0;
+    // Every enabled account, a page at a time: requesters are users too, and
+    // a tenant may have far more of them than one page holds.
+    for (let page = 1; ; page += 1) {
+      const result = await this.client.call("core/get", {
+        class: "User",
+        key: "SELECT User WHERE status = 'enabled'",
+        output_fields: "id",
+        limit: AGENT_COUNT_PAGE,
+        page,
+      });
+      const ids = normalizeObjects(result.objects).map((u) => u.id);
+      if (ids.length) {
+        const profiles = await this.profilesOf(ids);
+        agents += ids.filter((id) => (profiles.get(id) ?? []).some((p) => names.has(p))).length;
+      }
+      if (ids.length < AGENT_COUNT_PAGE) return agents;
+    }
+  }
+
   async setPassword(id: number, password: string): Promise<void> {
     if (password.length < 8) throw badRequest("Choose a password of at least 8 characters.");
     await this.assertNotOtherAdmin(await this.get(id));

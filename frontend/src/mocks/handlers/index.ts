@@ -10,6 +10,8 @@ import { inboxHandlers } from './inbox';
 import { mailIntakeHandlers } from './mail-intake';
 import { incidentHandlers } from './incidents';
 import { knowledgeHandlers } from './knowledge';
+import { licensingHandlers } from './licensing';
+import { licenceDeskHandlers } from './licence-desk';
 import { notificationHandlers } from './notifications';
 import { portalHandlers } from './portal';
 import { problemHandlers } from './problems';
@@ -20,4 +22,4 @@ import { serviceLevelHandlers } from './service-levels';
 import { tenantAdminHandlers } from './tenant-admin';
 
 /** Every mock handler in the app. Append a module's handlers as it lands. */
-export const handlers = [...approvalHandlers, ...authHandlers, ...autoCloseHandlers, ...changeHandlers, ...dashboardHandlers, ...dataImportHandlers, ...dispatchHandlers, ...inboxHandlers, ...incidentHandlers, ...knowledgeHandlers, ...mailIntakeHandlers, ...notificationHandlers, ...portalHandlers, ...problemHandlers, ...recordHandlers, ...requestFormHandlers, ...slaHandlers, ...businessHoursHandlers, ...serviceLevelHandlers, ...ticketHandlingHandlers, ...tenantAdminHandlers];
+export const handlers = [...approvalHandlers, ...authHandlers, ...autoCloseHandlers, ...changeHandlers, ...dashboardHandlers, ...dataImportHandlers, ...dispatchHandlers, ...inboxHandlers, ...incidentHandlers, ...knowledgeHandlers, ...licensingHandlers, ...licenceDeskHandlers, ...mailIntakeHandlers, ...notificationHandlers, ...portalHandlers, ...problemHandlers, ...recordHandlers, ...requestFormHandlers, ...slaHandlers, ...businessHoursHandlers, ...serviceLevelHandlers, ...ticketHandlingHandlers, ...tenantAdminHandlers];

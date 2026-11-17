@@ -1656,6 +1656,182 @@ A licence's JSON carries the common fields (`product`, `licence_id`,
 the Arcus ones (`edition`, `deployment`, `named_seats`, `concurrent_seats`,
 `ci_limit`, `node_limit`, `ai_actions_per_month`, `storage_gb`, `features`).
 
+### The licence module: states and read-only mode
+
+`LICENSING` (`off`, `warn`, `enforce`; default `off`) decides whether it is
+loaded at all; `docs/deployment.md`, "Licensing", has the rollout. With it
+on, `licence.service.ts` keeps one status per **scope** in memory: each
+tenant with `TENANCY=on` (SaaS, binding `tenant:<id>`), else the
+installation (binding `install:<installation id>`). Every minute it re-reads
+the licences (a key saved on another instance applies everywhere) and works
+out the state from the date:
+
+| State | When | Blocked (with `enforce`) |
+| --- | --- | --- |
+| `valid` | verified, inside its dates | nothing |
+| `expiring_soon` | the last 30 days | nothing; banner for administrators |
+| `grace` | after the end date, within `grace_days` | nothing; banner for every agent |
+| `read_only` | grace over | every change by an agent |
+| `evaluation_mode` | no valid licence: edited, another tenant's or installation's, a non-production key on a production installation, the clock moved back more than a day, or (SaaS) none installed | as read-only, plus an audit event |
+| `trial` | a deployed installation with no licence, first 30 days | nothing |
+| `evaluation_expired` | an evaluation licence or the trial has ended | as read-only |
+
+Non-production licences and lapsed maintenance are flags on the status,
+not states: a non-production key shows a banner to everyone, always.
+
+- **Read-only** (`licence.guard.ts`): one hook after the sign-in guard
+  refuses any change by staff with `403 LICENCE_READ_ONLY`. Always allowed:
+  every GET (reads, exports), sign-in and out, `/api/licence*`, the user's own `/api/me/*` (preferences, drafts; approval decisions change records and are refused),
+  the requester portal, and the POSTs that only read (`/api/queries/run`,
+  the delete plan, duplicate suggestions, the assignment-rule test, the
+  root-cause draft). With `warn`, the refusal is recorded as `would_refuse`
+  once a day per kind of request and the request goes through.
+- **The clock**: the latest time ever seen is kept per scope; a current time
+  more than a day earlier puts the scope in evaluation mode and the high
+  water mark is used, so the term is never extended. It recovers when the
+  clock is right again.
+- **Several licences per scope** are kept, never overwritten: the newest one
+  that verifies and has started wins, so a renewal can be installed early.
+- **Tables** (created on first use, in the BFF database with
+  `SESSION_STORE=mysql`): `bff_installation` (the installation id, a random
+  UUID made on first start, and its report-signing key pair, the private
+  half sealed with `SESSION_SECRET`), `bff_licences`, `bff_licence_state`,
+  `bff_licence_events` (key uploaded, state changed, clock warning, tamper
+  detected, refused, would refuse).
+
+| Endpoint | Who | What |
+| --- | --- | --- |
+| `GET /api/licence/status` | every signed-in user, requesters too | edition, features, state, days left, the banners for this user |
+| `POST /api/licence/check` | administrators | checks a key without saving it: what it grants, what would change ("Edition PRO → ENT") |
+| `PUT /api/licence` | the installation's administrators; with `TENANCY=on`, platform operators only | saves a checked key; it applies at once. A key issued before the one installed needs `confirmOlder: true` |
+
+A key that fails the check is never saved. The frontend shows the banners in
+the staff shell and the portal (`frontend/src/features/licensing/`); with
+licensing off the status route does not exist and the app shows none.
+
+### Edition gating
+
+With `LICENSING=enforce`, a customer sees and reaches only what their edition
+includes (FUN-03); a new key changes that within a minute, with no restart.
+The features and which edition has each are in `editions.ts` (**draft**).
+Every door into a feature is gated, for staff (requesters are never gated):
+
+| Door | How |
+| --- | --- |
+| 1. Business modules | Each entry in both registries has a `feature`. The module's routes (as it registers them, wherever they live) answer `403 LICENCE_FEATURE`; `GET /api/meta/modules` leaves it out; the frontend drops it from the sidebar and palette, and its routes show "Not included in your edition". |
+| 2. Platform routes | `ROUTE_FEATURES` in `editions.ts`: saved queries and dashboards (`analytics`), approvals (`approvals_forms`), audit and synchronised sources (`audit_sync`), organisation admin (`multi_org`), the AI root-cause draft (`ai`). It also overrides a module's feature for one route. Single sign-on (`sso`) is checked at sign-in instead, once the user is known: requesters are never refused, and staff only when they can sign in with a password (otherwise it is recorded and allowed, so nobody is locked out). |
+| 3. Record classes | `CLASS_FEATURES` in `editions.ts` (`Change` and its subclasses, `Problem`, `KnownError`, audit classes): any route with a `:class` (records, export, pickers, history, schema, import preview) and a saved query's `recordType`. `GET /api/meta/navigation` leaves those classes' menu entries out. |
+
+A refusal is `403 {"error": {"code": "LICENCE_FEATURE", "message", "details": {"feature", "edition", "includedIn"}}}`
+and a `refused` licence event (once a day per route). With `warn` nothing is
+hidden or refused; it is recorded as `would_refuse`. Nothing is deleted: a
+downgrade hides records, an upgrade brings them back, and an administrator
+can still export a hidden class's records (`GET /api/objects/:class/export`
+is never gated for administrators).
+
+### Limits and metering
+
+Each limit is checked where usage grows, counted live at that moment, and
+kept as a daily figure (`usage.service.ts`, `usage.guard.ts`). The rule for
+every limit (LIC-09): a warning at 80% and 100%, then 10% more is allowed,
+then **new** use of that kind pauses with `403 LICENCE_LIMIT`
+(`details: {metric, used, limit}`). Existing use is never taken away. With
+`warn` the refusal is recorded as `would_refuse` and the request goes through.
+The limits come from the licence; the defaults per edition are **drafts**.
+
+| Limit | Counted as | Checked |
+| --- | --- | --- |
+| Agents (`named_seats`) | enabled staff accounts holding an agent profile (`AGENT_PROFILES` in `editions.ts`), in the tenant | creating an account, enabling one, or adding an agent profile (`UsersService`): "All 60 agent seats are in use." |
+| Agent sessions (`named_seats + concurrent_seats`) | agents with a request in the last 15 minutes (signing out frees one at once) | sign-in of an agent not already active (`SignInFlow`) |
+| CIs (`ci_limit`) | `FunctionalCI` and its subclasses in the tenant | creating a CI record, a data import into a CI class, a synchronised source run; editing existing CIs always works |
+| AI actions (`ai_actions_per_month`) | each AI root-cause draft that answered, per calendar month | just before the draft |
+| Storage (`storage_gb`, SaaS) | bytes uploaded as attachments | a staff upload; requesters' uploads are counted, never refused |
+| Monitored nodes (`node_limit`) | not counted: event management is not built | — |
+
+- Warnings show to administrators as a banner and are recorded once a day as
+  a `limit_warning` licence event, not on every request.
+- `bff_usage_daily` keeps, per scope and day, agents, peak sessions, CIs, AI
+  actions and bytes stored; written every hour and at shutdown, kept two years (when older days are dropped, their stored bytes are carried forward, so the storage total still counts those files).
+- Seats and CIs shown in banners are at most five minutes old; the checks
+  count live, so two administrators cannot both take the last seat.
+
+### The licence page, the EULA and the usage report
+
+**Administration → Licence** (`frontend/src/features/licensing/`, administrators only):
+
+- **Summary**: customer, edition, licence type, dates, days left, state, licence id, order.
+- **Usage against entitlement**: agents, agent sessions, CIs, AI actions this month, storage, with a bar coloured at 80% and 100%.
+- **Install a licence**: paste the text or choose the `.lic` file. It is checked first (`POST /api/licence/check`) and the page lists what changes ("Agents 60 → 80") before **Install licence**. A key that fails the check is never saved. In SaaS a tenant administrator sees the licence read-only: the platform operator installs keys.
+- **EULA (LIC-17)**: on a deployed installation, the first administrator to install a key accepts the end-user licence agreement with it (`acceptEula` on `PUT /api/licence`; without it the install is refused). In SaaS, the tenant's first administrator accepts the terms of service (`POST /api/licence/eula`); until then administrators see an "Accept the terms" banner. Acceptance is recorded with the name, time and text version on the licence row and as a licence event. **The text is a placeholder** (`src/platform/licensing/eula.ts`) until Legal provides the agreement and the terms.
+- **Usage report (LIC-14)**: `GET /api/licence/usage-report?from=&to=` downloads a signed JSON document: the licence, the limits, the daily figures and the peaks, signed with the installation's own Ed25519 key (made on first start, in `bff_installation`). Intertec checks it against the public key the installation registered: `npm run licence -- verify-report usage.json --key installation-public.pem`. The page shows the installation id and that public key (deployed).
+- **History**: keys installed, state changes, warnings, refusals, terms accepted (`bff_licence_events`).
+
+`GET /api/licence` (administrators) returns all of it in one call; it answers 404 when licensing is off, and the page then says so.
+
+### The licence desk: the operator's Licences page
+
+**Administration → Licences**, for platform operators (`PLATFORM_LOGINS`) on
+the platform's own address only (`/api/platform/licences*`; anyone else gets
+403). The same code as the CLI (`issuer/desk.ts`):
+
+- **Register** (LIC-02): every licence issued, re-issued or revoked, who, when
+  and why, filterable by customer. Nothing is deleted.
+- **Issue a licence** from an order. For a **new SaaS customer**, the form
+  also creates the tenant (id, site host names, organisations) in the same
+  step, and the licence is installed for it at once. The order is checked
+  before anything is saved, so a refused order creates no tenant. A deployed
+  customer's licence is downloaded as a `.lic` file to send to them.
+- **Re-issue** (upgrade, more agents, moved): a new licence id that replaces
+  the old one in the register, the same end date unless the term changes;
+  SaaS licences are installed straight away.
+- **Revoke**: SaaS revocation takes effect at once on this instance and at
+  the next minute's refresh on the others (the licence module reads revoked
+  ids from the register); the tenant goes to evaluation mode.
+- **Renewals due** (SAS-03): current licences ending within 30, 60 and 90 days.
+
+The server signs only with `LICENCE_SIGNER` set: `dev` on a development
+build, `kms` in production, which needs `kms:Sign` on the licence key for the
+server's role (not granted today: `deploy/aws/terraform/licensing.tf` gives
+it to the issuer role only). Without a signer the page lists and revokes,
+and licences are issued with the CLI.
+
+### Deployed installations: binding, activation, revocation
+
+A deployed licence is bound to the **installation id** (a random UUID made
+on first start and kept in `bff_installation`, so it survives restarts,
+container and server replacement: LIC-07) and, once Arcus runs in
+Kubernetes, the **cluster id** (`LICENCE_CLUSTER_ID`, the namespace UID).
+
+- **Activation** (Licence page → *Create activation request*,
+  `POST /api/licence/activation-request`): the installation signs a small
+  request with its own key: installation id, cluster id, its report public
+  key, the version and release date, the order reference. **Online**
+  (`LICENCE_ACTIVATION_URL` set), it is sent to Intertec's activation
+  address and the licence that comes back is installed at once; if the
+  address cannot be reached, the request comes back to download instead.
+  **Offline**, the administrator downloads `arcus-activation-request.json`
+  and carries it to Intertec, then installs the `.lic` that comes back.
+- **Intertec's side**: `npm run licence -- activate request.json --type subscription --term 1 --edition PRO --agents 20`
+  checks the request (signed by the key it carries, unaltered), issues the
+  licence bound to `install:<id>[;cluster:<id>]`, records the installation's
+  report key in the register (to check its usage reports), and writes the
+  `.lic` response file. Intertec's online activation address itself is not
+  part of this repository.
+- **Moved to another cluster** (a restore elsewhere, LT-12): the licence
+  keeps working for 14 days in the `reactivation` state, with a banner,
+  while a re-issued licence is asked for; then evaluation mode. The window
+  is kept in `bff_licence_rebind`.
+- **Revocation**: SaaS reads the platform's register (above). A deployed
+  installation that may reach the internet fetches Intertec's signed
+  revocation list from `LICENCE_REVOCATION_URL` at start and daily; a list
+  that does not verify against Intertec's keys is refused and recorded.
+  Intertec signs it with `npm run licence -- revocation-list --out revoked.json`.
+  Offline installations rely on expiry.
+- **Perpetual licences** (LIC-11): `ARCUS_RELEASE_DATE` (set by the image
+  build) is this release's date; a perpetual licence whose maintenance ended
+  before it is refused (keep the earlier release, or renew maintenance).
+  The release in use keeps running after maintenance ends. Unset: no check.
+
 ### Issuing licences: `npm run licence`
 
 ```bash
@@ -1667,6 +1843,9 @@ npm run licence -- reissue ARC-2026-000001 --reason upgrade --edition ENT --agen
 npm run licence -- revoke ARC-2026-000001 --reason "contract ended"
 npm run licence -- list [--customer "Example Co"]
 npm run licence -- verify acme-2026.lic [--tenant acme]
+npm run licence -- verify-report usage.json --key installation-public.pem
+npm run licence -- activate request.json --type subscription --term 1 --edition PRO --agents 20
+npm run licence -- revocation-list --out revoked.json
 ```
 
 - **Limits come from the edition and the packs** (`--ci-packs`, `--ai-packs`,

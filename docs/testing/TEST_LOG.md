@@ -4,6 +4,146 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-11-17 — Licensing: recommended edition matrix and limits applied
+
+There was no agreed matrix, so the draft was replaced with a recommendation. It is still a draft for Product, Sales and Legal to confirm.
+
+| Change | Phase | Commit |
+|---|---|---|
+| Single sign-on moves to Professional; CIs included 2,500 / 10,000 / 50,000; Enterprise includes premium support; AI packs refused on Essentials | 1 | 8f7ee4b7 |
+| Status test: Professional has single sign-on | 2 | 4074a360 |
+| Standard overview dashboards in every edition (custom queries stay in Professional); SSO tests and mock matrix | 3 | 4e3c2f7a |
+| Limit tests follow the new CI numbers | 4 | 4f11c55d |
+| Page tests and mock data follow the new limits | 5 | d4d14796 |
+
+| Run (on phase 7, all merged forward) | Result |
+|---|---|
+| Backend tests | 999/999 |
+| Backend and frontend typecheck | clean |
+| Frontend vitest | 332/332 |
+| Frontend build | built |
+| Mock browser journeys | 39/39 |
+
+Not covered: no run with `LICENSING` on against the local stack (unchanged from before).
+
+### 2026-11-17 — Licensing: review of the seven PRs, six bugs fixed
+
+A code review of the whole stack (`origin/main...claude/licensing-7-activation`) reported ten findings. The six real bugs were fixed in the phase that introduced each, then merged forward through the stack:
+
+| Bug | Phase | Fix | Test |
+|---|---|---|---|
+| Read-only mode let approvers approve and reject (`/api/me/approvals/:id/approve` was exempt with the rest of `/api/me/`) | 2 | Approval decisions are refused in read-only like other changes | `licence-states.test.ts` |
+| SSO gating ran before the user was known, so requesters (and staff with password sign-in off) could be locked out | 3 | The check moved to sign-in: requesters never refused; staff only when they can use a password; otherwise recorded and allowed | `licence-gating.test.ts` (2 new) |
+| Pruning daily figures older than two years dropped their bytes from the storage total | 4 | Bytes are carried into the first kept day | `licence-limits.test.ts` |
+| The agent count read only the first 5,000 enabled accounts (requesters included) | 4 | Pages through every account | `licence-limits.test.ts` |
+| A failure to count usage made `/api/licence/status` fail, and the shell then showed every module | 4 | Limit banners are skipped and logged instead | `licence-limits.test.ts` |
+| A new customer's licence was registered before its tenant was saved | 6 | Order checked, tenant saved, then the licence signed; a signing failure removes the new tenant | `licence-desk.test.ts` |
+
+| What ran | Result |
+|---|---|
+| `npm test` (backend, phase 7 branch with every fix) | 999/999 passed (6 new) |
+| `npm run typecheck` / `npm run build` (backend) | passed |
+| Frontend | not rerun: the fixes change backend files only; CI runs the frontend jobs on every PR |
+
+**Not fixed (clean-up, reported to the user):** the status poll every minute while licensing is off; the CLI's own copy of the re-issue rules; the file-download code copied three times; a runtime constant used only as a type check.
+
+### 2026-11-17 — Licensing phase 7: deployed activation, binding, revocation
+
+| What ran | Result |
+|---|---|
+| `npm test` (backend) | 993/993 passed (7 new in `test/licence-activation.test.ts`) |
+| `npm run typecheck` / `npm run build` (backend) | passed |
+| `npx vitest run` (frontend) | 332/332 passed |
+| `npm run typecheck` / `npm run build` (frontend) | passed |
+| `npm run e2e` (mock journeys, port 5781) | 38/39 on the full run: `a11y.spec.ts` "axe, arabic (rtl) › staff shell…" failed once with two always-mocked calls (`/api/branding`, `/api/meta/navigation`) escaping the mock worker in a 1.2-minute test; the spec then passed alone twice (12/12, 12/12). Recorded as flaky, not a regression. 1 new journey (offline activation download) passing |
+| `npm run licence -- activate` / `revocation-list` by hand, file register | as expected: binding, cluster and order taken from the request; a signed, empty revocation list |
+
+**LT-07** (perpetual key with lapsed maintenance refuses a newer release; the release in use keeps running), **LT-10** (offline activation: request through the route, altered request refused, response file issued, uploaded, valid; report key registered and the usage report verifies with it; online activation with a fake Intertec, and the fallback when it cannot be reached), **LT-11** (a new BFF over the same tables keeps the installation id and the licence), **LT-12** (new cluster: 14 days, then evaluation mode; the re-issued licence is valid again): all passing. Revocation list applied, altered list refused.
+
+**Bugs found while writing it:** a first draft of the re-activation code would have skipped the trial and no-licence branches (an `if (false)` placeholder), and the `activate` command first marked the new licence as replaced instead of recording the report key; both caught before any test run and fixed.
+
+**Not covered:** LT-11 against the live Docker stack with `LICENSING` on; LT-10 on a machine with no network (manual, before release); Intertec's online activation address itself (out of scope); `ARCUS_RELEASE_DATE` is not set by the image build yet.
+
+### 2026-11-17 — Licensing phase 6: the operator's Licences page
+
+| What ran | Result |
+|---|---|
+| `npm test` (backend) | 986/986 passed (7 new in `test/licence-desk.test.ts`) |
+| `npm run typecheck` / `npm run build` (backend) | passed |
+| `npx vitest run` (frontend) | 332/332 passed on a rerun; the first run had 6 timeouts (ChangeGovernancePanel ×2, ChangeExtras, ChangeBlackoutsPage, AssignmentRulesPage, ProblemAnalysisPanel, each ~21–23 s) while the machine was loaded; those files then passed alone (39/39) and the full rerun passed |
+| `npm run typecheck` / `npm run build` (frontend) | passed |
+| `npm run e2e` (mock journeys, port 5781) | 38/38 passed (1 new: the licence desk) |
+
+**Tested:** the done-when of the phase, "a tenant can be created and licensed from one form" (backend: tenant created and active, licence verifies, installed and valid; journey: the form, then re-issue and revoke); operator-only access, also refused on a customer's site; a refused order creates nothing; re-issue keeps the end date and marks the old licence replaced; SaaS revocation puts the tenant in evaluation mode at once; without `LICENCE_SIGNER` the server says to use the CLI; renewal buckets at 30/60/90 days.
+
+**Bugs found:** none in the product. A shell quoting error lost one combined command while writing the code; redone with a script file.
+
+**Not covered:** server-side signing in production (needs `kms:Sign` for the server role, not granted); renewal emails (a list only); no live run.
+
+### 2026-11-16 — Licensing phase 5: licence page, EULA, signed usage report
+
+| What ran | Result |
+|---|---|
+| `npm test` (backend) | 979/979 passed (4 new in `test/licence-page.test.ts`) |
+| `npm run typecheck` / `npm run build` (backend) | passed |
+| `npx vitest run` (frontend) | 332/332 passed (3 new in `LicencePage.test.tsx`; the sidebar test now lists the Licence page) |
+| `npm run typecheck` / `npm run build` (frontend) | passed |
+| `npm run e2e` (mock journeys, port 5781) | 37/37 passed (1 new: the licence page) |
+
+**Tested:** the page's summary, usage against every limit (levels at 80%/100%) and history, for administrators only; LIC-17 on a deployed installation (the first key is refused without the EULA, recorded with name, time and version, not asked again) and in SaaS (the terms banner until the tenant's first administrator accepts); **LT-15** through the route: the downloaded report verifies with the installation's public key, one edited figure fails, a reversed period is refused; check → changes → EULA → install in the browser; the report download.
+
+**Found while testing:** the mock's install handler read the request body twice (`TypeError: unusable`); fixed. A first full journey run overlapped with a second one I started on the same port and build folder, so each rebuilt the other's site mid-run (3 failures, "not mocked" calls, missing trace files); rerun alone: 37/37. Lesson: never run two mock journey runs on one port at once.
+
+**Not covered:** the EULA and terms text is a placeholder until Legal provides it; storage in the report counts uploads since licensing was on; no live run.
+
+### 2026-11-16 — Licensing phase 4: limits and metering
+
+| What ran | Result |
+|---|---|
+| `npm test` (backend) | 975/975 passed (8 new in `test/licence-limits.test.ts`) |
+| `npm run typecheck` / `npm run build` (backend) | passed |
+| `npx vitest run` (frontend) | 329/329 passed |
+| `npm run typecheck` / `npm run build` (frontend) | passed |
+| `npm run e2e` (mock journeys, port 5781) | 36/36 passed |
+
+**LT-03** (one agent beyond named seats refused, existing agents unaffected): through `POST /api/admin/users` and enabling a disabled agent, with a stubbed agent count; passing. **LT-04** (more sessions than seats refused): on `SignInFlow` with the memory session store, including a repeat sign-in, a requester, sign-out and 15 quiet minutes; passing. **LT-05** (CI warnings at 80% and 100%, pause above 110%): CI record creation, data import and synchronised sources with stubbed counts against the real schema; banners for administrators only, warnings recorded once a day; editing a CI and non-CI records unaffected; passing. Also: AI actions pause and return next month, `warn` mode, daily figures.
+
+**Bugs found while testing:** none in the product. Three test mistakes fixed: synchronised sources are Enterprise-only, so a Professional key got `LICENCE_FEATURE` first (the test now uses Enterprise); the administrator who installs the key holds an agent profile and so has a session, which the session and peak counts must include.
+
+**Not covered:** sessions are counted per BFF instance (one in production today); storage counts uploads since licensing was switched on, not files already there or deletions; an import is checked once per file, not per row; no live run with `LICENSING=enforce`; the MySQL `bff_usage_daily` table against a real database.
+
+### 2026-11-16 — Licensing phase 3: edition gating
+
+| What ran | Result |
+|---|---|
+| `npm test` (backend) | 967/967 passed (7 new in `test/licence-gating.test.ts`; licence test setup moved to `test/licence-app.ts`) |
+| `npm run typecheck` / `npm run build` (backend) | passed |
+| `npx vitest run` (frontend) | 329/329 passed |
+| `npm run typecheck` / `npm run build` (frontend) | passed |
+| `npm run e2e` (mock journeys, port 5781) | 36/36 passed (2 new: LT-01, LT-02) |
+
+**LT-01** (an Essentials key shows only Essentials modules in the UI and API): backend checks `meta/modules`, all three doors (`/api/changes/cab`; queries and audit; `/api/objects/Change`, `/:id`, Problem export, `meta/classes/Change`, `lookups/KnownError`, creating a Change), the refusal details and event; the Playwright journey checks the palette and the "Not included in your edition" page. **LT-02** (PRO then ENT adds modules within minutes, no restart): backend with keys saved "on another instance" and a fake clock; journey: the palette gains Change calendar after the Enterprise key. Both passing.
+
+**Found and fixed while writing it:** the first version gated exports of a hidden class for everyone; the guide keeps hidden data in an administrator's export, so `GET /api/objects/:class/export` is now never gated for administrators (test added). The first journey for LT-02 opened the palette before the reloaded page was ready; it now waits for the sidebar. Its scenario switch is set once per tab, so a "new key" survives the reload.
+
+**Not covered:** a saved query run by id is not checked against its stored record type; the SSO button still shows on editions without SSO (starting SSO is refused); the mock build's iTop menu is not filtered by edition (the BFF filters the real one); no live run with `LICENSING=enforce`.
+
+### 2026-11-16 — Licensing phase 2: licence module, states, read-only mode
+
+| What ran | Result |
+|---|---|
+| `npm test` (backend) | 960/960 passed (13 new in `test/licence-states.test.ts`) |
+| `npm run typecheck` / `npm run build` (backend) | passed |
+| `npx vitest run` (frontend) | 329/329 passed |
+| `npm run typecheck` / `npm run build` (frontend) | passed |
+| `npm run e2e` (mock journeys, port 5781) | 34/34 passed (4 new in `tests/journeys/licence.spec.ts`) |
+
+**LT-06** (grace banner, then read-only, export works), **LT-09** (clock moved back 60 days: detected, audited, no term extension), **LT-13** (evaluation key day 31 read-only, export works): backend tests with a fake clock, all passing. **LT-14** (non-production banner on every page): backend per audience, and the Playwright journey on the staff pages and the portal, passing. The second half of **LT-08** (a key edited in the database gives evaluation mode and a `tamper_detected` event): passing. Also tested: `LICENSING=warn` records "would refuse" once a day and blocks nothing, SaaS per tenant (operator only installs), replay of an older licence needs confirmation, deployed 30-day trial, `LICENSING=off` loads nothing.
+
+**Bug found while testing:** none in the product. Two test mistakes fixed before the run (object creation answers 201, not 200; a test helper's type).
+
+**Not covered:** the MySQL licence tables against a real database (memory store only); no screen to upload a key yet (phase 5); the live stack was not run with `LICENSING` on.
+
 ### 2026-11-16 — Licensing phase 1: licence format, verifier, issuing CLI
 
 | What ran | Result |

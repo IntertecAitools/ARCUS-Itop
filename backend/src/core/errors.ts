@@ -19,6 +19,12 @@ export type ErrorCode =
   | "unsupported_media_type"
   /** Too many attempts in a short time, e.g. password-reset requests. */
   | "rate_limited"
+  /** The licence is read-only (expired past grace, or not valid): agents cannot change anything. */
+  | "LICENCE_READ_ONLY"
+  /** The edition does not include this feature. */
+  | "LICENCE_FEATURE"
+  /** A licence limit (seats, CIs, AI actions, storage) is used up, past its 10% allowance. */
+  | "LICENCE_LIMIT"
   | "upstream_unavailable"
   | "upstream_timeout"
   | "upstream_error"
@@ -34,6 +40,9 @@ const STATUS_BY_CODE: Record<ErrorCode, number> = {
   payload_too_large: 413,
   unsupported_media_type: 415,
   rate_limited: 429,
+  LICENCE_READ_ONLY: 403,
+  LICENCE_FEATURE: 403,
+  LICENCE_LIMIT: 403,
   upstream_unavailable: 502,
   upstream_timeout: 504,
   upstream_error: 502,

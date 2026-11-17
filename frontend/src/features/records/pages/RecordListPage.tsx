@@ -15,6 +15,7 @@ import { recordColumns } from '../components/RecordColumns';
 import { defaultColumns, listFields } from '../lib/list-cells';
 import { offeredActions, requiredForTransition, transitionPrompts } from '../lib/transitions';
 import type { BulkRequest, BulkResult, Criterion, RecordDto } from '../types';
+import { licenceFeatureRefusal, NotInEdition } from '@/features/licensing';
 
 type BulkDialog = { kind: 'edit' } | { kind: 'delete' } | { kind: 'action'; action: string };
 
@@ -207,6 +208,10 @@ export function RecordListPage() {
     if (!('page' in patch)) next.delete('page');
     setParams(next, { replace: true });
   };
+
+  // A record type the edition does not include (403 LICENCE_FEATURE).
+  const notInEdition = licenceFeatureRefusal(error);
+  if (notInEdition) return <NotInEdition feature={notInEdition.feature} />;
 
   if (schemaError) {
     return (

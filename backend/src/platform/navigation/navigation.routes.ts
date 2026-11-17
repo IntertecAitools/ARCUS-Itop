@@ -1,9 +1,29 @@
 import type { FastifyInstance } from "fastify";
 
 import type { Services } from "../../services.js";
+import { currentTenant } from "../../core/request-context.js";
 
 export function registerNavigationRoutes(app: FastifyInstance, services: Services): void {
-  const { navigation } = services;
+  const { navigation, licensing, schema } = services;
+
+  /**
+   * With LICENSING=enforce, menu entries for record classes the edition does
+   * not include are left out (Problem, Change… on Essentials), and a group
+   * left empty goes with them.
+   */
+  const editionGroups = async () => {
+    const features = await licensing?.enforcedFeatures(currentTenant()?.id);
+    if (!features || !licensing) return navigation.groups;
+    return navigation.groups
+      .map((g) => ({
+        ...g,
+        entries: g.entries.filter((e) => {
+          const feature = e.class ? licensing.featureOfClass(schema.lineage(e.class)) : undefined;
+          return !feature || features.has(feature);
+        }),
+      }))
+      .filter((g) => g.entries.length > 0);
+  };
 
   /**
    * iTop's navigation, as the frontend should render it.
@@ -13,7 +33,7 @@ export function registerNavigationRoutes(app: FastifyInstance, services: Service
    * the BFF resolves it, so no screen ever holds an iTop query.
    */
   app.get("/api/meta/navigation", async () => ({
-    groups: navigation.groups,
+    groups: await editionGroups(),
     classLabels: navigation.classLabels,
     /**
      * Menu nodes iTop has that we do not render, each with a reason. Published

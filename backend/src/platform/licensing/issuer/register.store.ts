@@ -33,6 +33,8 @@ export interface RegisterEntry {
   revokedAt: string | null;
   revokedBy: string | null;
   revokeReason: string | null;
+  /** Deployed: the installation's report key from its activation request (to check its usage reports). */
+  reportPublicKey?: string;
 }
 
 export interface RegisterStore {

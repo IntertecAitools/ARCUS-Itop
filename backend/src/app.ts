@@ -25,6 +25,7 @@ import { registerQueryRoutes } from "./platform/queries/queries.routes.js";
 import { registerInboxRoutes } from "./platform/inbox/inbox.routes.js";
 import { registerPortalRoutes } from "./platform/portal/portal.routes.js";
 import { registerApprovalRoutes } from "./platform/approvals/approvals.routes.js";
+import { registerLicensing } from "./platform/licensing/index.js";
 import { buildServices, type BuildServicesOptions, type Services } from "./services.js";
 
 export interface BuildAppResult {
@@ -95,6 +96,24 @@ export function buildApp(config: Config, options: BuildServicesOptions = {}): Bu
   // First: the guard binds the signed-in user to every request after it.
   registerAuth(app, services);
   app.addHook("onClose", async () => services.sessions.close());
+  // Then the licence guard (LICENSING=warn|enforce; not loaded when off):
+  // read-only mode needs the caller and tenant the sign-in guard bound.
+  if (services.licensing) {
+    registerLicensing(app, services.licensing, {
+      platformLogins: config.tenancy?.platformLogins ?? [],
+      lineage: (cls) => services.schema.lineage(cls),
+      ...(services.licenceUsage ? { usage: services.licenceUsage } : {}),
+      ...(services.licenceDesk ? { desk: { ...services.licenceDesk, tenants: services.tenantStore } } : {}),
+      activation: {
+        version: config.licensing!.version,
+        ...(config.licensing!.releaseDate ? { releaseDate: config.licensing!.releaseDate } : {}),
+        ...(config.licensing!.clusterId ? { clusterId: config.licensing!.clusterId } : {}),
+        ...(config.licensing!.activationUrl ? { activationUrl: config.licensing!.activationUrl } : {}),
+        ...(config.licensing!.revocationUrl ? { revocationUrl: config.licensing!.revocationUrl } : {}),
+        ...(options.licenceFetch ? { fetch: options.licenceFetch } : {}),
+      },
+    });
+  }
 
   registerHealthRoutes(app, services);
   registerMetaRoutes(app, services);
@@ -118,7 +137,9 @@ export function buildApp(config: Config, options: BuildServicesOptions = {}): Bu
   // Adding a module is one entry in src/config/modules.ts and nothing here.
   assertNoDuplicatePaths();
   for (const module of modules) {
-    module.register(app, services);
+    // With licensing on, its routes are remembered under the module's feature (edition gating).
+    if (services.licensing) services.licensing.withModuleFeature(module.feature, () => module.register(app, services));
+    else module.register(app, services);
     app.log.debug({ module: module.id, basePath: module.basePath }, "module registered");
   }
 

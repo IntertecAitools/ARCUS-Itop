@@ -11,6 +11,7 @@ import { layoutFor, mustSupply, RecordForm } from '../components/RecordForm';
 import type { RecordDto } from '../types';
 import { DraftBar, DuplicateSuggestions, useTicketDraft } from '@/features/ticket-handling';
 import { RequestFormSection, answersFor, missingRequired, type FormAnswers, type FormField } from '@/features/request-forms';
+import { licenceFeatureRefusal, NotInEdition } from '@/features/licensing';
 
 /** What the BFF returns from a create: the row, plus anything iTop refused. */
 interface CreateResult {
@@ -134,6 +135,9 @@ export function RecordNewPage() {
       },
     });
   };
+
+  const notInEdition = licenceFeatureRefusal(error);
+  if (notInEdition) return <NotInEdition feature={notInEdition.feature} />;
 
   if (isError) {
     return (
