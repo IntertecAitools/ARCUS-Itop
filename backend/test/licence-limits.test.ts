@@ -95,27 +95,27 @@ describe("limits", () => {
   });
 
   it("LT-05: warnings at 80% and 100% of the CI limit; new CIs pause above 110%", async () => {
-    const t = await licenceApp({ schema: realSchema, counts: { agents: 0, cis: 3999 } });
-    await t.install(await t.issue({ order: { edition: "PRO" } })); // 5,000 CIs, cap 5,500
+    const t = await licenceApp({ schema: realSchema, counts: { agents: 0, cis: 7999 } });
+    await t.install(await t.issue({ order: { edition: "PRO" } })); // 10,000 CIs, cap 11,000
     const createServer = () => t.send("POST", "/api/objects/Server", t.users.agent, { fields: { name: "srv-1", org_id: 1 } });
     const importServers = () => t.send("POST", "/api/admin/data-import/Server/run", t.users.admin, { rows: [] });
 
     assert.notEqual(code(await createServer()), "LICENCE_LIMIT");
-    t.counts.cis = 4000; // 80%
+    t.counts.cis = 8000; // 80%
     assert.notEqual(code(await createServer()), "LICENCE_LIMIT");
     let banners = (await t.status(t.users.admin)).banners.filter((b) => b.kind === "limit");
-    assert.match(banners[0]!.message, /Configuration items: 4000 of 5000 in use \(80%\)/);
+    assert.match(banners[0]!.message, /Configuration items: 8000 of 10000 in use \(80%\)/);
     assert.equal((await t.status(t.users.agent)).banners.filter((b) => b.kind === "limit").length, 0, "limit banners are for administrators");
 
-    t.counts.cis = 5000; // 100%
+    t.counts.cis = 10000; // 100%
     assert.notEqual(code(await createServer()), "LICENCE_LIMIT");
     banners = (await t.status(t.users.admin)).banners.filter((b) => b.kind === "limit");
     assert.match(banners[0]!.message, /Up to 10% more is allowed/);
 
-    t.counts.cis = 5500; // the 10% is used up
+    t.counts.cis = 11000; // the 10% is used up
     const refused = await createServer();
     assert.equal(code(refused), "LICENCE_LIMIT");
-    assert.match((refused.json() as { error: { message: string } }).error.message, /5000 configuration items; new ones are paused/);
+    assert.match((refused.json() as { error: { message: string } }).error.message, /10000 configuration items; new ones are paused/);
     assert.equal(code(await importServers()), "LICENCE_LIMIT", "imports pause too");
     // Editing an existing CI, and records that are not CIs, still work.
     assert.notEqual(code(await t.send("PATCH", "/api/objects/Server/12", t.users.agent, { fields: { name: "renamed" } })), "LICENCE_LIMIT");
@@ -129,8 +129,8 @@ describe("limits", () => {
   });
 
   it("LT-05: synchronised sources (Enterprise) pause with the CIs too", async () => {
-    const t = await licenceApp({ schema: realSchema, counts: { agents: 0, cis: 27_501 } });
-    await t.install(await t.issue({ order: { edition: "ENT" } })); // 25,000 CIs, cap 27,500
+    const t = await licenceApp({ schema: realSchema, counts: { agents: 0, cis: 55_001 } });
+    await t.install(await t.issue({ order: { edition: "ENT" } })); // 50,000 CIs, cap 55,000
     assert.equal(code(await t.send("POST", "/api/admin/data-import/sync-sources/3/run", t.users.admin, {})), "LICENCE_LIMIT");
   });
 
