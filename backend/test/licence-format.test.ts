@@ -211,11 +211,13 @@ describe("term, binding and clock", () => {
 describe("issuing", () => {
   it("works out the limits from the edition and the packs (draft table)", () => {
     assert.deepEqual(entitlementsFor({ edition: "PRO", deployment: "saas", agents: 60 }), {
-      edition: "PRO", deployment: "saas", named_seats: 60, concurrent_seats: 0, ci_limit: 5000, node_limit: 0,
+      edition: "PRO", deployment: "saas", named_seats: 60, concurrent_seats: 0, ci_limit: 10000, node_limit: 0,
       ai_actions_per_month: 18000, storage_gb: 250, features: [],
     });
-    const e = entitlementsFor({ edition: "ESS", deployment: "deployed", agents: 10, ciPacks: 2, aiPacks: 1, addons: ["premium_support", "byok", "byok"] });
-    assert.deepEqual([e.ci_limit, e.ai_actions_per_month, e.storage_gb, e.features], [3000, 5000, null, ["byok", "premium_support"]]);
+    const e = entitlementsFor({ edition: "PRO", deployment: "deployed", agents: 10, ciPacks: 2, aiPacks: 1, addons: ["premium_support", "byok", "byok"] });
+    assert.deepEqual([e.ci_limit, e.ai_actions_per_month, e.storage_gb, e.features], [12000, 8000, null, ["byok", "premium_support"]]);
+    // Enterprise includes premium support without ordering it.
+    assert.deepEqual(entitlementsFor({ edition: "ENT", deployment: "saas", agents: 5 }).features, ["premium_support"]);
   });
 
   it("each edition contains the one below it, and every feature is in some edition", () => {
@@ -223,7 +225,8 @@ describe("issuing", () => {
     for (const f of EDITION_FEATURES.PRO) assert.ok(EDITION_FEATURES.ENT.includes(f));
     for (const f of FEATURES) assert.ok(EDITIONS.includes(lowestEditionWith(f)));
     assert.equal(lowestEditionWith("change"), "PRO");
-    assert.equal(lowestEditionWith("sso"), "ENT");
+    assert.equal(lowestEditionWith("sso"), "PRO");
+    assert.equal(lowestEditionWith("multi_org"), "ENT");
   });
 
   it("ends a term the day before its anniversary", () => {
@@ -236,6 +239,11 @@ describe("issuing", () => {
     assert.throws(() => buildLicenceFields({ ...BASE_REQUEST, binding: "install:x" }, "ARC-1", now), IssueError);
     assert.throws(() => buildLicenceFields({ ...BASE_REQUEST, termYears: 2 }, "ARC-1", now), /1, 3 or 5/);
     assert.throws(() => buildLicenceFields({ ...BASE_REQUEST, type: "perpetual" }, "ARC-1", now), /deployed/);
+    // AI packs on an edition without AI.
+    assert.throws(
+      () => buildLicenceFields({ ...BASE_REQUEST, order: { ...BASE_REQUEST.order, edition: "ESS", aiPacks: 1 } }, "ARC-1", now),
+      /AI packs need an edition with AI \(Professional or above\)/,
+    );
   });
 
   it("numbers licences per year in the register", async () => {

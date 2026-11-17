@@ -17,7 +17,8 @@ describe("licence states and read-only mode", () => {
     const s = await t.status(t.users.admin);
     assert.deepEqual([s.state, s.edition, s.expiresAt], ["valid", "PRO", "2027-11-30"]);
     assert.ok(s.features.includes("change"));
-    assert.ok(!s.features.includes("sso"));
+    assert.ok(s.features.includes("sso"));
+    assert.ok(!s.features.includes("multi_org"));
     const history = await t.licensing.history("installation");
     assert.ok(history.some((e) => e.type === "key_uploaded" && e.actor === "admin"));
   });
