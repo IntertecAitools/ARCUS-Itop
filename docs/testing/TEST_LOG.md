@@ -4,6 +4,27 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-11-17 — Licensing: review of the seven PRs, six bugs fixed
+
+A code review of the whole stack (`origin/main...claude/licensing-7-activation`) reported ten findings. The six real bugs were fixed in the phase that introduced each, then merged forward through the stack:
+
+| Bug | Phase | Fix | Test |
+|---|---|---|---|
+| Read-only mode let approvers approve and reject (`/api/me/approvals/:id/approve` was exempt with the rest of `/api/me/`) | 2 | Approval decisions are refused in read-only like other changes | `licence-states.test.ts` |
+| SSO gating ran before the user was known, so requesters (and staff with password sign-in off) could be locked out | 3 | The check moved to sign-in: requesters never refused; staff only when they can use a password; otherwise recorded and allowed | `licence-gating.test.ts` (2 new) |
+| Pruning daily figures older than two years dropped their bytes from the storage total | 4 | Bytes are carried into the first kept day | `licence-limits.test.ts` |
+| The agent count read only the first 5,000 enabled accounts (requesters included) | 4 | Pages through every account | `licence-limits.test.ts` |
+| A failure to count usage made `/api/licence/status` fail, and the shell then showed every module | 4 | Limit banners are skipped and logged instead | `licence-limits.test.ts` |
+| A new customer's licence was registered before its tenant was saved | 6 | Order checked, tenant saved, then the licence signed; a signing failure removes the new tenant | `licence-desk.test.ts` |
+
+| What ran | Result |
+|---|---|
+| `npm test` (backend, phase 7 branch with every fix) | 999/999 passed (6 new) |
+| `npm run typecheck` / `npm run build` (backend) | passed |
+| Frontend | not rerun: the fixes change backend files only; CI runs the frontend jobs on every PR |
+
+**Not fixed (clean-up, reported to the user):** the status poll every minute while licensing is off; the CLI's own copy of the re-issue rules; the file-download code copied three times; a runtime constant used only as a type check.
+
 ### 2026-11-17 — Licensing phase 7: deployed activation, binding, revocation
 
 | What ran | Result |
