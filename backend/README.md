@@ -1751,7 +1751,7 @@ The limits come from the licence; the defaults per edition are **drafts**.
 - Warnings show to administrators as a banner and are recorded once a day as
   a `limit_warning` licence event, not on every request.
 - `bff_usage_daily` keeps, per scope and day, agents, peak sessions, CIs, AI
-  actions and bytes stored; written every hour and at shutdown, kept two years.
+  actions and bytes stored; written every hour and at shutdown, kept two years (when older days are dropped, their stored bytes are carried forward, so the storage total still counts those files).
 - Seats and CIs shown in banners are at most five minutes old; the checks
   count live, so two administrators cannot both take the last seat.
 
