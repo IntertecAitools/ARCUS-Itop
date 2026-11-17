@@ -5,6 +5,7 @@ import { cn, dateTimeText } from '@/lib/utils';
 import { ApiError } from '@/lib/api-client';
 import {
   useAcceptEula,
+  useActivationRequest,
   useCheckLicence,
   useInstallLicence,
   useLicence,
@@ -22,6 +23,7 @@ const STATE_TEXT: Record<LicenceDetail['status']['state'], string> = {
   evaluation_mode: 'No valid licence',
   trial: 'Evaluation',
   evaluation_expired: 'Evaluation ended',
+  reactivation: 'Moved: activate again',
 };
 
 const TYPE_TEXT: Record<string, string> = {
@@ -167,6 +169,55 @@ function InstallKey({ detail }: { detail: LicenceDetail }) {
           ) : null}
           {install.isError ? <p role="alert" className={`${ALERT} border-critical/30 bg-critical-soft text-critical-ink`}>{errorText(install.error)}</p> : null}
           {install.isSuccess ? <p role="status" className={`${ALERT} border-line bg-raised text-ink`}>Installed. It applies now.</p> : null}
+        </div>
+      </CardBody>
+    </Card>
+  );
+}
+
+/**
+ * Activation (deployed, Build Guide section 10): the installation's signed
+ * request for its licence. Online it goes to Intertec and the licence that
+ * comes back is installed; offline it is downloaded, to send to Intertec.
+ */
+function Activation({ detail }: { detail: LicenceDetail }) {
+  const a = detail.activation!;
+  const [orderRef, setOrderRef] = useState(detail.summary?.orderRef ?? '');
+  const [eula, setEula] = useState(false);
+  const activate = useActivationRequest();
+  const needsEula = detail.eula.required && a.online;
+  return (
+    <Card>
+      <CardHeader
+        title="Activation"
+        subtitle={a.online ? 'Requests go to Intertec directly; the licence that comes back is installed.' : 'This installation is offline: download the request and send it to Intertec, then install the licence file that comes back.'}
+      />
+      <CardBody>
+        <div className="space-y-3">
+          {a.clusterId ? <p className="text-[13px] text-ink-secondary">Cluster: {a.clusterId}</p> : null}
+          <label className="block space-y-1 text-[13px] text-ink">
+            <span className="block font-medium">Order reference</span>
+            <Input value={orderRef} onChange={(e) => setOrderRef(e.target.value)} aria-label="Order reference" placeholder="SO-45678" />
+          </label>
+          {needsEula ? (
+            <label className="flex items-center gap-2 text-[13px] text-ink">
+              <input type="checkbox" checked={eula} onChange={(e) => setEula(e.target.checked)} />I accept the end-user licence agreement
+            </label>
+          ) : null}
+          <Button size="sm" variant="secondary" disabled={activate.isPending || (needsEula && !eula)} onClick={() => activate.mutate({ orderRef, ...(needsEula ? { acceptEula: true } : {}) })}>
+            Create activation request
+          </Button>
+          {activate.data ? (
+            <p role="status" className={`${ALERT} border-line bg-raised text-ink`} data-testid="activation-result">
+              {activate.data.message}
+            </p>
+          ) : null}
+          {activate.isError ? <p role="alert" className={`${ALERT} border-critical/30 bg-critical-soft text-critical-ink`}>{errorText(activate.error)}</p> : null}
+          {a.last ? (
+            <p className="text-[12px] text-ink-muted">
+              Last activation, {dateTimeText(a.last.at)}: {a.last.result}
+            </p>
+          ) : null}
         </div>
       </CardBody>
     </Card>
@@ -336,6 +387,8 @@ export function LicencePage() {
             </CardBody>
           </Card>
         ) : null}
+
+        {data.activation ? <Activation detail={data} /> : null}
 
         <UsageReport />
 

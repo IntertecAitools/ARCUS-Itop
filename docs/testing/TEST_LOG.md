@@ -4,6 +4,44 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-11-17 — Licensing: review of the seven PRs, six bugs fixed
+
+A code review of the whole stack (`origin/main...claude/licensing-7-activation`) reported ten findings. The six real bugs were fixed in the phase that introduced each, then merged forward through the stack:
+
+| Bug | Phase | Fix | Test |
+|---|---|---|---|
+| Read-only mode let approvers approve and reject (`/api/me/approvals/:id/approve` was exempt with the rest of `/api/me/`) | 2 | Approval decisions are refused in read-only like other changes | `licence-states.test.ts` |
+| SSO gating ran before the user was known, so requesters (and staff with password sign-in off) could be locked out | 3 | The check moved to sign-in: requesters never refused; staff only when they can use a password; otherwise recorded and allowed | `licence-gating.test.ts` (2 new) |
+| Pruning daily figures older than two years dropped their bytes from the storage total | 4 | Bytes are carried into the first kept day | `licence-limits.test.ts` |
+| The agent count read only the first 5,000 enabled accounts (requesters included) | 4 | Pages through every account | `licence-limits.test.ts` |
+| A failure to count usage made `/api/licence/status` fail, and the shell then showed every module | 4 | Limit banners are skipped and logged instead | `licence-limits.test.ts` |
+| A new customer's licence was registered before its tenant was saved | 6 | Order checked, tenant saved, then the licence signed; a signing failure removes the new tenant | `licence-desk.test.ts` |
+
+| What ran | Result |
+|---|---|
+| `npm test` (backend, phase 7 branch with every fix) | 999/999 passed (6 new) |
+| `npm run typecheck` / `npm run build` (backend) | passed |
+| Frontend | not rerun: the fixes change backend files only; CI runs the frontend jobs on every PR |
+
+**Not fixed (clean-up, reported to the user):** the status poll every minute while licensing is off; the CLI's own copy of the re-issue rules; the file-download code copied three times; a runtime constant used only as a type check.
+
+### 2026-11-17 — Licensing phase 7: deployed activation, binding, revocation
+
+| What ran | Result |
+|---|---|
+| `npm test` (backend) | 993/993 passed (7 new in `test/licence-activation.test.ts`) |
+| `npm run typecheck` / `npm run build` (backend) | passed |
+| `npx vitest run` (frontend) | 332/332 passed |
+| `npm run typecheck` / `npm run build` (frontend) | passed |
+| `npm run e2e` (mock journeys, port 5781) | 38/39 on the full run: `a11y.spec.ts` "axe, arabic (rtl) › staff shell…" failed once with two always-mocked calls (`/api/branding`, `/api/meta/navigation`) escaping the mock worker in a 1.2-minute test; the spec then passed alone twice (12/12, 12/12). Recorded as flaky, not a regression. 1 new journey (offline activation download) passing |
+| `npm run licence -- activate` / `revocation-list` by hand, file register | as expected: binding, cluster and order taken from the request; a signed, empty revocation list |
+
+**LT-07** (perpetual key with lapsed maintenance refuses a newer release; the release in use keeps running), **LT-10** (offline activation: request through the route, altered request refused, response file issued, uploaded, valid; report key registered and the usage report verifies with it; online activation with a fake Intertec, and the fallback when it cannot be reached), **LT-11** (a new BFF over the same tables keeps the installation id and the licence), **LT-12** (new cluster: 14 days, then evaluation mode; the re-issued licence is valid again): all passing. Revocation list applied, altered list refused.
+
+**Bugs found while writing it:** a first draft of the re-activation code would have skipped the trial and no-licence branches (an `if (false)` placeholder), and the `activate` command first marked the new licence as replaced instead of recording the report key; both caught before any test run and fixed.
+
+**Not covered:** LT-11 against the live Docker stack with `LICENSING` on; LT-10 on a machine with no network (manual, before release); Intertec's online activation address itself (out of scope); `ARCUS_RELEASE_DATE` is not set by the image build yet.
+
 ### 2026-11-17 — Licensing phase 6: the operator's Licences page
 
 | What ran | Result |

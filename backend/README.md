@@ -1795,6 +1795,43 @@ server's role (not granted today: `deploy/aws/terraform/licensing.tf` gives
 it to the issuer role only). Without a signer the page lists and revokes,
 and licences are issued with the CLI.
 
+### Deployed installations: binding, activation, revocation
+
+A deployed licence is bound to the **installation id** (a random UUID made
+on first start and kept in `bff_installation`, so it survives restarts,
+container and server replacement: LIC-07) and, once Arcus runs in
+Kubernetes, the **cluster id** (`LICENCE_CLUSTER_ID`, the namespace UID).
+
+- **Activation** (Licence page → *Create activation request*,
+  `POST /api/licence/activation-request`): the installation signs a small
+  request with its own key: installation id, cluster id, its report public
+  key, the version and release date, the order reference. **Online**
+  (`LICENCE_ACTIVATION_URL` set), it is sent to Intertec's activation
+  address and the licence that comes back is installed at once; if the
+  address cannot be reached, the request comes back to download instead.
+  **Offline**, the administrator downloads `arcus-activation-request.json`
+  and carries it to Intertec, then installs the `.lic` that comes back.
+- **Intertec's side**: `npm run licence -- activate request.json --type subscription --term 1 --edition PRO --agents 20`
+  checks the request (signed by the key it carries, unaltered), issues the
+  licence bound to `install:<id>[;cluster:<id>]`, records the installation's
+  report key in the register (to check its usage reports), and writes the
+  `.lic` response file. Intertec's online activation address itself is not
+  part of this repository.
+- **Moved to another cluster** (a restore elsewhere, LT-12): the licence
+  keeps working for 14 days in the `reactivation` state, with a banner,
+  while a re-issued licence is asked for; then evaluation mode. The window
+  is kept in `bff_licence_rebind`.
+- **Revocation**: SaaS reads the platform's register (above). A deployed
+  installation that may reach the internet fetches Intertec's signed
+  revocation list from `LICENCE_REVOCATION_URL` at start and daily; a list
+  that does not verify against Intertec's keys is refused and recorded.
+  Intertec signs it with `npm run licence -- revocation-list --out revoked.json`.
+  Offline installations rely on expiry.
+- **Perpetual licences** (LIC-11): `ARCUS_RELEASE_DATE` (set by the image
+  build) is this release's date; a perpetual licence whose maintenance ended
+  before it is refused (keep the earlier release, or renew maintenance).
+  The release in use keeps running after maintenance ends. Unset: no check.
+
 ### Issuing licences: `npm run licence`
 
 ```bash
@@ -1807,6 +1844,8 @@ npm run licence -- revoke ARC-2026-000001 --reason "contract ended"
 npm run licence -- list [--customer "Example Co"]
 npm run licence -- verify acme-2026.lic [--tenant acme]
 npm run licence -- verify-report usage.json --key installation-public.pem
+npm run licence -- activate request.json --type subscription --term 1 --edition PRO --agents 20
+npm run licence -- revocation-list --out revoked.json
 ```
 
 - **Limits come from the edition and the packs** (`--ci-packs`, `--ai-packs`,

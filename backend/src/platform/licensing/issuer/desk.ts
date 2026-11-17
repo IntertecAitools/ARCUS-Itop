@@ -1,4 +1,5 @@
-import { addDays, utcDay, type Signer } from "../sdk/index.js";
+import { addDays, signDocument, utcDay, type Signer } from "../sdk/index.js";
+import { REVOCATION_KIND } from "../activation.js";
 import type { ArcusLicence } from "../licence.verify.js";
 import { issueLicence, type IssueRequest } from "./issue.js";
 import type { RegisterEntry, RegisterStore } from "./register.store.js";
@@ -13,7 +14,7 @@ export async function issueAndRegister(
   store: RegisterStore,
   signer: Signer,
   req: IssueRequest,
-  meta: { by: string; reason: string; replaces?: string | null; now?: Date },
+  meta: { by: string; reason: string; replaces?: string | null; now?: Date; reportPublicKey?: string },
 ): Promise<{ entry: RegisterEntry; text: string; licence: ArcusLicence }> {
   const now = meta.now ?? new Date();
   const id = await store.nextId(now.getUTCFullYear());
@@ -38,6 +39,7 @@ export async function issueAndRegister(
     revokedAt: null,
     revokedBy: null,
     revokeReason: null,
+    ...(meta.reportPublicKey ? { reportPublicKey: meta.reportPublicKey } : {}),
   };
   await store.add(entry);
   if (meta.replaces) await store.markReplaced(meta.replaces, id);
@@ -100,4 +102,26 @@ export function renewals(entries: RegisterEntry[], today = utcDay(new Date())): 
     within60: ending.filter((e) => e.expiresAt! > addDays(today, 30) && e.expiresAt! <= addDays(today, 60)),
     within90: ending.filter((e) => e.expiresAt! > addDays(today, 60)),
   };
+}
+
+/**
+ * Activation (Intertec's side, LT-10): the request for a licence bound to
+ * the installation that signed it, and to its cluster when it has one.
+ */
+export function activationIssueRequest(
+  request: { installation_id: string; cluster_id: string | null; order_ref: string },
+  order: Omit<IssueRequest, "binding" | "orderRef"> & { orderRef?: string },
+): IssueRequest {
+  return {
+    ...order,
+    orderRef: order.orderRef || request.order_ref,
+    order: { ...order.order, deployment: "deployed" },
+    binding: `install:${request.installation_id.toLowerCase()}${request.cluster_id ? `;cluster:${request.cluster_id}` : ""}`,
+  };
+}
+
+/** Intertec's signed revocation list: every revoked licence in the register. */
+export async function revocationListDocument(store: RegisterStore, signer: Signer, now = new Date()) {
+  const revoked = (await store.list()).filter((e) => e.revokedAt).map((e) => e.licenceId).sort();
+  return signDocument(REVOCATION_KIND, { product: "arcus", issued_at: now.toISOString(), revoked }, signer);
 }

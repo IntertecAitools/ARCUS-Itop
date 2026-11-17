@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import {
   addDays,
+  releaseAllowed,
   checkBinding,
   checkClock,
   daysBetween,
@@ -38,7 +39,18 @@ export interface LicensingSettings {
    * Build Guide section 5, "Revocation"). Re-read with the licences.
    */
   revokedIds?: () => Promise<ReadonlySet<string>>;
+  /**
+   * Deployed, in a cluster: its id (the Kubernetes namespace UID). A licence
+   * bound to another cluster of the same installation works for 14 days
+   * while a re-issued one is asked for (Build Guide, section 10).
+   */
+  clusterId?: string;
+  /** This release's date (YYYY-MM-DD): a perpetual licence refuses releases after its maintenance (LIC-11). */
+  releaseDate?: string;
 }
+
+/** Days a licence keeps working after the installation moved to another cluster. */
+export const REACTIVATION_DAYS = 14;
 
 const FEATURE_EDITIONS = Object.fromEntries(FEATURES.map((f) => [f, lowestEditionWith(f)])) as Record<Feature, Edition>;
 
@@ -70,6 +82,8 @@ export interface ScopeStatus {
   row?: LicenceRow;
   /** Who accepted the EULA (deployed) or the terms (SaaS) for this scope, when. */
   eula?: { by: string; at: Date };
+  /** In the re-activation window after a cluster change: days left. */
+  reactivationDaysLeft?: number;
 }
 
 export class LicenceError extends Error {
@@ -93,6 +107,10 @@ export class LicenceService {
   private readonly routeModuleFeature = new Map<string, Feature>();
   private registeringFeature?: Feature;
   private revoked: ReadonlySet<string> = new Set();
+  /** Revoked by Intertec's signed revocation list (deployed, online). */
+  private listRevoked: ReadonlySet<string> = new Set();
+  /** scope -> when its licence was first seen bound to another cluster. */
+  private readonly rebindStarted = new Map<string, Date>();
   private timer?: NodeJS.Timeout;
   private loaded?: Promise<void>;
 
@@ -119,6 +137,7 @@ export class LicenceService {
         const pair = generateSigningKeyPair("Ed25519");
         return { id: randomUUID(), reportPublicKeyPem: pair.publicKeyPem, reportPrivateKeyPem: pair.privateKeyPem };
       }, this.now());
+      for (const r of await this.store.rebinds()) this.rebindStarted.set(r.scope, r.startedAt);
       for (const s of await this.store.states()) {
         this.highWater.set(s.scope, s.highWater);
         this.lastState.set(s.scope, s.state);
@@ -153,7 +172,14 @@ export class LicenceService {
   }
 
   private site(scope: string): Site {
-    return scope === INSTALLATION_SCOPE ? { installation: this.installation().id } : { tenant: scope };
+    if (scope !== INSTALLATION_SCOPE) return { tenant: scope };
+    return { installation: this.installation().id, ...(this.settings.clusterId ? { cluster: this.settings.clusterId } : {}) };
+  }
+
+  /** Applies Intertec's signed revocation list (deployed, fetched daily). */
+  async applyRevocationList(revoked: readonly string[]): Promise<void> {
+    this.listRevoked = new Set(revoked);
+    await this.refresh();
   }
 
   /**
@@ -194,11 +220,11 @@ export class LicenceService {
   }
 
   /** Checks one licence for a scope: signature, binding, production. Returns the licence or why not. */
-  private judge(scope: string, text: string): { licence: ArcusLicence } | { problem: string; tamper: boolean } {
+  private judge(scope: string, text: string): { licence: ArcusLicence; clusterChanged?: boolean } | { problem: string; tamper: boolean } {
     const r = this.verify(text);
     if (!r.ok) return { problem: r.message, tamper: r.reason === "signature" || r.reason === "format" };
     const l = r.licence;
-    if (this.revoked.has(l.licence_id)) return { problem: `Licence ${l.licence_id} has been revoked.`, tamper: false };
+    if (this.revoked.has(l.licence_id) || this.listRevoked.has(l.licence_id)) return { problem: `Licence ${l.licence_id} has been revoked.`, tamper: false };
     const binding = checkBinding(l.binding, this.site(scope));
     if (binding === "mismatch") {
       return { problem: `This licence is for ${l.binding.replace(/^tenant:/, "tenant ").replace(/^install:/, "installation ")}, not this one.`, tamper: false };
@@ -208,7 +234,13 @@ export class LicenceService {
     if (l.licence_type === "nonprod" && this.settings.installationKind === "production") {
       return { problem: "This is a non-production licence; this installation is marked as production.", tamper: false };
     }
-    return { licence: l };
+    if (this.settings.releaseDate && !releaseAllowed(l, this.settings.releaseDate)) {
+      return {
+        problem: `This release (${this.settings.releaseDate}) came out after the licence's maintenance ended (${l.maintenance_until}). Keep the earlier release, or renew maintenance.`,
+        tamper: false,
+      };
+    }
+    return binding === "cluster_changed" ? { licence: l, clusterChanged: true } : { licence: l };
   }
 
   private async update(scope: string, rows: LicenceRow[], realNow: Date): Promise<ScopeStatus> {
@@ -219,7 +251,7 @@ export class LicenceService {
 
     // The newest licence that verifies and has started wins; a renewal
     // uploaded early waits for its start date while the old one runs on.
-    let chosen: { licence: ArcusLicence; row: LicenceRow } | undefined;
+    let chosen: { licence: ArcusLicence; row: LicenceRow; clusterChanged?: boolean } | undefined;
     let newestProblem: { problem: string; tamper: boolean } | undefined;
     for (const row of rows) {
       const j = this.judge(scope, row.text);
@@ -228,7 +260,7 @@ export class LicenceService {
         continue;
       }
       if (j.licence.valid_from > today) continue;
-      chosen = { licence: j.licence, row };
+      chosen = { licence: j.licence, row, ...(j.clusterChanged ? { clusterChanged: true } : {}) };
       break;
     }
     // A newest licence that fails its signature was changed in the database
@@ -265,6 +297,25 @@ export class LicenceService {
       status = { ...base, state: left >= 0 ? "trial" : "evaluation_expired", features: [...FEATURES], daysLeft: left >= 0 ? left : null, problem: "No licence is installed." };
     } else {
       status = { ...base, state: "evaluation_mode", problem: "No licence is installed for this customer.", features: [...FEATURES], daysLeft: null };
+    }
+
+    // Moved to another cluster (restored elsewhere): 14 days while a re-issued licence is asked for (LT-12).
+    if (chosen?.clusterChanged && !clock.rolledBack) {
+      let started = this.rebindStarted.get(scope);
+      if (!started) {
+        started = realNow;
+        this.rebindStarted.set(scope, started);
+        await this.store.saveRebind(scope, started);
+        await this.event(scope, "state_changed", null, `The installation runs on another cluster (${this.settings.clusterId}) than its licence names; ${REACTIVATION_DAYS} days to activate again.`, realNow);
+      }
+      const left = REACTIVATION_DAYS - daysBetween(utcDay(started), today);
+      status =
+        left >= 0
+          ? { ...status, state: "reactivation", reactivationDaysLeft: left }
+          : { ...base, state: "evaluation_mode", problem: "The installation moved to another cluster more than 14 days ago: install a re-issued licence.", features: [...FEATURES], daysLeft: null };
+    } else if (chosen && this.rebindStarted.has(scope)) {
+      this.rebindStarted.delete(scope);
+      await this.store.saveRebind(scope, null);
     }
 
     const accepted = rows.find((r) => r.eulaAcceptedBy && r.eulaAcceptedAt);
@@ -358,6 +409,7 @@ export class LicenceService {
       expiresAt: l?.expires_at ?? null,
       daysLeft: status.daysLeft,
       graceDaysLeft: status.graceDaysLeft,
+      reactivationDaysLeft: status.reactivationDaysLeft ?? null,
       nonProduction: status.nonProduction,
       maintenanceLapsed: status.maintenanceLapsed,
       banners: this.banners(status, viewer),
@@ -397,6 +449,13 @@ export class LicenceService {
         break;
       case "evaluation_mode":
         out.push({ kind: "evaluation_mode", tone: "danger", message: `No valid licence: ${status.problem ?? "the licence could not be checked."} An administrator must install a valid licence. Until then agents can read but not change anything.${warnOnly}` });
+        break;
+      case "reactivation":
+        out.push({
+          kind: "reactivation",
+          tone: "warning",
+          message: `This installation now runs on another cluster than its licence names. ${status.reactivationDaysLeft} day${status.reactivationDaysLeft === 1 ? "" : "s"} left to install a re-issued licence: create an activation request on the Licence page.`,
+        });
         break;
       case "trial":
         out.push({ kind: "trial", tone: "info", message: `Evaluation: ${status.daysLeft} day${status.daysLeft === 1 ? "" : "s"} left. An administrator can install a licence.` });
