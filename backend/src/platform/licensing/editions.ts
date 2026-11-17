@@ -5,9 +5,8 @@
  * key may promise), so a key can never promise something the product does
  * not understand.
  *
- * DRAFT. Every feature placement and every number below is the Build
- * Guide's draft (section 3), awaiting Product's confirmation (section 17,
- * decisions 2-6). Changing them later is an edit to this file only.
+ * Confirmed by Product and Sales on 2026-11-17. Changing them later is an
+ * edit to this file only.
  */
 
 import type { Edition, Feature } from "./licence.types.js";
@@ -48,7 +47,7 @@ const ESSENTIALS: readonly Feature[] = ["service_desk", "service_levels", "knowl
 const PROFESSIONAL: readonly Feature[] = [...ESSENTIALS, "problem", "change", "approvals_forms", "analytics", "ai", "sso"];
 const ENTERPRISE: readonly Feature[] = [...PROFESSIONAL, "multi_org", "audit_sync"];
 
-/** DRAFT (section 3, "Draft edition matrix"). */
+/** The edition matrix. */
 export const EDITION_FEATURES: Record<Edition, readonly Feature[]> = {
   ESS: ESSENTIALS,
   PRO: PROFESSIONAL,
@@ -64,7 +63,7 @@ export function editionHas(edition: Edition, feature: Feature): boolean {
   return EDITION_FEATURES[edition].includes(feature);
 }
 
-/** DRAFT (section 3, "Draft limits per edition"): placeholders from the workbook's sample key. */
+/** Limits per edition. */
 export interface EditionLimits {
   /** CIs included before packs. */
   cis: number;
@@ -82,7 +81,7 @@ export const EDITION_LIMITS: Record<Edition, EditionLimits> = {
   ENT: { cis: 50_000, aiActionsPerAgent: 500, storageGb: 500 },
 };
 
-/** DRAFT: pack sizes are not in the guide; placeholders until the SKU list exists (decision 7). */
+/** Pack sizes, until the SKU list exists. */
 export const PACK_SIZES = {
   /** CIs per CI pack. */
   ci: 1_000,
@@ -96,7 +95,7 @@ export const PACK_SIZES = {
 export const ADDON_FLAGS = ["byok", "dedicated_instance", "premium_support"] as const;
 export type AddonFlag = (typeof ADDON_FLAGS)[number];
 
-/** Add-ons an edition includes without being ordered. DRAFT. */
+/** Add-ons an edition includes without being ordered. */
 export const EDITION_ADDONS: Record<Edition, readonly AddonFlag[]> = {
   ESS: [],
   PRO: [],
@@ -122,7 +121,7 @@ export const OVERAGE_PERCENT = 10;
 /**
  * Profiles that make a staff account an agent (a named seat). Requesters
  * and portal users are never counted; administrators who also hold one of
- * these count. DRAFT (decision 4).
+ * these count.
  */
 export const AGENT_PROFILES: readonly string[] = [
   "Support Agent",
@@ -212,8 +211,7 @@ export function validateArcusEntitlements(raw: unknown): string[] {
  * Door 2: API routes whose feature is not their module's, or that belong to
  * no module (platform routes). Matched against the route as registered
  * (`/api/problems/:id/rca-draft`): an exact match, or a prefix followed by
- * "/". The first match wins, so the more specific come first. DRAFT, with
- * the matrix.
+ * "/". The first match wins, so the more specific come first.
  */
 export const ROUTE_FEATURES: readonly (readonly [string, Feature])[] = [
   // Raising a ticket is core: the form questions it reads are only there if PRO set them up.
@@ -246,7 +244,7 @@ export function featureOfRoute(route: string, moduleFeature?: Feature): Feature 
  * Door 3: record classes each feature owns, with their subclasses. The
  * generic record screens, export, search, pickers, imports and saved
  * queries can reach any class, so they ask about the class too. Classes not
- * listed are not gated. DRAFT, with the matrix.
+ * listed are not gated.
  */
 export const CLASS_FEATURES: Readonly<Record<string, Feature>> = {
   Problem: "problem",

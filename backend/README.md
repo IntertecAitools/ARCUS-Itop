@@ -1636,8 +1636,18 @@ bought, for how long, and how much they may use. The design is the
 *Arcus Licensing Module: Build Guide*; it lands in phases, and this section
 grows with them.
 
-**The edition matrix and every limit are drafts** (`src/platform/licensing/editions.ts`),
-waiting for Product to confirm them. Changing them is an edit to that one file.
+The edition matrix and the limits (`src/platform/licensing/editions.ts`)
+were confirmed by Product and Sales on 2026-11-17. Changing them is an edit
+to that one file.
+
+| | Essentials | Professional | Enterprise |
+| --- | --- | --- | --- |
+| Features | tickets, portal, SLAs, knowledge, CMDB, import/export, standard dashboards | adds problems, changes, approvals and forms, custom queries, AI, single sign-on | adds multiple organisations, audit and synchronised sources; premium support included |
+| CIs included | 2,500 | 10,000 | 50,000 |
+| AI actions per agent, a month | 0 | 300 | 500 |
+| Storage (SaaS) | 100 GB | 250 GB | 500 GB |
+
+Packs: 1,000 CIs, 5,000 AI actions a month (Professional and above), 100 GB.
 
 ### Where it lives
 
@@ -1713,14 +1723,14 @@ licensing off the status route does not exist and the app shows none.
 
 With `LICENSING=enforce`, a customer sees and reaches only what their edition
 includes (FUN-03); a new key changes that within a minute, with no restart.
-The features and which edition has each are in `editions.ts` (**draft**).
+The features and which edition has each are in `editions.ts`.
 Every door into a feature is gated, for staff (requesters are never gated):
 
 | Door | How |
 | --- | --- |
 | 1. Business modules | Each entry in both registries has a `feature`. The module's routes (as it registers them, wherever they live) answer `403 LICENCE_FEATURE`; `GET /api/meta/modules` leaves it out; the frontend drops it from the sidebar and palette, and its routes show "Not included in your edition". |
-| 2. Platform routes | `ROUTE_FEATURES` in `editions.ts`: saved queries and dashboards (`analytics`), approvals (`approvals_forms`), audit and synchronised sources (`audit_sync`), organisation admin (`multi_org`), the AI root-cause draft (`ai`). It also overrides a module's feature for one route. Single sign-on (`sso`) is checked at sign-in instead, once the user is known: requesters are never refused, and staff only when they can sign in with a password (otherwise it is recorded and allowed, so nobody is locked out). |
-| 3. Record classes | `CLASS_FEATURES` in `editions.ts` (`Change` and its subclasses, `Problem`, `KnownError`, audit classes): any route with a `:class` (records, export, pickers, history, schema, import preview) and a saved query's `recordType`. `GET /api/meta/navigation` leaves those classes' menu entries out. |
+| 2. Platform routes | `ROUTE_FEATURES` in `editions.ts`: saved queries (`analytics`; the standard overview dashboards are in every edition), approvals (`approvals_forms`), audit and synchronised sources (`audit_sync`), organisation admin (`multi_org`), the AI root-cause draft (`ai`). It also overrides a module's feature for one route. Single sign-on (`sso`) is checked at sign-in instead, once the user is known: requesters are never refused, and staff only when they can sign in with a password (otherwise it is recorded and allowed, so nobody is locked out). |
+| 3. Record classes | `CLASS_FEATURES` in `editions.ts` (`Change` and its subclasses, `Problem`, `KnownError`, audit classes): any route with a `:class` (records, export, pickers, history, schema, import preview) and a saved query's `recordType`, also when a stored query is opened, run or exported by its id. `GET /api/meta/navigation` leaves those classes' menu entries out. |
 
 A refusal is `403 {"error": {"code": "LICENCE_FEATURE", "message", "details": {"feature", "edition", "includedIn"}}}`
 and a `refused` licence event (once a day per route). With `warn` nothing is
@@ -1737,7 +1747,7 @@ every limit (LIC-09): a warning at 80% and 100%, then 10% more is allowed,
 then **new** use of that kind pauses with `403 LICENCE_LIMIT`
 (`details: {metric, used, limit}`). Existing use is never taken away. With
 `warn` the refusal is recorded as `would_refuse` and the request goes through.
-The limits come from the licence; the defaults per edition are **drafts**.
+The limits come from the licence; the defaults per edition are in `editions.ts`.
 
 | Limit | Counted as | Checked |
 | --- | --- | --- |
@@ -1849,8 +1859,9 @@ npm run licence -- revocation-list --out revoked.json
 ```
 
 - **Limits come from the edition and the packs** (`--ci-packs`, `--ai-packs`,
-  `--storage-packs`), from `editions.ts`: PRO with 60 agents is 5,000 CIs and
-  18,000 AI actions a month. `--concurrent`, `--addon byok|dedicated_instance|premium_support`,
+  `--storage-packs`), from `editions.ts`: PRO with 60 agents is 10,000 CIs and
+  18,000 AI actions a month. AI packs are refused on Essentials (no AI there).
+  Enterprise includes `premium_support` without `--addon`. `--concurrent`, `--addon byok|dedicated_instance|premium_support`,
   `--instances production,nonprod,standby` (default `1,1,1`).
 - **Types:** `subscription` (`--term 1|3|5`; ends the day before the
   anniversary), `perpetual` (deployed only; maintenance for a year),
@@ -1867,8 +1878,9 @@ npm run licence -- revocation-list --out revoked.json
 - **Signing.** `LICENCE_SIGNER=dev` (the default) signs with the local
   development key: licences carry `kid: dev`, and a production build
   (`NODE_ENV=production`, as the BFF image sets) refuses them, and refuses
-  to sign with it. `LICENCE_SIGNER=kms` signs in AWS KMS through the `aws`
-  CLI, with the licence-issuer role: `LICENCE_KMS_KEY_ID` (default
+  to sign with it. `LICENCE_SIGNER=kms` signs in AWS KMS (the AWS SDK, with
+  whatever credentials the process has: the licence-issuer role on an
+  operator's machine, the instance role on the server): `LICENCE_KMS_KEY_ID` (default
   `alias/arcus-licence-signing`), `LICENCE_KMS_KID` (the kid its public key
   has in `sdk/public-keys.ts`), `LICENCE_KMS_ALG` (`RSA-PSS-SHA256`, or
   `Ed25519`), `LICENCE_KMS_REGION`. The CLI needs no system-of-record settings.
@@ -1878,7 +1890,29 @@ npm run licence -- revocation-list --out revoked.json
 The KMS key and the issuer role are in `deploy/aws/terraform/licensing.tf`,
 behind `licence_signing_enabled` (default `false`): nothing is created until
 someone sets it, names the issuers and two key custodians, and applies by
-hand. `sdk/public-keys.ts` holds no production key until then.
+hand. `sdk/public-keys.ts` holds no production key until then. A second
+switch, `licence_server_signs` (default `false`), also lets the server sign,
+so the operator Licences page can issue in production; it widens who can
+sign (anyone controlling the server or an operator account), so it is a
+separate decision.
+
+The pipeline stamps each BFF image with its build day (`ARCUS_RELEASE_DATE`,
+in `deploy/aws/buildspec-build.yml` and `backend/Dockerfile`): a perpetual
+licence refuses a release built after its maintenance ends.
+
+### Live check
+
+`npm run e2e:licensing` runs the licence journey against a running BFF and
+the local system of record: Essentials installed, its gating (changes,
+problems and custom queries refused; tickets and the standard dashboards
+answer), an edited licence refused, the upgrade to Professional, the usage
+counted live, the signed usage report. Start a BFF for it with
+`PORT=4610 LICENSING=enforce LICENCE_SIGNER=dev`, and put a staff
+Administrator enrolled in MFA in `e2e.local.json` under
+`{ "licensing": { "admin": { "login", "password", "totpSecret" } } }`.
+The licences it installs stay in the BFF database: on a shared development
+database, drop the `bff_licence*`, `bff_installation` and `bff_usage_daily`
+tables afterwards, so licensing starts from its trial again.
 
 ## What this layer is actually for
 

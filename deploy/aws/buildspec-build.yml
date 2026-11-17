@@ -21,6 +21,8 @@ phases:
   pre_build:
     commands:
       - APP_TAG=$(echo "$CODEBUILD_RESOLVED_SOURCE_VERSION" | cut -c1-12)
+      # The release date perpetual licences are checked against.
+      - RELEASE_DATE=$(date -u +%F)
       - ITOP_TAG=itop-$(find iTop itop-extensions docker/itop-prod docker/php.ini -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -c1-16)
       - echo "app $APP_TAG, itop $ITOP_TAG"
       - aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$ECR_REGISTRY"
@@ -32,7 +34,9 @@ phases:
       - docker run --rm -v "$PWD":/src -w /src/frontend "$NODE_IMAGE" sh -c "npm ci --no-audit --no-fund && npm run typecheck && npm test"
       - rm -rf backend/node_modules frontend/node_modules
 
-      - docker build -f backend/Dockerfile --build-arg NODE_IMAGE="$NODE_IMAGE" -t "${IMAGE_BASE}arcus-bff:$APP_TAG" .
+      - >-
+        docker build -f backend/Dockerfile --build-arg NODE_IMAGE="$NODE_IMAGE"
+        --build-arg ARCUS_RELEASE_DATE="$RELEASE_DATE" -t "${IMAGE_BASE}arcus-bff:$APP_TAG" .
       - >-
         docker build frontend --build-arg NODE_IMAGE="$NODE_IMAGE" --build-arg NGINX_IMAGE="$NGINX_IMAGE"
         --build-arg VITE_BFF_URL=/api --build-arg VITE_APP_NAME="$VITE_APP_NAME"

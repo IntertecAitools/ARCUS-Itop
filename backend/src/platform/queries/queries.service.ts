@@ -227,6 +227,11 @@ export class QueriesService {
     return (await this.rows("SELECT QueryOQL")).map((r) => this.toDto(r)).sort((a, b) => a.name.localeCompare(b.name));
   }
 
+  /** The record class a saved query lists (for edition gating). */
+  async recordTypeOf(id: number): Promise<string> {
+    return this.toDto(await this.row(id)).recordType;
+  }
+
   /** One query, with the names of the records its conditions point at (read as the caller). */
   async get(id: number): Promise<SavedQueryDto> {
     const dto = this.toDto(await this.row(id));

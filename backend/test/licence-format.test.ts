@@ -20,7 +20,7 @@ import {
 import { EDITION_FEATURES, EDITIONS, FEATURES, entitlementsFor, lowestEditionWith } from "../src/platform/licensing/editions.js";
 import { buildLicenceFields, endOfTerm, IssueError } from "../src/platform/licensing/issuer/issue.js";
 import { MemoryRegisterStore } from "../src/platform/licensing/issuer/register.store.js";
-import { kmsSignArgs, kmsSigner } from "../src/platform/licensing/issuer/signers.js";
+import { kmsSignInput, kmsSigner } from "../src/platform/licensing/issuer/signers.js";
 import { trustedKeys, verifyArcusLicence } from "../src/platform/licensing/licence.verify.js";
 import { BASE_REQUEST, TEST_KEYS, rsaTestKey, tamper, testLicence } from "./licence-helpers.js";
 
@@ -263,15 +263,16 @@ describe("issuing", () => {
   });
 
   it("asks KMS for a raw RSA-PSS signature and passes it through", async () => {
-    const args = kmsSignArgs({ keyId: "alias/arcus-licence-signing", kid: "arcus-2026-1", alg: "RSA-PSS-SHA256" }, "/tmp/m.bin");
-    assert.deepEqual(args.slice(0, 10), ["kms", "sign", "--key-id", "alias/arcus-licence-signing", "--message", "fileb:///tmp/m.bin", "--message-type", "RAW", "--signing-algorithm", "RSASSA_PSS_SHA_256"]);
-    // A fake `aws` that signs with a local RSA key, as KMS would.
+    const input = kmsSignInput({ keyId: "alias/arcus-licence-signing", kid: "arcus-2026-1", alg: "RSA-PSS-SHA256" }, Buffer.from("m"));
+    assert.deepEqual([input.KeyId, input.MessageType, input.SigningAlgorithm], ["alias/arcus-licence-signing", "RAW", "RSASSA_PSS_SHA_256"]);
+    // A stand-in for KMS that signs with a local RSA key, as KMS would.
     const { key, signer } = rsaTestKey();
-    const fakeAws = (async (_cmd: string, a: readonly string[]) => {
-      const file = a[a.indexOf("--message") + 1]!.slice("fileb://".length);
-      return { stdout: (await signer.sign(readFileSync(file))).toString("base64"), stderr: "" };
-    }) as unknown as Parameters<typeof kmsSigner>[1];
-    const kms = kmsSigner({ keyId: "alias/x", kid: key.kid, alg: "RSA-PSS-SHA256" }, fakeAws);
+    const fakeKms = {
+      async send(command: { input: { Message?: Uint8Array } }) {
+        return { Signature: await signer.sign(Buffer.from(command.input.Message!)) };
+      },
+    } as unknown as Parameters<typeof kmsSigner>[1];
+    const kms = kmsSigner({ keyId: "alias/x", kid: key.kid, alg: "RSA-PSS-SHA256" }, fakeKms);
     const { text } = await testLicence({}, kms);
     assert.equal(verify(text, [key]).ok, true);
     assert.equal(parseLicenceFile(text).label, "ARCUS");

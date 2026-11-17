@@ -80,6 +80,8 @@ export function registerLicenceGuard(app: FastifyInstance, licensing: LicenceSer
 
 /** Saved-query routes whose body names a record class (`recordType`). */
 const QUERY_BODY_ROUTES = new Set(["POST /api/queries", "PUT /api/queries/:id", "POST /api/queries/run"]);
+/** Saved-query routes that read a stored query by id: gated by the class it lists. */
+const QUERY_ID_ROUTES = new Set(["GET /api/queries/:id", "GET /api/queries/:id/results", "GET /api/queries/:id/export"]);
 
 /**
  * Edition gating (Build Guide, section 7): every door into a feature.
@@ -91,7 +93,12 @@ const QUERY_BODY_ROUTES = new Set(["POST /api/queries", "PUT /api/queries/:id", 
  * with LICENSING=warn it is recorded as "would refuse" and goes through.
  * Requesters are never gated: the portal is outside licensing.
  */
-export function registerFeatureGate(app: FastifyInstance, licensing: LicenceService, lineage: (cls: string) => string[]): void {
+export function registerFeatureGate(
+  app: FastifyInstance,
+  licensing: LicenceService,
+  lineage: (cls: string) => string[],
+  savedQueryClass?: (id: number) => Promise<string>,
+): void {
   const gate = (request: FastifyRequest, feature: Feature, done: (err?: Error) => void) => {
     const scope = licensing.scopeFor(currentTenant()?.id);
     if (scope === null) return done();
@@ -125,12 +132,29 @@ export function registerFeatureGate(app: FastifyInstance, licensing: LicenceServ
     gate(request, feature, done);
   });
 
-  app.addHook("preHandler", (request: FastifyRequest, _reply, done) => {
-    if (!QUERY_BODY_ROUTES.has(`${request.method} ${request.routeOptions.url}`) || currentCaller()?.kind === "portal") return done();
-    const body = request.body as { recordType?: unknown; query?: { recordType?: unknown } } | undefined;
-    const cls = body?.recordType ?? body?.query?.recordType;
-    const feature = typeof cls === "string" ? licensing.featureOfClass(lineage(cls)) : undefined;
+  const gateClass = (request: FastifyRequest, cls: unknown, done: (err?: Error) => void) => {
+    const feature = typeof cls === "string" && cls ? licensing.featureOfClass(lineage(cls)) : undefined;
     if (!feature) return done();
     gate(request, feature, done);
+  };
+
+  app.addHook("preHandler", (request: FastifyRequest, _reply, done) => {
+    const route = `${request.method} ${request.routeOptions.url}`;
+    if (currentCaller()?.kind === "portal") return done();
+    if (QUERY_BODY_ROUTES.has(route)) {
+      const body = request.body as { recordType?: unknown; query?: { recordType?: unknown } } | undefined;
+      return gateClass(request, body?.recordType ?? body?.query?.recordType, done);
+    }
+    if (QUERY_ID_ROUTES.has(route) && savedQueryClass) {
+      const id = Number((request.params as Record<string, unknown> | undefined)?.["id"]);
+      // A bad or unknown id is the route's to answer (400, 404).
+      if (!Number.isInteger(id) || id <= 0) return done();
+      savedQueryClass(id).then(
+        (cls) => gateClass(request, cls, done),
+        () => done(),
+      );
+      return;
+    }
+    done();
   });
 }
