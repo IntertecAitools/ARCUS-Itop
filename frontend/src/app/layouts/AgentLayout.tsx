@@ -6,6 +6,7 @@ import { ErrorBoundary, RouteFallback } from '@/components/feedback';
 import { PublicTheme, SkipLink } from '@/components/public';
 import { useUiStore } from '@/stores/ui.store';
 import { useNavCounts } from '@/app/hooks/useNavCounts';
+import { LicenceBanners } from '@/features/licensing';
 import { cn } from '@/lib/utils';
 
 /**
@@ -57,6 +58,8 @@ export function AgentLayout() {
           collapsed ? 'lg:ps-sidebar-collapsed' : 'lg:ps-sidebar',
         )}
       >
+        {/* Licence state (grace, read-only, non-production…): above every page. */}
+        <LicenceBanners />
         <div className="page-in mx-auto max-w-[1600px] px-4 py-8 sm:px-6 lg:px-10 lg:py-10">
           {/* A module crash stays inside the content well — the shell survives. */}
           <ErrorBoundary>

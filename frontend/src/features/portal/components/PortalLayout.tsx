@@ -10,6 +10,7 @@ import { useSessionStore } from '@/stores/session.store';
 import { LanguagePicker, useSignOut } from '@/features/auth';
 import { NotificationBell } from '@/features/inbox';
 import { usePendingApprovalCount } from '@/features/approvals';
+import { LicenceBanners } from '@/features/licensing';
 
 const LINKS = [
   { to: '/portal', label: 'portal.nav.home', end: true },
@@ -140,6 +141,8 @@ export function PortalLayout() {
           </div>
         ) : null}
       </header>
+      {/* Requesters see only the non-production banner: licensing never gets in their way. */}
+      <LicenceBanners />
       <main id="main" tabIndex={-1} className="page-in mx-auto w-full outline-none max-w-6xl flex-1 px-5 py-10 sm:px-8 md:py-14">
         <Outlet />
       </main>

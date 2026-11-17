@@ -8,6 +8,7 @@ import { navigableModules, standaloneModules, type ModuleDefinition } from '@/co
 import { useUiStore } from '@/stores/ui.store';
 import { ItopNavigation } from './ItopNavigation';
 import { Logo } from './Logo';
+import { useMenuFilter } from '@/features/licensing';
 
 /** Counts that feed the sidebar badges, keyed by `ModuleDefinition.badgeKey`. */
 export type NavCounts = Record<string, number | undefined>;
@@ -92,6 +93,7 @@ function useIsWide() {
 export function Sidebar({ counts = {} }: SidebarProps) {
   const { t } = useTranslation();
   const isAdmin = useSessionStore((s) => s.user?.isAdmin ?? false);
+  const features = useMenuFilter();
   const wide = useIsWide();
   const collapsed = useUiStore((s) => s.sidebarCollapsed) && wide;
   const toggleSidebar = useUiStore((s) => s.toggleSidebar);
@@ -140,7 +142,7 @@ export function Sidebar({ counts = {} }: SidebarProps) {
             (ModuleDefinition.home). Folded to icons there is no room for the
             modules' trees, so every page shows here as an icon instead. */}
         <div aria-label={t('shell.builtModules')} role="group" className="space-y-0.5">
-          {(collapsed ? navigableModules(isAdmin) : standaloneModules(isAdmin)).map((module) => (
+          {(collapsed ? navigableModules(isAdmin, features) : standaloneModules(isAdmin, features)).map((module) => (
             <NavItem
               key={module.id}
               module={module}

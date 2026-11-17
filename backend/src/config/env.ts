@@ -141,6 +141,8 @@ export interface Config {
   autoCloseIntervalMs?: number;
   /** Root-cause help on problems (modules/problems). Defaults apply when absent. */
   rca?: RcaConfig;
+  /** The licence module (platform/licensing). Absent: LICENSING=off, not loaded. */
+  licensing?: LicensingConfig;
   auth: {
     /**
      * When true (the default) every /api route except sign-in needs a session,
@@ -606,6 +608,105 @@ function licenceKeysConfig(): LicenceKeysConfig {
   };
 }
 
+/**
+ * LICENSING (Build Guide, section 15): `off` (the default) does not load the
+ * licence module at all; `warn` checks and records everything, shows the
+ * banners, blocks nothing; `enforce` blocks.
+ */
+export interface LicensingConfig {
+  mode: "warn" | "enforce";
+  keys: LicenceKeysConfig;
+  /**
+   * LICENCE_INSTALLATION_KIND: what this installation is. A non-production
+   * licence is refused on a production one. Defaults to production on a
+   * production build, nonprod otherwise.
+   */
+  installationKind: "production" | "nonprod" | "standby";
+  /**
+   * How the operator screen signs licences it issues (Build Guide, phase 6).
+   * LICENCE_SIGNER=kms signs in AWS KMS (the server needs kms:Sign on the
+   * key); dev signs with the local development key, never on a production
+   * build. Absent on a production build without LICENCE_SIGNER: the screen
+   * lists, re-issues nothing and revokes, and the CLI issues.
+   */
+  signer?: LicenceIssuerConfig["signer"];
+  /**
+   * Deployed activation (Build Guide, section 10). LICENCE_CLUSTER_ID: the
+   * Kubernetes namespace UID, once Arcus runs in a cluster (part of the
+   * binding). LICENCE_ACTIVATION_URL: Intertec's activation address, when
+   * the installation may reach it (else the request is a file).
+   * LICENCE_REVOCATION_URL: Intertec's signed revocation list, fetched daily
+   * when set.
+   */
+  clusterId?: string;
+  activationUrl?: string;
+  revocationUrl?: string;
+  /** This release's date, ARCUS_RELEASE_DATE (set by the image build); perpetual licences refuse later releases. */
+  releaseDate?: string;
+  /** This release's version (package.json). */
+  version: string;
+}
+
+function packageVersion(): string {
+  try {
+    return (JSON.parse(readFileSync(resolve(PACKAGE_ROOT, "package.json"), "utf8")) as { version?: string }).version ?? "unknown";
+  } catch {
+    return "unknown";
+  }
+}
+
+function httpsUrl(name: string): string | undefined {
+  const raw = optional(name, "");
+  if (!raw) return undefined;
+  if (!/^https:\/\//.test(raw) && !/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?\//.test(raw)) {
+    throw new Error(`${name} must be an https:// address.`);
+  }
+  return raw;
+}
+
+/** LICENCE_SIGNER and its KMS settings; undefined when unset on a production build. */
+function signerConfig(keys: LicenceKeysConfig, fallback: "dev" | undefined): LicenceIssuerConfig["signer"] | undefined {
+  const raw = optional("LICENCE_SIGNER", fallback ?? "");
+  if (!raw) return undefined;
+  const kind = oneOf("LICENCE_SIGNER", raw as "dev" | "kms", ["dev", "kms"] as const);
+  if (kind === "dev") {
+    if (!keys.allowDevKey) throw new Error("LICENCE_SIGNER=dev is refused on a production build: set LICENCE_SIGNER=kms.");
+    return { kind: "dev" };
+  }
+  const region = optional("LICENCE_KMS_REGION", "");
+  return {
+    kind: "kms",
+    keyId: optional("LICENCE_KMS_KEY_ID", "alias/arcus-licence-signing"),
+    kid: required("LICENCE_KMS_KID"),
+    alg: optional("LICENCE_KMS_ALG", "RSA-PSS-SHA256") === "Ed25519" ? "Ed25519" : "RSA-PSS-SHA256",
+    ...(region ? { region } : {}),
+  };
+}
+
+function releaseDate(): string | undefined {
+  const raw = optional("ARCUS_RELEASE_DATE", "");
+  if (!raw) return undefined;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) throw new Error("ARCUS_RELEASE_DATE must be a date, YYYY-MM-DD.");
+  return raw;
+}
+
+function licensingConfig(): LicensingConfig | undefined {
+  const mode = oneOf("LICENSING", "off", ["off", "warn", "enforce"] as const);
+  if (mode === "off") return undefined;
+  const keys = licenceKeysConfig();
+  return {
+    mode,
+    keys,
+    installationKind: oneOf("LICENCE_INSTALLATION_KIND", keys.allowDevKey ? "nonprod" : "production", ["production", "nonprod", "standby"] as const),
+    ...(signerConfig(keys, keys.allowDevKey ? "dev" : undefined) ? { signer: signerConfig(keys, keys.allowDevKey ? "dev" : undefined)! } : {}),
+    ...(optional("LICENCE_CLUSTER_ID", "") ? { clusterId: optional("LICENCE_CLUSTER_ID", "") } : {}),
+    ...(httpsUrl("LICENCE_ACTIVATION_URL") ? { activationUrl: httpsUrl("LICENCE_ACTIVATION_URL")! } : {}),
+    ...(httpsUrl("LICENCE_REVOCATION_URL") ? { revocationUrl: httpsUrl("LICENCE_REVOCATION_URL")! } : {}),
+    ...(releaseDate() ? { releaseDate: releaseDate()! } : {}),
+    version: packageVersion(),
+  };
+}
+
 /** The issuing CLI (`npm run licence`): how it signs and where the register is. */
 export interface LicenceIssuerConfig {
   keys: LicenceKeysConfig;
@@ -623,21 +724,7 @@ export interface LicenceIssuerConfig {
 export function loadLicenceIssuerConfig(envFile = resolve(PACKAGE_ROOT, ".env")): LicenceIssuerConfig {
   loadDotEnv(envFile);
   const keys = licenceKeysConfig();
-  const kind = oneOf("LICENCE_SIGNER", "dev", ["dev", "kms"] as const);
-  if (kind === "dev" && !keys.allowDevKey) {
-    throw new Error("LICENCE_SIGNER=dev is refused on a production build: set LICENCE_SIGNER=kms.");
-  }
-  const region = optional("LICENCE_KMS_REGION", "");
-  const signer: LicenceIssuerConfig["signer"] =
-    kind === "dev"
-      ? { kind: "dev" }
-      : {
-          kind: "kms",
-          keyId: optional("LICENCE_KMS_KEY_ID", "alias/arcus-licence-signing"),
-          kid: required("LICENCE_KMS_KID"),
-          alg: optional("LICENCE_KMS_ALG", "RSA-PSS-SHA256") === "Ed25519" ? "Ed25519" : "RSA-PSS-SHA256",
-          ...(region ? { region } : {}),
-        };
+  const signer = signerConfig(keys, "dev")!;
   const store = sessionStoreConfig();
   return {
     keys,
@@ -723,6 +810,7 @@ export function loadConfig(envFile = resolve(PACKAGE_ROOT, ".env")): Config {
     ...(mailIntakeConfig() ? { mailIntake: mailIntakeConfig()! } : {}),
     autoCloseIntervalMs: integer("AUTO_CLOSE_CHECK_MINUTES", 60, 0, 1_440) * 60_000,
     rca: rcaConfig(),
+    ...(licensingConfig() ? { licensing: licensingConfig()! } : {}),
     auth: {
       required: optional("AUTH_REQUIRED", "true").toLowerCase() !== "false",
       sessionIdleMs: integer("SESSION_IDLE_MINUTES", 60, 5, 24 * 60) * 60_000,

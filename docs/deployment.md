@@ -618,6 +618,41 @@ Frontend values are compiled into the bundle, so they are build arguments
 `VITE_PLATFORM_NAME`, `VITE_DEFAULT_LOCALE`. `VITE_BFF_URL` is `/api` (same
 origin) and `VITE_API_MODE` is `live`; do not change them for this layout.
 
+### Licensing (`LICENSING`)
+
+Arcus checks a licence signed by Intertec (backend/README.md, "Licensing").
+One setting turns it on, in steps, so nobody is locked out:
+
+| `LICENSING` | Behaviour |
+| --- | --- |
+| `off` (default) | The licence module is not loaded. Nothing is checked or blocked; no licence routes. |
+| `warn` | Every licence is checked and recorded, banners show, but nothing is blocked. What would have been refused is recorded once a day as a `would_refuse` licence event. |
+| `enforce` | Read-only mode when a licence has ended past its grace or is not valid; edition gating (modules, platform routes and record classes the edition lacks answer 403 and leave the menus); limits (agents, agent sessions, CIs, AI actions, storage: new use pauses past the limit plus 10%). |
+
+**Production stays at `off`** until every tenant, Intertec's own included,
+has a licence installed. Then `warn` for about two weeks, reading the
+licence events, then `enforce` with Commercial's agreement, through the
+pipeline and its manual approval. Setting `warn` again blocks nothing.
+A newly deployed customer installation starts at `enforce`.
+
+| Setting | Default | Notes |
+| --- | --- | --- |
+| `LICENSING` | `off` | `off`, `warn` or `enforce`. In SSM with the other settings. |
+| `LICENCE_SIGNER` | unset on the production image | The operator Licences page signs licences only when set: `kms` (with `LICENCE_KMS_KID`, and `kms:Sign` for the server, not granted today). Unset: the page lists and revokes, the CLI issues. |
+| `LICENCE_CLUSTER_ID` | unset | Deployed in Kubernetes: the namespace UID, part of the licence binding. |
+| `LICENCE_ACTIVATION_URL` | unset | Deployed, online: Intertec's activation address (https). Unset: activation requests are files. |
+| `LICENCE_REVOCATION_URL` | unset | Deployed, online: Intertec's signed revocation list (https), fetched at start and daily. |
+| `ARCUS_RELEASE_DATE` | unset | This release's date (YYYY-MM-DD); perpetual licences refuse releases after their maintenance. Unset: no check. |
+| `LICENCE_INSTALLATION_KIND` | `production` on the production image | `production`, `nonprod` or `standby`. A non-production licence is refused on a `production` installation. |
+
+The licence tables (`bff_installation`, `bff_licences`,
+`bff_licence_state`, `bff_licence_events`, `bff_usage_daily`, `bff_licence_rebind`) are created in the BFF database
+on first start with `LICENSING` on; the installation's private report key
+is sealed with `SESSION_SECRET`. With `TENANCY=on` each tenant has its own
+licence, installed by a platform operator (`PLATFORM_LOGINS`); otherwise
+the installation has one, installed by an administrator. Without one, a
+deployed installation runs a 30-day evaluation from its first start.
+
 ### Network and host
 
 - [ ] Only the TLS proxy is reachable from users; `web` binds to `127.0.0.1`

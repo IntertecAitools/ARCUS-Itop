@@ -15,6 +15,7 @@ import {
   PortalRequestsPage,
 } from '@/features/portal';
 import { modules } from '@/config/modules';
+import { EditionGate } from '@/features/licensing';
 import { NotFoundPage } from './NotFoundPage';
 
 /**
@@ -27,10 +28,11 @@ import { NotFoundPage } from './NotFoundPage';
 const moduleRoutes: RouteObject[] = modules.map((module) => ({
   path: module.path,
   children: [
-    { index: true, element: createElement(module.component) },
+    // A module the edition does not include answers "Not included in your edition".
+    { index: true, element: <EditionGate feature={module.feature}>{createElement(module.component)}</EditionGate> },
     ...(module.children ?? []).map((child) => ({
       path: child.path,
-      element: createElement(child.component),
+      element: <EditionGate feature={module.feature}>{createElement(child.component)}</EditionGate>,
     })),
   ],
 }));

@@ -4,6 +4,7 @@ import { z } from "zod";
 import type { Services } from "../../services.js";
 import { modules } from "../../config/modules.js";
 import { identifierParam, parse } from "../../core/validate.js";
+import { currentTenant } from "../../core/request-context.js";
 import { criterionKind, OPS_BY_KIND } from "../objects/criteria.js";
 
 /**
@@ -20,13 +21,20 @@ export function registerMetaRoutes(app: FastifyInstance, services: Services): vo
    * Lets the frontend confirm both sides agree a module exists, rather than
    * discovering a missing endpoint through a 404 at runtime.
    */
-  app.get("/api/meta/modules", async () => ({
-    modules: modules.map((module) => ({
-      id: module.id,
-      basePath: module.basePath,
-      description: module.description,
-    })),
-  }));
+  app.get("/api/meta/modules", async () => {
+    // With LICENSING=enforce, only the modules this edition includes.
+    const features = await services.licensing?.enforcedFeatures(currentTenant()?.id);
+    return {
+      modules: modules
+        .filter((module) => !features || features.has(module.feature))
+        .map((module) => ({
+          id: module.id,
+          feature: module.feature,
+          basePath: module.basePath,
+          description: module.description,
+        })),
+    };
+  });
 
   app.get("/api/meta/classes", async () => ({
     classes: schema.list().map((info) => ({

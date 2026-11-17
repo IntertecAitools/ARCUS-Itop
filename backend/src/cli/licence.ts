@@ -11,6 +11,9 @@
  *   npm run licence -- revoke  ARC-2026-000123 --reason "contract ended"
  *   npm run licence -- list   [--customer "Example Co"]
  *   npm run licence -- verify acme-2026.lic [--tenant acme | --installation <uuid>]
+ *   npm run licence -- verify-report usage.json --key installation-public.pem
+ *   npm run licence -- activate request.json --type subscription --term 1 --edition PRO --agents 20 [--out site.lic]
+ *   npm run licence -- revocation-list [--out revoked.json]
  *
  * Signing: LICENCE_SIGNER=dev (default; the local development key, kid
  * "dev", refused by production builds) or LICENCE_SIGNER=kms (AWS KMS, with
@@ -32,11 +35,13 @@ import {
   type Deployment,
   type Edition,
 } from "../platform/licensing/editions.js";
-import { buildLicenceFields, IssueError, issueLicence, type IssueRequest } from "../platform/licensing/issuer/issue.js";
+import { buildLicenceFields, IssueError, type IssueRequest } from "../platform/licensing/issuer/issue.js";
+import { activationIssueRequest, issueAndRegister, revocationListDocument } from "../platform/licensing/issuer/desk.js";
+import { readActivationRequest } from "../platform/licensing/activation.js";
 import { FileRegisterStore, MySqlRegisterStore, type RegisterStore } from "../platform/licensing/issuer/register.store.js";
 import { devSigner, ensureDevKey, kmsSigner, readDevPublicKey } from "../platform/licensing/issuer/signers.js";
 import { verifyArcusLicence } from "../platform/licensing/licence.verify.js";
-import { checkBinding, LICENCE_TYPES, termStatus, type LicenceType, type Signer } from "../platform/licensing/sdk/index.js";
+import { checkBinding, LICENCE_TYPES, termStatus, verifyDocument, type LicenceType, type Signer } from "../platform/licensing/sdk/index.js";
 
 const config = loadLicenceIssuerConfig();
 const [command, ...rest] = process.argv.slice(2);
@@ -136,41 +141,18 @@ function summary(l: ReturnType<typeof buildLicenceFields>, kid?: string): string
 }
 
 async function issue(store: RegisterStore, req: IssueRequest, reason: string, replaces: string | null): Promise<void> {
-  const now = new Date();
-  const id = await store.nextId(now.getUTCFullYear());
-  const { text, licence } = await issueLicence(req, id, signer(), now);
-  const out = flag("out") ?? `${id}.lic`;
+  const { text, licence } = await issueAndRegister(store, signer(), req, { by: issuedBy(), reason, replaces });
+  const out = flag("out") ?? `${licence.licence_id}.lic`;
   writeFileSync(out, text);
-  await store.add({
-    licenceId: id,
-    customer: licence.customer_name,
-    orderRef: licence.order_ref,
-    binding: licence.binding,
-    edition: licence.entitlements.edition,
-    licenceType: licence.licence_type,
-    validFrom: licence.valid_from,
-    expiresAt: licence.expires_at,
-    kid: licence.kid,
-    text,
-    request: req,
-    issuedBy: issuedBy(),
-    issuedAt: licence.issued_at,
-    reason,
-    replaces,
-    replacedBy: null,
-    revokedAt: null,
-    revokedBy: null,
-    revokeReason: null,
-  });
-  if (replaces) await store.markReplaced(replaces, id);
   console.log(`${summary(licence, licence.kid)}\nWritten to ${out}${replaces ? `; replaces ${replaces}` : ""}.`);
 }
 
-function requestFromFlags(): IssueRequest {
+/** The order from the flags; `defaults` fills what a command already knows (activation: binding, deployment). */
+function requestFromFlags(defaults: { binding?: string; deployment?: Deployment } = {}): IssueRequest {
   const type = oneOfFlag<LicenceType>("type", LICENCE_TYPES) ?? fail("--type is required (subscription, perpetual, evaluation, nonprod).");
   const edition = oneOfFlag<Edition>("edition", EDITIONS) ?? fail("--edition is required (ESS, PRO, ENT).");
-  const deployment = oneOfFlag<Deployment>("deployment", DEPLOYMENTS) ?? fail("--deployment is required (saas, deployed).");
-  const binding = flag("binding") ?? fail("--binding is required (tenant:<id> or install:<uuid>).");
+  const deployment = oneOfFlag<Deployment>("deployment", DEPLOYMENTS, defaults.deployment) ?? fail("--deployment is required (saas, deployed).");
+  const binding = flag("binding") ?? defaults.binding ?? fail("--binding is required (tenant:<id> or install:<uuid>).");
   const term = int("term");
   const validFrom = date("valid-from");
   const grace = int("grace-days");
@@ -291,12 +273,55 @@ async function main(): Promise<void> {
       }
       return;
     }
+    case "activate": {
+      // A deployed installation's activation request: the response is its licence file (LT-10).
+      const file = args.positional[0] ?? fail("Which request? activate request.json --type … --edition … --agents …");
+      const read = readActivationRequest(readFileSync(file, "utf8"));
+      if (!read.ok) fail(`INVALID activation request: ${read.message}`);
+      const r = read.request;
+      const fromFlags = requestFromFlags({ binding: "install:pending", deployment: "deployed" });
+      const req = activationIssueRequest(r, { ...fromFlags, orderRef: flag("order") ?? "" });
+      const store = register();
+      // The register keeps the installation's report key, to check its usage reports later.
+      const { entry, text, licence } = await issueAndRegister(store, signer(), req, {
+        by: issuedBy(),
+        reason: flag("reason") ?? "activation",
+        reportPublicKey: r.report_public_key,
+      });
+      const out = flag("out") ?? `${entry.licenceId}.lic`;
+      writeFileSync(out, text);
+      console.log(summary(licence, licence.kid));
+      console.log(`Installation ${r.installation_id}${r.cluster_id ? ` on cluster ${r.cluster_id}` : ""}, release ${r.version}. Report key ${r.report_key_id}.`);
+      console.log(`Written to ${out}: send it to the customer to upload.`);
+      return;
+    }
+    case "revocation-list": {
+      const doc = await revocationListDocument(register(), signer());
+      const out = flag("out") ?? "revoked.json";
+      writeFileSync(out, JSON.stringify(doc, null, 2));
+      console.log(`${doc.payload.revoked.length} revoked licence(s), signed with ${doc.key_id}. Written to ${out}; publish it at the revocation address.`);
+      return;
+    }
+    case "verify-report": {
+      // A usage report checked with the installation's registered public key (LT-15).
+      const file = args.positional[0] ?? fail("Which file? verify-report usage.json --key installation-public.pem");
+      const keyFile = flag("key") ?? fail("--key is the installation's public key (PEM), from its licence page or activation request.");
+      const check = verifyDocument<{ licence_id: string | null; from: string; to: string; installation_id: string; peaks: Record<string, number> }>(
+        readFileSync(file, "utf8"),
+        { kind: "usage_report", publicKeyPem: readFileSync(keyFile, "utf8") },
+      );
+      if (!check.ok) fail(`INVALID: ${check.message}`);
+      const p = check.document.payload;
+      console.log(`VALID usage report: licence ${p.licence_id ?? "none"}, installation ${p.installation_id}, ${p.from} → ${p.to}`);
+      console.log(`  peaks: ${Object.entries(p.peaks).map(([k, v]) => `${k} ${v}`).join(", ")}`);
+      return;
+    }
     case "verify": {
       verify(args.positional[0] ?? fail("Which file? verify acme-2026.lic"));
       return;
     }
     default:
-      fail("Usage: npm run licence -- dev-key | issue … | reissue <id> … | revoke <id> … | list | verify <file>  (see src/cli/licence.ts)");
+      fail("Usage: npm run licence -- dev-key | issue … | reissue <id> … | revoke <id> … | list | verify <file> | verify-report <file> --key <pem>  (see src/cli/licence.ts)");
   }
 }
 
