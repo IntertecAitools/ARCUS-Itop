@@ -638,6 +638,7 @@ A newly deployed customer installation starts at `enforce`.
 | Setting | Default | Notes |
 | --- | --- | --- |
 | `LICENSING` | `off` | `off`, `warn` or `enforce`. In SSM with the other settings. |
+| `LICENCE_SIGNER` | unset on the production image | The operator Licences page signs licences only when set: `kms` (with `LICENCE_KMS_KID`, and `kms:Sign` for the server, not granted today). Unset: the page lists and revokes, the CLI issues. |
 | `LICENCE_INSTALLATION_KIND` | `production` on the production image | `production`, `nonprod` or `standby`. A non-production licence is refused on a `production` installation. |
 
 The licence tables (`bff_installation`, `bff_licences`,

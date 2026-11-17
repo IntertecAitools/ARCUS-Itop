@@ -48,6 +48,8 @@ export interface SetupOptions {
   counts?: { agents: number; cis: number };
   /** The real schema instead of the small sample (CI classes, lineages). */
   schema?: CmdbSchema;
+  /** The server cannot sign (no LICENCE_SIGNER): the desk lists and revokes only. */
+  noSigner?: boolean;
   /** Extra fake upstream answers, after the defaults. */
   itop?: (fake: FakeItopClient) => void;
 }
@@ -65,7 +67,12 @@ export async function licenceApp(options: SetupOptions = {}) {
   const tenancy = options.tenancy === true;
   const config: Config = {
     ...testConfig({ auth: { required: true, sessionIdleMs: 3_600_000, sessionMaxMs: 3_600_000, cookieSecure: false, sessionStore: { kind: "memory" } } }),
-    licensing: { mode: options.mode ?? "enforce", keys: { allowDevKey: true, devKeyDir: DEV_DIR }, installationKind: options.kind ?? "production" },
+    licensing: {
+      mode: options.mode ?? "enforce",
+      keys: { allowDevKey: true, devKeyDir: DEV_DIR },
+      installationKind: options.kind ?? "production",
+      ...(options.noSigner ? {} : { signer: { kind: "dev" as const } }),
+    },
     ...(tenancy ? { tenancy: { enabled: true, platformLogins: ["operator"] } } : {}),
   };
   const { app, services } = buildApp(config, {
@@ -90,8 +97,9 @@ export async function licenceApp(options: SetupOptions = {}) {
     requester: await cookie(person("pat", "portal", ["Portal user"])),
     operator: await cookie(person("operator", "staff", ["Administrator"])),
   };
-  const send = (method: "GET" | "POST" | "PUT" | "PATCH", url: string, who: string, payload?: unknown) =>
-    app.inject({ method, url, headers: { host, cookie: who }, ...(payload !== undefined ? { payload: payload as object } : {}) });
+  /** A request as `who`, on the customer's site (or `at`, e.g. the platform's own address). */
+  const send = (method: "GET" | "POST" | "PUT" | "PATCH", url: string, who: string, payload?: unknown, at = host) =>
+    app.inject({ method, url, headers: { host: at, cookie: who }, ...(payload !== undefined ? { payload: payload as object } : {}) });
   const status = async (who = users.agent) => (await send("GET", "/api/licence/status", who)).json() as LicenceStatus;
   /** Moves the clock and lets the minute refresh run. */
   const advanceTo = async (iso: string) => {

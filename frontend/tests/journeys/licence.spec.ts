@@ -99,3 +99,35 @@ test('licence page: usage against entitlement, install a key with the EULA, down
   await page.getByRole('button', { name: 'Download report' }).click();
   expect((await download).suggestedFilename()).toMatch(/^arcus-usage-\d{4}-\d{2}-\d{2}-\d{4}-\d{2}-\d{2}\.json$/);
 });
+
+test('licence desk: a new SaaS customer and its licence from one form; renewals; re-issue and revoke @mock', async ({ page }) => {
+  await signIn(page, accounts.staff());
+  await page.goto('/licences');
+  await expect(page.getByRole('heading', { name: 'Licences', exact: true })).toBeVisible();
+  await expect(page.getByTestId('renewals')).toContainText('Contoso: ARC-2026-000002, ends 2026-12-09');
+
+  await page.getByLabel('Customer', { exact: true }).fill('Acme Ltd');
+  await page.getByLabel('Order reference').fill('SO-777');
+  await page.getByLabel('Agents').fill('25');
+  await page.getByLabel('Tenant id').fill('acme');
+  await page.getByLabel('Site host names (comma-separated)').fill('acme.servicedesk.example');
+  await page.getByLabel('Organisation ids (comma-separated)').fill('12');
+  await page.getByRole('button', { name: 'Issue licence' }).click();
+  await expect(page.getByTestId('issued')).toContainText('Issued ARC-2026-000004 for Acme Ltd (PRO, tenant:acme). The tenant was created. Installed for the tenant');
+  const register = page.getByTestId('register');
+  await expect(register).toContainText('ARC-2026-000004');
+
+  const acme = register.getByRole('row').filter({ hasText: 'ARC-2026-000004' });
+  await acme.getByRole('button', { name: 'Re-issue' }).click();
+  await acme.getByLabel('Reason').fill('upgrade');
+  await acme.getByLabel('New edition').selectOption('ENT');
+  await acme.getByRole('button', { name: 'Re-issue licence' }).click();
+  await expect(page.getByTestId('issued')).toContainText('Issued ARC-2026-000005 for Acme Ltd (ENT');
+  await expect(register.getByRole('row').filter({ hasText: 'ARC-2026-000004' })).toContainText('Replaced by ARC-2026-000005');
+
+  const contoso = register.getByRole('row').filter({ hasText: 'ARC-2026-000002' });
+  await contoso.getByRole('button', { name: 'Revoke' }).click();
+  await contoso.getByLabel('Reason').fill('contract ended');
+  await contoso.getByRole('button', { name: 'Revoke licence' }).click();
+  await expect(register.getByRole('row').filter({ hasText: 'ARC-2026-000002' })).toContainText('Revoked: contract ended');
+});

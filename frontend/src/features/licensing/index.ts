@@ -2,11 +2,13 @@
 export { LicenceBanners } from './components/LicenceBanners';
 export { EditionGate, NotInEdition } from './components/NotInEdition';
 export { LicencePage } from './pages/LicencePage';
+export { LicencesPage } from './pages/LicencesPage';
 export {
   LICENCE_STATUS_KEY,
   licenceFeatureRefusal,
   useCheckLicence,
   useEditionFeatures,
+  useMenuFilter,
   useEditionFor,
   useInstallLicence,
   useLicenceStatus,

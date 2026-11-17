@@ -4,6 +4,22 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-11-17 — Licensing phase 6: the operator's Licences page
+
+| What ran | Result |
+|---|---|
+| `npm test` (backend) | 986/986 passed (7 new in `test/licence-desk.test.ts`) |
+| `npm run typecheck` / `npm run build` (backend) | passed |
+| `npx vitest run` (frontend) | 332/332 passed on a rerun; the first run had 6 timeouts (ChangeGovernancePanel ×2, ChangeExtras, ChangeBlackoutsPage, AssignmentRulesPage, ProblemAnalysisPanel, each ~21–23 s) while the machine was loaded; those files then passed alone (39/39) and the full rerun passed |
+| `npm run typecheck` / `npm run build` (frontend) | passed |
+| `npm run e2e` (mock journeys, port 5781) | 38/38 passed (1 new: the licence desk) |
+
+**Tested:** the done-when of the phase, "a tenant can be created and licensed from one form" (backend: tenant created and active, licence verifies, installed and valid; journey: the form, then re-issue and revoke); operator-only access, also refused on a customer's site; a refused order creates nothing; re-issue keeps the end date and marks the old licence replaced; SaaS revocation puts the tenant in evaluation mode at once; without `LICENCE_SIGNER` the server says to use the CLI; renewal buckets at 30/60/90 days.
+
+**Bugs found:** none in the product. A shell quoting error lost one combined command while writing the code; redone with a script file.
+
+**Not covered:** server-side signing in production (needs `kms:Sign` for the server role, not granted); renewal emails (a list only); no live run.
+
 ### 2026-11-16 — Licensing phase 5: licence page, EULA, signed usage report
 
 | What ran | Result |

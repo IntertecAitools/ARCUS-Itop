@@ -6,7 +6,7 @@ import { navigableModules } from '@/config/modules';
 import { useSessionStore } from '@/stores/session.store';
 import { entryPath, useNavigation } from '@/features/navigation';
 import { useUiStore } from '@/stores/ui.store';
-import { useEditionFeatures } from '@/features/licensing';
+import { useMenuFilter } from '@/features/licensing';
 
 /**
  * Ctrl/⌘-K navigation.
@@ -42,7 +42,7 @@ export function CommandPalette() {
   // Already cached by the sidebar, so this costs nothing extra.
   const { data: navigation } = useNavigation();
   const isAdmin = useSessionStore((s) => s.user?.isAdmin ?? false);
-  const features = useEditionFeatures();
+  const features = useMenuFilter();
 
   const [query, setQuery] = useState('');
   const [highlighted, setHighlighted] = useState(0);

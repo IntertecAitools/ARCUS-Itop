@@ -79,6 +79,8 @@ export interface LicenceStatus {
   maintenanceLapsed: boolean;
   /** The banners for this user (administrators see more). */
   banners: LicenceBanner[];
+  /** A platform operator on the platform's own address: may use the Licences page (the licence desk). */
+  operator: boolean;
 }
 
 /** What a licence grants, as shown to an administrator. */
@@ -165,4 +167,64 @@ export interface LicenceDetail {
     acceptedBy: string | null;
     acceptedAt: string | null;
   };
+}
+
+/** One licence in the register, as the operator's Licences page shows it. */
+export interface RegisterRow {
+  licenceId: string;
+  customer: string;
+  orderRef: string;
+  binding: string;
+  edition: Edition;
+  licenceType: LicenceType;
+  validFrom: string;
+  expiresAt: string | null;
+  issuedBy: string;
+  issuedAt: string;
+  reason: string;
+  replaces: string | null;
+  replacedBy: string | null;
+  revokedAt: string | null;
+  revokedBy: string | null;
+  revokeReason: string | null;
+  status: 'current' | 'replaced' | 'revoked';
+}
+
+/** GET /api/platform/licences: the register and the renewals due (SAS-03). Platform operators only. */
+export interface LicencesOverview {
+  /** This server can sign (LICENCE_SIGNER); otherwise licences are issued with the CLI. */
+  canIssue: boolean;
+  licences: RegisterRow[];
+  renewals: { within30: RegisterRow[]; within60: RegisterRow[]; within90: RegisterRow[] };
+}
+
+/** POST /api/platform/licences: an order, and for a new SaaS customer the tenant to create with it. */
+export interface IssueLicenceInput {
+  customer: string;
+  orderRef: string;
+  type: LicenceType;
+  termYears?: number;
+  edition: Edition;
+  deployment: 'saas' | 'deployed';
+  /** tenant:<id> or install:<uuid>; for a new tenant, tenant:<its id>. */
+  binding: string;
+  agents: number;
+  concurrentSeats?: number;
+  ciPacks?: number;
+  aiPacks?: number;
+  storagePacks?: number;
+  validFrom?: string;
+  reason?: string;
+  /** SaaS: create this tenant in the same step (Build Guide, section 12). */
+  newTenant?: { id: string; name: string; domains: string[]; orgIds: number[] };
+}
+
+/** What issuing (or re-issuing) did. */
+export interface IssueLicenceResult {
+  licence: RegisterRow;
+  /** The .lic text, to send to a deployed customer. */
+  text: string;
+  /** SaaS: the licence was installed for its tenant straight away. */
+  installed: boolean;
+  tenantCreated: boolean;
 }

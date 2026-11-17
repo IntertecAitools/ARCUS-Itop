@@ -8,7 +8,7 @@ import { navigableModules, standaloneModules, type ModuleDefinition } from '@/co
 import { useUiStore } from '@/stores/ui.store';
 import { ItopNavigation } from './ItopNavigation';
 import { Logo } from './Logo';
-import { useEditionFeatures } from '@/features/licensing';
+import { useMenuFilter } from '@/features/licensing';
 
 /** Counts that feed the sidebar badges, keyed by `ModuleDefinition.badgeKey`. */
 export type NavCounts = Record<string, number | undefined>;
@@ -93,7 +93,7 @@ function useIsWide() {
 export function Sidebar({ counts = {} }: SidebarProps) {
   const { t } = useTranslation();
   const isAdmin = useSessionStore((s) => s.user?.isAdmin ?? false);
-  const features = useEditionFeatures();
+  const features = useMenuFilter();
   const wide = useIsWide();
   const collapsed = useUiStore((s) => s.sidebarCollapsed) && wide;
   const toggleSidebar = useUiStore((s) => s.toggleSidebar);

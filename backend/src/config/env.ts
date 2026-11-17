@@ -622,6 +622,33 @@ export interface LicensingConfig {
    * production build, nonprod otherwise.
    */
   installationKind: "production" | "nonprod" | "standby";
+  /**
+   * How the operator screen signs licences it issues (Build Guide, phase 6).
+   * LICENCE_SIGNER=kms signs in AWS KMS (the server needs kms:Sign on the
+   * key); dev signs with the local development key, never on a production
+   * build. Absent on a production build without LICENCE_SIGNER: the screen
+   * lists, re-issues nothing and revokes, and the CLI issues.
+   */
+  signer?: LicenceIssuerConfig["signer"];
+}
+
+/** LICENCE_SIGNER and its KMS settings; undefined when unset on a production build. */
+function signerConfig(keys: LicenceKeysConfig, fallback: "dev" | undefined): LicenceIssuerConfig["signer"] | undefined {
+  const raw = optional("LICENCE_SIGNER", fallback ?? "");
+  if (!raw) return undefined;
+  const kind = oneOf("LICENCE_SIGNER", raw as "dev" | "kms", ["dev", "kms"] as const);
+  if (kind === "dev") {
+    if (!keys.allowDevKey) throw new Error("LICENCE_SIGNER=dev is refused on a production build: set LICENCE_SIGNER=kms.");
+    return { kind: "dev" };
+  }
+  const region = optional("LICENCE_KMS_REGION", "");
+  return {
+    kind: "kms",
+    keyId: optional("LICENCE_KMS_KEY_ID", "alias/arcus-licence-signing"),
+    kid: required("LICENCE_KMS_KID"),
+    alg: optional("LICENCE_KMS_ALG", "RSA-PSS-SHA256") === "Ed25519" ? "Ed25519" : "RSA-PSS-SHA256",
+    ...(region ? { region } : {}),
+  };
 }
 
 function licensingConfig(): LicensingConfig | undefined {
@@ -632,6 +659,7 @@ function licensingConfig(): LicensingConfig | undefined {
     mode,
     keys,
     installationKind: oneOf("LICENCE_INSTALLATION_KIND", keys.allowDevKey ? "nonprod" : "production", ["production", "nonprod", "standby"] as const),
+    ...(signerConfig(keys, keys.allowDevKey ? "dev" : undefined) ? { signer: signerConfig(keys, keys.allowDevKey ? "dev" : undefined)! } : {}),
   };
 }
 
@@ -652,21 +680,7 @@ export interface LicenceIssuerConfig {
 export function loadLicenceIssuerConfig(envFile = resolve(PACKAGE_ROOT, ".env")): LicenceIssuerConfig {
   loadDotEnv(envFile);
   const keys = licenceKeysConfig();
-  const kind = oneOf("LICENCE_SIGNER", "dev", ["dev", "kms"] as const);
-  if (kind === "dev" && !keys.allowDevKey) {
-    throw new Error("LICENCE_SIGNER=dev is refused on a production build: set LICENCE_SIGNER=kms.");
-  }
-  const region = optional("LICENCE_KMS_REGION", "");
-  const signer: LicenceIssuerConfig["signer"] =
-    kind === "dev"
-      ? { kind: "dev" }
-      : {
-          kind: "kms",
-          keyId: optional("LICENCE_KMS_KEY_ID", "alias/arcus-licence-signing"),
-          kid: required("LICENCE_KMS_KID"),
-          alg: optional("LICENCE_KMS_ALG", "RSA-PSS-SHA256") === "Ed25519" ? "Ed25519" : "RSA-PSS-SHA256",
-          ...(region ? { region } : {}),
-        };
+  const signer = signerConfig(keys, "dev")!;
   const store = sessionStoreConfig();
   return {
     keys,
