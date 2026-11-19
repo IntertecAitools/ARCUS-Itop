@@ -4,6 +4,21 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-11-19 — Licensing: go-live runbook and issuing script
+
+Production has no `TENANCY` setting, so it runs as one installation and needs one licence, uploaded on the Licence page.
+
+Added:
+- `docs/licensing-go-live.md`, the step-by-step;
+- `backend/scripts/issue-licence.ps1`: MFA, then KMS signing, the register and a verify.
+
+| Run | Result |
+|---|---|
+| PowerShell parser on `issue-licence.ps1` | 0 errors |
+| `npm run licence -- issue` (development key, temporary register) and the script's "Written to" pattern | the file name is read from the output |
+
+Not covered: the script end to end with KMS. It needs the issuer's MFA code; `kms-test-licence.ps1`, which does the same steps, passed on 2026-11-19.
+
 ### 2026-11-19 — Licensing: interim licence agreement and terms of service
 
 The placeholder text is replaced by an interim end-user licence agreement (deployed) and terms of service (SaaS), until Legal's final agreements arrive.
