@@ -22,8 +22,12 @@ Created:
 
 Custodians: VenkateshV, Sai and Rajagopal. Sai and Rajagopal have no MFA yet, so they cannot act as custodians until they add it.
 
+Real KMS signature: **passed**.
+- The user ran `backend/scripts/kms-test-licence.ps1` and it printed "Done": the issuer role was taken on with MFA and test licence ARC-2026-000001 was signed in KMS (kid `arcus-2026-1`).
+- `npm run licence -- verify` then reports VALID, also with `NODE_ENV=production`, where the development key is refused.
+- The test licence is bound to a made-up installation and kept only in the local register file.
+
 Not covered yet:
-- signing a real licence in KMS. It needs the issuer's MFA code: `backend/scripts/kms-test-licence.ps1`, run by the user;
 - the server signing in production. It needs `LICENCE_SIGNER=kms` and `LICENCE_KMS_KID=arcus-2026-1` in the production settings, and `LICENSING` on.
 
 ### 2026-11-17 — Licensing: ready for production (first live run with licensing on)
