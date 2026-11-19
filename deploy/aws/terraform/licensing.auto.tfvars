@@ -10,10 +10,10 @@ licence_issuer_principals = [
 ]
 
 # The only people who may disable the key or schedule its deletion (MFA required).
+# Both have MFA (2026-11-19).
 licence_key_custodians = [
   "arn:aws:iam::557690608274:user/VenkateshV",
   "arn:aws:iam::557690608274:user/Sai",
-  "arn:aws:iam::557690608274:user/Rajagopal",
 ]
 
 # The server may sign too (the operator Licences page, LICENCE_SIGNER=kms).
