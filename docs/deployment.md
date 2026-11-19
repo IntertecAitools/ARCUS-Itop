@@ -635,6 +635,8 @@ licence events, then `enforce` with Commercial's agreement, through the
 pipeline and its manual approval. Setting `warn` again blocks nothing.
 A newly deployed customer installation starts at `enforce`.
 
+The step-by-step for Intertec's own production is in `docs/licensing-go-live.md`.
+
 | Setting | Default | Notes |
 | --- | --- | --- |
 | `LICENSING` | `off` | `off`, `warn` or `enforce`. In SSM with the other settings. |
