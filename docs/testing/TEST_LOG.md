@@ -4,6 +4,28 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-11-19 — Licensing: the production signing key in AWS KMS
+
+| Run | Result |
+|---|---|
+| `terraform plan` (full stack) | 8 to add, 0 to change, 0 to destroy: the 7 licensing resources, plus an email subscription to the notify topic that is missing in AWS (not licensing; left out) |
+| `terraform apply` of the 7 licensing resources only (`-target`, on the user's approval) | 7 added, 0 changed, 0 destroyed |
+| `aws kms get-public-key` | RSA_3072; RSASSA_PSS_SHA_256 offered |
+| Backend tests, with the key in `sdk/public-keys.ts` | 1002/1002 (two new tests: the production key is trusted, RSA 3072, kid `arcus-2026-1`; a licence claiming that kid but signed by another key is refused) |
+| Backend typecheck | clean |
+
+Created:
+- KMS key `alias/arcus-licence-signing`;
+- the issuer role (VenkateshV, MFA);
+- the issuer and server signing policies;
+- the alert rule for anyone disabling or deleting the key.
+
+Custodians: VenkateshV, Sai and Rajagopal. Sai and Rajagopal have no MFA yet, so they cannot act as custodians until they add it.
+
+Not covered yet:
+- signing a real licence in KMS. It needs the issuer's MFA code: `backend/scripts/kms-test-licence.ps1`, run by the user;
+- the server signing in production. It needs `LICENCE_SIGNER=kms` and `LICENCE_KMS_KID=arcus-2026-1` in the production settings, and `LICENSING` on.
+
 ### 2026-11-17 — Licensing: ready for production (first live run with licensing on)
 
 The matrix is confirmed by Product and Sales; the agreement text is with Legal.
