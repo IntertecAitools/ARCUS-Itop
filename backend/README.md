@@ -278,7 +278,12 @@ limited to those organisations; iTop itself knows nothing of tenants.
   organisation and a domain belong to one tenant at most (they are the
   primary keys). Each instance rereads the tables every 30 seconds.
   `npm run tenants -- list | set <id> --name N --domain D --org N … |
-  enable | disable | remove`.
+  enable | disable | remove`. `set <id> --all-orgs` takes every organisation
+  in iTop, which is how a single-company installation becomes one tenant;
+  `unclaimed` lists the enabled accounts no tenant would claim, which would
+  be refused once `TENANCY=on`. Both can run with `TENANCY=on` given to the
+  command alone, before the BFF has it (`docs/licensing-go-live.md`).
+  `TENANTS_FILE` is read-only: `set` changes only the database store.
 - **Which tenant a request is for** (`platform/tenancy/resolve.ts`), decided
   in the sign-in guard from the request's host name and the signed-in user:
   - the user's tenant is the one owning their person's organisation, else the
