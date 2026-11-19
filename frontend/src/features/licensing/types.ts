@@ -176,9 +176,13 @@ export interface LicenceDetail {
   /** The end-user licence agreement (deployed) or terms of service (SaaS): LIC-17. */
   eula: {
     version: string;
+    /** "End-user licence agreement" (deployed) or "Terms of service" (SaaS). */
+    title: string;
     text: string;
     /** Not yet accepted for this tenant or installation. */
     required: boolean;
+    /** An earlier version was accepted: this one is to be accepted again (a new text from Legal). */
+    outdated: boolean;
     acceptedBy: string | null;
     acceptedAt: string | null;
   };

@@ -29,7 +29,7 @@ describe('LicencePage', () => {
     await user.click(screen.getByRole('button', { name: 'Check' }));
     const changes = await screen.findByTestId('licence-changes');
     expect(within(changes).getByText('Agents 60 → 80')).toBeInTheDocument();
-    expect(screen.getByTestId('eula-text')).toHaveTextContent('PLACEHOLDER');
+    expect(screen.getByTestId('eula-text')).toHaveTextContent('ARCUS END-USER LICENCE AGREEMENT');
     const install = screen.getByRole('button', { name: 'Install licence' });
     expect(install).toBeDisabled();
     await user.click(screen.getByLabelText('I accept the end-user licence agreement'));

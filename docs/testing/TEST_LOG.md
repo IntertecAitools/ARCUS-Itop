@@ -4,6 +4,29 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-11-19 — Licensing: interim licence agreement and terms of service
+
+The placeholder text is replaced by an interim end-user licence agreement (deployed) and terms of service (SaaS), until Legal's final agreements arrive.
+
+Acceptance now records the agreement version, and only an acceptance of the current version counts, so a new text from Legal is accepted again:
+- a banner for administrators;
+- an Accept card on the Licence page (`eula.outdated`).
+
+The MySQL table gains `eula_version`, added to existing tables on start.
+
+| Run | Result |
+|---|---|
+| Backend tests | 1003/1003 (one new: a new agreement version is accepted again; existing tests check the real titles and texts) |
+| Backend typecheck | clean |
+| Frontend typecheck, vitest, build | clean, 332/332, built |
+| Mock browser journeys | 39/39 on the third run. The first two runs, under machine load, failed 2 and then 1 different tests; the dark-mode accessibility test that failed passed alone (3/3), as seen before. Not related to this change |
+
+The `ALTER TABLE` path was checked on the local MySQL: an old `bff_licences` table, with one acceptance, was created, then `MySqlLicenceStore` started.
+- The column was added. The old acceptance reads with version `null`, so it counts as outdated and is accepted again.
+- Accepting stores `eula-2026-11-19`.
+- A second start works.
+- All licence tables were dropped afterwards; none existed before.
+
 ### 2026-11-19 — Licensing: key custodians are VenkateshV and Sai
 
 On the user's instruction, Rajagopal (no MFA) was removed as a licence-key custodian. Sai has added MFA.

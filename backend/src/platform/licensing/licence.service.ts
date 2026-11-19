@@ -11,7 +11,7 @@ import {
   type Site,
 } from "./sdk/index.js";
 import { EDITION_FEATURES, EDITION_NAMES, FEATURES, featureOfClass, featureOfRoute, lowestEditionWith } from "./editions.js";
-import { EULA_VERSION } from "./eula.js";
+import { agreementFor, type Agreement } from "./eula.js";
 import { verifyArcusLicence, type ArcusKeyOptions, type ArcusLicence } from "./licence.verify.js";
 import { INSTALLATION_SCOPE, type InstallationRow, type LicenceEvent, type LicenceRow, type LicenceStore, type StateRow } from "./licence.store.js";
 import type {
@@ -82,6 +82,8 @@ export interface ScopeStatus {
   row?: LicenceRow;
   /** Who accepted the EULA (deployed) or the terms (SaaS) for this scope, when. */
   eula?: { by: string; at: Date };
+  /** An earlier version of the agreement was accepted, not the current one. */
+  eulaOutdated?: boolean;
   /** In the re-activation window after a cluster change: days left. */
   reactivationDaysLeft?: number;
 }
@@ -318,8 +320,10 @@ export class LicenceService {
       await this.store.saveRebind(scope, null);
     }
 
-    const accepted = rows.find((r) => r.eulaAcceptedBy && r.eulaAcceptedAt);
+    // Only an acceptance of the current agreement counts: a new version is accepted again.
+    const accepted = rows.find((r) => r.eulaAcceptedBy && r.eulaAcceptedAt && r.eulaVersion === this.agreement.version);
     if (accepted) status.eula = { by: accepted.eulaAcceptedBy!, at: accepted.eulaAcceptedAt! };
+    else if (rows.some((r) => r.eulaAcceptedBy)) status.eulaOutdated = true;
 
     // Grace start, state change and the clock's high-water mark.
     const previous = this.lastState.get(scope);
@@ -425,8 +429,9 @@ export class LicenceService {
     if (status.nonProduction) out.push({ kind: "nonprod", tone: "info", message: "Non-production licence: not for live use." });
     if (!viewer.isStaff) return out;
     // SaaS: the tenant's first administrator accepts the terms (LIC-17).
-    if (viewer.isAdmin && this.settings.tenancy && status.licence && !status.eula) {
-      out.push({ kind: "eula", tone: "info", message: "Accept the terms of service for your organisation on the Licence page (Administration)." });
+    // SaaS: until the first acceptance. Deployed: the EULA is accepted with the first key, so this shows only for a new version.
+    if (viewer.isAdmin && status.licence && !status.eula) {
+      out.push({ kind: "eula", tone: "info", message: `Accept the ${this.agreement.title.toLowerCase()} for your organisation on the Licence page (Administration).` });
     }
     switch (status.state) {
       case "expiring_soon":
@@ -533,9 +538,15 @@ export class LicenceService {
   }
 
   /** Records acceptance of the EULA (or SaaS terms) for a scope, with the version. */
+  /** The agreement customers accept here: the terms of service (SaaS) or the EULA (deployed). */
+  get agreement(): Agreement {
+    return agreementFor(this.settings.tenancy);
+  }
+
   async acceptEula(scope: string, by: string): Promise<void> {
-    if (!(await this.store.acceptEula(scope, by, this.now()))) throw new LicenceError("Install a licence before accepting its terms.");
-    await this.event(scope, "eula_accepted", by, `Accepted the ${this.settings.tenancy ? "terms of service" : "end-user licence agreement"} (${EULA_VERSION}).`);
+    const { version, title } = this.agreement;
+    if (!(await this.store.acceptEula(scope, by, this.now(), version))) throw new LicenceError("Install a licence before accepting its terms.");
+    await this.event(scope, "eula_accepted", by, `Accepted the ${title.toLowerCase()} (${version}).`);
     await this.update(scope, (await this.store.licences()).filter((r) => r.scope === scope), this.now());
   }
 
@@ -554,8 +565,8 @@ export class LicenceService {
     }
     await this.store.addLicence(scope, text.trim() + "\n", by, this.now());
     if (needsEula) {
-      await this.store.acceptEula(scope, by, this.now());
-      await this.event(scope, "eula_accepted", by, `Accepted the end-user licence agreement (${EULA_VERSION}) with ${result.summary!.licenceId}.`);
+      await this.store.acceptEula(scope, by, this.now(), this.agreement.version);
+      await this.event(scope, "eula_accepted", by, `Accepted the ${this.agreement.title.toLowerCase()} (${this.agreement.version}) with ${result.summary!.licenceId}.`);
     }
     await this.event(scope, "key_uploaded", by, `${result.summary!.licenceId}${result.older ? " (older than the one it replaced; confirmed)" : ""}: ${result.changes.join("; ")}`, this.now());
     const rows = (await this.store.licences()).filter((r) => r.scope === scope);
