@@ -31,6 +31,8 @@ export interface LicenceRow {
   uploadedAt: Date;
   eulaAcceptedBy: string | null;
   eulaAcceptedAt: Date | null;
+  /** The agreement version accepted (eula.ts); a new version needs a new acceptance. */
+  eulaVersion: string | null;
 }
 
 export interface StateRow {
@@ -95,7 +97,8 @@ export interface LicenceStore extends UsageStore {
   licences(): Promise<LicenceRow[]>;
   addLicence(scope: string, text: string, by: string, at: Date): Promise<void>;
   /** Records the EULA (or SaaS terms) as accepted, on the scope's newest licence row. False when it has none. */
-  acceptEula(scope: string, by: string, at: Date): Promise<boolean>;
+  /** Records acceptance of agreement `version` on the scope's newest licence. False when it has none. */
+  acceptEula(scope: string, by: string, at: Date, version: string): Promise<boolean>;
   states(): Promise<StateRow[]>;
   /** Scopes whose licence names another cluster, since when (the 14-day re-activation window). */
   rebinds(): Promise<{ scope: string; startedAt: Date }[]>;
@@ -155,13 +158,14 @@ export class MemoryLicenceStore implements LicenceStore {
     return [...this.rows].sort((a, b) => b.id - a.id).map((r) => ({ ...r }));
   }
   async addLicence(scope: string, text: string, by: string, at: Date) {
-    this.rows.push({ id: this.nextId++, scope, text, uploadedBy: by, uploadedAt: at, eulaAcceptedBy: null, eulaAcceptedAt: null });
+    this.rows.push({ id: this.nextId++, scope, text, uploadedBy: by, uploadedAt: at, eulaAcceptedBy: null, eulaAcceptedAt: null, eulaVersion: null });
   }
-  async acceptEula(scope: string, by: string, at: Date) {
+  async acceptEula(scope: string, by: string, at: Date, version: string) {
     const newest = this.rows.filter((r) => r.scope === scope).sort((a, b) => b.id - a.id)[0];
     if (!newest) return false;
     newest.eulaAcceptedBy = by;
     newest.eulaAcceptedAt = at;
+    newest.eulaVersion = version;
     return true;
   }
   private readonly rebindRows = new Map<string, Date>();
@@ -218,9 +222,15 @@ export class MySqlLicenceStore implements LicenceStore {
            uploaded_at DATETIME(3) NOT NULL,
            eula_accepted_by VARCHAR(200) NULL,
            eula_accepted_at DATETIME(3) NULL,
+           eula_version VARCHAR(64) NULL,
            KEY bff_licences_scope (scope, id)
          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
       );
+      // Tables made before the agreement version was recorded (2026-11-19).
+      const [versionColumn] = await this.pool.query<RowDataPacket[]>(
+        "SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'bff_licences' AND COLUMN_NAME = 'eula_version'",
+      );
+      if (!versionColumn.length) await this.pool.query("ALTER TABLE bff_licences ADD COLUMN eula_version VARCHAR(64) NULL");
       await this.pool.query(
         `CREATE TABLE IF NOT EXISTS bff_licence_state (
            scope VARCHAR(64) NOT NULL PRIMARY KEY,
@@ -299,6 +309,7 @@ export class MySqlLicenceStore implements LicenceStore {
       uploadedAt: r["uploaded_at"] as Date,
       eulaAcceptedBy: (r["eula_accepted_by"] as string | null) ?? null,
       eulaAcceptedAt: (r["eula_accepted_at"] as Date | null) ?? null,
+      eulaVersion: (r["eula_version"] as string | null) ?? null,
     }));
   }
 
@@ -307,11 +318,11 @@ export class MySqlLicenceStore implements LicenceStore {
     await this.pool.query("INSERT INTO bff_licences (scope, licence_text, uploaded_by, uploaded_at) VALUES (?, ?, ?, ?)", [scope, text, by, at]);
   }
 
-  async acceptEula(scope: string, by: string, at: Date): Promise<boolean> {
+  async acceptEula(scope: string, by: string, at: Date, version: string): Promise<boolean> {
     await this.init();
     const [res] = await this.pool.query<import("mysql2").ResultSetHeader>(
-      "UPDATE bff_licences SET eula_accepted_by = ?, eula_accepted_at = ? WHERE scope = ? ORDER BY id DESC LIMIT 1",
-      [by, at, scope],
+      "UPDATE bff_licences SET eula_accepted_by = ?, eula_accepted_at = ?, eula_version = ? WHERE scope = ? ORDER BY id DESC LIMIT 1",
+      [by, at, version, scope],
     );
     return res.affectedRows === 1;
   }

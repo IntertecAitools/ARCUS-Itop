@@ -33,7 +33,9 @@ describe("the licence page", () => {
     const t = await licenceApp();
     const before = await detail(t);
     assert.equal(before.eula.required, true);
-    assert.match(before.eula.text, /PLACEHOLDER/);
+    assert.equal(before.eula.title, "End-user licence agreement");
+    assert.match(before.eula.text, /^ARCUS END-USER LICENCE AGREEMENT\nVersion eula-/);
+    assert.doesNotMatch(before.eula.text, /PLACEHOLDER/);
     const refused = await t.install(await t.issue(), t.users.admin, false, false);
     assert.equal(refused.statusCode, 400);
     assert.match((refused.json() as { error: { message: string } }).error.message, /Accept the end-user licence agreement/);
@@ -44,11 +46,29 @@ describe("the licence page", () => {
     assert.equal((await t.install(await t.issue({ order: { agents: 20 } }, "ARC-2026-000200"), t.users.admin, false, false)).statusCode, 200);
   });
 
+  it("a new agreement version is accepted again: banner, then the acceptance of the new version", async () => {
+    const t = await licenceApp();
+    await t.install(await t.issue());
+    assert.equal((await detail(t)).eula.required, false);
+    // As if the acceptance on record were for an earlier text.
+    await t.store.acceptEula("installation", "admin", new Date("2026-12-01T09:00:00Z"), "eula-2026-01-01");
+    await t.licensing.refresh();
+    assert.deepEqual([(await detail(t)).eula.required, (await detail(t)).eula.outdated], [true, true]);
+    const banner = (await t.status(t.users.admin)).banners.find((b) => b.kind === "eula");
+    assert.match(banner?.message ?? "", /Accept the end-user licence agreement/);
+    assert.equal((await t.send("POST", "/api/licence/eula", t.users.admin)).statusCode, 204);
+    const d = await detail(t);
+    assert.deepEqual([d.eula.required, d.eula.outdated, d.eula.acceptedBy], [false, false, "admin"]);
+    assert.ok((await t.licensing.history("installation")).some((e) => e.type === "eula_accepted" && e.detail.includes(d.eula.version)));
+  });
+
   it("LIC-17: in SaaS the tenant's first administrator accepts the terms; a banner asks until then", async () => {
     const t = await licenceApp({ tenancy: true });
     await t.install(await t.issue());
     const d = await detail(t);
     assert.deepEqual([d.deployment, d.canInstall, d.installation, d.eula.required], ["saas", false, null, true]);
+    assert.equal(d.eula.title, "Terms of service");
+    assert.match(d.eula.text, /^ARCUS TERMS OF SERVICE\nVersion saas-terms-/);
     assert.ok((await t.status(t.users.admin)).banners.some((b) => b.kind === "eula"));
     assert.equal((await t.send("POST", "/api/licence/eula", t.users.admin)).statusCode, 204);
     assert.equal((await detail(t)).eula.acceptedBy, "admin");

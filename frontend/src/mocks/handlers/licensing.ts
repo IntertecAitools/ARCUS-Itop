@@ -96,7 +96,8 @@ const USAGE: UsageRow[] = [
   { metric: 'storage', label: 'Storage (GB)', used: 18.4, limit: null, percent: null, level: 'ok' },
 ];
 
-const EULA_TEXT = 'PLACEHOLDER — this is not the agreement.\n\nIntertec’s legal team will provide the end-user licence agreement.';
+/** A short stand-in: the BFF serves the full text (backend/src/platform/licensing/eula.ts). */
+const EULA_TEXT = 'ARCUS END-USER LICENCE AGREEMENT\nVersion eula-2026-11-19\n\nThis End-User Licence Agreement is between the Intertec company named in your order and the organisation that ordered the software.\n\n1. DEFINITIONS\n…';
 
 /** The licence page of a deployed installation whose administrator may install keys. */
 function detail(): LicenceDetail {
@@ -114,7 +115,7 @@ function detail(): LicenceDetail {
     deployment: 'deployed',
     installation: { id: '7f3c2a10-8f7e-4d1b-9c39-2b7e5f0a1c22', reportKeyId: 'k3y-1d', reportPublicKey: '-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEA\n-----END PUBLIC KEY-----\n' },
     activation: { online: false, clusterId: null, last: readStored<{ at: string; result: string } | null>('licence.activation', null) },
-    eula: { version: 'placeholder-2026-11', text: EULA_TEXT, required: !accepted, acceptedBy: accepted?.by ?? null, acceptedAt: accepted?.at ?? null },
+    eula: { version: 'eula-2026-11-19', title: 'End-user licence agreement', text: EULA_TEXT, required: !accepted, outdated: false, acceptedBy: accepted?.by ?? null, acceptedAt: accepted?.at ?? null },
   };
 }
 

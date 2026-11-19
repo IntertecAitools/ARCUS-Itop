@@ -6,7 +6,6 @@ import { parse } from "../../core/validate.js";
 import { LicenceError, type LicenceService } from "./licence.service.js";
 import type { UsageService } from "./usage.service.js";
 import type { LicenceDetail, LicenceStatus } from "./licence.types.js";
-import { EULA_TEXT, EULA_VERSION } from "./eula.js";
 import { keyFingerprint } from "./sdk/index.js";
 import { FEATURES, lowestEditionWith } from "./editions.js";
 
@@ -161,9 +160,11 @@ export function registerLicenceRoutes(
             })(),
           },
       eula: {
-        version: EULA_VERSION,
-        text: EULA_TEXT,
+        version: licensing.agreement.version,
+        title: licensing.agreement.title,
+        text: licensing.agreement.text,
         required: !status.eula,
+        outdated: status.eulaOutdated === true,
         acceptedBy: status.eula?.by ?? null,
         acceptedAt: status.eula?.at.toISOString() ?? null,
       },

@@ -254,13 +254,17 @@ function UsageReport() {
   );
 }
 
-/** SaaS: the tenant's first administrator accepts the terms (LIC-17). */
+/**
+ * Accepting the agreement on its own (LIC-17). SaaS: the tenant's first
+ * administrator accepts the terms. Deployed: the EULA is accepted with the
+ * first key, so this shows only when a new version of it needs accepting.
+ */
 function AcceptTerms({ detail }: { detail: LicenceDetail }) {
   const accept = useAcceptEula();
   const [ok, setOk] = useState(false);
   return (
     <Card>
-      <CardHeader title="Terms of service" subtitle="Accept the terms once for your organisation." />
+      <CardHeader title={detail.eula.title} subtitle={`Accept version ${detail.eula.version} once for your organisation.`} />
       <CardBody>
         <div className="max-h-48 overflow-y-auto rounded-card border border-line bg-surface p-3 text-[12px] text-ink-secondary whitespace-pre-line">{detail.eula.text}</div>
         <label className="mt-3 flex items-center gap-2 text-[13px] text-ink">
@@ -360,7 +364,7 @@ export function LicencePage() {
           </CardBody>
         </Card>
 
-        {data.eula.required && !data.canInstall ? <AcceptTerms detail={data} /> : null}
+        {data.eula.required && (!data.canInstall || data.eula.outdated) ? <AcceptTerms detail={data} /> : null}
         {data.canInstall ? (
           <InstallKey detail={data} />
         ) : (
