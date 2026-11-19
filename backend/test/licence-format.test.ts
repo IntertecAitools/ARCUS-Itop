@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createPublicKey } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
@@ -276,6 +277,22 @@ describe("issuing", () => {
     const { text } = await testLicence({}, kms);
     assert.equal(verify(text, [key]).ok, true);
     assert.equal(parseLicenceFile(text).label, "ARCUS");
+  });
+});
+
+describe("the production signing key", () => {
+  it("is trusted by every build: RSA 3072 from KMS, kid arcus-2026-1", () => {
+    const prod = trustedKeys({ allowDevKey: false }).filter((k) => k.kid !== "dev");
+    assert.deepEqual(prod.map((k) => [k.kid, k.alg]), [["arcus-2026-1", "RSA-PSS-SHA256"]]);
+    const key = createPublicKey(prod[0]!.publicKeyPem);
+    assert.deepEqual([key.asymmetricKeyType, key.asymmetricKeyDetails?.modulusLength], ["rsa", 3072]);
+  });
+
+  it("refuses a licence that claims its kid but was signed by another key", async () => {
+    const { signer } = rsaTestKey();
+    const forged = { ...signer, kid: "arcus-2026-1" };
+    const { text } = await testLicence({}, forged);
+    assert.equal(verify(text, trustedKeys({ allowDevKey: false })).ok, false);
   });
 });
 

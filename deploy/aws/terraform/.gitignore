@@ -1,3 +1,6 @@
 .terraform/
 tfplan
 *.tfvars
+# Not secret, and every apply needs it: without it a plan would try to
+# remove the licence-signing key (prevent_destroy refuses).
+!licensing.auto.tfvars

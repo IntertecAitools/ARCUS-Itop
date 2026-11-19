@@ -1887,14 +1887,32 @@ npm run licence -- revocation-list --out revoked.json
 - `.licence-dev/` and `*.lic` files are in `.gitignore`: never commit a key
   or a customer's licence.
 
-The KMS key and the issuer role are in `deploy/aws/terraform/licensing.tf`,
-behind `licence_signing_enabled` (default `false`): nothing is created until
-someone sets it, names the issuers and two key custodians, and applies by
-hand. `sdk/public-keys.ts` holds no production key until then. A second
-switch, `licence_server_signs` (default `false`), also lets the server sign,
-so the operator Licences page can issue in production; it widens who can
-sign (anyone controlling the server or an operator account), so it is a
-separate decision.
+The KMS key and the issuer role are in `deploy/aws/terraform/licensing.tf`.
+**They exist since 2026-11-19** (`alias/arcus-licence-signing`, RSA 3072, kid
+`arcus-2026-1`). The choices are in `deploy/aws/terraform/licensing.auto.tfvars`,
+which is in Git because every apply needs them:
+- issuers: VenkateshV;
+- custodians: VenkateshV, Sai and Rajagopal;
+- `licence_server_signs = true`, so the server's instance role may sign too
+  (the operator Licences page with `LICENCE_SIGNER=kms`).
+
+Its public half is in `sdk/public-keys.ts`, so every build trusts it.
+
+Issuing with the real key, from an operator's machine (PowerShell). Take on
+the issuer role with an MFA code from an authenticator app; a passkey or
+security key works only in the console:
+
+```powershell
+$code = Read-Host "MFA code"
+$c = (aws sts assume-role --role-arn arn:aws:iam::557690608274:role/arcus-servicedesk-licence-issuer `
+  --role-session-name licence-$env:USERNAME --serial-number <your MFA device ARN> --token-code $code `
+  --output json | ConvertFrom-Json).Credentials
+$env:AWS_ACCESS_KEY_ID = $c.AccessKeyId; $env:AWS_SECRET_ACCESS_KEY = $c.SecretAccessKey; $env:AWS_SESSION_TOKEN = $c.SessionToken
+$env:AWS_REGION = "us-east-1"; $env:LICENCE_SIGNER = "kms"; $env:LICENCE_KMS_KID = "arcus-2026-1"
+npm run licence -- issue ...
+```
+
+The credentials last an hour.
 
 The pipeline stamps each BFF image with its build day (`ARCUS_RELEASE_DATE`,
 in `deploy/aws/buildspec-build.yml` and `backend/Dockerfile`): a perpetual
