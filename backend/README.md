@@ -1892,7 +1892,7 @@ The KMS key and the issuer role are in `deploy/aws/terraform/licensing.tf`.
 `arcus-2026-1`). The choices are in `deploy/aws/terraform/licensing.auto.tfvars`,
 which is in Git because every apply needs them:
 - issuers: VenkateshV;
-- custodians: VenkateshV, Sai and Rajagopal;
+- custodians: VenkateshV and Sai;
 - `licence_server_signs = true`, so the server's instance role may sign too
   (the operator Licences page with `LICENCE_SIGNER=kms`).
 

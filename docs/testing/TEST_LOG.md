@@ -4,6 +4,16 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-11-19 — Licensing: key custodians are VenkateshV and Sai
+
+On the user's instruction, Rajagopal (no MFA) was removed as a licence-key custodian. Sai has added MFA.
+
+| Run | Result |
+|---|---|
+| `terraform plan -target=aws_kms_key.licence_signing` | 0 to add, 1 to change, 0 to destroy (Rajagopal removed from the two custodian statements) |
+| `terraform apply` | 0 added, 1 changed, 0 destroyed |
+| `aws kms get-key-policy` | custodian statements list VenkateshV and Sai only |
+
 ### 2026-11-19 — Licensing: the production signing key in AWS KMS
 
 | Run | Result |
