@@ -36,7 +36,8 @@
     "e2e:data-import": "node --import tsx scripts/e2e-data-import.mjs",
     "e2e:ticket-handling": "node --import tsx scripts/e2e-ticket-handling.mjs",
     "e2e:change-knowledge": "node --import tsx scripts/e2e-change-knowledge.mjs",
-    "e2e:licensing": "node --import tsx scripts/e2e-licensing.mjs"
+    "e2e:licensing": "node --import tsx scripts/e2e-licensing.mjs",
+    "e2e:tenancy-switch": "node --import tsx scripts/e2e-tenancy-switch.mjs"
   },
   "dependencies": {
     "@anthropic-ai/bedrock-sdk": "^1.1.0",
