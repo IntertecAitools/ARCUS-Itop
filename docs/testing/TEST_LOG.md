@@ -4,6 +4,18 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-11-20 — Pipeline: re-releasing the same commit
+
+Starting the pipeline again to apply the new production settings failed in Build.
+- Cause: the app images are tagged with the commit, and the ECR repositories are IMMUTABLE. The same commit (`c6b565cf4b8e`) cannot be pushed twice: "tag invalid … cannot be overwritten because the tag is immutable".
+- Effect: no deploy happened and production was unchanged.
+- Fix: `buildspec-build.yml` skips building and pushing an app image whose tag is already in ECR, as it already did for the iTop image.
+
+| Check | Result |
+|---|---|
+| `buildspec-build.yml` parses as YAML | 8 build commands |
+| The real run | the next pipeline run (this PR's merge) |
+
 ### 2026-11-19 — Multi-customer mode for production: rehearsal
 
 The user chose to switch production to multi-customer mode (`TENANCY=on`):
