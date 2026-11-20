@@ -4,6 +4,45 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-11-19 — Multi-customer mode for production: rehearsal
+
+The user chose to switch production to multi-customer mode (`TENANCY=on`):
+- operators: `admin` and `Platform_Admin`;
+- customer: `intertec`, with every organisation;
+- licence: Enterprise, 50 agents.
+
+Rehearsed on the local stack. The local `admin` password no longer matched `backend/.env`, so on the user's request it was reset in the local iTop to the `.env` value.
+
+| Run | Result |
+|---|---|
+| `tenants set intertec --name Intertec --all-orgs` | organisations 1, 4, 6, 7, 11, 12, 13, 14, 18 and 21 |
+| `tenants unclaimed` (first run) | 33 of 34 reported unclaimed: `TENANTS_FILE` is read-only, so `set` had saved nothing. The rehearsal file was written by hand; the database store saves. Also: organisation ids are now read as numbers. |
+| `tenants unclaimed` | 34 checked, 0 unclaimed |
+| `npm run e2e:tenancy-switch` (BFF :4630, `TENANCY=on`, `TENANTS_FILE`, `PLATFORM_LOGINS`, `LICENSING=warn`, development signer) | **10/10**: the operator is unscoped, sees the tenant and the Licences page, issues the tenant's licence there and it installs; a member is held to the tenant, Enterprise valid, tickets read, an FAQ edit refused, no Licences page |
+| BFF log during the run | no errors or warnings |
+| Backend tests, typecheck | 1003/1003, clean |
+
+Afterwards, the licence tables the run created (including `bff_licence_register`) were dropped. The local test tenants `mt-acme` and `mt-globex` in the database were not touched.
+
+Not covered:
+- background jobs (mail intake, auto-close) over a long run with `TENANCY=on`;
+- the production switch itself.
+
+### 2026-11-19 — Licensing: go-live runbook and issuing script
+
+Production has no `TENANCY` setting, so it runs as one installation and needs one licence, uploaded on the Licence page.
+
+Added:
+- `docs/licensing-go-live.md`, the step-by-step;
+- `backend/scripts/issue-licence.ps1`: MFA, then KMS signing, the register and a verify.
+
+| Run | Result |
+|---|---|
+| PowerShell parser on `issue-licence.ps1` | 0 errors |
+| `npm run licence -- issue` (development key, temporary register) and the script's "Written to" pattern | the file name is read from the output |
+
+Not covered: the script end to end with KMS. It needs the issuer's MFA code; `kms-test-licence.ps1`, which does the same steps, passed on 2026-11-19.
+
 ### 2026-11-19 — Licensing: interim licence agreement and terms of service
 
 The placeholder text is replaced by an interim end-user licence agreement (deployed) and terms of service (SaaS), until Legal's final agreements arrive.

@@ -4,6 +4,8 @@
  *
  *   npm run tenants -- list
  *   npm run tenants -- set acme --name "Acme Ltd" --domain acme.example.com --org 12 --org 13
+ *   npm run tenants -- set intertec --name Intertec --all-orgs   every organisation in iTop
+ *   npm run tenants -- unclaimed      enabled accounts no tenant claims (refused once TENANCY=on)
  *   npm run tenants -- disable acme | enable acme | remove acme
  *   npm run tenants -- seed-test       two test tenants in a local iTop (below)
  *
@@ -13,7 +15,17 @@
  *     exec bff node dist/cli/tenants.js list
  *
  * `set` replaces the tenant's domains and organisations with the ones given.
- * An organisation or a domain belongs to one tenant at most.
+ * An organisation or a domain belongs to one tenant at most. `--all-orgs`
+ * takes every organisation iTop has: the way to turn a single-company
+ * installation into one tenant before switching TENANCY on. It can run
+ * while the BFF itself still has TENANCY off: give this command
+ * TENANCY=on in its own environment.
+ *
+ * `unclaimed` lists the enabled accounts no tenant would claim (by their
+ * person's organisation, else their allowed organisations), other than the
+ * platform operators in PLATFORM_LOGINS: once TENANCY is on they are refused
+ * at sign-in. Run it before switching, and fix each one (give the person an
+ * organisation of the tenant).
  *
  * seed-test creates, in iTop, two organisations (zz-mt-acme, zz-mt-globex),
  * and in each a person, an agent account (Service Desk Agent, limited to its
@@ -27,6 +39,7 @@ import { loadConfig } from "../config/env.js";
 import { normalizeObjects } from "../itop/normalize.js";
 import { quoteString } from "../itop/oql.js";
 import { buildServices } from "../services.js";
+import { tenantOfUser } from "../platform/tenancy/resolve.js";
 import type { Tenant } from "../platform/tenancy/tenant.store.js";
 
 const TEST_PASSWORD = process.env["MT_TEST_PASSWORD"] ?? "Tenancy-Test-2026!";
@@ -111,6 +124,46 @@ async function seedTest(): Promise<void> {
   console.log(JSON.stringify(summary, null, 2));
 }
 
+/** Every organisation id iTop has, a page at a time. */
+async function allOrgIds(): Promise<number[]> {
+  const ids: number[] = [];
+  for (let page = 1; ; page += 1) {
+    const res = await client.call("core/get", { class: "Organization", key: "SELECT Organization", output_fields: "id", limit: 500, page }, { asService: true });
+    const rows = normalizeObjects(res.objects);
+    ids.push(...rows.map((r) => Number(r.id)));
+    if (rows.length < 500) return ids.sort((a, b) => a - b);
+  }
+}
+
+/** Enabled accounts no tenant claims and that are not platform operators. */
+async function unclaimed(): Promise<void> {
+  const tenants = await store.list();
+  const operators = new Set((config.tenancy?.platformLogins ?? []).map((l) => l.toLowerCase()));
+  let checked = 0;
+  const refused: string[] = [];
+  for (let page = 1; ; page += 1) {
+    const res = await client.call(
+      "core/get",
+      { class: "User", key: "SELECT User WHERE status = 'enabled'", output_fields: "login,org_id,org_name,allowed_org_list", limit: 500, page },
+      { asService: true },
+    );
+    const rows = normalizeObjects(res.objects);
+    for (const r of rows) {
+      checked += 1;
+      const f = r.fields as Record<string, unknown>;
+      const login = String(f["login"] ?? "");
+      if (operators.has(login.toLowerCase())) continue;
+      const allowed = Array.isArray(f["allowed_org_list"]) ? (f["allowed_org_list"] as Record<string, unknown>[]).map((a) => Number(a["allowed_org_id"])) : [];
+      const facts = { login, orgId: Number(f["org_id"] ?? 0), allowedOrgIds: allowed };
+      if (!tenantOfUser(facts, tenants)) refused.push(`${login}	org: ${f["org_name"] || "-"} (${facts.orgId})	allowed: ${allowed.join(", ") || "-"}`);
+    }
+    if (rows.length < 500) break;
+  }
+  for (const line of refused) console.log(line);
+  console.log(`${checked} enabled accounts checked; ${refused.length} no tenant claims${refused.length ? " (refused at sign-in once TENANCY=on)" : ""}.`);
+  if (refused.length) process.exitCode = 2;
+}
+
 function print(t: Tenant): void {
   console.log(`${t.id}\t${t.status}\t${t.name}\tdomains: ${t.domains.join(", ") || "-"}\torgs: ${t.orgIds.join(", ") || "-"}`);
 }
@@ -123,13 +176,13 @@ async function main(): Promise<void> {
       for (const t of await store.list()) print(t);
       break;
     case "set": {
-      if (!id) throw new Error("Usage: set <id> --name <name> [--domain <host>]... [--org <id>]...");
+      if (!id) throw new Error("Usage: set <id> --name <name> [--domain <host>]... [--org <id>]... | --all-orgs");
       const tenant: Tenant = {
         id,
         name: flags(rest, "name")[0] ?? existing?.name ?? id,
         status: existing?.status ?? "active",
         domains: flags(rest, "domain"),
-        orgIds: flags(rest, "org").map(Number),
+        orgIds: rest.includes("--all-orgs") ? await allOrgIds() : flags(rest, "org").map(Number),
       };
       await store.save(tenant);
       print(tenant);
@@ -147,8 +200,11 @@ async function main(): Promise<void> {
     case "seed-test":
       await seedTest();
       break;
+    case "unclaimed":
+      await unclaimed();
+      break;
     default:
-      console.log("Commands: list | set <id> --name N --domain D --org N | enable <id> | disable <id> | remove <id> | seed-test");
+      console.log("Commands: list | set <id> --name N --domain D --org N | --all-orgs | unclaimed | enable <id> | disable <id> | remove <id> | seed-test");
   }
 }
 
