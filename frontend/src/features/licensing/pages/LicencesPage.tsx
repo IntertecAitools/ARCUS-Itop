@@ -1,13 +1,28 @@
 import { useState, type ReactNode } from 'react';
 import { PageHeader } from '@/components/layout';
 import { Button, Card, CardBody, CardHeader, Input, Skeleton } from '@/components/ui';
-import { ApiError } from '@/lib/api-client';
+import { errorMessage } from '@/lib/api-client';
 import { dateTimeText } from '@/lib/utils';
 import { useIssueLicence, useLicences, useReissueLicence, useRevokeLicence } from '../api/desk.api';
 import type { Edition, IssueLicenceInput, IssueLicenceResult, LicenceType, RegisterRow } from '../types';
 
 const ALERT = 'rounded-card border px-3 py-2 text-[13px]';
-const errorText = (e: unknown) => (e instanceof ApiError || e instanceof Error ? e.message : 'Something went wrong.');
+/** The form's labels for the fields the server may name in a refusal. */
+const FIELD_LABELS: Record<string, string> = {
+  customer: 'Customer',
+  orderRef: 'Order',
+  termYears: 'Term',
+  binding: 'Binding',
+  agents: 'Agents',
+  ciPacks: 'CI packs',
+  aiPacks: 'AI packs',
+  validFrom: 'Valid from',
+  reason: 'Reason',
+  'newTenant.id': 'Tenant id',
+  'newTenant.domains': 'Site host names',
+  'newTenant.orgIds': 'Organisation ids',
+};
+const errorText = (e: unknown) => errorMessage(e, FIELD_LABELS);
 const STATUS: Record<RegisterRow['status'], string> = { current: 'Current', replaced: 'Replaced', revoked: 'Revoked' };
 
 function Field({ label, htmlFor, children }: { label: string; htmlFor: string; children: ReactNode }) {
@@ -58,6 +73,9 @@ function IssueForm({ canIssue, onIssued }: { canIssue: boolean; onIssued: (r: Is
   const set = (patch: Partial<typeof f>) => setF((x) => ({ ...x, ...patch }));
   const saasNew = f.deployment === 'saas' && f.newTenant;
   const binding = saasNew ? `tenant:${f.tenantId}` : f.binding;
+  const newOrgIds = f.orgIds.split(',').map((d) => Number(d.trim())).filter((n) => Number.isInteger(n) && n > 0);
+  // A new customer needs its organisations; say so here rather than after a refused request.
+  const missingOrgs = saasNew && newOrgIds.length === 0;
 
   const submit = () => {
     const input: IssueLicenceInput = {
@@ -78,7 +96,7 @@ function IssueForm({ canIssue, onIssued }: { canIssue: boolean; onIssued: (r: Is
               id: f.tenantId,
               name: f.customer,
               domains: f.domains.split(',').map((d) => d.trim()).filter(Boolean),
-              orgIds: f.orgIds.split(',').map((d) => Number(d.trim())).filter((n) => n > 0),
+              orgIds: newOrgIds,
             },
           }
         : {}),
@@ -165,7 +183,12 @@ function IssueForm({ canIssue, onIssued }: { canIssue: boolean; onIssued: (r: Is
                 <Input id="ld-domains" value={f.domains} onChange={(e) => set({ domains: e.target.value })} placeholder="acme.servicedesk.example" />
               </Field>
               <Field label="Organisation ids (comma-separated)" htmlFor="ld-orgs">
-                <Input id="ld-orgs" value={f.orgIds} onChange={(e) => set({ orgIds: e.target.value })} placeholder="12, 13" />
+                <Input id="ld-orgs" value={f.orgIds} onChange={(e) => set({ orgIds: e.target.value })} placeholder="12, 13" aria-describedby="ld-orgs-hint" />
+                <p id="ld-orgs-hint" className="mt-1 text-[12px] text-ink-muted">
+                  {missingOrgs
+                    ? 'Enter at least one organisation id. For a customer that already exists, untick "A new customer" and use its binding instead.'
+                    : 'The new customer’s organisations.'}
+                </p>
               </Field>
             </>
           ) : (
@@ -179,7 +202,7 @@ function IssueForm({ canIssue, onIssued }: { canIssue: boolean; onIssued: (r: Is
             </Field>
           )}
           <div className="sm:col-span-2">
-            <Button type="submit" size="sm" disabled={!canIssue || issue.isPending || !f.customer || !binding.replace(/^tenant:$/, '')}>
+            <Button type="submit" size="sm" disabled={!canIssue || issue.isPending || !f.customer || !binding.replace(/^tenant:$/, '') || missingOrgs}>
               Issue licence
             </Button>
           </div>

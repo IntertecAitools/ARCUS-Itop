@@ -50,6 +50,14 @@ describe("the licence desk (operator Licences page)", () => {
     assert.equal(code(await t.send("POST", "/api/platform/licences", t.users.operator, { ...order, newTenant }, PLATFORM)), "conflict");
   });
 
+  it("names the field when a new customer has no organisations", async () => {
+    const t = await licenceApp({ tenancy: true });
+    const res = await t.send("POST", "/api/platform/licences", t.users.operator, { ...order, newTenant: { ...newTenant, orgIds: [] } }, PLATFORM);
+    assert.equal(code(res), "bad_request");
+    const details = (res.json() as { error: { details: { path: string; message: string }[] } }).error.details;
+    assert.ok(details.some((d) => d.path === "newTenant.orgIds" && /at least one organisation id/.test(d.message)), JSON.stringify(details));
+  });
+
   it("creates nothing when the order is refused", async () => {
     const t = await licenceApp({ tenancy: true });
     const bad = await t.send("POST", "/api/platform/licences", t.users.operator, { ...order, termYears: 2, newTenant }, PLATFORM);
