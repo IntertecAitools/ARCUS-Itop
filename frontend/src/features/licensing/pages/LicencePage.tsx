@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { PageHeader } from '@/components/layout';
 import { Button, Card, CardBody, CardHeader, Input, Skeleton } from '@/components/ui';
 import { cn, dateTimeText } from '@/lib/utils';
-import { ApiError } from '@/lib/api-client';
+import { ApiError, errorMessage } from '@/lib/api-client';
 import {
   useAcceptEula,
   useActivationRequest,
@@ -33,7 +33,7 @@ const TYPE_TEXT: Record<string, string> = {
   nonprod: 'Non-production',
 };
 
-const errorText = (e: unknown) => (e instanceof ApiError || e instanceof Error ? e.message : 'Something went wrong.');
+const errorText = (e: unknown) => errorMessage(e);
 
 /** One row of usage against entitlement: a bar coloured at 80% and 100%. */
 function UsageBar({ row }: { row: UsageRow }) {

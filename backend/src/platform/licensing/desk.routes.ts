@@ -41,8 +41,11 @@ const IssueBody = z.object({
     .object({
       id: z.string().regex(/^[a-z0-9][a-z0-9-]{1,39}$/, "A tenant id is 2 to 40 lower-case letters, digits and dashes."),
       name: z.string().trim().min(1).max(200),
-      domains: z.array(z.string().trim().min(1).max(253)).max(20),
-      orgIds: z.array(z.number().int().positive()).min(1).max(200),
+      domains: z.array(z.string().trim().min(1).max(253)).max(20, "At most 20 host names."),
+      orgIds: z
+        .array(z.number().int().positive())
+        .min(1, "Enter at least one organisation id (the customer's organisations).")
+        .max(200, "At most 200 organisations; add more later in Organisation admin."),
     })
     .optional(),
 });

@@ -4,6 +4,38 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-11-20 — Licence form: refusals name the field
+
+On the production Licences page, issuing with "A new customer" ticked and no organisation ids said only "Invalid request body." The BFF already returned the field in `details`, but the page showed the message alone.
+
+Fixes:
+- `errorMessage()` (`frontend/src/lib/api-client/ApiError.ts`) adds each field, with the form's label: "Organisation ids: Enter at least one organisation id …". The licence pages use it.
+- The BFF gives plain messages for the new customer's organisations and host names.
+- The form says, under Organisation ids, that at least one is needed, and keeps **Issue licence** disabled until there is one.
+
+| Run | Result |
+|---|---|
+| Backend tests | 1004/1004 (one new: the refusal names `newTenant.orgIds`) |
+| Frontend typecheck, vitest (three new for `errorMessage`), build | clean, 335/335, built |
+| Mock browser journeys | 39/39 |
+
+### 2026-11-20 — Production switched to multi-customer mode, licensing in warning mode
+
+Done with the user's approval at each step (runbook `docs/licensing-go-live.md`).
+
+| Step | Result |
+|---|---|
+| `tenants set intertec --name Intertec --all-orgs` on the server (SSM, `TENANCY=on` for the command only) | tenant `intertec` with all 1,315 organisations |
+| `tenants unclaimed` | 23 enabled accounts. 1 unclaimed: `arcus-service`, the BFF's own system-of-record account, which never signs in. Later 24 accounts, still only that one. |
+| Settings (`set-setting.ps1`) | `TENANCY=on`, `PLATFORM_LOGINS=admin,Platform_Admin`, `LICENSING=warn`, `LICENCE_SIGNER=kms`, `LICENCE_KMS_KID=arcus-2026-1` |
+| First pipeline run | **failed in Build**: same commit, and ECR tags are immutable. Fixed in PR #77, which skips images already pushed. |
+| PR #77 pipeline run, deploy approved | the settings are in the running BFF (checked with `printenv`) |
+| Intertec licence | issued by `Platform_Admin` on the Licences page: Enterprise, 50 agents, `tenant:intertec`, signed in KMS by the server. The user confirmed it works. |
+| Intertec customer administrator | a new account, created by the user; claimed by the tenant |
+| BFF health, 3 hours after | no errors; 1,317 requests, median 161 ms, 95th percentile 704 ms |
+
+Next: about two weeks of warning mode (until about 2026-12-04), then a review of the licence history, then `enforce`.
+
 ### 2026-11-20 — Pipeline: re-releasing the same commit
 
 Starting the pipeline again to apply the new production settings failed in Build.
