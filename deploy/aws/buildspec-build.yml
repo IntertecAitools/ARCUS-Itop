@@ -34,16 +34,27 @@ phases:
       - docker run --rm -v "$PWD":/src -w /src/frontend "$NODE_IMAGE" sh -c "npm ci --no-audit --no-fund && npm run typecheck && npm test"
       - rm -rf backend/node_modules frontend/node_modules
 
-      - >-
-        docker build -f backend/Dockerfile --build-arg NODE_IMAGE="$NODE_IMAGE"
-        --build-arg ARCUS_RELEASE_DATE="$RELEASE_DATE" -t "${IMAGE_BASE}arcus-bff:$APP_TAG" .
-      - >-
-        docker build frontend --build-arg NODE_IMAGE="$NODE_IMAGE" --build-arg NGINX_IMAGE="$NGINX_IMAGE"
-        --build-arg VITE_BFF_URL=/api --build-arg VITE_APP_NAME="$VITE_APP_NAME"
-        --build-arg VITE_PLATFORM_NAME="$VITE_PLATFORM_NAME" --build-arg VITE_DEFAULT_LOCALE=en
-        -t "${IMAGE_BASE}arcus-web:$APP_TAG"
-      - docker push "${IMAGE_BASE}arcus-bff:$APP_TAG"
-      - docker push "${IMAGE_BASE}arcus-web:$APP_TAG"
+      # The app images take the commit as their tag, and ECR tags are
+      # immutable: releasing the same commit again (to apply changed
+      # settings, "Release change") reuses the images already pushed.
+      - |
+        if aws ecr describe-images --repository-name "$ECR_PREFIX/arcus-bff" --image-ids imageTag="$APP_TAG" >/dev/null 2>&1; then
+          echo "BFF image $APP_TAG already in ECR: not rebuilt"
+        else
+          docker build -f backend/Dockerfile --build-arg NODE_IMAGE="$NODE_IMAGE" \
+            --build-arg ARCUS_RELEASE_DATE="$RELEASE_DATE" -t "${IMAGE_BASE}arcus-bff:$APP_TAG" .
+          docker push "${IMAGE_BASE}arcus-bff:$APP_TAG"
+        fi
+      - |
+        if aws ecr describe-images --repository-name "$ECR_PREFIX/arcus-web" --image-ids imageTag="$APP_TAG" >/dev/null 2>&1; then
+          echo "Web image $APP_TAG already in ECR: not rebuilt"
+        else
+          docker build frontend --build-arg NODE_IMAGE="$NODE_IMAGE" --build-arg NGINX_IMAGE="$NGINX_IMAGE" \
+            --build-arg VITE_BFF_URL=/api --build-arg VITE_APP_NAME="$VITE_APP_NAME" \
+            --build-arg VITE_PLATFORM_NAME="$VITE_PLATFORM_NAME" --build-arg VITE_DEFAULT_LOCALE=en \
+            -t "${IMAGE_BASE}arcus-web:$APP_TAG"
+          docker push "${IMAGE_BASE}arcus-web:$APP_TAG"
+        fi
       - |
         if aws ecr describe-images --repository-name "$ECR_PREFIX/arcus-itop" --image-ids imageTag="$ITOP_TAG" >/dev/null 2>&1; then
           echo "iTop image $ITOP_TAG already in ECR: not rebuilt"
