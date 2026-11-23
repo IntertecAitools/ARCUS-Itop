@@ -4,6 +4,30 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-11-23 — iTop to Combodo's latest, its libraries patched, MySQL 8.4.13, PHP 8.4
+
+Phase 1 of bringing everything up to date, approved by the user. iTop/ was Combodo's `develop` at 11fba06d (2026-09-29, found by comparing all 11,029 files); it is now `develop` at ac8b331a (2026-11-19, 40 changes, still 3.4.0). Combodo's latest still ships the vulnerable libraries, so they were updated here with Composer (on PHP 8.3, every Symfony 6.4 component held on 6.4).
+
+Tested on a production-like stack on this laptop (`arcus-sectest`: `docker-compose.prod.yml` + `prod.localtest.yml`, its own MySQL and volumes; test settings outside Git):
+
+| Run | Result |
+|---|---|
+| Baseline: today's production images from ECR (`3e30745b5bf6`, `itop-6061b2de98b8a5b5`), MySQL 8.4.6, fresh `itop-setup` | installed (first try failed on my test service-account password lacking a special character; fixed in the test settings) |
+| `api-check.mjs` through nginx on the baseline | 68 ok, 2 expected misses (`/health`, `/health/upstream` are not exposed through nginx) |
+| Upgrade as a deploy does: backup, new images (built from this branch), MySQL 8.4.13, `itop-setup --upgrade` | ok in 53 s, all services healthy, `/healthz` 200 |
+| `api-check.mjs`, new images, PHP 8.3 | 68 ok (same as baseline) |
+| iTop image on PHP 8.4.28, `itop-setup --upgrade` | ok; `api-check.mjs` 68 ok; iTop's error log: nothing new (one deprecation already there on 8.3) |
+| `scan-image.sh` on arcus-itop (8.4 and 8.3), arcus-bff, arcus-web | all passed |
+| `trivy fs` on `iTop/composer.lock` | 0 high/critical (was 10) |
+| `scan-source.sh` | passed, nothing accepted in `trivyignore.yaml` any more |
+| Live journeys (`npm run e2e:live`, BFF of the stack on :4600, Mailpit :8027) | 5 passed (sign-in, records search, pickers, portal raise/comment, forgot password), 2 skipped, 1 failed |
+
+The failing journey (portal request → staff assign → resolve → email) stops at Assign: typing the agent's full name ("My first name My last name") finds nothing. Not caused by this change: the agent search (`backend/src/platform/lookups/lookups.service.ts`, `teamMembersOql`) matches the whole term against one attribute at a time, so a name spanning first and last name never matches. The journey passed on 2026-10-21 with the same data; the server-side picker search came on 2026-11-05 (97eee164). Reported to the user as a separate fix. (The fresh stack also needed a team, created through iTop REST.)
+
+`composer audit` lists apereo/phpcas (CVE-2022-39369, affects < 1.6.0): a false positive, the fork in use is 1.6.1+ (`dev-master`), unchanged.
+
+Not covered: the journey above (blocked by that bug); production's MySQL stays 8.4.6 until its `prod-env/MYSQL_IMAGE` setting is changed.
+
 ### 2026-11-23 — Security pipeline: scans, image gate, SBOMs, image signing (SEC-02 to SEC-05)
 
 Built step by step with the user's approval at each step. Tools pinned in `security/versions.env` (Trivy 0.76.1, gitleaks 8.30.1, Semgrep 1.183.0, cosign 2.6.5), each download checked against its SHA-256.
@@ -38,7 +62,19 @@ GitHub CI on PR #79:
 
 AWS pipeline after merging (`3cfa208eaf95`): the Build stage passed in about 6 minutes, with the source scans, the three image scans and the SBOMs; reports and SBOMs are in `s3://arcus-servicedesk-pipeline-557690608274/bundles/3cfa208eaf95/security/` (`source/`, `images/`, `sbom/`: 12 files). Deploy waiting for approval.
 
-Not covered: signing with the real KMS key, which needs `image_signing_enabled = true` applied in AWS (then: a release, and the production test that an unsigned image is refused).
+Production deploys, approved by the user (read-only checks afterwards, through SSM and CloudFront):
+
+| Check | Result |
+|---|---|
+| Deploy of `3cfa208eaf95` (PR #79) | backup copied to S3; images pulled; "image signature check off" (signing not enabled); iTop image changed (`itop-e6d85f1fbe1cc26f` → `itop-6061b2de98b8a5b5`), iTop upgrade ran in about a minute; all services healthy; live at 07:42 UTC |
+| Deploy of `3e30745b5bf6` (PR #80, docs) | backup, settings re-applied, all services healthy; live at 07:44 UTC |
+| Running images on the server | arcus-bff and arcus-web `3e30745b5bf6`, arcus-itop `itop-6061b2de98b8a5b5`; BFF on Node v24.22.1 with no npm; web on nginx/1.30.7 |
+| Health | `/healthz` 200 on the server and through CloudFront; home page 200; `/api/auth/me` signed out 401 (the BFF answers); security headers (CSP) in place |
+| Warning "approvals-setup failed" | not new: `NOTIFICATION_FROM`/`MAIL_FROM` is not set yet (mailbox pending from IT); in every deploy since before this work |
+
+Noticed: the SSM deploy output does not appear in the `/arcus-servicedesk/deploy` log group (no events for today's deploys); the CodeBuild Deploy log and SSM's own output have it. Not investigated.
+
+Not covered: signing with the real KMS key, which needs `image_signing_enabled = true` applied in AWS (then: a release, and the production test that an unsigned image is refused); a signed-in check by a person.
 
 ### 2026-11-20 — Licence form: refusals name the field
 

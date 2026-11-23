@@ -723,6 +723,32 @@
         </field>
       </fields>
       <methods>
+        <method id="IsContactEmailEditAllowed">
+          <static>false</static>
+          <access>public</access>
+          <type>Helper</type>
+          <code><![CDATA[	public function IsContactEmailEditAllowed(): bool
+	{
+		if (!UserRights::IsLoggedIn() || $this->IsNew()
+			|| UserRights::IsAdministrator()
+			|| UserRights::HasProfile('SuperUser')) {
+			return true;
+		}
+
+		$oLinkedUsers = new DBObjectSet(
+			DBObjectSearch::FromOQL_AllData('SELECT User WHERE contactid = :contact_id'),
+			[],
+			['contact_id' => $this->GetKey()]
+		);
+		if ($oLinkedUsers->Count() === 0) {
+			return true;
+		}
+
+		$oCurrentContact = UserRights::GetContactObject();
+		return !is_null($oCurrentContact) && ($oCurrentContact->GetKey() == $this->GetKey());
+	}
+]]></code>
+        </method>
         <method id="CheckUsersOnUpdate">
           <static>false</static>
           <access>public</access>
@@ -731,6 +757,9 @@
   	{
         // This method can block the Person modification, by adding a Check Issue
         $aChanges = $this->ListChanges();
+        if (array_key_exists('email', $aChanges) && !$this->IsContactEmailEditAllowed()) {
+            $this->AddCheckIssue(Dict::S('UI:Login:Error:AccessRestricted'));
+        }
         // Current User may not be allowed to see User class, so we can't use $this->Get('user_list')
         $oSearch = new DBObjectSearch('User');
         $oSearch->AddCondition('contactid', $this->GetKey(), '=');
@@ -743,11 +772,9 @@
             {
                 $oAddon = UserRights::GetModuleInstance();
                 $aOrgs = $oAddon->GetUserOrgs($oUser,'Organization');
-                $oSet = $oUser->Get('profile_list');
-                $aProfiles = $oSet->GetColumnAsArray('profile');
 
                 // User is not allowed on the new Organization and has 'Portal user' Profile and is enabled
-                if ((count($aOrgs) > 0) && !in_array($this->Get('org_id'), $aOrgs) &&  in_array('Portal user',$aProfiles) && ($oUser->Get('status') === 'enabled'))
+                if ((count($aOrgs) > 0) && !in_array($this->Get('org_id'), $aOrgs) &&  UserRights::HasProfile('Portal user', $oUser) && ($oUser->Get('status') === 'enabled'))
                 {   // Let's block the Person modification,
                     // replace by $this->AddCheckWarning(...) if you don't want to block the modification
                     $this->AddCheckIssue(Dict::Format('Class:Person/Error:ChangingOrgDenied', $this->Get('org_id_friendlyname')));
@@ -802,6 +829,10 @@
           <type>Overload-DBObject</type>
           <code><![CDATA[	public function GetAttributeFlags($sAttCode, &$aReasons = array(), $sTargetState = '')
 	{
+		if (($sAttCode === 'email') && !$this->IsContactEmailEditAllowed()) {
+			return parent::GetAttributeFlags($sAttCode, $aReasons, $sTargetState) | OPT_ATT_READONLY; // e.g. OPT_ATT_SLAVE
+		}
+
 		if ( ($sAttCode == 'org_id') && (!$this->IsNew()) )
 		{
 			if (MetaModel::GetConfig()->Get('demo_mode'))

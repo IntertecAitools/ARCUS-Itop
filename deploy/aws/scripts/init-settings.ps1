@@ -55,7 +55,7 @@ function Put([string] $File, [string] $Name, [string] $Value, [switch] $Secret) 
 Write-Host "prod.env ($Path/prod-env)"
 $prod = [ordered]@{
   WEB_BIND = '0.0.0.0'; WEB_PORT = '8088'; COMPOSE_PROFILES = 'bundled-db'
-  BACKUP_DIR = '/opt/arcus/backups'; MYSQL_IMAGE = 'public.ecr.aws/docker/library/mysql:8.4.6'
+  BACKUP_DIR = '/opt/arcus/backups'; MYSQL_IMAGE = 'public.ecr.aws/docker/library/mysql:8.4.13'
   ITOP_BASE_URL = 'http://itop'; ITOP_USER = 'arcus-service'; ITOP_REST_VERSION = '1.4'
   ITOP_TIMEOUT_MS = '30000'; ITOP_RETRIES = '2'; ITOP_TIMEZONE = $TimeZone
   ITOP_DEFAULT_COMMENT = 'via arcus-backend'; LOG_LEVEL = 'info'

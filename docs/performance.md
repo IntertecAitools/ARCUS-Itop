@@ -40,7 +40,7 @@ The laptop was **shared**. Other projects' containers (a ClickHouse server, a Ku
 | Part | Version and location |
 | --- | --- |
 | iTop | 3.4.0 (`ITOP_CORE_VERSION`, "Fullmoon"), the repository's `iTop/`, baked into image `arcus-itop:itoptest` (`docker/itop-prod/Dockerfile`: `php:8.3-apache`, opcache, APCu), the same 46 modules as production |
-| MySQL | 8.4.6 in Docker, defaults of `docker/docker-compose.prod.yml` (`innodb_buffer_pool_size` 128 MB, `max_allowed_packet` 64M, utf8mb4); binary log on |
+| MySQL | 8.4.13 in Docker, defaults of `docker/docker-compose.prod.yml` (`innodb_buffer_pool_size` 128 MB, `max_allowed_packet` 64M, utf8mb4); binary log on |
 | Stack | The production stack as its own compose project **`arcus-perf`**: `docker/docker-compose.prod.yml` + `docker-compose.prod.itop-admin.yml`, services `db` and `itop` only (no cron, no backup, no web). Installed from empty with `itop-setup` in 14.5 min |
 | Database | `itop_perf`, in the project's own volume `arcus-perf_db-data` |
 | iTop port | `127.0.0.1:8189` (the admin overlay publishes iTop for a BFF on the host) |

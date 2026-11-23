@@ -17,10 +17,16 @@ use Symfony\Component\Security\Core\User\UserInterface;
 /**
  * Base class for Token instances.
  *
+ * Note that the token's role names are decoupled from the user's roles on purpose: token roles describe
+ * the authentication context (e.g. a `SwitchUserToken` adds `ROLE_PREVIOUS_ADMIN`), not the user's
+ * permanent role assignment. This is why `setUser()` only updates the user reference and leaves the
+ * role names untouched. `ContextListener` is the component responsible for comparing the stored role
+ * names against `$user->getRoles()` and deauthenticating when they diverge.
+ *
  * @author Fabien Potencier <fabien@symfony.com>
  * @author Johannes M. Schmitt <schmittjoh@gmail.com>
  */
-abstract class AbstractToken implements TokenInterface, \Serializable
+abstract class AbstractToken implements TokenInterface
 {
     private ?UserInterface $user = null;
     private array $roleNames = [];
@@ -159,21 +165,5 @@ abstract class AbstractToken implements TokenInterface, \Serializable
         }
 
         return \sprintf('%s(user="%s", roles="%s")', $class, $this->getUserIdentifier(), implode(', ', $roles));
-    }
-
-    /**
-     * @internal
-     */
-    final public function serialize(): string
-    {
-        throw new \BadMethodCallException('Cannot serialize '.__CLASS__);
-    }
-
-    /**
-     * @internal
-     */
-    final public function unserialize(string $serialized): void
-    {
-        $this->__unserialize(unserialize($serialized));
     }
 }

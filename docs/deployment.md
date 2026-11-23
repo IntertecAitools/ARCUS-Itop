@@ -16,10 +16,10 @@ browser ──HTTPS──> TLS proxy ──> web (nginx :80) ──/api/──> 
 | --- | --- | --- |
 | **web** | `frontend/Dockerfile` | The Vite build served by nginx (SPA fallback, `immutable` caching for `/assets/`, `no-cache` for `index.html`). Proxies `/api/` to the BFF, so page and API share one origin and the session cookie stays first-party (`SameSite=Lax`, `HttpOnly`). The only service with a published port. |
 | **bff** | `backend/Dockerfile` | `node dist/index.js` as the unprivileged `node` user, with the compiled CMDB schema baked in at `/app/cmdb-schema/`. Not published; only `web` reaches it. |
-| **itop** | `docker/itop-prod/Dockerfile` | PHP 8.3 + Apache with `iTop/` baked in (no bind mount). Apache answers only `/webservices/rest.php`, `export-v2.php` and `import.php`, the three calls the BFF makes; the console, the portal, `setup/` and `cron.php` over HTTP answer 403. What the installer writes is in volumes: `itop-conf` (`conf/`), `itop-data` (`data/`), `itop-env` (`env-production/`, the compiled data model), `itop-log`. |
+| **itop** | `docker/itop-prod/Dockerfile` | PHP 8.4 + Apache with `iTop/` baked in (no bind mount). Apache answers only `/webservices/rest.php`, `export-v2.php` and `import.php`, the three calls the BFF makes; the console, the portal, `setup/` and `cron.php` over HTTP answer 403. What the installer writes is in volumes: `itop-conf` (`conf/`), `itop-data` (`data/`), `itop-env` (`env-production/`, the compiled data model), `itop-log`. |
 | **itop-cron** | same image | Runs `webservices/cron.php` in a loop (it runs for up to 10 minutes, then restarts): SLA/stopwatch thresholds (TTO/TTR escalations), queued email, newsroom (the bell), log rotation. As the service account. |
-| **db** | `mysql:8.4.6` | iTop's database and the BFF's sessions database, each with a user of its own, created on first start by `docker/mysql-init/01-databases.sh`. Optional: see "Using an existing MySQL". |
-| **backup** | `mysql:8.4.6` | Every day at `BACKUP_TIME`: dumps of both databases plus iTop's `conf/`, `data/`, `env-production/`, into `BACKUP_DIR` on the host. |
+| **db** | `mysql:8.4.13` | iTop's database and the BFF's sessions database, each with a user of its own, created on first start by `docker/mysql-init/01-databases.sh`. Optional: see "Using an existing MySQL". |
+| **backup** | `mysql:8.4.13` | Every day at `BACKUP_TIME`: dumps of both databases plus iTop's `conf/`, `data/`, `env-production/`, into `BACKUP_DIR` on the host. |
 
 Networks: `front` (web, bff), `itop` (bff, itop, itop-cron, db, backup;
 `internal`: no route out, nothing can be published on it) and `egress` (itop,
@@ -449,8 +449,8 @@ docker compose -f docker/docker-compose.prod.yml --env-file docker/prod.env rest
 When iTop's data model changes, also refresh the schema
 (`cmdb-schema/refresh-from-source.py`, see the main README) and rebuild the
 BFF image: the schema is part of it. Base images are pinned
-(`node:24.22.1-alpine3.24`, `nginx:1.30.7-alpine3.24`, `php:8.3-apache`,
-`mysql:8.4.6`); override with `--build-arg NODE_IMAGE=…` / `NGINX_IMAGE=…` /
+(`node:24.22.1-alpine3.24`, `nginx:1.30.7-alpine3.24`, `php:8.4-apache`,
+`mysql:8.4.13`); override with `--build-arg NODE_IMAGE=…` / `NGINX_IMAGE=…` /
 `PHP_IMAGE=…` and `MYSQL_IMAGE=…` in `prod.env` when updating them. Building
 the images on their own (all from the repository root except the frontend):
 
@@ -635,7 +635,7 @@ Two different senders; configure both.
 | `BACKUP_DIR` (prod.env) | `../backups` | Host folder for backups, relative to `docker/`. |
 | `BACKUP_TIME`, `BACKUP_KEEP_DAYS` (itop.env) | `02:00`, `14` | Daily backup time (container clock) and retention. |
 | `ITOP_APP_ROOT_URL` (itop.env) | `http://localhost:8089/` | iTop's own address; only the emergency console uses it. |
-| `MYSQL_IMAGE` (prod.env) | `mysql:8.4.6` | The bundled MySQL and the backup job. |
+| `MYSQL_IMAGE` (prod.env) | `mysql:8.4.13` | The bundled MySQL and the backup job. |
 
 Frontend values are compiled into the bundle, so they are build arguments
 (set in `docker/prod.env`, applied on `--build`): `VITE_APP_NAME`,

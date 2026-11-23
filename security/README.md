@@ -100,10 +100,9 @@ to get a build through.
 Recorded on 2026-11-23, when these scans were switched on:
 
 - **Upstream iTop's PHP libraries** (Guzzle, six Symfony components): 10 high
-  vulnerabilities, accepted for 30 days (until 2026-12-23). iTop is not
-  reachable from the internet; only the BFF's service account calls it.
-  Updating them means changing upstream iTop and testing it end to end, which
-  is a task of its own.
+  vulnerabilities, accepted at first, then fixed: iTop moved to Combodo's
+  develop of 2026-11-19 and its libraries to Symfony 6.4.41–6.4.50 and
+  Guzzle 7.17.0.
 - **AWS settings** (until 2027-02-23 unless noted): no WAF in front of
   CloudFront (its own readiness item); unrestricted outbound traffic from the
   server (it needs AWS services and Microsoft 365, whose addresses change);
