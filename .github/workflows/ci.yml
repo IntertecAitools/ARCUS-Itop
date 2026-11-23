@@ -106,6 +106,27 @@ jobs:
             frontend/test-results/
           retention-days: 14
 
+  security:
+    # SEC-02, the same scans as the AWS build (security/README.md): secrets in
+    # the Git history, dependencies, infrastructure as code, static analysis.
+    name: Security scans
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The whole history, so the secret scan sees every commit.
+          fetch-depth: 0
+      - name: Scan
+        run: bash security/scan-source.sh
+      - name: Upload the reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-reports
+          path: security-reports/
+          retention-days: 30
+
   deployment:
     name: Deployment files
     runs-on: ubuntu-latest
@@ -127,7 +148,7 @@ jobs:
           docker compose -f docker-compose.local.yml config -q
       - name: Shell scripts (shellcheck, executable)
         run: |
-          shellcheck docker/itop-prod/*.sh docker/backup/*.sh docker/mysql-init/*.sh
+          shellcheck docker/itop-prod/*.sh docker/backup/*.sh docker/mysql-init/*.sh security/*.sh
           # The backup and MySQL scripts are bind-mounted and run as they are.
           for f in docker/itop-prod/*.sh docker/backup/*.sh docker/mysql-init/*.sh; do
             test -x "$f" || { echo "::error file=$f::not executable (git update-index --chmod=+x $f)"; exit 1; }

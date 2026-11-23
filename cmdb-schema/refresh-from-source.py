@@ -40,7 +40,7 @@ def module_classes():
     """(module file, <class> node) for every class node in the module XMLs."""
     for path in sorted(glob.glob(os.path.join(DATAMODELS, '**', 'datamodel*.xml'), recursive=True)):
         try:
-            root = ET.parse(path).getroot()
+            root = ET.parse(path).getroot()  # nosemgrep: python.lang.security.use-defused-xml-parse.use-defused-xml-parse -- reads iTop datamodel files from this repository, never user input
         except ET.ParseError:
             continue
         for node in root.iter('class'):

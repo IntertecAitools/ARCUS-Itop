@@ -91,8 +91,8 @@ export const authHandlers = [
   }),
   http.get(url('/auth/mfa/enrol'), () =>
     HttpResponse.json({
-      secret: 'JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP',
-      otpauthUrl: 'otpauth://totp/Arcus%20Helpdesk:admin%40example.test?secret=JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP&issuer=Arcus%20Helpdesk',
+      secret: 'JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP', // nosemgrep: generic.secrets.security.detected-generic-secret.detected-generic-secret -- mock API only: the well-known demo TOTP secret
+      otpauthUrl: 'otpauth://totp/Arcus%20Helpdesk:admin%40example.test?secret=JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP&issuer=Arcus%20Helpdesk', // nosemgrep: generic.secrets.security.detected-generic-secret.detected-generic-secret -- mock API only: the well-known demo TOTP secret
       account: 'admin@example.test',
     }),
   ),

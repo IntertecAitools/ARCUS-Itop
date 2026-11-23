@@ -29,6 +29,11 @@ phases:
 
   build:
     commands:
+      # SEC-02: secrets, dependencies, infrastructure as code and static
+      # analysis (security/README.md). A critical or high finding that is not
+      # accepted stops the build here, before anything is pushed.
+      - bash security/scan-source.sh
+
       # Tests on the same Node as the images.
       - docker run --rm -v "$PWD":/src -w /src/backend "$NODE_IMAGE" sh -c "npm ci --no-audit --no-fund && npm run typecheck && npm test"
       - docker run --rm -v "$PWD":/src -w /src/frontend "$NODE_IMAGE" sh -c "npm ci --no-audit --no-fund && npm run typecheck && npm test"
@@ -71,3 +76,5 @@ phases:
 artifacts:
   files:
     - bundle.tgz
+    # The scan reports, kept with the build's artifacts.
+    - security-reports/**/*

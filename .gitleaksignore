@@ -1,0 +1,12 @@
+# Accepted gitleaks findings in Git history (fingerprint per line). Each was
+# reviewed and is not a secret; see security/README.md, "Accepting a risk".
+# Findings in the current files are marked inline with `gitleaks:allow`.
+#
+# RFC 6238 test vector ("12345678901234567890" in base32), MFA unit tests.
+71182b6782d8e3e138e13e2ee11088cc5792cc36:backend/test/mfa.test.ts:generic-api-key:25
+71182b6782d8e3e138e13e2ee11088cc5792cc36:backend/test/mfa.test.ts:generic-api-key:295
+# A placeholder secret for the MySQL session store unit test.
+d16caee08e681a923fdd9273d7534d9618e0efaa:backend/test/session-mysql.test.ts:generic-api-key:7
+# Session ids (UUIDs) in an IDE file committed by mistake, since removed (.idea/ is ignored).
+775c21ccf214df1477bc880597ec27563670e5ce:.idea/claudeCodeEditorTabs.xml:generic-api-key:12
+775c21ccf214df1477bc880597ec27563670e5ce:.idea/claudeCodeEditorTabs.xml:generic-api-key:17

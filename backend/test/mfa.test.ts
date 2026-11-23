@@ -23,7 +23,7 @@ describe("TOTP (RFC 6238)", () => {
   const rfcSecret = base32Encode(Buffer.from("12345678901234567890"));
 
   it("matches the RFC's test vectors", () => {
-    assert.equal(rfcSecret, "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ");
+    assert.equal(rfcSecret, "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ"); // gitleaks:allow (RFC 6238 test vector)
     assert.equal(totpAt(rfcSecret, timeStep(59_000)), "287082");
     assert.equal(totpAt(rfcSecret, timeStep(1_111_111_109_000)), "081804");
     assert.equal(totpAt(rfcSecret, timeStep(1_234_567_890_000)), "005924");
@@ -293,7 +293,7 @@ describe("MFA at password sign-in", () => {
 
   it("an enrolled account is asked even when the policy would not ask it", async () => {
     const { app, store } = setup({ mfaRequired: "off" });
-    await store.put({ userId: AGENT.id, login: "jane", secret: "GEZDGNBVGY3TQOJQ", enrolledAt: 1 }, []);
+    await store.put({ userId: AGENT.id, login: "jane", secret: "GEZDGNBVGY3TQOJQ", enrolledAt: 1 }, []); // gitleaks:allow (RFC 6238 test vector)
     assert.deepEqual((await login(app, AGENT)).res.json(), { mfa: { step: "verify" } });
   });
 
