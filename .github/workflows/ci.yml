@@ -186,8 +186,11 @@ jobs:
       - uses: actions/checkout@v4
       - name: Test images and keys
         run: |
-          printf 'FROM public.ecr.aws/docker/library/busybox:1.37\nLABEL test=signed\n' | docker build -q -t "$IMG:signed" -
-          printf 'FROM public.ecr.aws/docker/library/busybox:1.37\nLABEL test=other\n' | docker build -q -t "$IMG:other" -
+          # Built from scratch: no base image to pull, so no registry rate limits.
+          ctx=$(mktemp -d)
+          printf 'FROM scratch\nCOPY marker /\n' > "$ctx/Dockerfile"
+          echo signed > "$ctx/marker" && docker build -q -t "$IMG:signed" "$ctx"
+          echo other > "$ctx/marker" && docker build -q -t "$IMG:other" "$ctx"
           docker push -q "$IMG:signed" && docker push -q "$IMG:other"
           COSIGN=$(bash security/install-cosign.sh)
           mkdir -p "$RUNNER_TEMP/ours" "$RUNNER_TEMP/theirs"
