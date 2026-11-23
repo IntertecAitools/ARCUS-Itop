@@ -28,7 +28,17 @@ Found by the new scanners and fixed:
 
 Recorded instead (`security/trivyignore.yaml`, inline comments, `.gitleaksignore`; reasons in `security/README.md`): upstream iTop's 10 high PHP library findings (until 2026-12-23), five AWS settings that need live infrastructure changes (with expiry dates), and false positives (test values, the mock API's demo TOTP secret, Trivy misreading a `for_each`).
 
-Not covered here: building the real images (no Docker on this laptop) and the signing test, both run by GitHub CI on the PR; signing with the real KMS key, which needs `image_signing_enabled = true` applied in AWS; the AWS build itself, which runs on the next pipeline run after merging.
+GitHub CI on PR #79:
+
+| Run | Result |
+|---|---|
+| First run (`cc959270`) | 4 of 7 passed. **Images (build, scan, SBOM)** passed: the three real images, on the new base images, clear the gate. Failed: Security scans (Semgrep on Linux parses the Dockerfiles and flagged the iTop image starting as root), Image signing (an already-signed image was signed again: the check used the private key file), Deployment files (shellcheck SC2164, SC1091). |
+| Fixes (`73f42172`) | the "already signed" check uses the key's public half; `cd … \|\| exit 1`, `shellcheck -x`; the iTop root finding marked as the risk already accepted for Trivy (DS-0002, until 2027-02-23) |
+| Second run | 7 of 7 passed, including the signing test: signed passes; unsigned, another key's and swapped-in images are refused |
+
+AWS pipeline after merging (`3cfa208eaf95`): the Build stage passed in about 6 minutes, with the source scans, the three image scans and the SBOMs; reports and SBOMs are in `s3://arcus-servicedesk-pipeline-557690608274/bundles/3cfa208eaf95/security/` (`source/`, `images/`, `sbom/`: 12 files). Deploy waiting for approval.
+
+Not covered: signing with the real KMS key, which needs `image_signing_enabled = true` applied in AWS (then: a release, and the production test that an unsigned image is refused).
 
 ### 2026-11-20 — Licence form: refusals name the field
 
