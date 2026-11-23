@@ -69,9 +69,7 @@ class Psr16Cache implements CacheInterface, PruneableInterface, ResettableInterf
         };
         self::$packCacheItem ??= \Closure::bind(
             static function (CacheItem $item) {
-                // Only re-pack if there's timing metadata (for Psr16Adapter compatibility)
-                // Don't re-pack if only tags metadata exists (TagAwareAdapter direct use case)
-                if (!isset($item->metadata[ItemInterface::METADATA_CTIME]) && !isset($item->metadata[ItemInterface::METADATA_EXPIRY])) {
+                if (!isset($item->metadata[ItemInterface::METADATA_CTIME])) {
                     return $item->value;
                 }
 
@@ -159,14 +157,14 @@ class Psr16Cache implements CacheInterface, PruneableInterface, ResettableInterf
                 $values[$key] = $item->isHit() ? $item->get() : $default;
             }
 
-            return $values;
+            return $this->withRequestedKeys($keys, $values);
         }
 
         foreach ($items as $key => $item) {
             $values[$key] = $item->isHit() ? (self::$packCacheItem)($item) : $default;
         }
 
-        return $values;
+        return $this->withRequestedKeys($keys, $values);
     }
 
     public function setMultiple($values, $ttl = null): bool
@@ -242,6 +240,27 @@ class Psr16Cache implements CacheInterface, PruneableInterface, ResettableInterf
             throw $e;
         } catch (Psr6CacheException $e) {
             throw new InvalidArgumentException($e->getMessage(), $e->getCode(), $e);
+        }
+    }
+
+    private function withRequestedKeys(array $keys, array $values): iterable
+    {
+        foreach ($keys as $key) {
+            // PHP casts numeric strings to integers when they are used as array keys
+            if (\is_string($key) && $key === (string) (int) $key) {
+                return $this->yieldRequestedKeys($keys, $values);
+            }
+        }
+
+        return $values;
+    }
+
+    private function yieldRequestedKeys(array $keys, array $values): \Generator
+    {
+        $keys = array_combine($keys, $keys);
+
+        foreach ($values as $key => $value) {
+            yield ($keys[$key] ?? $key) => $value;
         }
     }
 }

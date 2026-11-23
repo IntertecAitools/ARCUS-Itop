@@ -76,6 +76,11 @@ class ContentSecurityPolicyHandler
         $this->cspDisabled = true;
     }
 
+    public function reset(): void
+    {
+        $this->cspDisabled = false;
+    }
+
     /**
      * Cleanup temporary headers and updates Content-Security-Policy headers.
      *
@@ -180,7 +185,7 @@ class ContentSecurityPolicyHandler
      */
     private function generateCspHeader(array $directives): string
     {
-        return array_reduce(array_keys($directives), fn ($res, $name) => ('' !== $res ? $res.'; ' : '').\sprintf('%s %s', $name, implode(' ', $directives[$name])), '');
+        return array_reduce(array_keys($directives), static fn ($res, $name) => ('' !== $res ? $res.'; ' : '').\sprintf('%s %s', $name, implode(' ', $directives[$name])), '');
     }
 
     /**

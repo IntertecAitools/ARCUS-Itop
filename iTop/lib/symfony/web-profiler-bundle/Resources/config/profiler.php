@@ -55,6 +55,7 @@ return static function (ContainerConfigurator $container) {
             ->args([
                 inline_service(NonceGenerator::class),
             ])
+            ->tag('kernel.reset', ['method' => 'reset'])
 
         ->set('twig.extension.webprofiler', WebProfilerExtension::class)
             ->args([
@@ -63,6 +64,7 @@ return static function (ContainerConfigurator $container) {
                     ->call('setDisplayOptions', [['maxStringLength' => 4096, 'fileLinkFormat' => service('debug.file_link_formatter')]]),
             ])
             ->tag('twig.extension')
+            ->tag('kernel.reset', ['method' => 'reset'])
 
         ->set('debug.file_link_formatter', FileLinkFormatter::class)
             ->args([

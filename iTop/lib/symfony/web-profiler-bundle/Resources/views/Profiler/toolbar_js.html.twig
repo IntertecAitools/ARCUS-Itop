@@ -142,6 +142,10 @@
                     }
 
                     var ajaxToolbarPanel = document.querySelector('.sf-toolbar-block-ajax');
+                    if (!ajaxToolbarPanel) {
+                        return;
+                    }
+
                     if (requestStack.length) {
                         ajaxToolbarPanel.style.display = 'block';
                     } else {
@@ -204,7 +208,9 @@
                         pathLink.textContent = request.url;
                         pathCell.appendChild(pathLink);
                     } else {
-                        pathCell.textContent = request.url;
+                        var pathText = document.createElement('span');
+                        pathText.textContent = request.url;
+                        pathCell.appendChild(pathText);
                     }
                     pathCell.setAttribute('title', request.url);
                     row.appendChild(pathCell);
@@ -281,7 +287,7 @@
                         statusCodeElem.setAttribute('class', 'sf-toolbar-status sf-toolbar-status-red');
                     }
 
-                    if (request.duration) {
+                    if (request.duration !== undefined) {
                         durationCell.textContent = request.duration + ' ms';
                     }
 
@@ -345,6 +351,9 @@
                                 finishAjaxRequest(idx);
                             });
                             startAjaxRequest(idx);
+
+                            /* The handlers above mark the promise as handled. Return a new one so that the browser still reports the rejections that the app doesn't catch. */
+                            promise = promise.then();
                         }
 
                         return promise;
@@ -355,6 +364,7 @@
 
                     XMLHttpRequest.prototype.open = function(method, url, async, user, pass) {
                         var self = this;
+                        url = String(url);
 
                         /* prevent logging AJAX calls to static and inline files, like templates */
                         var path = url;
@@ -433,7 +443,7 @@
                                     var pending = pendingRequests;
                                     for (var i = 0; i < requestStack.length; i++) {
                                         startAjaxRequest(i);
-                                        if (requestStack[i].duration || requestStack[i].error) {
+                                        if (requestStack[i].duration !== undefined || requestStack[i].error) {
                                             finishAjaxRequest(i);
                                         }
                                     }
