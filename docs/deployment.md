@@ -449,7 +449,7 @@ docker compose -f docker/docker-compose.prod.yml --env-file docker/prod.env rest
 When iTop's data model changes, also refresh the schema
 (`cmdb-schema/refresh-from-source.py`, see the main README) and rebuild the
 BFF image: the schema is part of it. Base images are pinned
-(`node:24.14.1-alpine3.23`, `nginx:1.28.0-alpine`, `php:8.3-apache`,
+(`node:24.22.1-alpine3.24`, `nginx:1.30.7-alpine3.24`, `php:8.3-apache`,
 `mysql:8.4.6`); override with `--build-arg NODE_IMAGE=…` / `NGINX_IMAGE=…` /
 `PHP_IMAGE=…` and `MYSQL_IMAGE=…` in `prod.env` when updating them. Building
 the images on their own (all from the repository root except the frontend):

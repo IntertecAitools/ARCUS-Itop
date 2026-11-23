@@ -11,7 +11,12 @@
 ARG PHP_IMAGE=php:8.3-apache
 FROM ${PHP_IMAGE}
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# The base image's Debian security fixes first (security/README.md). To pick
+# up new ones while iTop itself is unchanged, change the date in
+# docker/itop-prod/base-refresh: it is part of the iTop image tag.
+COPY docker/itop-prod/base-refresh /opt/arcus/base-refresh
+RUN apt-get update && apt-get upgrade -y --no-install-recommends \
+    && apt-get install -y --no-install-recommends \
         libzip-dev \
         libpng-dev \
         libjpeg62-turbo-dev \

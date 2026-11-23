@@ -1,0 +1,3 @@
+# Change this date to rebuild the iTop image with the newest base-image fixes
+# while iTop is unchanged (docker/itop-prod/Dockerfile, security/README.md).
+2026-11-23

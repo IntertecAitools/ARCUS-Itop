@@ -7,8 +7,8 @@
 # VITE_* values are compiled into the bundle, so they are build arguments, not
 # runtime settings. BFF_UPSTREAM (where nginx finds the BFF) is a runtime one.
 
-ARG NODE_IMAGE=node:24.14.1-alpine3.23
-ARG NGINX_IMAGE=nginx:1.28.0-alpine
+ARG NODE_IMAGE=node:24.22.1-alpine3.24
+ARG NGINX_IMAGE=nginx:1.30.7-alpine3.24
 
 # --- build -------------------------------------------------------------------
 FROM ${NODE_IMAGE} AS build
@@ -31,6 +31,8 @@ RUN npm run build
 
 # --- runtime -----------------------------------------------------------------
 FROM ${NGINX_IMAGE}
+# The base image's OS security fixes (security/README.md).
+RUN apk upgrade --no-cache
 # The image renders /etc/nginx/templates/*.template with envsubst at start.
 ENV BFF_UPSTREAM=http://bff:4000
 COPY nginx/default.conf.template /etc/nginx/templates/default.conf.template

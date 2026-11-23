@@ -10,8 +10,8 @@ env:
   variables:
     # Docker Hub's official images through AWS's public mirror: no rate limits.
     LIB: public.ecr.aws/docker/library
-    NODE_IMAGE: public.ecr.aws/docker/library/node:24.14.1-alpine3.23
-    NGINX_IMAGE: public.ecr.aws/docker/library/nginx:1.28.0-alpine
+    NODE_IMAGE: public.ecr.aws/docker/library/node:24.22.1-alpine3.24
+    NGINX_IMAGE: public.ecr.aws/docker/library/nginx:1.30.7-alpine3.24
     PHP_IMAGE: public.ecr.aws/docker/library/php:8.3-apache
   exported-variables:
     - APP_TAG

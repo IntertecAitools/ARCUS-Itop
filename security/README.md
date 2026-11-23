@@ -38,6 +38,39 @@ On Linux: `bash security/scan-source.sh`. On Windows (Git Bash): put
 `pip install semgrep==<version>` into a virtualenv on PATH, then run the same
 command. `.security-tools/` and `security-reports/` are ignored by Git.
 
+## Images (SEC-03) and SBOMs (SEC-04)
+
+`security/scan-image.sh <name> <image>` scans one image: every OS package and
+library inside it. The AWS build runs it on each image before pushing it (and
+on an image already in ECR before reusing it); GitHub CI builds the three
+images and runs it too. It fails on a CRITICAL or HIGH vulnerability with a
+fixed version that is not accepted, the same rule as the dependency scan.
+
+Each run writes `images/<name>.json` (the full report) and
+`sbom/<name>.cdx.json` (the image's SBOM, CycloneDX). `security/sbom-source.sh`
+writes `sbom/backend.cdx.json` and `sbom/frontend.cdx.json` from the lock files.
+The AWS build copies all of it next to the release bundle:
+`s3://<pipeline bucket>/bundles/<APP_TAG>/security/` (`source/`, `images/`,
+`sbom/`), also when a scan failed. The pipeline bucket keeps files 180 days.
+
+All three images install their base image's OS security fixes when built
+(`apk upgrade`, `apt-get upgrade`), and the BFF image carries no npm.
+
+### When the image scan blocks a release
+
+Most findings are in the base image (Node, nginx, PHP/Debian):
+
+- **BFF or web image:** they are rebuilt for every commit, so a newer base
+  image or the next build's OS updates fix most findings. Move to a newer
+  patch release of the base image in `deploy/aws/buildspec-build.yml`, the
+  Dockerfile's default and `.github/workflows/ci.yml` (keep the three in step).
+- **iTop image:** it is reused while iTop is unchanged (its tag is a hash of
+  the iTop files). To rebuild it with the newest fixes, change the date in
+  `docker/itop-prod/base-refresh`. The new tag makes the next deploy run
+  iTop's upgrade step, as for any iTop change.
+- If there is no fix to take yet, the finding does not fail the build. If a
+  fix exists but cannot be taken now, accept it (below).
+
 ## Accepting a risk
 
 When a finding cannot be fixed now, it may be accepted. Every acceptance is
@@ -85,4 +118,6 @@ Recorded on 2026-11-23, when these scans were switched on:
 Fixed rather than accepted: the BFF now fixes the AES-GCM tag length to 16
 bytes when it seals sessions and secrets, and the marketing site
 (`weftbase-site`) moved to Next.js 15.5.29, with PostCSS and sharp pinned to
-fixed versions.
+fixed versions. The images moved to `node:24.22.1-alpine3.24` and
+`nginx:1.30.7-alpine3.24` (1.28 is no longer maintained), and all three
+install their OS security fixes when built.
