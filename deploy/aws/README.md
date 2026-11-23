@@ -7,10 +7,15 @@ approves each deploy.
 
 ```
 merge to main ─▶ Source ─▶ Build ─────────────────▶ Approval ─────▶ Deploy
-                 (GitHub)   tests, 3 images → ECR,   email; click    backup → new release →
-                            release bundle → S3      Approve in AWS  iTop setup/upgrade → health
-                                                                     check → rollback if unhealthy
+                 (GitHub)   security scans, tests,   email; click    backup → images pulled
+                            3 images scanned → ECR,  Approve in AWS  (signatures checked) → new
+                            SBOMs + reports → S3,                    release → iTop setup/upgrade
+                            images signed,                           → health check → rollback
+                            release bundle → S3                      if unhealthy
 ```
+
+The security steps (readiness items SEC-02 to SEC-05) are described in
+[Security in the pipeline](#security-in-the-pipeline) below.
 
 Everything is created by Terraform in `deploy/aws/terraform/` and is named and
 tagged `arcus-servicedesk`. Nothing else in the account is touched.
@@ -23,7 +28,8 @@ tagged `arcus-servicedesk`. Nothing else in the account is touched.
 | Settings and secrets | Systems Manager → Parameter Store → `/arcus-servicedesk/prod/prod-env/*` and `/itop-env/*` |
 | Deploy logs | CloudWatch Logs → `/arcus-servicedesk/deploy` (and the Deploy stage's CodeBuild log) |
 | Backups | S3 `arcus-servicedesk-backups-557690608274/daily/` (90 days), plus daily disk snapshots (14) |
-| Images | ECR `arcus-servicedesk/arcus-bff`, `arcus-web`, `arcus-itop` (30 newest kept) |
+| Images | ECR `arcus-servicedesk/arcus-bff`, `arcus-web`, `arcus-itop` (30 newest kept; 60 with image signing, signatures included) |
+| Scan reports and SBOMs | S3 `arcus-servicedesk-pipeline-557690608274/bundles/<APP_TAG>/security/` (180 days), and the Build stage's artifacts |
 
 ## Day to day
 
@@ -52,6 +58,66 @@ the backup taken just before it (below).
 
 The setting names are the ones in `docker/prod.env.example` (`prod-env`) and
 `docker/itop.env.example` (`itop-env`).
+
+## Security in the pipeline
+
+The Build stage checks the code and the images before anything can be
+approved. Policy, thresholds and how to accept a risk:
+[`security/README.md`](../../security/README.md).
+
+| Step | What it does | Stops the release when |
+|---|---|---|
+| Source scans (SEC-02), first in Build | secrets (gitleaks), dependencies and infrastructure as code (Trivy), static analysis (Semgrep) | a critical or high finding is not fixed or accepted |
+| Image scans (SEC-03), before each push | Trivy on every image, built here or reused from ECR | a critical or high vulnerability with a fix is not accepted |
+| SBOMs (SEC-04) | CycloneDX SBOMs of the backend, the frontend and the three images | (never) |
+| Signing (SEC-05), when turned on | the build signs the three images with a KMS key; the server checks them before starting a release | an image is unsigned, signed by another key, or changed |
+
+Reports and SBOMs: `s3://arcus-servicedesk-pipeline-557690608274/bundles/<APP_TAG>/security/`
+(`source/`, `images/`, `sbom/`), also when a scan failed. The Build log shows
+the findings that failed. GitHub CI runs the same scans on every pull request,
+builds and scans the images, and tests the signing scripts with a test key.
+
+**When a scan stops a release:** read the finding in the Build log. Fix it
+(usually a newer library or base image), or accept it in the repository with a
+reason and an expiry (`security/README.md`, "Accepting a risk"), then merge.
+For the iTop image, a newer base image needs a new date in
+`docker/itop-prod/base-refresh` (the next deploy then runs iTop's upgrade step).
+
+### Image signing (off until turned on)
+
+`deploy/aws/terraform/image-signing.tf` creates the signing key only when
+`image_signing_enabled = true`. While it is false (the default), Terraform
+creates and changes nothing for it, the build prints "Image signing is off",
+and the server skips the check.
+
+To turn it on (with the approval of whoever owns the account's KMS keys):
+
+1. Add `image_signing_enabled = true` to `deploy/aws/terraform/terraform.tfvars`.
+2. `terraform plan`, and check it shows only: one KMS key and its alias
+   (`alias/arcus-servicedesk-image-signing`), two IAM role policies
+   (`sign-images` on the CodeBuild role, `check-image-signatures` on the
+   server role), the `IMAGE_SIGNING_KEY` variable on the build and deploy
+   CodeBuild projects, and the ECR lifecycle rule keeping 60 images.
+3. `terraform apply`.
+4. **Release change** on the pipeline: the build signs the three images and
+   the deploy checks them ("signature ok" three times in the Deploy log).
+
+The key costs about USD 1 a month. The server can read only its public key,
+never sign.
+
+**Rolling back to a release built before signing was on:** the pipeline's
+Rollback redeploys that run's images, and the server refuses them unsigned.
+Sign them once, from a machine with the AWS CLI and cosign (version in
+`security/versions.env`), as someone allowed to use the key (the CodeBuild
+role, or an administrator given `kms:Sign` for this):
+
+```bash
+aws ecr get-login-password | docker login --username AWS --password-stdin 557690608274.dkr.ecr.us-east-1.amazonaws.com
+bash security/sign-image.sh awskms:///alias/arcus-servicedesk-image-signing   557690608274.dkr.ecr.us-east-1.amazonaws.com/arcus-servicedesk/arcus-bff:<APP_TAG>   557690608274.dkr.ecr.us-east-1.amazonaws.com/arcus-servicedesk/arcus-web:<APP_TAG>   557690608274.dkr.ecr.us-east-1.amazonaws.com/arcus-servicedesk/arcus-itop:<ITOP_TAG>
+```
+
+To turn it off again: `image_signing_enabled = false`, plan, apply. The key
+then waits 30 days before it is deleted.
 
 ## Mail, once IT provides the mailbox
 

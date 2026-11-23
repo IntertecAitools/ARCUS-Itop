@@ -460,6 +460,30 @@ docker build -f docker/itop-prod/Dockerfile -t arcus-itop .
 docker build -t arcus-web frontend
 ```
 
+### Security checks before a release
+
+The AWS pipeline runs these on every release (`deploy/aws/README.md`,
+"Security in the pipeline"); on another server, run them before starting new
+images. Policy, thresholds and accepting a risk: `security/README.md`.
+
+```bash
+bash security/scan-source.sh                    # secrets, dependencies, IaC, static analysis
+bash security/scan-image.sh arcus-bff arcus-bff # per image: report, SBOM, gate
+bash security/scan-image.sh arcus-web arcus-web
+bash security/scan-image.sh arcus-itop arcus-itop
+bash security/sbom-source.sh                    # backend and frontend SBOMs
+```
+
+Each exits non-zero on a critical or high finding that is not accepted, and
+writes its reports and CycloneDX SBOMs to `security-reports/`; keep them with
+the release. The images install their base image's OS security fixes when
+built; to rebuild the iTop image for newer ones while iTop is unchanged,
+change the date in `docker/itop-prod/base-refresh`.
+
+Images pushed to a registry can be signed and checked with your own cosign
+key: `security/sign-image.sh <key> <image:tag>...` after pushing, and
+`security/verify-image.sh <key.pub> <image:tag>...` before `up`.
+
 ## Trying it on a workstation
 
 `docker/docker-compose.prod.localtest.yml` adds a Mailpit test mailbox that

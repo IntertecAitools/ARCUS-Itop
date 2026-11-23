@@ -4,6 +4,32 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-11-23 — Security pipeline: scans, image gate, SBOMs, image signing (SEC-02 to SEC-05)
+
+Built step by step with the user's approval at each step. Tools pinned in `security/versions.env` (Trivy 0.76.1, gitleaks 8.30.1, Semgrep 1.183.0, cosign 2.6.5), each download checked against its SHA-256.
+
+| Run (on this laptop, Windows) | Result |
+|---|---|
+| `security/scan-source.sh` (gitleaks on 216 commits, Trivy dependencies and IaC, Semgrep `p/default`) | passed, after the fixes and acceptances below |
+| Gate negative checks: an un-accepted CVE (iTop's Guzzle), an un-accepted AWS setting (AWS-0104), a planted GitHub token | each failed its scan (exit 1) |
+| `security/scan-image.sh` on the old `node:24.14.1-alpine3.23` (remote, no Docker here) | failed as expected (16 high/critical with fixes), report and SBOM written |
+| `security/sbom-source.sh` | backend and frontend SBOMs, CycloneDX 1.7 |
+| New base images scanned: `node:24.22.1-alpine3.24`, `nginx:1.30.7-alpine3.24`, `php:8.3.36-apache` | node: only npm's own libraries (npm removed from the BFF image); nginx: one libxml2 fixed by `apk upgrade`; php: Debian fixes taken by `apt-get upgrade` (confirmed by the CI image job, below) |
+| Backend typecheck, unit tests | clean, 1004/1004 |
+| Frontend typecheck, vitest | clean, 335/335 |
+| `weftbase-site` build on Next.js 15.5.29 | built |
+| `terraform validate` (with `image_signing_enabled` default false), `terraform fmt -check` | valid, clean |
+| cosign: digest lookup against a public registry, a wrong key refused | as expected |
+
+Found by the new scanners and fixed:
+- BFF: AES-256-GCM without a fixed tag length in `seal.ts` and `session.mysql.ts`, now `authTagLength: 16` (Semgrep).
+- `weftbase-site`: Next.js 15.5.4 with critical remote-code-execution advisories, moved to 15.5.29; PostCSS and sharp pinned to fixed versions through `overrides` (Trivy).
+- Images: all three base images had fixable critical/high vulnerabilities. New base images, OS updates at build time, npm removed from the BFF image, `docker/itop-prod/base-refresh` to rebuild an unchanged iTop.
+
+Recorded instead (`security/trivyignore.yaml`, inline comments, `.gitleaksignore`; reasons in `security/README.md`): upstream iTop's 10 high PHP library findings (until 2026-12-23), five AWS settings that need live infrastructure changes (with expiry dates), and false positives (test values, the mock API's demo TOTP secret, Trivy misreading a `for_each`).
+
+Not covered here: building the real images (no Docker on this laptop) and the signing test, both run by GitHub CI on the PR; signing with the real KMS key, which needs `image_signing_enabled = true` applied in AWS; the AWS build itself, which runs on the next pipeline run after merging.
+
 ### 2026-11-20 — Licence form: refusals name the field
 
 On the production Licences page, issuing with "A new customer" ticked and no organisation ids said only "Invalid request body." The BFF already returned the field in `details`, but the page showed the message alone.
