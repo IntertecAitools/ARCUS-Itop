@@ -1,0 +1,16 @@
+# Secret scanning (gitleaks). Policy and how to accept a finding:
+# security/README.md. The default rules, plus the paths below.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Third-party code we ship unchanged (covered by the image scan)"
+paths = [
+  # Upstream iTop: vendored libraries, test fixtures and theme CSS hashes.
+  '''^iTop/''',
+  '''(^|/)node_modules/''',
+  '''(^|/)package-lock\.json$''',
+  # The scanners' own downloads and reports.
+  '''^\.security-tools/''',
+  '''^security-reports/''',
+]

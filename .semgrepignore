@@ -1,0 +1,14 @@
+# Static analysis (Semgrep) skips these. Policy: security/README.md.
+# Upstream iTop, shipped unchanged: its dependencies are covered by the
+# dependency and image scans, its code by Combodo's own releases.
+iTop/
+node_modules/
+dist/
+build/
+.next/
+coverage/
+playwright-report/
+test-results/
+*.min.js
+.security-tools/
+security-reports/

@@ -58,8 +58,8 @@ resource "aws_ecr_lifecycle_policy" "app" {
   policy = jsonencode({
     rules = [{
       rulePriority = 1
-      description  = "Keep the 30 newest images (the rollback range)"
-      selection    = { tagStatus = "any", countType = "imageCountMoreThan", countNumber = 30 }
+      description  = var.image_signing_enabled ? "Keep the 60 newest images and signatures (the rollback range)" : "Keep the 30 newest images (the rollback range)"
+      selection    = { tagStatus = "any", countType = "imageCountMoreThan", countNumber = local.ecr_keep_images }
       action       = { type = "expire" }
     }]
   })

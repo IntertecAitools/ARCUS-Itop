@@ -118,7 +118,7 @@ def main():
     def class_label(cls):
         return labels.get('Class:' + cls) or cls
 
-    root = ET.parse(MODEL).getroot()
+    root = ET.parse(MODEL).getroot()  # nosemgrep: python.lang.security.use-defused-xml-parse.use-defused-xml-parse -- reads iTop datamodel files from this repository, never user input
     menus = root.find('.//menus')
     if menus is None:
         raise SystemExit('no <menus> in %s' % MODEL)

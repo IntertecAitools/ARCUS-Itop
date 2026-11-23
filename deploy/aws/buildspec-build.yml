@@ -10,8 +10,8 @@ env:
   variables:
     # Docker Hub's official images through AWS's public mirror: no rate limits.
     LIB: public.ecr.aws/docker/library
-    NODE_IMAGE: public.ecr.aws/docker/library/node:24.14.1-alpine3.23
-    NGINX_IMAGE: public.ecr.aws/docker/library/nginx:1.28.0-alpine
+    NODE_IMAGE: public.ecr.aws/docker/library/node:24.22.1-alpine3.24
+    NGINX_IMAGE: public.ecr.aws/docker/library/nginx:1.30.7-alpine3.24
     PHP_IMAGE: public.ecr.aws/docker/library/php:8.3-apache
   exported-variables:
     - APP_TAG
@@ -29,6 +29,11 @@ phases:
 
   build:
     commands:
+      # SEC-02: secrets, dependencies, infrastructure as code and static
+      # analysis (security/README.md). A critical or high finding that is not
+      # accepted stops the build here, before anything is pushed.
+      - bash security/scan-source.sh
+
       # Tests on the same Node as the images.
       - docker run --rm -v "$PWD":/src -w /src/backend "$NODE_IMAGE" sh -c "npm ci --no-audit --no-fund && npm run typecheck && npm test"
       - docker run --rm -v "$PWD":/src -w /src/frontend "$NODE_IMAGE" sh -c "npm ci --no-audit --no-fund && npm run typecheck && npm test"
@@ -37,37 +42,74 @@ phases:
       # The app images take the commit as their tag, and ECR tags are
       # immutable: releasing the same commit again (to apply changed
       # settings, "Release change") reuses the images already pushed.
+      #
+      # SEC-03/04: every image is scanned, and its SBOM written, before it is
+      # pushed; an image already in ECR is scanned there before it is reused.
+      # A critical or high vulnerability with a fix that is not accepted
+      # stops the build (security/scan-image.sh, security/README.md).
       - |
+        BFF="${IMAGE_BASE}arcus-bff:$APP_TAG"
         if aws ecr describe-images --repository-name "$ECR_PREFIX/arcus-bff" --image-ids imageTag="$APP_TAG" >/dev/null 2>&1; then
           echo "BFF image $APP_TAG already in ECR: not rebuilt"
+          bash security/scan-image.sh arcus-bff "$BFF"
         else
-          docker build -f backend/Dockerfile --build-arg NODE_IMAGE="$NODE_IMAGE" \
-            --build-arg ARCUS_RELEASE_DATE="$RELEASE_DATE" -t "${IMAGE_BASE}arcus-bff:$APP_TAG" .
-          docker push "${IMAGE_BASE}arcus-bff:$APP_TAG"
+          docker build -f backend/Dockerfile --build-arg NODE_IMAGE="$NODE_IMAGE"             --build-arg ARCUS_RELEASE_DATE="$RELEASE_DATE" -t "$BFF" . &&
+            bash security/scan-image.sh arcus-bff "$BFF" &&
+            docker push "$BFF"
         fi
       - |
+        WEB="${IMAGE_BASE}arcus-web:$APP_TAG"
         if aws ecr describe-images --repository-name "$ECR_PREFIX/arcus-web" --image-ids imageTag="$APP_TAG" >/dev/null 2>&1; then
           echo "Web image $APP_TAG already in ECR: not rebuilt"
+          bash security/scan-image.sh arcus-web "$WEB"
         else
-          docker build frontend --build-arg NODE_IMAGE="$NODE_IMAGE" --build-arg NGINX_IMAGE="$NGINX_IMAGE" \
-            --build-arg VITE_BFF_URL=/api --build-arg VITE_APP_NAME="$VITE_APP_NAME" \
-            --build-arg VITE_PLATFORM_NAME="$VITE_PLATFORM_NAME" --build-arg VITE_DEFAULT_LOCALE=en \
-            -t "${IMAGE_BASE}arcus-web:$APP_TAG"
-          docker push "${IMAGE_BASE}arcus-web:$APP_TAG"
+          docker build frontend --build-arg NODE_IMAGE="$NODE_IMAGE" --build-arg NGINX_IMAGE="$NGINX_IMAGE"             --build-arg VITE_BFF_URL=/api --build-arg VITE_APP_NAME="$VITE_APP_NAME"             --build-arg VITE_PLATFORM_NAME="$VITE_PLATFORM_NAME" --build-arg VITE_DEFAULT_LOCALE=en             -t "$WEB" &&
+            bash security/scan-image.sh arcus-web "$WEB" &&
+            docker push "$WEB"
         fi
       - |
+        ITOP="${IMAGE_BASE}arcus-itop:$ITOP_TAG"
         if aws ecr describe-images --repository-name "$ECR_PREFIX/arcus-itop" --image-ids imageTag="$ITOP_TAG" >/dev/null 2>&1; then
           echo "iTop image $ITOP_TAG already in ECR: not rebuilt"
+          bash security/scan-image.sh arcus-itop "$ITOP"
         else
-          docker build -f docker/itop-prod/Dockerfile --build-arg PHP_IMAGE="$PHP_IMAGE" -t "${IMAGE_BASE}arcus-itop:$ITOP_TAG" .
-          docker push "${IMAGE_BASE}arcus-itop:$ITOP_TAG"
+          docker build -f docker/itop-prod/Dockerfile --build-arg PHP_IMAGE="$PHP_IMAGE" -t "$ITOP" . &&
+            bash security/scan-image.sh arcus-itop "$ITOP" &&
+            docker push "$ITOP"
+        fi
+
+      # SEC-04: the backend's and the frontend's SBOMs (from their lock files).
+      - bash security/sbom-source.sh
+
+      # SEC-05: sign the three images (by digest, with the KMS key) when
+      # image signing is on (IMAGE_SIGNING_KEY, set by Terraform's
+      # image_signing_enabled). The server checks them before starting them.
+      - |
+        if [ -n "${IMAGE_SIGNING_KEY:-}" ]; then
+          bash security/sign-image.sh "$IMAGE_SIGNING_KEY" "${IMAGE_BASE}arcus-bff:$APP_TAG" \
+            "${IMAGE_BASE}arcus-web:$APP_TAG" "${IMAGE_BASE}arcus-itop:$ITOP_TAG"
+        else
+          echo "Image signing is off (image_signing_enabled in Terraform)"
         fi
 
       # What the server needs besides the images: the compose file, the
-      # scripts it mounts, and the deploy script.
-      - tar -czf bundle.tgz docker/docker-compose.prod.yml docker/backup docker/mysql-init deploy/aws/server
+      # scripts it mounts, the deploy script, and the signature check.
+      - >-
+        tar -czf bundle.tgz docker/docker-compose.prod.yml docker/backup docker/mysql-init deploy/aws/server
+        security/versions.env security/install-cosign.sh security/verify-image.sh
       - aws s3 cp bundle.tgz "s3://$ARTIFACT_BUCKET/bundles/$APP_TAG.tgz" --only-show-errors
+    finally:
+      # The scan reports and SBOMs go next to the release bundle, also when a
+      # scan failed: s3://<pipeline bucket>/bundles/<APP_TAG>/security/
+      # (source/, images/, sbom/).
+      - |
+        if [ -n "${APP_TAG:-}" ] && [ -d security-reports ]; then
+          aws s3 cp security-reports "s3://$ARTIFACT_BUCKET/bundles/$APP_TAG/security/" --recursive --only-show-errors &&
+            echo "Security reports and SBOMs: s3://$ARTIFACT_BUCKET/bundles/$APP_TAG/security/"
+        fi
 
 artifacts:
   files:
     - bundle.tgz
+    # The scan reports and SBOMs, kept with the build's artifacts too.
+    - security-reports/**/*

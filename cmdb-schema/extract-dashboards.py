@@ -80,7 +80,7 @@ def main():
             return fallback
         return labels.get(key) or labels.get(key.rstrip('+')) or fallback or key
 
-    root = ET.parse(MODEL).getroot()
+    root = ET.parse(MODEL).getroot()  # nosemgrep: python.lang.security.use-defused-xml-parse.use-defused-xml-parse -- reads iTop datamodel files from this repository, never user input
     menus = root.find('.//menus')
     dashboards = {}
     skipped = []

@@ -162,7 +162,7 @@ def parse_lifecycle(lifecycle):
 def load(path):
     """Parse the model. A class id can appear in several <class> nodes, so
     parents/properties/fields are merged per id rather than overwritten."""
-    root = ET.parse(path).getroot()
+    root = ET.parse(path).getroot()  # nosemgrep: python.lang.security.use-defused-xml-parse.use-defused-xml-parse -- reads iTop datamodel files from this repository, never user input
 
     ids = set()
     parents = {}

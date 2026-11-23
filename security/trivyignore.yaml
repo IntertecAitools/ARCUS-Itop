@@ -1,0 +1,99 @@
+# Accepted Trivy findings (security/README.md, "Accepting a risk").
+# Each entry says why, who decided and when; `expired_at` makes the finding
+# fail the build again on that date, so the decision is looked at again.
+# False positives have no expiry.
+
+vulnerabilities:
+  # Upstream iTop 3.4's bundled PHP libraries (iTop/composer.lock, also in the
+  # arcus-itop image). Only the BFF's service account reaches iTop: Apache
+  # serves just the web services the BFF uses (docker/itop-prod/apache.conf),
+  # and iTop is not reachable from the internet. Updating them means changing
+  # upstream iTop and testing it end to end; tracked as its own task.
+  # Accepted 2026-11-23 (SEC-02 rollout), for 30 days.
+  - id: CVE-2026-69246 # guzzlehttp/guzzle 7.10.0
+    statement: Upstream iTop library, iTop not exposed; update with the iTop dependency refresh.
+    expired_at: 2026-12-23
+  - id: CVE-2026-45073 # symfony/cache 6.4.36
+    statement: Upstream iTop library, iTop not exposed; update with the iTop dependency refresh.
+    expired_at: 2026-12-23
+  - id: CVE-2026-108082 # symfony/http-foundation 6.4.35
+    statement: Upstream iTop library, iTop not exposed; update with the iTop dependency refresh.
+    expired_at: 2026-12-23
+  - id: CVE-2026-48736 # symfony/http-foundation 6.4.35
+    statement: Upstream iTop library, iTop not exposed; update with the iTop dependency refresh.
+    expired_at: 2026-12-23
+  - id: CVE-2026-45068 # symfony/mailer 6.4.34
+    statement: Upstream iTop library, iTop not exposed; update with the iTop dependency refresh.
+    expired_at: 2026-12-23
+  - id: CVE-2026-45067 # symfony/mime 6.4.36
+    statement: Upstream iTop library, iTop not exposed; update with the iTop dependency refresh.
+    expired_at: 2026-12-23
+  - id: CVE-2026-109413 # symfony/yaml 6.4.34
+    statement: Upstream iTop library, iTop not exposed; update with the iTop dependency refresh.
+    expired_at: 2026-12-23
+  - id: CVE-2026-45133 # symfony/yaml 6.4.34
+    statement: Upstream iTop library, iTop not exposed; update with the iTop dependency refresh.
+    expired_at: 2026-12-23
+  - id: CVE-2026-45304 # symfony/yaml 6.4.34
+    statement: Upstream iTop library, iTop not exposed; update with the iTop dependency refresh.
+    expired_at: 2026-12-23
+  - id: CVE-2026-45305 # symfony/yaml 6.4.34
+    statement: Upstream iTop library, iTop not exposed; update with the iTop dependency refresh.
+    expired_at: 2026-12-23
+
+misconfigurations:
+  # --- False positives (no expiry)
+  # The public access block is set to true on all four settings, for both
+  # buckets; Trivy does not follow the for_each map and sees them unset.
+  - id: AWS-0086
+    paths: ["deploy/aws/terraform/main.tf"]
+    statement: False positive, all four public access settings are true (for_each over both buckets).
+  - id: AWS-0087
+    paths: ["deploy/aws/terraform/main.tf"]
+    statement: False positive, all four public access settings are true (for_each over both buckets).
+  - id: AWS-0091
+    paths: ["deploy/aws/terraform/main.tf"]
+    statement: False positive, all four public access settings are true (for_each over both buckets).
+  - id: AWS-0093
+    paths: ["deploy/aws/terraform/main.tf"]
+    statement: False positive, all four public access settings are true (for_each over both buckets).
+  # docker/Dockerfile is the local development image (docker-compose.local.yml),
+  # never deployed.
+  - id: DS-0002
+    paths: ["docker/Dockerfile"]
+    statement: Local development image only, never deployed.
+
+  # --- Accepted risks, reviewed again on the expiry date. Accepted 2026-11-23.
+  # Buckets use S3-managed encryption (SSE-S3, AES-256). A customer-managed
+  # key adds key-policy control, not stronger encryption; not needed for
+  # release bundles and backups that only our roles can read.
+  - id: AWS-0132
+    paths: ["deploy/aws/terraform/main.tf"]
+    statement: SSE-S3 (AES-256) is enough for bundles and backups readable only by our roles.
+    expired_at: 2027-11-23
+  # The approval/alert topic carries pipeline notices (commit id and message),
+  # no customer data. Encrypting it needs a KMS key EventBridge and CloudWatch may use.
+  - id: AWS-0095
+    paths: ["deploy/aws/terraform/main.tf"]
+    statement: Topic carries pipeline notices only, no customer data.
+    expired_at: 2027-02-23
+  # The server reaches ECR, S3, SSM, Bedrock and Microsoft 365 mail, whose
+  # addresses change; inbound is CloudFront-only. Restricting egress to those
+  # ports and prefix lists is a planned change to the live server.
+  - id: AWS-0104
+    paths: ["deploy/aws/terraform/main.tf"]
+    statement: Outbound to AWS services and Microsoft 365 with changing addresses; inbound is CloudFront-only.
+    expired_at: 2027-02-23
+  # No AWS WAF in front of CloudFront yet (AWS Shield Standard applies; the
+  # BFF limits sign-in attempts). WAF is its own readiness item, with a cost.
+  - id: AWS-0011
+    paths: ["deploy/aws/terraform/cdn.tf"]
+    statement: WAF not yet in place; Shield Standard and BFF rate limits apply. Separate readiness item.
+    expired_at: 2027-02-23
+  # The images start as root and drop privileges: Apache and nginx run their
+  # workers as www-data / nginx. (The BFF image already runs as `node`.)
+  # Moving to non-root master processes changes ports and file ownership.
+  - id: DS-0002
+    paths: ["docker/itop-prod/Dockerfile", "frontend/Dockerfile"]
+    statement: Apache and nginx drop to unprivileged workers; non-root masters need port and ownership changes.
+    expired_at: 2027-02-23

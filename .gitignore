@@ -21,3 +21,7 @@ backend/e2e.local.json
 # Local licence-signing development key and register (backend/README.md, "Licensing")
 backend/.licence-dev/
 *.lic
+
+# Security scan tools and reports (security/README.md)
+/.security-tools/
+/security-reports/

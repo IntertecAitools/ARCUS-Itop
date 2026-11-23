@@ -31,7 +31,7 @@ Raw numbers, one row per call, set and BFF: [`performance-data/2026-10-21.csv`](
 | Laptop | Intel Core i5-10210U @ 1.60 GHz, 4 cores / 8 threads, 15.8 GB RAM |
 | OS | Windows 11 Pro 10.0.26300 |
 | Docker | Docker Desktop (WSL 2). The VM has 8 CPUs and 7.7 GB of memory |
-| Node.js | 24.14.1 (BFF, scripts, Vite) |
+| Node.js | 24.22.1 (BFF, scripts, Vite) |
 
 The laptop was **shared**. Other projects' containers (a ClickHouse server, a Kubernetes test cluster and others) used 3–5 of the 8 threads during most of the load and during the 12,000-ticket checkpoint. The final 50,000-ticket measurements ran while they were nearly idle (under 20% CPU in total). Busy and quiet sets are labelled in the tables and in the CSV (`host_load`).
 

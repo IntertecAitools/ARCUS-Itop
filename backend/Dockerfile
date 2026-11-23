@@ -6,7 +6,7 @@
 # Configuration comes from the environment (see backend/.env.example and
 # docs/deployment.md); no .env file is baked in.
 
-ARG NODE_IMAGE=node:24.14.1-alpine3.23
+ARG NODE_IMAGE=node:24.22.1-alpine3.24
 
 # --- build: compile TypeScript ----------------------------------------------
 FROM ${NODE_IMAGE} AS build
@@ -25,6 +25,12 @@ RUN npm ci --omit=dev --no-audit --no-fund && npm cache clean --force
 
 # --- runtime -----------------------------------------------------------------
 FROM ${NODE_IMAGE}
+# The base image's OS security fixes, and no package managers: the BFF runs
+# with `node` alone, and npm, npx and corepack (with the libraries they bundle)
+# only widen what the image scan finds (security/README.md).
+RUN apk upgrade --no-cache \
+    && rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+        /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /root/.npm
 # The day this release was built (YYYY-MM-DD), set by the pipeline. A
 # perpetual licence refuses releases dated after its maintenance ends.
 # Empty: no check.

@@ -449,7 +449,7 @@ docker compose -f docker/docker-compose.prod.yml --env-file docker/prod.env rest
 When iTop's data model changes, also refresh the schema
 (`cmdb-schema/refresh-from-source.py`, see the main README) and rebuild the
 BFF image: the schema is part of it. Base images are pinned
-(`node:24.14.1-alpine3.23`, `nginx:1.28.0-alpine`, `php:8.3-apache`,
+(`node:24.22.1-alpine3.24`, `nginx:1.30.7-alpine3.24`, `php:8.3-apache`,
 `mysql:8.4.6`); override with `--build-arg NODE_IMAGE=…` / `NGINX_IMAGE=…` /
 `PHP_IMAGE=…` and `MYSQL_IMAGE=…` in `prod.env` when updating them. Building
 the images on their own (all from the repository root except the frontend):
@@ -459,6 +459,30 @@ docker build -f backend/Dockerfile -t arcus-bff .
 docker build -f docker/itop-prod/Dockerfile -t arcus-itop .
 docker build -t arcus-web frontend
 ```
+
+### Security checks before a release
+
+The AWS pipeline runs these on every release (`deploy/aws/README.md`,
+"Security in the pipeline"); on another server, run them before starting new
+images. Policy, thresholds and accepting a risk: `security/README.md`.
+
+```bash
+bash security/scan-source.sh                    # secrets, dependencies, IaC, static analysis
+bash security/scan-image.sh arcus-bff arcus-bff # per image: report, SBOM, gate
+bash security/scan-image.sh arcus-web arcus-web
+bash security/scan-image.sh arcus-itop arcus-itop
+bash security/sbom-source.sh                    # backend and frontend SBOMs
+```
+
+Each exits non-zero on a critical or high finding that is not accepted, and
+writes its reports and CycloneDX SBOMs to `security-reports/`; keep them with
+the release. The images install their base image's OS security fixes when
+built; to rebuild the iTop image for newer ones while iTop is unchanged,
+change the date in `docker/itop-prod/base-refresh`.
+
+Images pushed to a registry can be signed and checked with your own cosign
+key: `security/sign-image.sh <key> <image:tag>...` after pushing, and
+`security/verify-image.sh <key.pub> <image:tag>...` before `up`.
 
 ## Trying it on a workstation
 

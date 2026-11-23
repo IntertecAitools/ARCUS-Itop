@@ -11,7 +11,12 @@
 ARG PHP_IMAGE=php:8.3-apache
 FROM ${PHP_IMAGE}
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# The base image's Debian security fixes first (security/README.md). To pick
+# up new ones while iTop itself is unchanged, change the date in
+# docker/itop-prod/base-refresh: it is part of the iTop image tag.
+COPY docker/itop-prod/base-refresh /opt/arcus/base-refresh
+RUN apt-get update && apt-get upgrade -y --no-install-recommends \
+    && apt-get install -y --no-install-recommends \
         libzip-dev \
         libpng-dev \
         libjpeg62-turbo-dev \
@@ -83,5 +88,9 @@ VOLUME ["/var/www/html/conf", "/var/www/html/data", "/var/www/html/env-productio
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
     CMD curl -sS -o /dev/null http://127.0.0.1/webservices/rest.php || exit 1
 
+# Apache starts as root to bind port 80 and runs its workers as www-data.
+# Accepted (DS-0002 in security/trivyignore.yaml, until 2027-02-23).
+# nosemgrep: dockerfile.security.missing-user-entrypoint.missing-user-entrypoint
 ENTRYPOINT ["itop-entrypoint"]
+# nosemgrep: dockerfile.security.missing-user.missing-user
 CMD ["apache2-foreground"]

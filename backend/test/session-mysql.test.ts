@@ -4,7 +4,7 @@ import { describe, it } from "node:test";
 import type { Caller } from "../src/core/request-context.js";
 import { MySqlSessionStore, type SqlPool } from "../src/platform/auth/session.mysql.js";
 
-const SECRET = "a-test-secret-that-is-long-enough-0123456789";
+const SECRET = "a-test-secret-that-is-long-enough-0123456789"; // gitleaks:allow (test-only secret)
 const HOUR = 3_600_000;
 
 const jane: Caller = {
