@@ -14,7 +14,7 @@
 set -uo pipefail
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
-cd "$ROOT"
+cd "$ROOT" || exit 1
 # shellcheck source=security/versions.env
 . security/versions.env
 TOOLS=${SECURITY_TOOLS_DIR:-$ROOT/.security-tools}

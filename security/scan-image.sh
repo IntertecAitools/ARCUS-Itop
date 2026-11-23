@@ -15,7 +15,7 @@ set -uo pipefail
 [ $# -eq 2 ] || { echo "usage: $0 <name> <image>" >&2; exit 2; }
 NAME=$1 IMAGE=$2
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
-cd "$ROOT"
+cd "$ROOT" || exit 1
 # shellcheck source=security/versions.env
 . security/versions.env
 TOOLS=${SECURITY_TOOLS_DIR:-$ROOT/.security-tools}

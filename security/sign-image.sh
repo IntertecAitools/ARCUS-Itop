@@ -29,9 +29,15 @@ by_digest() {
   echo "$repo@sha256:${sig%.sig}"
 }
 
+# The public half, to tell whether an image is signed already (verifying
+# needs the public key; for a KMS key it is fetched from KMS).
+PUB=$(mktemp)
+trap 'rm -f "$PUB"' EXIT
+"$COSIGN" public-key --key "$KEY" > "$PUB"
+
 for ref in "$@"; do
   img=$(by_digest "$ref")
-  if "$COSIGN" verify --key "$KEY" --insecure-ignore-tlog=true "$img" >/dev/null 2>&1; then
+  if "$COSIGN" verify --key "$PUB" --insecure-ignore-tlog=true "$img" >/dev/null 2>&1; then
     echo "signed already: $ref ($img)"
     continue
   fi
