@@ -38,7 +38,19 @@ GitHub CI on PR #79:
 
 AWS pipeline after merging (`3cfa208eaf95`): the Build stage passed in about 6 minutes, with the source scans, the three image scans and the SBOMs; reports and SBOMs are in `s3://arcus-servicedesk-pipeline-557690608274/bundles/3cfa208eaf95/security/` (`source/`, `images/`, `sbom/`: 12 files). Deploy waiting for approval.
 
-Not covered: signing with the real KMS key, which needs `image_signing_enabled = true` applied in AWS (then: a release, and the production test that an unsigned image is refused).
+Production deploys, approved by the user (read-only checks afterwards, through SSM and CloudFront):
+
+| Check | Result |
+|---|---|
+| Deploy of `3cfa208eaf95` (PR #79) | backup copied to S3; images pulled; "image signature check off" (signing not enabled); iTop image changed (`itop-e6d85f1fbe1cc26f` → `itop-6061b2de98b8a5b5`), iTop upgrade ran in about a minute; all services healthy; live at 07:42 UTC |
+| Deploy of `3e30745b5bf6` (PR #80, docs) | backup, settings re-applied, all services healthy; live at 07:44 UTC |
+| Running images on the server | arcus-bff and arcus-web `3e30745b5bf6`, arcus-itop `itop-6061b2de98b8a5b5`; BFF on Node v24.22.1 with no npm; web on nginx/1.30.7 |
+| Health | `/healthz` 200 on the server and through CloudFront; home page 200; `/api/auth/me` signed out 401 (the BFF answers); security headers (CSP) in place |
+| Warning "approvals-setup failed" | not new: `NOTIFICATION_FROM`/`MAIL_FROM` is not set yet (mailbox pending from IT); in every deploy since before this work |
+
+Noticed: the SSM deploy output does not appear in the `/arcus-servicedesk/deploy` log group (no events for today's deploys); the CodeBuild Deploy log and SSM's own output have it. Not investigated.
+
+Not covered: signing with the real KMS key, which needs `image_signing_enabled = true` applied in AWS (then: a release, and the production test that an unsigned image is refused); a signed-in check by a person.
 
 ### 2026-11-20 — Licence form: refusals name the field
 
