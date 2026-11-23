@@ -176,6 +176,14 @@ resource "aws_codebuild_project" "build" {
       name  = "VITE_PLATFORM_NAME"
       value = var.platform_name
     }
+    # Image signing (image-signing.tf): only when image_signing_enabled.
+    dynamic "environment_variable" {
+      for_each = var.image_signing_enabled ? [local.image_signing_key] : []
+      content {
+        name  = "IMAGE_SIGNING_KEY"
+        value = environment_variable.value
+      }
+    }
   }
 
   cache {
@@ -230,6 +238,14 @@ resource "aws_codebuild_project" "deploy" {
     environment_variable {
       name  = "DEPLOY_LOG_GROUP"
       value = aws_cloudwatch_log_group.deploy.name
+    }
+    # Image signing (image-signing.tf): only when image_signing_enabled.
+    dynamic "environment_variable" {
+      for_each = var.image_signing_enabled ? [local.image_signing_key] : []
+      content {
+        name  = "IMAGE_SIGNING_KEY"
+        value = environment_variable.value
+      }
     }
   }
 }

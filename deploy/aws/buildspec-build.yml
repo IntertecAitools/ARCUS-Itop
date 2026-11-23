@@ -81,9 +81,22 @@ phases:
       # SEC-04: the backend's and the frontend's SBOMs (from their lock files).
       - bash security/sbom-source.sh
 
+      # SEC-05: sign the three images (by digest, with the KMS key) when
+      # image signing is on (IMAGE_SIGNING_KEY, set by Terraform's
+      # image_signing_enabled). The server checks them before starting them.
+      - |
+        if [ -n "${IMAGE_SIGNING_KEY:-}" ]; then
+          bash security/sign-image.sh "$IMAGE_SIGNING_KEY" "${IMAGE_BASE}arcus-bff:$APP_TAG" \
+            "${IMAGE_BASE}arcus-web:$APP_TAG" "${IMAGE_BASE}arcus-itop:$ITOP_TAG"
+        else
+          echo "Image signing is off (image_signing_enabled in Terraform)"
+        fi
+
       # What the server needs besides the images: the compose file, the
-      # scripts it mounts, and the deploy script.
-      - tar -czf bundle.tgz docker/docker-compose.prod.yml docker/backup docker/mysql-init deploy/aws/server
+      # scripts it mounts, the deploy script, and the signature check.
+      - >-
+        tar -czf bundle.tgz docker/docker-compose.prod.yml docker/backup docker/mysql-init deploy/aws/server
+        security/versions.env security/install-cosign.sh security/verify-image.sh
       - aws s3 cp bundle.tgz "s3://$ARTIFACT_BUCKET/bundles/$APP_TAG.tgz" --only-show-errors
     finally:
       # The scan reports and SBOMs go next to the release bundle, also when a

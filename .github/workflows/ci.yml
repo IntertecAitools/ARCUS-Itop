@@ -167,6 +167,47 @@ jobs:
           path: security-reports/
           retention-days: 30
 
+  signing:
+    # SEC-05: the sign and check scripts the AWS build and the server use,
+    # against a throwaway registry and a throwaway key (the KMS key only
+    # exists in AWS, behind image_signing_enabled).
+    name: Image signing (test key)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      registry:
+        image: registry:2
+        ports:
+          - 5000:5000
+    env:
+      COSIGN_PASSWORD: ""
+      IMG: localhost:5000/arcus-signing-test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test images and keys
+        run: |
+          printf 'FROM public.ecr.aws/docker/library/busybox:1.37\nLABEL test=signed\n' | docker build -q -t "$IMG:signed" -
+          printf 'FROM public.ecr.aws/docker/library/busybox:1.37\nLABEL test=other\n' | docker build -q -t "$IMG:other" -
+          docker push -q "$IMG:signed" && docker push -q "$IMG:other"
+          COSIGN=$(bash security/install-cosign.sh)
+          mkdir -p "$RUNNER_TEMP/ours" "$RUNNER_TEMP/theirs"
+          (cd "$RUNNER_TEMP/ours" && "$COSIGN" generate-key-pair)
+          (cd "$RUNNER_TEMP/theirs" && "$COSIGN" generate-key-pair)
+      - name: Sign, and sign again (left alone)
+        run: |
+          bash security/sign-image.sh "$RUNNER_TEMP/ours/cosign.key" "$IMG:signed"
+          bash security/sign-image.sh "$RUNNER_TEMP/ours/cosign.key" "$IMG:signed" | grep -q "signed already"
+      - name: A signed image passes
+        run: bash security/verify-image.sh "$RUNNER_TEMP/ours/cosign.pub" "$IMG:signed"
+      - name: An unsigned image is refused
+        run: "! bash security/verify-image.sh \"$RUNNER_TEMP/ours/cosign.pub\" \"$IMG:other\""
+      - name: Another key's signature is refused
+        run: "! bash security/verify-image.sh \"$RUNNER_TEMP/theirs/cosign.pub\" \"$IMG:signed\""
+      - name: An image swapped in under a signed tag is refused
+        run: |
+          docker tag "$IMG:other" "$IMG:signed" && docker push -q "$IMG:signed"
+          ! bash security/verify-image.sh "$RUNNER_TEMP/ours/cosign.pub" "$IMG:signed"
+
   deployment:
     name: Deployment files
     runs-on: ubuntu-latest

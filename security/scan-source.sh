@@ -44,7 +44,7 @@ result secrets $?
 # --- 2. Dependencies. Only findings with a fixed version fail the build:
 # there is nothing to upgrade to for the others (they are still reported).
 TRIVY_COMMON=(--cache-dir "$TRIVY_CACHE" --quiet --ignorefile security/trivyignore.yaml
-  --skip-dirs .security-tools --skip-dirs security-reports --skip-dirs '**/node_modules')
+  --skip-dirs .security-tools --skip-dirs security-reports --skip-dirs '**/node_modules' --skip-dirs '**/.terraform')
 step "dependencies (trivy $TRIVY_VERSION)"
 # The full report first (every severity), then the gate, which prints what fails.
 trivy fs "${TRIVY_COMMON[@]}" --scanners vuln --format json -o "$OUT/dependencies.json" .

@@ -3,19 +3,24 @@
 # Command, deploy/aws/pipeline/run-deploy.sh) from the release's own folder,
 # /opt/arcus/releases/<APP_TAG>:
 #
-#   deploy.sh <APP_TAG> <ITOP_TAG> <IMAGE_BASE> <PARAM_PATH> <REGION> <BACKUP_BUCKET>
+#   deploy.sh <APP_TAG> <ITOP_TAG> <IMAGE_BASE> <PARAM_PATH> <REGION> <BACKUP_BUCKET> [<SIGNING_KEY>]
 #
 #  1. writes prod.env and itop.env from SSM Parameter Store (<PARAM_PATH>/prod-env/*,
 #     <PARAM_PATH>/itop-env/*) into /opt/arcus/shared, mode 600;
 #  2. backs up the running release (databases + iTop files) and copies it to S3;
-#  3. pulls the images from ECR and starts the new release;
+#  3. pulls the images from ECR, checks their signatures when SIGNING_KEY is
+#     given (image signing on: an unsigned image stops the deploy before
+#     anything is touched), and starts the new release;
 #  4. installs iTop on the first deploy, runs iTop's upgrade when the iTop image
 #     changed, otherwise re-applies iTop's settings (itop-setup);
 #  5. waits until `web` is healthy (nginx -> BFF -> iTop sign-in);
 #  6. on any failure after step 3, starts the previous release again and fails.
 set -Eeuo pipefail
 
-APP_TAG=$1 ITOP_TAG=$2 IMAGE_BASE=$3 PARAM_PATH=$4 REGION=$5 BACKUP_BUCKET=$6
+APP_TAG=$1 ITOP_TAG=$2 IMAGE_BASE=$3 PARAM_PATH=$4 REGION=$5 BACKUP_BUCKET=$6 SIGNING_KEY=${7:-}
+# SSM runs this as root, maybe without HOME: docker login and cosign must
+# agree on where the registry credentials are.
+export HOME=${HOME:-/root}
 ROOT=/opt/arcus
 REL=$(cd "$(dirname "$0")/../../.." && pwd)
 SHARED=$ROOT/shared
@@ -74,6 +79,16 @@ fi
 aws ecr get-login-password --region "$REGION" | docker login --username AWS --password-stdin "${IMAGE_BASE%%/*}" >/dev/null
 log "pulling images"
 dc "$REL" "$APP_TAG" "$ITOP_TAG" pull --quiet
+
+# SEC-05: only images our build signed (KMS key; the server reads only its
+# public key). Before the trap below: on failure the running release is left
+# as it is.
+if [ -n "$SIGNING_KEY" ]; then
+  log "checking image signatures ($SIGNING_KEY)"
+  AWS_REGION=$REGION COSIGN_DIR=$ROOT/bin bash "$REL/security/verify-image.sh" "$SIGNING_KEY"     "${IMAGE_BASE}arcus-bff:$APP_TAG" "${IMAGE_BASE}arcus-web:$APP_TAG" "${IMAGE_BASE}arcus-itop:$ITOP_TAG"
+else
+  log "image signature check off (image signing not enabled)"
+fi
 
 ITOP_RUN_TAG=$PREV_ITOP
 rollback() {

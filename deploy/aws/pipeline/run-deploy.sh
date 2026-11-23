@@ -2,13 +2,16 @@
 # Sends the deploy to the server (SSM Run Command) and waits for it.
 # Needs APP_TAG, ITOP_TAG (from the Build stage) and INSTANCE_ID,
 # ARTIFACT_BUCKET, IMAGE_BASE, PARAM_PATH, BACKUP_BUCKET, DEPLOY_LOG_GROUP
-# (the CodeBuild project's environment). Also usable by hand for a rollback:
+# (the CodeBuild project's environment), and IMAGE_SIGNING_KEY when image
+# signing is on (the server then refuses unsigned images). Also usable by
+# hand for a rollback:
 #   APP_TAG=<older tag> ITOP_TAG=<its itop tag> ... bash run-deploy.sh
 set -euo pipefail
 
 : "${APP_TAG:?}" "${ITOP_TAG:?}" "${INSTANCE_ID:?}" "${ARTIFACT_BUCKET:?}" "${IMAGE_BASE:?}"
 : "${PARAM_PATH:?}" "${BACKUP_BUCKET:?}" "${DEPLOY_LOG_GROUP:?}"
 REGION="${AWS_REGION:-${AWS_DEFAULT_REGION:-us-east-1}}"
+SIGNING_KEY="${IMAGE_SIGNING_KEY:-}"
 
 # What runs on the server: fetch this release's bundle, run its deploy.sh.
 # SSM runs this with /bin/sh (dash): POSIX only here; deploy.sh is bash.
@@ -19,7 +22,7 @@ mkdir -p "\$REL"
 aws s3 cp "s3://$ARTIFACT_BUCKET/bundles/$APP_TAG.tgz" /tmp/arcus-bundle.tgz --region $REGION --only-show-errors
 tar -xzf /tmp/arcus-bundle.tgz -C "\$REL"
 rm -f /tmp/arcus-bundle.tgz
-exec bash "\$REL/deploy/aws/server/deploy.sh" "$APP_TAG" "$ITOP_TAG" "$IMAGE_BASE" "$PARAM_PATH" "$REGION" "$BACKUP_BUCKET"
+exec bash "\$REL/deploy/aws/server/deploy.sh" "$APP_TAG" "$ITOP_TAG" "$IMAGE_BASE" "$PARAM_PATH" "$REGION" "$BACKUP_BUCKET" "$SIGNING_KEY"
 EOF
 
 jq -n --arg c "$SCRIPT" '{commands: [$c], executionTimeout: ["5400"]}' > /tmp/ssm-params.json
