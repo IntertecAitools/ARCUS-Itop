@@ -4,11 +4,11 @@
 #
 #   docker build -f docker/itop-prod/Dockerfile -t arcus-itop .
 #
-# The PHP setup is the same as docker/Dockerfile (the local image); keep the
+# The PHP setup is the same as docker/Dockerfile (the local image, still on PHP 8.3; production moved to 8.4 on 2026-11-23); keep the
 # two in step. What the installer writes (conf/, data/, env-production/, log/)
 # lives in volumes, see docker/docker-compose.prod.yml.
 
-ARG PHP_IMAGE=php:8.3-apache
+ARG PHP_IMAGE=php:8.4-apache
 FROM ${PHP_IMAGE}
 
 # The base image's Debian security fixes first (security/README.md). To pick

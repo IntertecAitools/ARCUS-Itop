@@ -153,7 +153,7 @@ services:
   # existing MySQL, drop `bundled-db` from COMPOSE_PROFILES in prod.env and
   # point ITOP_DB_HOST / SESSION_DB_HOST at it (docs/deployment.md).
   db:
-    image: ${MYSQL_IMAGE:-mysql:8.4.6}
+    image: ${MYSQL_IMAGE:-mysql:8.4.13}
     profiles: [bundled-db]
     restart: unless-stopped
     env_file: ${ITOP_ENV_FILE:-itop.env}
@@ -181,7 +181,7 @@ services:
   # Daily dumps of both databases plus iTop's conf/ data/ env-production/,
   # into BACKUP_DIR on the host. Copy that folder off the server.
   backup:
-    image: ${MYSQL_IMAGE:-mysql:8.4.6}
+    image: ${MYSQL_IMAGE:-mysql:8.4.13}
     restart: unless-stopped
     entrypoint: ["/scripts/loop.sh"]
     env_file: ${ITOP_ENV_FILE:-itop.env}

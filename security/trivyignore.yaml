@@ -4,42 +4,9 @@
 # False positives have no expiry.
 
 vulnerabilities:
-  # Upstream iTop 3.4's bundled PHP libraries (iTop/composer.lock, also in the
-  # arcus-itop image). Only the BFF's service account reaches iTop: Apache
-  # serves just the web services the BFF uses (docker/itop-prod/apache.conf),
-  # and iTop is not reachable from the internet. Updating them means changing
-  # upstream iTop and testing it end to end; tracked as its own task.
-  # Accepted 2026-11-23 (SEC-02 rollout), for 30 days.
-  - id: CVE-2026-69246 # guzzlehttp/guzzle 7.10.0
-    statement: Upstream iTop library, iTop not exposed; update with the iTop dependency refresh.
-    expired_at: 2026-12-23
-  - id: CVE-2026-45073 # symfony/cache 6.4.36
-    statement: Upstream iTop library, iTop not exposed; update with the iTop dependency refresh.
-    expired_at: 2026-12-23
-  - id: CVE-2026-108082 # symfony/http-foundation 6.4.35
-    statement: Upstream iTop library, iTop not exposed; update with the iTop dependency refresh.
-    expired_at: 2026-12-23
-  - id: CVE-2026-48736 # symfony/http-foundation 6.4.35
-    statement: Upstream iTop library, iTop not exposed; update with the iTop dependency refresh.
-    expired_at: 2026-12-23
-  - id: CVE-2026-45068 # symfony/mailer 6.4.34
-    statement: Upstream iTop library, iTop not exposed; update with the iTop dependency refresh.
-    expired_at: 2026-12-23
-  - id: CVE-2026-45067 # symfony/mime 6.4.36
-    statement: Upstream iTop library, iTop not exposed; update with the iTop dependency refresh.
-    expired_at: 2026-12-23
-  - id: CVE-2026-109413 # symfony/yaml 6.4.34
-    statement: Upstream iTop library, iTop not exposed; update with the iTop dependency refresh.
-    expired_at: 2026-12-23
-  - id: CVE-2026-45133 # symfony/yaml 6.4.34
-    statement: Upstream iTop library, iTop not exposed; update with the iTop dependency refresh.
-    expired_at: 2026-12-23
-  - id: CVE-2026-45304 # symfony/yaml 6.4.34
-    statement: Upstream iTop library, iTop not exposed; update with the iTop dependency refresh.
-    expired_at: 2026-12-23
-  - id: CVE-2026-45305 # symfony/yaml 6.4.34
-    statement: Upstream iTop library, iTop not exposed; update with the iTop dependency refresh.
-    expired_at: 2026-12-23
+  # None accepted. (Upstream iTop's PHP libraries were accepted from
+  # 2026-11-23 and fixed the same day by updating them.)
+  []
 
 misconfigurations:
   # --- False positives (no expiry)
