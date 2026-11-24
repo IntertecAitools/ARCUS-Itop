@@ -4,6 +4,25 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-11-24 — IRAOPS: AWS side created and the server's sign-in to AWS checked
+
+Approved by the user after the dry run (20 to add, 0 to change, 0 to destroy, all `iraops-*`; nothing of Intertec's changed).
+
+| Step | Result |
+|---|---|
+| `terraform apply` (`deploy/azure/aws`) | 20 added: OIDC provider for the Azure tenant, role `iraops-azure-server`, bucket `iraops-release-557690608274`, pipeline `iraops-release` with its 2 CodeBuild projects and roles, topic `iraops-notify`, failure rule |
+| `terraform apply` (`deploy/azure/terraform`), `aws_role_arn` and `aws_release_bucket` set | 3 Key Vault entries `agent--*` |
+| Release agent run by hand on the VM (Run command) | first run read nothing from Key Vault (seconds after the entries were written); second run fine: wrote the token (`root:1000`, 640) and `aws.env` |
+| On the VM, with the managed identity's token only: `sts get-caller-identity` | `assumed-role/iraops-azure-server` |
+| `ecr describe-images` on Intertec's `arcus-web` | allowed (tag `3cfa208eaf95`) |
+| `kms describe-key alias/arcus-licence-signing` | allowed, Enabled (signing still needs `licence_extra_signers`) |
+| `s3 ls` on the release bucket | refused, as intended (the role may read only `control/release.json` and `bundles/*`) |
+| Front Door `/healthz` | 502 from Front Door (routing live, no app on the server yet); the earlier 404 has gone |
+| `iraops-release` first run (created with the pipeline), commit 29bfba5c | Source and WaitForBuild succeeded (found Intertec's build), stopped at the approval "ReleaseToIRAOPS"; not approved: settings not in place yet |
+| `iraops-notify` email subscription | pending the user's confirmation |
+
+Not covered yet: the licence key policy (`licence_extra_signers`), the settings in Key Vault, the first release and the app on the server.
+
 ### 2026-11-24 — IRAOPS: Azure set-up created (MCPP Subscription, UAE North)
 
 Approved by the user after the dry run (29 to add, 0 to change, 0 to destroy; about USD 150 a month). Before that, a production check of Intertec after PRs #82 and #83 were deployed by the AWS pipeline (runs for 3d96a179 and 29bfba5c, both Succeeded): `/config.js` gives the Intertec names, the tab reads "Intertec Servicedesk", the ring favicon and the "Intertec SERVICEDESK" wordmark show, `/healthz` 200, no "IRAOPS" on the page.
