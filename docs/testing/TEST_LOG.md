@@ -4,6 +4,22 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-11-24 — PR #83: security scan fixed
+
+GitHub CI "Security scans" failed on PR #83 with 4 infrastructure findings in the new IRAOPS files.
+
+| Finding | What was done |
+|---|---|
+| AZU-0013 (critical): Key Vault open to all networks | fixed: the vault admits only the server's subnet (service endpoint) and `operator_ips` |
+| AZU-0012 (critical): backup storage open to all networks | fixed: the same, for the storage account (the container is managed through Azure Resource Manager, unaffected) |
+| AWS-0132 (high): release bucket without a customer-managed key | accepted in `security/trivyignore.yaml`, same reason and expiry as Intertec's buckets |
+| AWS-0095 (high): IRAOPS notice topic not encrypted | accepted, same reason and expiry as Intertec's topic |
+
+| Run (this laptop) | Result |
+|---|---|
+| `terraform validate` + `fmt`, `deploy/azure/terraform` | valid |
+| `trivy config` 0.76.1 (the CI version) from the repository root with the ignore file, critical/high | 0 findings, exit 0 |
+
 ### 2026-11-24 — IRAOPS on Azure: set-up files checked (step 2, nothing created yet)
 
 `deploy/azure/` (Azure Terraform, the AWS-side Terraform for the `iraops-release` pipeline and the server's role, server scripts, pipeline scripts, settings scripts) and `licence_extra_signers` in `deploy/aws/terraform/licensing.tf` (empty by default: no change to AWS until set).

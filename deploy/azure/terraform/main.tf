@@ -37,6 +37,8 @@ resource "azurerm_subnet" "server" {
   resource_group_name  = azurerm_resource_group.main.name
   virtual_network_name = azurerm_virtual_network.main.name
   address_prefixes     = [cidrsubnet(var.address_space, 8, 1)]
+  # Key Vault and the backup storage admit this subnet only (storage.tf).
+  service_endpoints = ["Microsoft.KeyVault", "Microsoft.Storage"]
 }
 
 resource "azurerm_network_security_group" "server" {

@@ -12,6 +12,15 @@ resource "azurerm_key_vault" "main" {
   purge_protection_enabled   = true
   soft_delete_retention_days = 90
   tags                       = local.tags
+
+  # Only the server's subnet and the operators' addresses (operator_ips:
+  # whoever runs Terraform and the settings scripts) reach the secrets.
+  network_acls {
+    default_action             = "Deny"
+    bypass                     = "AzureServices"
+    virtual_network_subnet_ids = [azurerm_subnet.server.id]
+    ip_rules                   = var.operator_ips
+  }
 }
 
 # Whoever runs Terraform writes the settings (deploy/azure/scripts).
@@ -53,6 +62,15 @@ resource "azurerm_storage_account" "backups" {
   shared_access_key_enabled       = false
   https_traffic_only_enabled      = true
   tags                            = local.tags
+
+  # Only the server's subnet writes and reads backups. Terraform manages the
+  # container through Azure Resource Manager, which this does not block.
+  network_rules {
+    default_action             = "Deny"
+    bypass                     = ["AzureServices"]
+    virtual_network_subnet_ids = [azurerm_subnet.server.id]
+    ip_rules                   = [for ip in var.operator_ips : trimsuffix(ip, "/32")]
+  }
 
   blob_properties {
     delete_retention_policy {

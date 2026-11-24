@@ -30,6 +30,14 @@ variable "address_space" {
   default = "10.40.0.0/16"
 }
 
+# Public addresses (e.g. "203.0.113.7/32") allowed to Key Vault and the
+# backup storage besides the server: the machine that runs Terraform and the
+# settings scripts. Everything else is refused.
+variable "operator_ips" {
+  type    = list(string)
+  default = []
+}
+
 # Who gets the server and backup alerts.
 variable "notify_emails" {
   type    = list(string)

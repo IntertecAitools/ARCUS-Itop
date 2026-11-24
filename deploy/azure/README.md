@@ -26,7 +26,7 @@ The product's name comes from `deploy/azure/server/names.env`
 | The app | `terraform -chdir=deploy/azure/terraform output app_url` (an `*.azurefd.net` address until a domain is added) |
 | Release pipeline | AWS CodePipeline → `iraops-release` (us-east-1, beside Intertec's) |
 | Server | Azure portal → resource group `iraops-prod` → VM `iraops-server`. No SSH: **Run command**, or `az vm run-command invoke` |
-| Settings and secrets | Key Vault `iraops-kv-*`: `prod--*` (prod.env) and `itop--*` (itop.env). Names use `-` for `_` |
+| Settings and secrets | Key Vault `iraops-kv-*`: `prod--*` (prod.env) and `itop--*` (itop.env). Names use `-` for `_`. Reachable only from the server and `operator_ips` |
 | Deploy logs | the pipeline's Release step; on the server `/opt/arcus/state/last-release.log` |
 | Backups | Storage account `iraopsbackups*`, container `daily` (90 days); daily VM backups in the vault `iraops-backup-vault` (14) |
 | Images | Intertec's ECR (read only, with the server's own identity) |
@@ -107,7 +107,7 @@ AWS CLI signed in to the Intertec account, and Terraform.
 # 1. Azure: state storage, then everything else (about 30 resources)
 .\deploy\azure\scripts\bootstrap-state.ps1 -SubscriptionId <subscription>
 cd deploy\azure\terraform
-"subscription_id = `"<subscription>`"`nnotify_emails = [`"approver@example.com`"]" | Set-Content terraform.tfvars
+"subscription_id = `"<subscription>`"`noperator_ips = [`"<your public IP>/32`"]`nnotify_emails = [`"approver@example.com`"]" | Set-Content terraform.tfvars
 terraform init -backend-config=backend.hcl
 terraform apply
 

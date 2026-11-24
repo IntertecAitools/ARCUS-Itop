@@ -44,6 +44,18 @@ misconfigurations:
     paths: ["deploy/aws/terraform/main.tf"]
     statement: Topic carries pipeline notices only, no customer data.
     expired_at: 2027-02-23
+  # IRAOPS's AWS side (deploy/azure/aws), the same two decisions as above,
+  # accepted 2026-11-24: the release bucket holds release bundles, release
+  # control and deploy logs (no customer data), readable only by IRAOPS roles;
+  # its topic carries approval and failure notices only.
+  - id: AWS-0132
+    paths: ["deploy/azure/aws/main.tf"]
+    statement: SSE-S3 (AES-256) is enough for IRAOPS release bundles and control files readable only by its roles.
+    expired_at: 2027-11-23
+  - id: AWS-0095
+    paths: ["deploy/azure/aws/main.tf"]
+    statement: Topic carries IRAOPS pipeline notices only, no customer data.
+    expired_at: 2027-02-23
   # The server reaches ECR, S3, SSM, Bedrock and Microsoft 365 mail, whose
   # addresses change; inbound is CloudFront-only. Restricting egress to those
   # ports and prefix lists is a planned change to the live server.
