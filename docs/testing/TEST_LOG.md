@@ -4,6 +4,19 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-11-24 — IRAOPS: second administrator account
+
+At the user's request: an account like `admin` for Rajagopal K.
+
+| Step | Result |
+|---|---|
+| `admin` checked | UserLocal, profiles Administrator + REST Services User, all organisations, EN US, person in IRAOPS, the only `PLATFORM_LOGINS` entry |
+| One-time password | generated on the laptop, stored only in Key Vault (`user--RajagopalK-initial-password`), read there by the server; never printed. The password the user proposed was not set: the owner sets it after signing in |
+| Person and account (REST, service account) | Person "Rajagopal K", Rajagopal.K@intertecsys.com, organisation IRAOPS; UserLocal `RajagopalK` (id 91), enabled, Administrator + REST Services User |
+| `PLATFORM_LOGINS` | `admin,RajagopalK` in Key Vault; applies on the next IRAOPS release |
+
+Not covered: signing in as the new account (MFA is set up by its owner at first sign-in).
+
 ### 2026-11-24 — IRAOPS: demonstration data for the app's own pages
 
 `backend/scripts/demo-data/seed-app.mjs`, run in a one-off container of the BFF image, through the app's own services as the IRAOPS administrator inside the `iraops` customer (dated history written to the BFF tables directly).
