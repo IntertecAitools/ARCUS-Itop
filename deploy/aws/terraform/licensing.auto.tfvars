@@ -18,3 +18,9 @@ licence_key_custodians = [
 
 # The server may sign too (the operator Licences page, LICENCE_SIGNER=kms).
 licence_server_signs = true
+
+# IRAOPS on Azure signs from its own operator Licences page too
+# (deploy/azure/aws, role iraops-azure-server). Added 2026-11-24.
+licence_extra_signers = [
+  "arn:aws:iam::557690608274:role/iraops-azure-server",
+]

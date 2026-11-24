@@ -4,6 +4,82 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-11-24 — IRAOPS: demonstration data for the app's own pages
+
+`backend/scripts/demo-data/seed-app.mjs`, run in a one-off container of the BFF image, through the app's own services as the IRAOPS administrator inside the `iraops` customer (dated history written to the BFF tables directly).
+
+| Run | Result |
+|---|---|
+| First start | refused: lookups outside a signed-in context ("Sign in to continue"); fixed by running them as the service account inside the customer |
+| Second start | assignment rules 15, request forms 8, auto-close on (5 days, no reminders: no mail), change blackouts 4, post-implementation reviews 40, knowledge settings, knowledge ratings 57, time logged 1,765 entries over 75 days, drafts 4 (admin's); no failure |
+
+Each item is added to the manifest (`cls: "app"`) for the clean-up. Not filled: approvals (needs approval rules and notification sender), licence (to be issued on the Licences page), data-import reports, sign-in audit.
+
+### 2026-11-24 — IRAOPS: release, renames, demonstration data
+
+| Step | Result |
+|---|---|
+| First `iraops-release` run (29bfba5c), approved before the settings existed | failed safely at the first step ("No settings for itop"), nothing started |
+| `init-settings.ps1` | 58 settings (45 `prod--`, 13 `itop--`), new passwords |
+| Release retried by the user in AWS | succeeded 08:43 UTC: db, itop, itop-cron, bff, web healthy; `/config.js` gives the IRAOPS names; the public page shows only IRAOPS (title, logo, favicon, no Intertec/Servicedesk/Arcus/iTop text). Warning: approvals-setup needs `NOTIFICATION_FROM` (no mail yet), retried on a later release |
+| Renames (REST, service account) | Organization 1 "My Company/Department" → "IRAOPS"; Person 1 "My first name My last name" → "IRAOPS Admin" |
+| `backend/scripts/demo-data/seed.mjs` (one-off container of the BFF image on `arcus_itop`) | 3 starts: (1) quoted `ITOP_BASE_URL` from the env file, fixed; (2) manifest folder not writable, 1 organisation created before it, reused by name; (3) catalogue brands already present, now reused and marked `existing` in the manifest. Final run: 10.2 min, 3,075 calls, 0 failures, 3,618 manifest lines |
+| Loaded | 10 clients + 6 suppliers, 27 offices, 42 IT staff in 8 teams, 310 client staff, 82 accounts (random passwords, nobody signs in), 7 service families / 23 services / 63 subcategories, 3 SLAs with 48 SLTs, calendar and business hours, 10 client and 6 supplier contracts, 685 assets and applications, 2,073 tickets over 182 days (924 incidents, 1,039 requests, about 110 changes), 78 CAB decisions, 10 problems with known errors, 18 knowledge articles, 15 reports (saved queries, CSV/Excel/PDF export) |
+| SLA history (direct SQL on the stopwatch columns) | the cron re-flagged timers left with a last start; fixed by computing passed flags from stopped vs deadline and clearing last start. Result: resolution target missed on 10% of incidents and 7% of requests, response target on about 5%; open tickets the cron escalated without being late put back to assigned |
+| Customer | `tenants set iraops --name IRAOPS --all-orgs`: 17 organisations; `unclaimed`: only `arcus-service` |
+| Manifest | `/opt/arcus/demo/manifest.jsonl` on the server, copies in `/opt/arcus/backups` and the backup storage |
+
+Not covered: pages fed only by the BFF's own tables (drafts, time logged, request forms, assignment rules, change blackouts and post-implementation reviews, knowledge workflow, licence) are empty; no licence issued yet. Sign-in checks of the pages were done by the user (staff pages need a signed-in session).
+
+### 2026-11-24 — IRAOPS may sign licences with the licence key
+
+Approved by the user. `licence_extra_signers` in `deploy/aws/terraform/licensing.auto.tfvars` names `iraops-azure-server`.
+
+| Step | Result |
+|---|---|
+| `terraform plan -target=aws_kms_key.licence_signing` (Intertec stack) | 0 add, 1 change, 0 destroy: the key policy only, `+ role/iraops-azure-server` in `IssuerSigns` |
+| `terraform apply` of that plan | 1 changed |
+| Key policy read back | `IssuerSigns`: licence-issuer role, Intertec server, IRAOPS server. `AccountAdministers`, `CustodiansMayRetireWithMfa`, `NobodyElseRetires` unchanged |
+| On the IRAOPS VM with its Azure identity: `kms sign --dry-run` | "The request would have succeeded" (no signature made) |
+
+Why `-target`: a full plan of the Intertec stack with the settings file found locally also adds an approval-email subscription that production does not have (the topic `arcus-servicedesk-notify` has no subscriptions). That is unrelated to IRAOPS and was left as it is, for the user to decide.
+
+### 2026-11-24 — IRAOPS: AWS side created and the server's sign-in to AWS checked
+
+Approved by the user after the dry run (20 to add, 0 to change, 0 to destroy, all `iraops-*`; nothing of Intertec's changed).
+
+| Step | Result |
+|---|---|
+| `terraform apply` (`deploy/azure/aws`) | 20 added: OIDC provider for the Azure tenant, role `iraops-azure-server`, bucket `iraops-release-557690608274`, pipeline `iraops-release` with its 2 CodeBuild projects and roles, topic `iraops-notify`, failure rule |
+| `terraform apply` (`deploy/azure/terraform`), `aws_role_arn` and `aws_release_bucket` set | 3 Key Vault entries `agent--*` |
+| Release agent run by hand on the VM (Run command) | first run read nothing from Key Vault (seconds after the entries were written); second run fine: wrote the token (`root:1000`, 640) and `aws.env` |
+| On the VM, with the managed identity's token only: `sts get-caller-identity` | `assumed-role/iraops-azure-server` |
+| `ecr describe-images` on Intertec's `arcus-web` | allowed (tag `3cfa208eaf95`) |
+| `kms describe-key alias/arcus-licence-signing` | allowed, Enabled (signing still needs `licence_extra_signers`) |
+| `s3 ls` on the release bucket | refused, as intended (the role may read only `control/release.json` and `bundles/*`) |
+| Front Door `/healthz` | 502 from Front Door (routing live, no app on the server yet); the earlier 404 has gone |
+| `iraops-release` first run (created with the pipeline), commit 29bfba5c | Source and WaitForBuild succeeded (found Intertec's build), stopped at the approval "ReleaseToIRAOPS"; not approved: settings not in place yet |
+| `iraops-notify` email subscription | pending the user's confirmation |
+
+Not covered yet: the licence key policy (`licence_extra_signers`), the settings in Key Vault, the first release and the app on the server.
+
+### 2026-11-24 — IRAOPS: Azure set-up created (MCPP Subscription, UAE North)
+
+Approved by the user after the dry run (29 to add, 0 to change, 0 to destroy; about USD 150 a month). Before that, a production check of Intertec after PRs #82 and #83 were deployed by the AWS pipeline (runs for 3d96a179 and 29bfba5c, both Succeeded): `/config.js` gives the Intertec names, the tab reads "Intertec Servicedesk", the ring favicon and the "Intertec SERVICEDESK" wordmark show, `/healthz` 200, no "IRAOPS" on the page.
+
+| Step | Result |
+|---|---|
+| Resource providers in MCPP: Microsoft.KeyVault, Cdn, RecoveryServices, ManagedIdentity | Registered (Compute, Network, Storage, Insights already were) |
+| `bootstrap-state.ps1` | first run stopped at "does the group exist" (PowerShell 5.1 treats the CLI's error as fatal), nothing created; fixed with `az group exists`; second run created `iraops-tfstate` / `iraopstfstate51atn6q7` |
+| `terraform apply` (`deploy/azure/terraform`) | 28 of 29 created; the VM backup was refused: a Trusted Launch VM needs Azure's Enhanced backup policy. Fixed (`policy_type = "V2"`), plan 2 add / 1 destroy (the unused standard policy), applied |
+| VM `iraops-server` | Provisioning succeeded, VM running. Run command: cloud-init done, Docker 29.10.0, AWS CLI 2.42.2, Azure CLI 2.93.0, azcopy 10.34.2, `iraops-release.timer` active, 8 GB RAM, 118 GB free disk |
+| Server reachable directly from the internet (port 8088, port 22) | no answer (closed: the firewall admits Front Door only) |
+| Front Door `https://iraops-aeaaa5-cxe7f4ewavapffa8.z01.azurefd.net` | answers; http redirected; 404 right after creation (routing still reaching the edge) |
+
+Created: resource group `iraops-prod` with VM, disk, VNet/subnet, NSG, public IP, NIC, Front Door profile/endpoint/origin group/origin/2 routes, Key Vault `iraops-kv-aeaaa5`, storage `iraopsbackupsaeaaa5` + container + lifecycle rule, Recovery Services vault + Enhanced daily-14 policy + protected VM, action group + availability alert, 4 role assignments.
+
+Not covered yet: the app itself (no release yet), the AWS side (role, release bucket, `iraops-release` pipeline), the licence key policy, settings in Key Vault.
+
 ### 2026-11-24 — PR #83: security scan fixed
 
 GitHub CI "Security scans" failed on PR #83 with 4 infrastructure findings in the new IRAOPS files.

@@ -132,6 +132,10 @@ resource "azurerm_backup_policy_vm" "daily" {
   resource_group_name = azurerm_resource_group.main.name
   recovery_vault_name = azurerm_recovery_services_vault.main.name
   timezone            = "Arabian Standard Time"
+  # A Trusted Launch VM (secure boot, vTPM) is backed up only with Azure's
+  # Enhanced policy.
+  policy_type                    = "V2"
+  instant_restore_retention_days = 2
 
   backup {
     frequency = "Daily"
