@@ -4,6 +4,18 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-11-24 — IRAOPS: licence issued from Azure, second operator in force
+
+| Check (on the server) | Result |
+|---|---|
+| Release 19eaee80fbb7 (`PLATFORM_LOGINS` change) | succeeded 10:14 UTC; all services healthy; BFF has `PLATFORM_LOGINS=admin,RajagopalK` |
+| Licence issued by the user on the operator Licences page | register: ARC-2026-000001 (10:45:31) and ARC-2026-000002 (10:46:07), both IRAOPS, order IRAOPS-2026-001, `tenant:iraops`, Enterprise, subscription to 2027-11-23, issued by admin (Issue pressed twice) |
+| Signature | both `kid arcus-2026-1`, RSA-PSS-SHA256: signed in AWS KMS by the IRAOPS server through its Azure identity (first real use of the federation for signing) |
+| Licence state for `iraops` | evaluation_mode → valid at 10:45:32 |
+| Terms of service | accepted (saas-terms-2026-11-19) at 10:49:16 |
+
+Open: one of the two identical licences can be revoked on the Register to keep it tidy (no effect on the service).
+
 ### 2026-11-24 — IRAOPS: second administrator account
 
 At the user's request: an account like `admin` for Rajagopal K.
