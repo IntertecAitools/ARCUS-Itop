@@ -4,6 +4,19 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-11-24 — IRAOPS may sign licences with the licence key
+
+Approved by the user. `licence_extra_signers` in `deploy/aws/terraform/licensing.auto.tfvars` names `iraops-azure-server`.
+
+| Step | Result |
+|---|---|
+| `terraform plan -target=aws_kms_key.licence_signing` (Intertec stack) | 0 add, 1 change, 0 destroy: the key policy only, `+ role/iraops-azure-server` in `IssuerSigns` |
+| `terraform apply` of that plan | 1 changed |
+| Key policy read back | `IssuerSigns`: licence-issuer role, Intertec server, IRAOPS server. `AccountAdministers`, `CustodiansMayRetireWithMfa`, `NobodyElseRetires` unchanged |
+| On the IRAOPS VM with its Azure identity: `kms sign --dry-run` | "The request would have succeeded" (no signature made) |
+
+Why `-target`: a full plan of the Intertec stack with the settings file found locally also adds an approval-email subscription that production does not have (the topic `arcus-servicedesk-notify` has no subscriptions). That is unrelated to IRAOPS and was left as it is, for the user to decide.
+
 ### 2026-11-24 — IRAOPS: AWS side created and the server's sign-in to AWS checked
 
 Approved by the user after the dry run (20 to add, 0 to change, 0 to destroy, all `iraops-*`; nothing of Intertec's changed).
