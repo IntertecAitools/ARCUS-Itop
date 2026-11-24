@@ -61,12 +61,22 @@ variable "licence_server_signs" {
   default     = false
 }
 
+# Other servers that sign with this key from their operator Licences page:
+# IRAOPS on Azure (deploy/azure/aws, role iraops-azure-server). Each must
+# exist before it is named here (KMS checks), and each also needs its own
+# IAM permission (it has it in deploy/azure/aws).
+variable "licence_extra_signers" {
+  type    = list(string)
+  default = []
+}
+
 locals {
   licence_signing = var.licence_signing_enabled ? 1 : 0
   licence_server  = var.licence_signing_enabled && var.licence_server_signs ? 1 : 0
   licence_signers = concat(
     ["arn:aws:iam::${local.account}:role/${var.project}-licence-issuer"],
     var.licence_server_signs ? [aws_iam_role.server.arn] : [],
+    var.licence_extra_signers,
   )
   account_root = "arn:aws:iam::${local.account}:root"
 }

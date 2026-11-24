@@ -1,0 +1,11 @@
+# IRAOPS on Azure: added on top of docker/docker-compose.prod.yml by
+# deploy.sh. The BFF signs licences in AWS KMS with the server's Azure
+# identity: the token the release agent refreshes every minute, exchanged
+# for the IRAOPS role (AWS_ROLE_ARN in prod.env, deploy/azure/aws).
+services:
+  bff:
+    environment:
+      AWS_WEB_IDENTITY_TOKEN_FILE: /var/run/aws/token
+      AWS_ROLE_SESSION_NAME: iraops-bff
+    volumes:
+      - /opt/arcus/aws:/var/run/aws:ro
