@@ -92,6 +92,13 @@ services:
     restart: unless-stopped
     environment:
       BFF_UPSTREAM: http://bff:4000
+      # The installation's names (docs/deployment.md, "The product's name"),
+      # read when the container starts: the same image runs as any product.
+      # PLATFORM_NAME may be empty (no line under the name).
+      APP_NAME: ${APP_NAME:-${VITE_APP_NAME:-Intertec}}
+      PLATFORM_NAME: ${PLATFORM_NAME-${VITE_PLATFORM_NAME:-Servicedesk}}
+      COMPANY_NAME: ${COMPANY_NAME:-Intertec}
+      BRAND_MARK: ${BRAND_MARK:-intertec}
     depends_on:
       bff:
         condition: service_healthy

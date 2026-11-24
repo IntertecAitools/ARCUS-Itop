@@ -1,5 +1,7 @@
 # Rendered by the nginx image at start (envsubst): ${BFF_UPSTREAM} is the BFF's
-# address, e.g. http://bff:4000. nginx's own $variables are left alone.
+# address, e.g. http://bff:4000; ${APP_NAME}, ${PLATFORM_NAME}, ${COMPANY_NAME}
+# and ${BRAND_MARK} are the installation's names (/config.js below; no quotes
+# or backslashes in them). nginx's own $variables are left alone.
 
 # Keep the scheme the outer TLS proxy saw; fall back to this hop's.
 map $http_x_forwarded_proto $forwarded_proto {
@@ -69,6 +71,15 @@ server {
     access_log off;
     default_type text/plain;
     return 200 "ok\n";
+  }
+
+  # The installation's names, read by the page before anything else
+  # (index.html, config/env.ts): one build runs as any product.
+  location = /config.js {
+    default_type application/javascript;
+    add_header Cache-Control "no-cache" always;
+    add_header X-Content-Type-Options nosniff always;
+    return 200 'window.__APP_CONFIG__={"appName":"${APP_NAME}","platformName":"${PLATFORM_NAME}","companyName":"${COMPANY_NAME}","brandMark":"${BRAND_MARK}"};';
   }
 
   # Vite's hashed bundles never change under the same name.

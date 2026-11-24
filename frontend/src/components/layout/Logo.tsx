@@ -1,6 +1,42 @@
 import { useId } from 'react';
 import { cn } from '@/lib/utils';
+import { env } from '@/config/env';
 import { useProductName } from '@/features/branding';
+
+/** The installation's built-in mark (BRAND_MARK on the web server): Intertec's, or IRAOPS'. */
+export function LogoMark({ className }: { className?: string }) {
+  return env.brandMark === 'iraops' ? <IraopsMark className={className} /> : <IntertecMark className={className} />;
+}
+
+/**
+ * The IRAOPS mark: a hexagon framing a line that climbs to a teal dot.
+ *
+ * Same footprint and theming as the Intertec mark: the frame and line take
+ * the theme's ink (`--arcus-logo-ink`); the dot is IRAOPS teal in both themes.
+ */
+export function IraopsMark({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 400 470" className={className} role="img" aria-hidden focusable="false">
+      <g style={{ fill: 'var(--arcus-logo-ink, currentColor)' }}>
+        {/* Hexagon frame, point up. */}
+        <path
+          fillRule="evenodd"
+          d="M200 45 L377.5 147.5 L377.5 352.5 L200 455 L22.5 352.5 L22.5 147.5 Z M200 83 L344.6 166.5 L344.6 333.5 L200 417 L55.4 333.5 L55.4 166.5 Z"
+        />
+      </g>
+      {/* The climbing line: a dip, then up to the dot. */}
+      <path
+        d="M98 310 L162 246 L210 294 L292 212"
+        style={{ stroke: 'var(--arcus-logo-ink, currentColor)' }}
+        fill="none"
+        strokeWidth="34"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="300" cy="204" r="34" style={{ fill: '#13a58c' }} />
+    </svg>
+  );
+}
 
 /**
  * The Intertec mark: a ring opened by a needle rising to a red dot.
@@ -9,7 +45,7 @@ import { useProductName } from '@/features/branding';
  * near-white on dark, `--arcus-logo-ink`) and stays crisp at any size. The
  * dot keeps the brand red in both themes (`--arcus-logo-dot`).
  */
-export function LogoMark({ className }: { className?: string }) {
+export function IntertecMark({ className }: { className?: string }) {
   // Unique per instance: the logo appears more than once on some pages.
   const mask = `intertec-gap-${useId().replace(/:/g, '')}`;
   return (

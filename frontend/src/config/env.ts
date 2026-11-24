@@ -27,18 +27,48 @@ interface Env {
   isMock: boolean;
   bffUrl: string;
   appName: string;
-  /** The system of record, shown under the wordmark. */
+  /** Shown under the wordmark ("Servicedesk"); empty for none. */
   platformName: string;
+  /** The name and the line under it together: "Intertec Servicedesk", or "IRAOPS". */
+  fullName: string;
+  /** The company that issues licences ("Intertec"). */
+  companyName: string;
+  /** Which built-in logo the installation shows (components/layout/Logo). */
+  brandMark: 'intertec' | 'iraops';
   defaultLocale: string;
   isDev: boolean;
 }
+
+/**
+ * The installation's names, set on the web server when it starts rather than
+ * compiled in, so one build runs under any name: nginx answers /config.js
+ * from APP_NAME, PLATFORM_NAME, COMPANY_NAME and BRAND_MARK
+ * (nginx/default.conf.template). Without it (development, tests) the file in
+ * public/ is empty and the VITE_* values below apply.
+ */
+interface RuntimeConfig {
+  appName?: string;
+  platformName?: string;
+  companyName?: string;
+  brandMark?: string;
+}
+
+const runtime: RuntimeConfig =
+  (typeof window !== 'undefined' && (window as { __APP_CONFIG__?: RuntimeConfig }).__APP_CONFIG__) || {};
+
+const appName = runtime.appName || import.meta.env.VITE_APP_NAME || 'Intertec';
+// An empty PLATFORM_NAME on the server means no line under the name.
+const platformName = runtime.platformName ?? (import.meta.env.VITE_PLATFORM_NAME || 'Servicedesk');
 
 export const env: Env = {
   apiMode: mode,
   isMock: mode === 'mock',
   bffUrl: import.meta.env.VITE_BFF_URL || 'http://localhost:4000/api',
-  appName: import.meta.env.VITE_APP_NAME || 'Intertec',
-  platformName: import.meta.env.VITE_PLATFORM_NAME || 'Servicedesk',
+  appName,
+  platformName,
+  fullName: [appName, platformName].filter(Boolean).join(' '),
+  companyName: runtime.companyName || import.meta.env.VITE_COMPANY_NAME || 'Intertec',
+  brandMark: (runtime.brandMark || import.meta.env.VITE_BRAND_MARK) === 'iraops' ? 'iraops' : 'intertec',
   defaultLocale: import.meta.env.VITE_DEFAULT_LOCALE || 'en',
   isDev: import.meta.env.DEV,
 };

@@ -352,7 +352,7 @@ function BrandPreview({ accent, name, logo }: { accent: string; name: string; lo
 export function BrandingPanel({ tenant }: { tenant: TenantDetail }) {
   const { t } = useTranslation();
   const save = useSaveBranding(tenant.id);
-  const defaultName = `${env.appName} ${env.platformName}`;
+  const defaultName = env.fullName;
   const [productName, setProductName] = useState(tenant.branding.productName ?? '');
   const [accent, setAccent] = useState(tenant.branding.accentColor ?? '#6d4aff');
   const [logo, setLogo] = useState<string | undefined>(undefined);

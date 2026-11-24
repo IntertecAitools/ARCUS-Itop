@@ -5,7 +5,9 @@
 #   docker build -t arcus-web frontend
 #
 # VITE_* values are compiled into the bundle, so they are build arguments, not
-# runtime settings. BFF_UPSTREAM (where nginx finds the BFF) is a runtime one.
+# runtime settings. BFF_UPSTREAM (where nginx finds the BFF) and the
+# installation's names (APP_NAME, PLATFORM_NAME, COMPANY_NAME, BRAND_MARK,
+# served as /config.js) are runtime ones: one image runs as any product.
 
 ARG NODE_IMAGE=node:24.22.1-alpine3.24
 ARG NGINX_IMAGE=nginx:1.30.7-alpine3.24
@@ -34,7 +36,7 @@ FROM ${NGINX_IMAGE}
 # The base image's OS security fixes (security/README.md).
 RUN apk upgrade --no-cache
 # The image renders /etc/nginx/templates/*.template with envsubst at start.
-ENV BFF_UPSTREAM=http://bff:4000
+ENV BFF_UPSTREAM=http://bff:4000     APP_NAME=Intertec     PLATFORM_NAME=Servicedesk     COMPANY_NAME=Intertec     BRAND_MARK=intertec
 COPY nginx/default.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 80

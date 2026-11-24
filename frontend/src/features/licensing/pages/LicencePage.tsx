@@ -1,3 +1,4 @@
+import { env } from '@/config/env';
 import { useState } from 'react';
 import { PageHeader } from '@/components/layout';
 import { Button, Card, CardBody, CardHeader, Input, Skeleton } from '@/components/ui';
@@ -177,8 +178,9 @@ function InstallKey({ detail }: { detail: LicenceDetail }) {
 
 /**
  * Activation (deployed, Build Guide section 10): the installation's signed
- * request for its licence. Online it goes to Intertec and the licence that
- * comes back is installed; offline it is downloaded, to send to Intertec.
+ * request for its licence. Online it goes to the company that issues licences
+ * (env.companyName) and the licence that comes back is installed; offline it
+ * is downloaded, to send to it.
  */
 function Activation({ detail }: { detail: LicenceDetail }) {
   const a = detail.activation!;
@@ -190,7 +192,7 @@ function Activation({ detail }: { detail: LicenceDetail }) {
     <Card>
       <CardHeader
         title="Activation"
-        subtitle={a.online ? 'Requests go to Intertec directly; the licence that comes back is installed.' : 'This installation is offline: download the request and send it to Intertec, then install the licence file that comes back.'}
+        subtitle={a.online ? `Requests go to ${env.companyName} directly; the licence that comes back is installed.` : `This installation is offline: download the request and send it to ${env.companyName}, then install the licence file that comes back.`}
       />
       <CardBody>
         <div className="space-y-3">
@@ -233,7 +235,7 @@ function UsageReport() {
   const report = useUsageReport();
   return (
     <Card>
-      <CardHeader title="Usage report" subtitle="The daily figures and peaks for a period, signed by this installation, for Intertec." />
+      <CardHeader title="Usage report" subtitle={`The daily figures and peaks for a period, signed by this installation, for ${env.companyName}.`} />
       <CardBody>
         <div className="flex flex-wrap items-end gap-3">
           <label className="space-y-1 text-[13px] text-ink">
@@ -378,7 +380,7 @@ export function LicencePage() {
 
         {data.installation ? (
           <Card>
-            <CardHeader title="This installation" subtitle="Intertec binds the licence to this id, and checks usage reports with this key." />
+            <CardHeader title="This installation" subtitle={`${env.companyName} binds the licence to this id, and checks usage reports with this key.`} />
             <CardBody>
               <dl className="grid gap-3" data-testid="licence-installation">
                 <Fact label="Installation id" value={data.installation.id} />

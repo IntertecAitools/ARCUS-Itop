@@ -18,3 +18,16 @@ try {
     document.documentElement.dir = 'rtl';
   }
 } catch (e) {}
+// The installation's name in the tab, and its logo as the favicon, from
+// /config.js (loaded just before this file). The app sets the same once it
+// runs (features/branding), and a tenant's own branding after that.
+try {
+  var c = window.__APP_CONFIG__ || {};
+  var n = c.appName || 'Intertec';
+  var p = c.platformName === undefined ? 'Servicedesk' : c.platformName;
+  document.title = p ? n + ' ' + p : n;
+  if (c.brandMark === 'iraops') {
+    var i = document.querySelector('link[rel="icon"]');
+    if (i) i.setAttribute('href', '/brand/iraops-favicon.svg');
+  }
+} catch (e) {}

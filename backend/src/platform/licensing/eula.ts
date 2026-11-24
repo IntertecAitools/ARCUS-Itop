@@ -208,7 +208,29 @@ Each party will comply with the laws that apply to it in performing these Terms,
 16.8 Changes. Intertec may publish a new version of these Terms. Your administrators will be asked to accept it in the Service; material changes that reduce your rights apply from your next renewal unless you accept them earlier.`,
 };
 
+/**
+ * The names an agreement uses: the product ("Arcus") and the company that
+ * licenses it ("Intertec"). PRODUCT_NAME and COMPANY_NAME change them for an
+ * installation sold under another name; the defaults keep the texts above
+ * word for word.
+ */
+export interface ProductNames {
+  product: string;
+  company: string;
+}
+
+export const DEFAULT_NAMES: ProductNames = { product: "Arcus", company: "Intertec" };
+
+function withNames(a: Agreement, names: ProductNames): Agreement {
+  if (names.product === DEFAULT_NAMES.product && names.company === DEFAULT_NAMES.company) return a;
+  const text = a.text
+    .replace(/ARCUS/g, names.product.toUpperCase())
+    .replace(/\bArcus\b/g, names.product)
+    .replace(/\bIntertec\b/g, names.company);
+  return { ...a, text };
+}
+
 /** The agreement for this deployment: the terms of service when hosted (TENANCY on), else the EULA. */
-export function agreementFor(saas: boolean): Agreement {
-  return saas ? SAAS_TERMS : EULA;
+export function agreementFor(saas: boolean, names: ProductNames = DEFAULT_NAMES): Agreement {
+  return withNames(saas ? SAAS_TERMS : EULA, names);
 }
