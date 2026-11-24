@@ -1,0 +1,5 @@
+# The server runs these on Linux: Linux line endings, also in a Windows checkout
+# (Terraform reads cloud-init.sh and release-agent.sh from the working copy).
+*.sh  text eol=lf
+*.env text eol=lf
+*.yml text eol=lf

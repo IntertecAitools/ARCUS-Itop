@@ -1,0 +1,25 @@
+# iraops-release pipeline, "WaitForBuild" (CodeBuild): waits for the Intertec
+# build of this commit (built and tested once, there), then packages what the
+# IRAOPS server needs besides the images. See deploy/azure/README.md.
+version: 0.2
+
+env:
+  exported-variables:
+    - APP_TAG
+    - ITOP_TAG
+
+phases:
+  build:
+    commands:
+      - COMMIT=$CODEBUILD_RESOLVED_SOURCE_VERSION bash deploy/azure/pipeline/wait-for-build.sh | tee /tmp/wait.log
+      - APP_TAG=$(sed -n 's/^APP_TAG=//p' /tmp/wait.log | tail -1)
+      - ITOP_TAG=$(sed -n 's/^ITOP_TAG=//p' /tmp/wait.log | tail -1)
+      - test -n "$APP_TAG" && test -n "$ITOP_TAG"
+      # The compose file, the scripts it mounts, the Azure deploy scripts and
+      # the signature check: the same files as the Intertec bundle, with
+      # deploy/azure/server instead of deploy/aws/server.
+      - >-
+        tar -czf bundle.tgz docker/docker-compose.prod.yml docker/backup docker/mysql-init deploy/azure/server
+        security/versions.env security/install-cosign.sh security/verify-image.sh
+      - aws s3 cp bundle.tgz "s3://$RELEASE_BUCKET/bundles/$APP_TAG.tgz" --only-show-errors
+      - echo "IRAOPS release bundle s3://$RELEASE_BUCKET/bundles/$APP_TAG.tgz"

@@ -4,6 +4,35 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-11-24 — PR #83: security scan fixed
+
+GitHub CI "Security scans" failed on PR #83 with 4 infrastructure findings in the new IRAOPS files.
+
+| Finding | What was done |
+|---|---|
+| AZU-0013 (critical): Key Vault open to all networks | fixed: the vault admits only the server's subnet (service endpoint) and `operator_ips` |
+| AZU-0012 (critical): backup storage open to all networks | fixed: the same, for the storage account (the container is managed through Azure Resource Manager, unaffected) |
+| AWS-0132 (high): release bucket without a customer-managed key | accepted in `security/trivyignore.yaml`, same reason and expiry as Intertec's buckets |
+| AWS-0095 (high): IRAOPS notice topic not encrypted | accepted, same reason and expiry as Intertec's topic |
+
+| Run (this laptop) | Result |
+|---|---|
+| `terraform validate` + `fmt`, `deploy/azure/terraform` | valid |
+| `trivy config` 0.76.1 (the CI version) from the repository root with the ignore file, critical/high | 0 findings, exit 0 |
+
+### 2026-11-24 — IRAOPS on Azure: set-up files checked (step 2, nothing created yet)
+
+`deploy/azure/` (Azure Terraform, the AWS-side Terraform for the `iraops-release` pipeline and the server's role, server scripts, pipeline scripts, settings scripts) and `licence_extra_signers` in `deploy/aws/terraform/licensing.tf` (empty by default: no change to AWS until set).
+
+| Run (this laptop) | Result |
+|---|---|
+| `terraform validate` + `fmt`, `deploy/azure/terraform` (azurerm 4.x) | valid (one deprecated argument removed) |
+| `terraform validate` + `fmt`, `deploy/azure/aws` (aws 6.x) | valid |
+| `bash -n` on `deploy.sh`, `release-agent.sh`, `cloud-init.sh`, `wait-for-build.sh`, `release.sh` | no syntax errors |
+| `wait-for-build.sh` against the real Intertec pipeline (read only, in an aws-cli container), commit 136b5295 | found run fc6663fe, Build succeeded, app `136b52952efe`, iTop `itop-5eef9dacc2414264`; images and bundle present |
+
+Not covered yet: `terraform plan` against Azure (the Azure CLI could not be installed: the laptop's C: drive is full), the deploy on a real VM, the federation from the VM's identity to AWS, Front Door. These are step 4.
+
 ### 2026-11-24 — The product's name as a setting (IRAOPS, step 1)
 
 The name is now read when the containers start instead of being compiled in, so one build runs as Intertec (AWS) and as IRAOPS (Azure). Unset, everything says Intertec Servicedesk as before. New settings: `APP_NAME`, `PLATFORM_NAME`, `BRAND_MARK`, `COMPANY_NAME` (web, served as `/config.js` by nginx) and `PRODUCT_NAME`, `COMPANY_NAME`, `PUBLIC_NAME` (BFF: agreements, licence messages, what errors call the system of record; `MFA_ISSUER` defaults to `<PRODUCT_NAME> Helpdesk`). An IRAOPS logo (`BRAND_MARK=iraops`) was added.
