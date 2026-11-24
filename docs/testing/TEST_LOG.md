@@ -4,6 +4,23 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-11-24 — IRAOPS: Azure set-up created (MCPP Subscription, UAE North)
+
+Approved by the user after the dry run (29 to add, 0 to change, 0 to destroy; about USD 150 a month). Before that, a production check of Intertec after PRs #82 and #83 were deployed by the AWS pipeline (runs for 3d96a179 and 29bfba5c, both Succeeded): `/config.js` gives the Intertec names, the tab reads "Intertec Servicedesk", the ring favicon and the "Intertec SERVICEDESK" wordmark show, `/healthz` 200, no "IRAOPS" on the page.
+
+| Step | Result |
+|---|---|
+| Resource providers in MCPP: Microsoft.KeyVault, Cdn, RecoveryServices, ManagedIdentity | Registered (Compute, Network, Storage, Insights already were) |
+| `bootstrap-state.ps1` | first run stopped at "does the group exist" (PowerShell 5.1 treats the CLI's error as fatal), nothing created; fixed with `az group exists`; second run created `iraops-tfstate` / `iraopstfstate51atn6q7` |
+| `terraform apply` (`deploy/azure/terraform`) | 28 of 29 created; the VM backup was refused: a Trusted Launch VM needs Azure's Enhanced backup policy. Fixed (`policy_type = "V2"`), plan 2 add / 1 destroy (the unused standard policy), applied |
+| VM `iraops-server` | Provisioning succeeded, VM running. Run command: cloud-init done, Docker 29.10.0, AWS CLI 2.42.2, Azure CLI 2.93.0, azcopy 10.34.2, `iraops-release.timer` active, 8 GB RAM, 118 GB free disk |
+| Server reachable directly from the internet (port 8088, port 22) | no answer (closed: the firewall admits Front Door only) |
+| Front Door `https://iraops-aeaaa5-cxe7f4ewavapffa8.z01.azurefd.net` | answers; http redirected; 404 right after creation (routing still reaching the edge) |
+
+Created: resource group `iraops-prod` with VM, disk, VNet/subnet, NSG, public IP, NIC, Front Door profile/endpoint/origin group/origin/2 routes, Key Vault `iraops-kv-aeaaa5`, storage `iraopsbackupsaeaaa5` + container + lifecycle rule, Recovery Services vault + Enhanced daily-14 policy + protected VM, action group + availability alert, 4 role assignments.
+
+Not covered yet: the app itself (no release yet), the AWS side (role, release bucket, `iraops-release` pipeline), the licence key policy, settings in Key Vault.
+
 ### 2026-11-24 — PR #83: security scan fixed
 
 GitHub CI "Security scans" failed on PR #83 with 4 infrastructure findings in the new IRAOPS files.

@@ -13,7 +13,10 @@ $ErrorActionPreference = 'Stop'
 az account set --subscription $SubscriptionId
 $hcl = Join-Path $PSScriptRoot '..\terraform\backend.hcl'
 
-$existing = az storage account list --resource-group $Group --query "[?starts_with(name,'iraopstfstate')].name | [0]" -o tsv 2>$null
+$existing = $null
+if ((az group exists --name $Group) -eq 'true') {
+  $existing = az storage account list --resource-group $Group --query "[?starts_with(name,'iraopstfstate')].name | [0]" -o tsv
+}
 if ($existing) {
   Write-Host "state storage exists: $existing"
   $account = $existing
