@@ -4,6 +4,24 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-11-24 — The product's name as a setting (IRAOPS, step 1)
+
+The name is now read when the containers start instead of being compiled in, so one build runs as Intertec (AWS) and as IRAOPS (Azure). Unset, everything says Intertec Servicedesk as before. New settings: `APP_NAME`, `PLATFORM_NAME`, `BRAND_MARK`, `COMPANY_NAME` (web, served as `/config.js` by nginx) and `PRODUCT_NAME`, `COMPANY_NAME`, `PUBLIC_NAME` (BFF: agreements, licence messages, what errors call the system of record; `MFA_ISSUER` defaults to `<PRODUCT_NAME> Helpdesk`). An IRAOPS logo (`BRAND_MARK=iraops`) was added.
+
+| Run (this laptop, Windows) | Result |
+|---|---|
+| Backend typecheck | clean |
+| Backend unit tests (`npm test`), with the new `product-names.test.ts` | 1008 passed, 0 failed |
+| Frontend typecheck (`tsc -b`) | clean |
+| Frontend vitest, with two new cases in `config/env.test.ts` | 337 passed, 0 failed (64 files) |
+| Production build served with an IRAOPS `/config.js` (browser) | tab "IRAOPS", IRAOPS logo and favicon, no "Intertec", "Servicedesk" or "Arcus" on the landing or sign-in page |
+| Same build with the default (empty) `/config.js` | tab "Intertec Servicedesk", ring logo, "SERVICEDESK" under the name: unchanged |
+| `arcus-web` image built from this branch, run without settings / with the IRAOPS settings | `/config.js` gives the Intertec names / the IRAOPS names (empty `PLATFORM_NAME` kept empty), `application/javascript`, `no-cache` |
+
+Bugs found: none in the product. While writing, a shell quirk put control characters into two regular expressions instead of `\b`; the first test run caught it and it was fixed before commit.
+
+Not covered: a full stack with iTop (the BFF's names are covered by unit tests). The hook did not record these runs automatically in this worktree, so they are listed here by hand.
+
 ### 2026-11-23 — iTop to Combodo's latest, its libraries patched, MySQL 8.4.13, PHP 8.4
 
 Phase 1 of bringing everything up to date, approved by the user. iTop/ was Combodo's `develop` at 11fba06d (2026-09-29, found by comparing all 11,029 files); it is now `develop` at ac8b331a (2026-11-19, 40 changes, still 3.4.0). Combodo's latest still ships the vulnerable libraries, so they were updated here with Composer (on PHP 8.3, every Symfony 6.4 component held on 6.4).

@@ -122,7 +122,7 @@ function LandingHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-canvas/70 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-6 px-5 sm:px-8">
-        <Link to="/" aria-label={`${env.appName} ${env.platformName}, home`} className="me-auto lg:me-0 lg:flex-1">
+        <Link to="/" aria-label={`${env.fullName}, home`} className="me-auto lg:me-0 lg:flex-1">
           <Logo />
         </Link>
         <nav aria-label="Main" className="hidden items-center gap-8 lg:flex">
@@ -208,7 +208,7 @@ function LandingFooter() {
       </div>
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 border-t border-line px-5 py-6 text-[13px] text-ink-muted sm:px-8">
         <span>
-          © {new Date().getFullYear()} {env.appName} · {env.platformName}
+          © {new Date().getFullYear()} {[env.appName, env.platformName].filter(Boolean).join(' · ')}
         </span>
         <PublicThemeToggle />
       </div>
@@ -281,7 +281,7 @@ function Hero() {
 
           <Reveal delay={700}>
             <p className="mx-auto mt-6 max-w-2xl text-[16px] leading-7 text-ink-secondary sm:text-[18px]">
-              {env.appName} {env.platformName} brings incidents, requests, approvals, problems and changes into one
+              {env.fullName} brings incidents, requests, approvals, problems and changes into one
               workspace, with SLAs that keep themselves honest and a portal every employee can use.
             </p>
           </Reveal>

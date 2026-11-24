@@ -17,6 +17,8 @@ export interface ActivationOptions {
   activationUrl?: string;
   /** Intertec's signed revocation list, fetched daily. */
   revocationUrl?: string;
+  /** The company that issues licences, in the messages (COMPANY_NAME; default Intertec). */
+  company?: string;
   /** Injected in tests. */
   fetch?: typeof fetch;
 }
@@ -37,6 +39,7 @@ const ActivationBody = z.object({
  */
 export function registerActivationRoutes(app: FastifyInstance, licensing: LicenceService, options: ActivationOptions): void {
   const doFetch = options.fetch ?? fetch;
+  const company = options.company ?? "Intertec";
 
   app.post("/api/licence/activation-request", async (request): Promise<ActivationResponse> => {
     const caller = currentCaller();
@@ -54,8 +57,8 @@ export function registerActivationRoutes(app: FastifyInstance, licensing: Licenc
     });
 
     if (!options.activationUrl) {
-      await licensing.event(INSTALLATION_SCOPE, "activation", caller.login, "Activation request created as a file, to send to Intertec.");
-      return { mode: "offline", request: doc, installed: false, message: "Send this file to Intertec; upload the licence file that comes back." };
+      await licensing.event(INSTALLATION_SCOPE, "activation", caller.login, `Activation request created as a file, to send to ${company}.`);
+      return { mode: "offline", request: doc, installed: false, message: `Send this file to ${company}; upload the licence file that comes back.` };
     }
 
     let message: string;
@@ -71,18 +74,18 @@ export function registerActivationRoutes(app: FastifyInstance, licensing: Licenc
         try {
           const result = await licensing.install(INSTALLATION_SCOPE, answer.licence, caller.login, false, body.acceptEula === true);
           message = `Activated: ${result.summary?.licenceId} installed.`;
-          await licensing.event(INSTALLATION_SCOPE, "activation", caller.login, `Activation request sent to Intertec; ${message}`);
+          await licensing.event(INSTALLATION_SCOPE, "activation", caller.login, `Activation request sent to ${company}; ${message}`);
           return { mode: "online", installed: true, message };
         } catch (err) {
           if (!(err instanceof LicenceError)) throw err;
-          message = `Intertec answered with a licence this installation refused: ${err.message}`;
+          message = `${company} answered with a licence this installation refused: ${err.message}`;
         }
       } else {
-        message = typeof answer.message === "string" ? `Intertec: ${answer.message}` : `Intertec's activation address answered ${res.status}.`;
+        message = typeof answer.message === "string" ? `${company}: ${answer.message}` : `${company}'s activation address answered ${res.status}.`;
       }
     } catch (err) {
       if (err instanceof AppError) throw err;
-      message = `Intertec's activation address could not be reached (${(err as Error).message}). Download the request and send it instead.`;
+      message = `${company}'s activation address could not be reached (${(err as Error).message}). Download the request and send it instead.`;
     }
     await licensing.event(INSTALLATION_SCOPE, "activation", caller.login, `Activation request not completed: ${message}`);
     // The file always comes back too, so an administrator can fall back to sending it.

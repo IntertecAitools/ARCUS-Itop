@@ -75,6 +75,7 @@ export function buildLicensing(
       keys: { allowDevKey: config.keys.allowDevKey, ...(devPublicKeyPem ? { devPublicKeyPem } : {}) },
       tenancy,
       installationKind: config.installationKind,
+      ...(config.names ? { names: config.names } : {}),
       ...(config.clusterId ? { clusterId: config.clusterId } : {}),
       ...(config.releaseDate ? { releaseDate: config.releaseDate } : {}),
       // SaaS: the platform's register says which licences are revoked.

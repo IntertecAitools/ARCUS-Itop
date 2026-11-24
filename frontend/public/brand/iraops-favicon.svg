@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-35 0 470 470">
+  <style>.i{fill:#3d3d3d}.l{stroke:#3d3d3d}@media (prefers-color-scheme:dark){.i{fill:#f2f0f8}.l{stroke:#f2f0f8}}</style>
+  <path class="i" fill-rule="evenodd" d="M200 45 L377.5 147.5 L377.5 352.5 L200 455 L22.5 352.5 L22.5 147.5 Z M200 83 L344.6 166.5 L344.6 333.5 L200 417 L55.4 333.5 L55.4 166.5 Z"/>
+  <path class="l" d="M98 310 L162 246 L210 294 L292 212" fill="none" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="300" cy="204" r="34" fill="#13a58c"/>
+</svg>

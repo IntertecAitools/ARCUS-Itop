@@ -35,9 +35,9 @@ export function useProductName() {
   const { data } = useBranding();
   return {
     custom: Boolean(data?.productName),
-    full: data?.productName ?? `${env.appName} ${env.platformName}`,
+    full: data?.productName ?? env.fullName,
     wordmark: data?.productName ?? env.appName,
-    tagline: data?.productName ? undefined : env.platformName,
+    tagline: data?.productName ? undefined : env.platformName || undefined,
     logo: data?.logoUrl ? logoSrc(data.logoUrl) : undefined,
   };
 }

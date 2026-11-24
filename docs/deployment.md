@@ -641,6 +641,29 @@ Frontend values are compiled into the bundle, so they are build arguments
 (set in `docker/prod.env`, applied on `--build`): `VITE_APP_NAME`,
 `VITE_PLATFORM_NAME`, `VITE_DEFAULT_LOCALE`. `VITE_BFF_URL` is `/api` (same
 origin) and `VITE_API_MODE` is `live`; do not change them for this layout.
+The product's name is better set at run time (next section).
+
+### The product's name
+
+The same images run under any product name: the names are read when the
+containers start, from `docker/prod.env`, not compiled in. Unset, everything
+says Intertec Servicedesk, as it always has. Change them, then
+`docker compose ... up -d` (no rebuild). No quotes or backslashes in them.
+
+| Setting | Read by | Default | What it names |
+| --- | --- | --- | --- |
+| `APP_NAME` | web | `Intertec` (or `VITE_APP_NAME`) | The wordmark, the tab title, the landing page. |
+| `PLATFORM_NAME` | web | `Servicedesk` (or `VITE_PLATFORM_NAME`) | The line under the wordmark; empty for none. |
+| `BRAND_MARK` | web | `intertec` | The built-in logo and favicon: `intertec` or `iraops`. |
+| `COMPANY_NAME` | web, BFF | `Intertec` | The company that issues licences: the agreements, the licence page and its messages. |
+| `PRODUCT_NAME` | BFF | `Arcus` | The product in the licence agreement and terms of service. |
+| `PUBLIC_NAME` | BFF | `Servicedesk` | What messages call the system of record. |
+| `MFA_ISSUER` | BFF | `<PRODUCT_NAME> Helpdesk` | The label in people's authenticator apps. Changing it later leaves the label of codes already set up as it was. |
+
+IRAOPS sets `APP_NAME=IRAOPS`, `PLATFORM_NAME=` (empty), `COMPANY_NAME=IRAOPS`,
+`BRAND_MARK=iraops`, `PRODUCT_NAME=IRAOPS`, `PUBLIC_NAME=IRAOPS`,
+`MFA_ISSUER=IRAOPS`. A tenant's own branding (multi-customer mode) still
+replaces the name and logo on its own address.
 
 ### Licensing (`LICENSING`)
 

@@ -1,3 +1,4 @@
+import { env } from '@/config/env';
 import { useState, type ReactNode } from 'react';
 import { PageHeader } from '@/components/layout';
 import { Button, Card, CardBody, CardHeader, Input, Skeleton } from '@/components/ui';
@@ -325,7 +326,7 @@ export function LicencesPage() {
       <PageHeader
         breadcrumbs={[{ label: 'Home', to: '/' }, { label: 'Licences' }]}
         title="Licences"
-        description="Every licence Intertec issued: issue, re-issue, revoke, and the renewals due."
+        description={`Every licence ${env.companyName} issued: issue, re-issue, revoke, and the renewals due.`}
       />
       {isError ? (
         <p role="alert" className={`${ALERT} mb-6 border-critical/30 bg-critical-soft text-critical-ink`}>

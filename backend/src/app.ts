@@ -2,7 +2,7 @@ import Fastify, { type FastifyInstance } from "fastify";
 import multipart from "@fastify/multipart";
 
 import type { Config } from "./config/env.js";
-import { publicText } from "./core/public-text.js";
+import { publicText, setPublicName } from "./core/public-text.js";
 import { AppError } from "./core/errors.js";
 import { registerCors } from "./core/cors.js";
 import { registerSecurityHeaders } from "./core/security-headers.js";
@@ -55,6 +55,7 @@ function publicPayload(error: AppError) {
 }
 
 export function buildApp(config: Config, options: BuildServicesOptions = {}): BuildAppResult {
+  setPublicName(config.publicName ?? "Servicedesk");
   const app = Fastify({
     // A hop count as the function proxy-addr builds for one (Fastify's types
     // leave the number form out): trust the first n hops from the socket.
@@ -111,6 +112,7 @@ export function buildApp(config: Config, options: BuildServicesOptions = {}): Bu
         ...(config.licensing!.clusterId ? { clusterId: config.licensing!.clusterId } : {}),
         ...(config.licensing!.activationUrl ? { activationUrl: config.licensing!.activationUrl } : {}),
         ...(config.licensing!.revocationUrl ? { revocationUrl: config.licensing!.revocationUrl } : {}),
+        ...(config.licensing!.names ? { company: config.licensing!.names.company } : {}),
         ...(options.licenceFetch ? { fetch: options.licenceFetch } : {}),
       },
     });

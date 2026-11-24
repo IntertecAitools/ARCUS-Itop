@@ -58,3 +58,38 @@ describe('api mode', () => {
     expect(env.bffUrl).not.toContain(':8080');
   });
 });
+
+describe("the installation's names", () => {
+  afterEach(() => {
+    delete (window as { __APP_CONFIG__?: unknown }).__APP_CONFIG__;
+  });
+
+  it('is Intertec Servicedesk with the Intertec logo when nothing is set', async () => {
+    vi.stubEnv('VITE_APP_NAME', '');
+    vi.stubEnv('VITE_PLATFORM_NAME', '');
+
+    const env = await loadEnv();
+
+    expect(env.fullName).toBe('Intertec Servicedesk');
+    expect(env.companyName).toBe('Intertec');
+    expect(env.brandMark).toBe('intertec');
+  });
+
+  it("takes the web server's /config.js over the build's values", async () => {
+    vi.stubEnv('VITE_APP_NAME', 'Intertec');
+    (window as { __APP_CONFIG__?: unknown }).__APP_CONFIG__ = {
+      appName: 'IRAOPS',
+      platformName: '',
+      companyName: 'IRAOPS',
+      brandMark: 'iraops',
+    };
+
+    const env = await loadEnv();
+
+    expect(env.appName).toBe('IRAOPS');
+    expect(env.platformName).toBe('');
+    expect(env.fullName).toBe('IRAOPS');
+    expect(env.companyName).toBe('IRAOPS');
+    expect(env.brandMark).toBe('iraops');
+  });
+});

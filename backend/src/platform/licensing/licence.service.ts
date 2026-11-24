@@ -11,7 +11,7 @@ import {
   type Site,
 } from "./sdk/index.js";
 import { EDITION_FEATURES, EDITION_NAMES, FEATURES, featureOfClass, featureOfRoute, lowestEditionWith } from "./editions.js";
-import { agreementFor, type Agreement } from "./eula.js";
+import { agreementFor, type Agreement, type ProductNames } from "./eula.js";
 import { verifyArcusLicence, type ArcusKeyOptions, type ArcusLicence } from "./licence.verify.js";
 import { INSTALLATION_SCOPE, type InstallationRow, type LicenceEvent, type LicenceRow, type LicenceStore, type StateRow } from "./licence.store.js";
 import type {
@@ -32,6 +32,8 @@ export interface LicensingSettings {
   tenancy: boolean;
   /** What this installation is: a non-production key is refused on a production one. */
   installationKind: "production" | "nonprod" | "standby";
+  /** The product and company names the agreements use (PRODUCT_NAME, COMPANY_NAME). */
+  names?: ProductNames;
   /** How often licences are re-read and states recomputed. */
   refreshMs?: number;
   /**
@@ -540,7 +542,7 @@ export class LicenceService {
   /** Records acceptance of the EULA (or SaaS terms) for a scope, with the version. */
   /** The agreement customers accept here: the terms of service (SaaS) or the EULA (deployed). */
   get agreement(): Agreement {
-    return agreementFor(this.settings.tenancy);
+    return agreementFor(this.settings.tenancy, this.settings.names);
   }
 
   async acceptEula(scope: string, by: string): Promise<void> {

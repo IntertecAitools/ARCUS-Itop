@@ -112,6 +112,8 @@ export interface Config {
   /** iTop's dashboard definitions, from cmdb-schema/extract-dashboards.py. */
   dashboardsPath: string;
   lookupCacheTtlMs: number;
+  /** PUBLIC_NAME: what messages call the system of record ("Servicedesk"). */
+  publicName?: string;
   /**
    * The frontend's public address, e.g. https://helpdesk.example.com. Links
    * in emails (password resets, notifications) point here, never at iTop.
@@ -562,7 +564,7 @@ function signInPolicy(): SignInPolicy {
   }
   return {
     mfaRequired: oneOf("MFA_REQUIRED", "staff", ["staff", "admin", "off"] as const),
-    totpIssuer: optional("MFA_ISSUER", "Arcus Helpdesk"),
+    totpIssuer: optional("MFA_ISSUER", `${productNames().product} Helpdesk`),
     passwordSignIn,
     breakGlassLogins: list(optional("BREAK_GLASS_LOGINS", "")).map((l) => l.toLowerCase()),
     ...(sso ? { sso } : {}),
@@ -645,6 +647,8 @@ export interface LicensingConfig {
   releaseDate?: string;
   /** This release's version (package.json). */
   version: string;
+  /** PRODUCT_NAME and COMPANY_NAME, in the agreements and licence messages (defaults Arcus, Intertec). */
+  names?: { product: string; company: string };
 }
 
 function packageVersion(): string {
@@ -690,6 +694,16 @@ function releaseDate(): string | undefined {
   return raw;
 }
 
+/**
+ * The product's name and the company behind it, where the server writes them
+ * for people to read: the agreements, the licence messages, the sign-in app's
+ * label (MFA_ISSUER). The web app's own name is set on the web container
+ * (APP_NAME, docker/docker-compose.prod.yml).
+ */
+function productNames(): { product: string; company: string } {
+  return { product: optional("PRODUCT_NAME", "Arcus"), company: optional("COMPANY_NAME", "Intertec") };
+}
+
 function licensingConfig(): LicensingConfig | undefined {
   const mode = oneOf("LICENSING", "off", ["off", "warn", "enforce"] as const);
   if (mode === "off") return undefined;
@@ -704,6 +718,7 @@ function licensingConfig(): LicensingConfig | undefined {
     ...(httpsUrl("LICENCE_REVOCATION_URL") ? { revocationUrl: httpsUrl("LICENCE_REVOCATION_URL")! } : {}),
     ...(releaseDate() ? { releaseDate: releaseDate()! } : {}),
     version: packageVersion(),
+    names: productNames(),
   };
 }
 
@@ -802,6 +817,7 @@ export function loadConfig(envFile = resolve(PACKAGE_ROOT, ".env")): Config {
       optional("CMDB_DASHBOARDS_PATH", "../cmdb-schema/cmdb-dashboards.json"),
     ),
     lookupCacheTtlMs: integer("LOOKUP_CACHE_TTL", 60, 0, 86_400) * 1000,
+    publicName: optional("PUBLIC_NAME", "Servicedesk"),
     ...(appBaseUrl() ? { appBaseUrl: appBaseUrl()! } : {}),
     ...(notificationSender() ? { notificationSender: notificationSender()! } : {}),
     ...(optional("ITOP_DEFAULT_ORG_ID", "") ? { defaultOrgId: optional("ITOP_DEFAULT_ORG_ID", "") } : {}),
