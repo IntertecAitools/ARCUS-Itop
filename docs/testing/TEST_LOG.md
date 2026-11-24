@@ -4,6 +4,22 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-11-24 — IRAOPS: release, renames, demonstration data
+
+| Step | Result |
+|---|---|
+| First `iraops-release` run (29bfba5c), approved before the settings existed | failed safely at the first step ("No settings for itop"), nothing started |
+| `init-settings.ps1` | 58 settings (45 `prod--`, 13 `itop--`), new passwords |
+| Release retried by the user in AWS | succeeded 08:43 UTC: db, itop, itop-cron, bff, web healthy; `/config.js` gives the IRAOPS names; the public page shows only IRAOPS (title, logo, favicon, no Intertec/Servicedesk/Arcus/iTop text). Warning: approvals-setup needs `NOTIFICATION_FROM` (no mail yet), retried on a later release |
+| Renames (REST, service account) | Organization 1 "My Company/Department" → "IRAOPS"; Person 1 "My first name My last name" → "IRAOPS Admin" |
+| `backend/scripts/demo-data/seed.mjs` (one-off container of the BFF image on `arcus_itop`) | 3 starts: (1) quoted `ITOP_BASE_URL` from the env file, fixed; (2) manifest folder not writable, 1 organisation created before it, reused by name; (3) catalogue brands already present, now reused and marked `existing` in the manifest. Final run: 10.2 min, 3,075 calls, 0 failures, 3,618 manifest lines |
+| Loaded | 10 clients + 6 suppliers, 27 offices, 42 IT staff in 8 teams, 310 client staff, 82 accounts (random passwords, nobody signs in), 7 service families / 23 services / 63 subcategories, 3 SLAs with 48 SLTs, calendar and business hours, 10 client and 6 supplier contracts, 685 assets and applications, 2,073 tickets over 182 days (924 incidents, 1,039 requests, about 110 changes), 78 CAB decisions, 10 problems with known errors, 18 knowledge articles, 15 reports (saved queries, CSV/Excel/PDF export) |
+| SLA history (direct SQL on the stopwatch columns) | the cron re-flagged timers left with a last start; fixed by computing passed flags from stopped vs deadline and clearing last start. Result: resolution target missed on 10% of incidents and 7% of requests, response target on about 5%; open tickets the cron escalated without being late put back to assigned |
+| Customer | `tenants set iraops --name IRAOPS --all-orgs`: 17 organisations; `unclaimed`: only `arcus-service` |
+| Manifest | `/opt/arcus/demo/manifest.jsonl` on the server, copies in `/opt/arcus/backups` and the backup storage |
+
+Not covered: pages fed only by the BFF's own tables (drafts, time logged, request forms, assignment rules, change blackouts and post-implementation reviews, knowledge workflow, licence) are empty; no licence issued yet. Sign-in checks of the pages were done by the user (staff pages need a signed-in session).
+
 ### 2026-11-24 — IRAOPS may sign licences with the licence key
 
 Approved by the user. `licence_extra_signers` in `deploy/aws/terraform/licensing.auto.tfvars` names `iraops-azure-server`.
