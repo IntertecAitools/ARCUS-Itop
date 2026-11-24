@@ -4,6 +4,17 @@ Every test run, newest last. Entries are appended automatically by `.claude/hook
 
 ## Sessions
 
+### 2026-11-24 — IRAOPS: demonstration data for the app's own pages
+
+`backend/scripts/demo-data/seed-app.mjs`, run in a one-off container of the BFF image, through the app's own services as the IRAOPS administrator inside the `iraops` customer (dated history written to the BFF tables directly).
+
+| Run | Result |
+|---|---|
+| First start | refused: lookups outside a signed-in context ("Sign in to continue"); fixed by running them as the service account inside the customer |
+| Second start | assignment rules 15, request forms 8, auto-close on (5 days, no reminders: no mail), change blackouts 4, post-implementation reviews 40, knowledge settings, knowledge ratings 57, time logged 1,765 entries over 75 days, drafts 4 (admin's); no failure |
+
+Each item is added to the manifest (`cls: "app"`) for the clean-up. Not filled: approvals (needs approval rules and notification sender), licence (to be issued on the Licences page), data-import reports, sign-in audit.
+
 ### 2026-11-24 — IRAOPS: release, renames, demonstration data
 
 | Step | Result |
